@@ -5,5 +5,5 @@ Computer Vision library for D programming language
 This library is in early development stage.
 
 ## Dependencies
-Library is based on scientific libraries from [DlangScinece](https://github.com/DlangScience)
+Library should be primarilly based on scientific libraries from [DlangScience](https://github.com/DlangScience).
 
