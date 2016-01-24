@@ -162,6 +162,14 @@ public:
 		return cast(T[])_data;
 	}
 
+	auto data(T)() const {
+		static assert(is(T == ubyte) ||
+			is(T == ushort) ||
+			is(T == float), "Pixel data type not supported. Supported ones are: ubyte(8bit), ushort(16bit), float(32bit)");
+		enforce(isOfType!T, "Invalid pixel data type cast.");
+		return cast(T[])_data;
+	}
+
 	auto byElement(T)() inout {
 		static assert(is(T == ubyte) ||
 			is(T == ushort) ||
