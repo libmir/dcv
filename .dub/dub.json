@@ -1,0 +1,10 @@
+{
+	"dub": {
+		"lastUpgrade": "2016-01-24T22:56:26.2109586",
+		"cachedUpgrades": {
+			"mir": "0.10.1-alpha",
+			"scid": "0.3.0",
+			"imageformats": "5.2.0"
+		}
+	}
+}
