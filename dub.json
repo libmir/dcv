@@ -1,0 +1,26 @@
+{
+	"name": "dcv",
+	"description": "Computer vision library for D programming language.",
+	"copyright": "Copyright © 2016, Relja Ljubobratovic",
+	"authors": ["Relja Ljubobratovic"],
+	"dependencies": {
+		"mir": "~>0.10.1-alpha",
+		"imageformats": "~>5.2.0",
+		"scid": "~>0.3.0"
+	},
+	"sourcePaths": [
+		"source/"
+	],
+	"importPaths": [
+		"source/"
+	],
+	"version": "0.0.1",
+	"configurations": [
+		{
+			"name": "d_source_library",
+			"targetType": "sourceLibrary"
+		}
+	],
+	"license": "MIT"
+
+}
