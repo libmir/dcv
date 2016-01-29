@@ -53,14 +53,19 @@ public:
 	this() {
 	}
 
-	this(in Image im) {
+	this(in Image im, bool deepCopy = false) {
 		if (im._data is null)
 			return;
 		_format = im._format;
 		_depth = im._depth;
 		_width = im._width;
 		_height = im._height;
-		_data = cast(ubyte[])im._data;
+		if (deepCopy) {
+			_data = new ubyte[im._data.length];
+			_data[] = im._data[];
+		} else {
+			_data = cast(ubyte[])im._data;
+		}
 	}
 
 	this(size_t width, size_t height, ImageFormat format = ImageFormat.IF_RGB,
@@ -129,24 +134,22 @@ public:
 		assert(_data);
 	} body {
 		import std.range : lockstep;
+		import std.algorithm : copy;
 
 		auto depth = getDepthFromType!T;
 		assert(depth != BitDepth.BD_UNASSIGNED);
 
 		if (depth == _depth)
-			return new Image(this);
+			return new Image(this, true);
 
 		Image newim = new Image(width, height, format, depth);
 		switch (_depth) {
 			case BitDepth.BD_8:
-				foreach(ref v, o; lockstep(cast(T[])newim._data, _data)) { v = cast(T)o; }
-				break;
+				data!ubyte.copy(newim.data!T); break;
 			case BitDepth.BD_16:
-				foreach(ref v, o; lockstep(cast(T[])newim._data, cast(ushort[])_data)) { v = cast(T)o; }
-				break;
+				data!ushort.copy(newim.data!T); break;
 			case BitDepth.BD_32:
-				foreach(ref v, o; lockstep(cast(T[])newim._data, cast(float[])_data)) { v = cast(T)o; }
-				break;
+				data!float.copy(newim.data!T); break;
 			default:
 				assert(0);
 		}
@@ -154,7 +157,7 @@ public:
 		return newim;
 	}
 
-	auto data(T)() {
+	auto data(T)() inout {
 		static assert(is(T == ubyte) ||
 			is(T == ushort) ||
 			is(T == float), "Pixel data type not supported. Supported ones are: ubyte(8bit), ushort(16bit), float(32bit)");
@@ -162,12 +165,23 @@ public:
 		return cast(T[])_data;
 	}
 
-	auto data(T)() const {
-		static assert(is(T == ubyte) ||
-			is(T == ushort) ||
-			is(T == float), "Pixel data type not supported. Supported ones are: ubyte(8bit), ushort(16bit), float(32bit)");
-		enforce(isOfType!T, "Invalid pixel data type cast.");
-		return cast(T[])_data;
+	/// Get row at given index.
+	auto row(V)(size_t i) inout
+	in {
+		assert(i < height);
+	} body {
+		auto trowstride = width*channels;
+		return data!V[trowstride*i..trowstride*(i+1)];
+	}
+
+	/// Get col at given index.
+	auto col(V)(size_t i) inout
+	in {
+		assert(i < width);
+	} body {
+		import std.range : stride;
+		auto start = i*channels;
+		return data!V[start..width*height*channels].stride(width*channels);
 	}
 
 	auto byElement(T)() inout {
@@ -225,4 +239,31 @@ public:
 	auto sliced(T)() {
 		return data!T.sliced(height, width, channels);
 	}
+}
+
+/*
+ Image asImage(T)(Slice!(3, T*) slice) {
+ Image image = new Image(slice.shape[1], slice.shape[0], cast(ImageFormat)slice.shape[2], slice.byElement.array);
+ }
+ */
+
+unittest {
+	import std.algorithm : each;
+
+	ubyte [] data = new ubyte[3*3*3];
+
+	data[0] = 1;
+	data[1] = 2;
+	data[2] = 3;
+
+	auto im = new Image(3, 3, ImageFormat.IF_RGB, BitDepth.BD_8, data);
+	auto imslice = im.sliced!ubyte;
+
+	imslice
+		.byElement
+			.each!((ref v) => v *= 2);
+
+	assert(data[0] == 2);
+	assert(data[1] == 4);
+	assert(data[2] == 6);
 }
