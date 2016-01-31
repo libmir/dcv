@@ -20,6 +20,18 @@ enum BitDepth : size_t {
 	BD_32 = 32
 }
 
+private	auto getDepthFromType(T)() @safe {
+	static if (is (T==ubyte)) {
+		return BitDepth.BD_8;
+	} else static if (is (T == ushort)) {
+		return BitDepth.BD_16;
+	} else static if (is(T == float)) {
+		return BitDepth.BD_32;
+	} else {
+		return BitDepth.BD_UNASSIGNED;
+	}
+}
+
 /**
  * Image abstraction type, used primariliy as an I/O unit.
  */
@@ -36,18 +48,7 @@ private:
 	/// Image pixel (data) array.
 	ubyte[] _data = [];
 
-	auto getDepthFromType(T)() const @safe {
-		static if (is (T==ubyte)) {
-			return BitDepth.BD_8;
-		} else static if (is (T == ushort)) {
-			return BitDepth.BD_16;
-		} else static if (is(T == float)) {
-			return BitDepth.BD_32;
-		} else {
-			return BitDepth.BD_UNASSIGNED;
-		}
-	}
-
+	
 public:
 
 	this() {
@@ -241,11 +242,25 @@ public:
 	}
 }
 
-/*
- Image asImage(T)(Slice!(3, T*) slice) {
- Image image = new Image(slice.shape[1], slice.shape[0], cast(ImageFormat)slice.shape[2], slice.byElement.array);
- }
- */
+Image asImage(size_t N, T)(Slice!(N, T*) slice) {
+	BitDepth depth = getDepthFromType!T;
+	enforce (depth != BitDepth.BD_UNASSIGNED, "Invalid type of slice for convertion to image: ", T.stringof);
+	static if (N == 2) {
+		ubyte* ptr = cast(ubyte*)&slice[0, 0];
+		ubyte [] s_arr = ptr[0 .. slice.shape.reduce!"a*b"*T*sizeof][];
+		return new Image(slice.shape[1], slice.shape[0], ImageFormat.IF_MONO, depth, s_arr);
+	} else static if (N == 3) {
+		ubyte* ptr = cast(ubyte*)&slice[0, 0, 0];
+		ubyte [] s_arr = ptr[0 .. slice.shape.reduce!"a*b"*T*sizeof][];
+		auto ch = slice.shape[2];
+		enforce(ch >= 1 && ch <= 4, 
+			"Invalid slice shape - third dimension should contain from 1(grayscale) to 4(rgba) values.");
+		ImageFormat format = cast(ImageFormat)ch;
+		return new Image(slice.shape[1], slice.shape[0], format, depth, s_arr);
+	} else {
+		static assert(0, "Invalid slice dimension - should be 2(mono image) or 3(channel image) dimensional.");
+	}
+}
 
 unittest {
 	import std.algorithm : each;
