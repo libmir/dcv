@@ -11,3 +11,17 @@ Should also provide insight to basic setup for any image processing, such as ima
 * dcv.io - imread, imwrite
 * dcv.imgproc.color - rgb2gray
 - dcv.imgproc.convolution - conv
+
+## Result
+
+Input image:
+
+![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/lena.png)
+
+Grayscale version:
+
+![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/convolution/result/outgray.png)
+
+Average:
+
+![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/convolution/result/outblur.png)
