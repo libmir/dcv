@@ -13,8 +13,10 @@ import dcv.imgproc.color;
 
 
 int main(string[] args) {
+	
     if (args.length < 2) {
         writeln("Invalid argument count - first argument should be a path to RGB image.");
+		return 1;
     }
 
     Image img = imread(args[1]); // read an image from filesystem.
@@ -49,8 +51,8 @@ int main(string[] args) {
     auto imgray_byte = imgray.asType!ubyte; // also the gray image...
 
     // write resulting images on the filesystem.
-    imgray_byte.imwrite("./outgray.png");
-    blur_byte.imwrite("./outblur.png");
+    imgray_byte.imwrite("./result/outgray.png");
+    blur_byte.imwrite("./result/outblur.png");
 
     return 0;
 }
