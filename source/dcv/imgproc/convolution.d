@@ -147,61 +147,61 @@ Slice!(2, V*) conv2Impl(V, K)(Slice!(2, V*) range, Slice!(2, K*) kernel, Slice!(
 		}
 	}
 
-	 // run upper edge with mirror (symmetric) indexing.
-	 auto row = prealloc[0, 0..rc];
-	 foreach(j; 0.iota(rc).parallel) {
-	 V v = 0;
-	 for(int ii = -krh; ii < krh+1; ++ii) {
-	 for(int jj = -kch; jj < kch+1; ++jj) {
-	 immutable jjj = j+jj;
-	 immutable jj_pos = jjj < 0 ? abs(jjj) :	jjj > rc-1 ? rc-1-abs(jj) : jjj;
-	 v += range[abs(ii), jj_pos]*kernel[ii+krh, jj+kch];
-	 }
-	 }
-	 row[j] = v;
-	 }
+	// run upper edge with mirror (symmetric) indexing.
+	auto row = prealloc[0, 0..rc];
+	foreach(j; 0.iota(rc).parallel) {
+		V v = 0;
+		for(int ii = -krh; ii < krh+1; ++ii) {
+			for(int jj = -kch; jj < kch+1; ++jj) {
+				immutable jjj = j+jj;
+				immutable jj_pos = jjj < 0 ? abs(jjj) :	jjj > rc-1 ? rc-1-abs(jj) : jjj;
+				v += range[abs(ii), jj_pos]*kernel[ii+krh, jj+kch];
+			}
+		}
+		row[j] = v;
+	}
 
-	 // run lower edge with mirror (symmetric) indexing.
-	 row = prealloc[rr-1, 0..rc];
-	 foreach(j; 0.iota(rc).parallel) {
-	 V v = 0;
-	 for(int ii = -krh; ii < krh+1; ++ii) {
-	 for(int jj = -kch; jj < kch+1; ++jj) {
-	 immutable jjj = j+jj;
-	 immutable jj_pos = jjj < 0 ? abs(jjj) :	jjj > rc-1 ? rc-1-abs(jj) : jjj;
-	 v += range[(rr-1)-abs(ii), jj_pos]*kernel[ii+krh, jj+kch];
-	 }
-	 }
-	 row[j] = v;
-	 }
+	// run lower edge with mirror (symmetric) indexing.
+	row = prealloc[rr-1, 0..rc];
+	foreach(j; 0.iota(rc).parallel) {
+		V v = 0;
+		for(int ii = -krh; ii < krh+1; ++ii) {
+			for(int jj = -kch; jj < kch+1; ++jj) {
+				immutable jjj = j+jj;
+				immutable jj_pos = jjj < 0 ? abs(jjj) :	jjj > rc-1 ? rc-1-abs(jj) : jjj;
+				v += range[(rr-1)-abs(ii), jj_pos]*kernel[ii+krh, jj+kch];
+			}
+		}
+		row[j] = v;
+	}
 
-	 // run left edge with mirror (symmetric) indexing.
-	 auto col = prealloc[0..rr, 0];
-	 foreach(i; 0.iota(rr).parallel) {
-	 V v = 0;
-	 for(int ii = -krh; ii < krh+1; ++ii) {
-	 for(int jj = -kch; jj < kch+1; ++jj) {
-	 immutable iii = i+ii;
-	 immutable ii_pos = iii < 0 ? abs(iii) :	iii > rr - 1 ? rr-1-abs(ii) : iii;
-	 v += range[ii_pos, abs(jj)]*kernel[ii+krh, jj+kch];
-	 }
-	 }
-	 col[i] = v;
-	 }
+	// run left edge with mirror (symmetric) indexing.
+	auto col = prealloc[0..rr, 0];
+	foreach(i; 0.iota(rr).parallel) {
+		V v = 0;
+		for(int ii = -krh; ii < krh+1; ++ii) {
+			for(int jj = -kch; jj < kch+1; ++jj) {
+				immutable iii = i+ii;
+				immutable ii_pos = iii < 0 ? abs(iii) :	iii > rr - 1 ? rr-1-abs(ii) : iii;
+				v += range[ii_pos, abs(jj)]*kernel[ii+krh, jj+kch];
+			}
+		}
+		col[i] = v;
+	}
 
-	 // run right edge with mirror (symmetric) indexing.
-	 col = prealloc[0..rr, rc-1];
-	 foreach(i; 0.iota(rr).parallel) {
-	 V v = 0;
-	 for(int ii = -krh; ii < krh+1; ++ii) {
-	 for(int jj = -kch; jj < kch+1; ++jj) {
-	 immutable iii = i+ii;
-	 immutable ii_pos = iii < 0 ? abs(iii) :	iii > rr - 1 ? rr-1-abs(ii) : iii;
-	 v += range[ii_pos, (rc-1)-abs(jj)]*kernel[ii+krh, jj+kch];
-	 }
-	 }
-	 col[i] = v;
-	 }
+	// run right edge with mirror (symmetric) indexing.
+	col = prealloc[0..rr, rc-1];
+	foreach(i; 0.iota(rr).parallel) {
+		V v = 0;
+		for(int ii = -krh; ii < krh+1; ++ii) {
+			for(int jj = -kch; jj < kch+1; ++jj) {
+				immutable iii = i+ii;
+				immutable ii_pos = iii < 0 ? abs(iii) :	iii > rr - 1 ? rr-1-abs(ii) : iii;
+				v += range[ii_pos, (rc-1)-abs(jj)]*kernel[ii+krh, jj+kch];
+			}
+		}
+		col[i] = v;
+	}
 
 	return prealloc;
 }
