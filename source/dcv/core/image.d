@@ -96,8 +96,13 @@ public:
 	@property height() const @safe pure {
 		return _height;
 	}
+	/// Get bit depth of the image.
 	@property depth() const @safe pure {
 		return _depth;
+	}
+	/// Check if image is empty (there's no data present).
+	@property empty() const @safe pure {
+		return _data is null;
 	}
 	/// Channel count of the image.
 	@property channels() const @safe pure {
