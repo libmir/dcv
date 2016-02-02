@@ -45,7 +45,7 @@ int main(string[] args) {
     Thread.getThis.sleep(dur!"msecs"(1000));
 
     s.start;
-    // perform convultionon gray image using average kernel
+    // perform convultionon
     auto blur = imslice.conv(kernel);
     writeln("Convolution done in: ", s.peek.msecs, "ms");
 
