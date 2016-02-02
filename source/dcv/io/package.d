@@ -6,7 +6,7 @@ private import std.algorithm : reduce, map;
 private import std.string : toLower;
 private import std.path : extension;
 
-public import mir.ndslice;
+public import std.experimental.ndslice;
 public import dcv.core.image;
 
 private import imageformats;

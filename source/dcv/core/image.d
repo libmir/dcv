@@ -1,7 +1,7 @@
 module dcv.core.image;
 
 private import std.exception : enforce;
-public import mir.ndslice;
+public import std.experimental.ndslice;
 
 /// Image (pixel) format.
 enum ImageFormat : size_t {

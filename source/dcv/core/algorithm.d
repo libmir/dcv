@@ -1,6 +1,6 @@
 ﻿module dcv.core.algorithm;
 
-private import mir.ndslice;
+private import std.experimental.ndslice;
 private import std.range;
 private import std.traits;
 private import std.algorithm : map, each, max, min;

@@ -4,7 +4,6 @@
 	"copyright": "Copyright © 2016, Relja Ljubobratovic",
 	"authors": ["Relja Ljubobratovic"],
 	"dependencies": {
-		"mir": "~>0.10.1-alpha",
 		"imageformats": "~>5.2.0",
 		"scid": "~>0.3.0"
 	},

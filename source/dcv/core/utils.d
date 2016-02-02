@@ -4,7 +4,7 @@
  * Module for various utilities used throughout the library.
  */
 
-private import mir.ndslice;
+private import std.experimental.ndslice;
 private import std.traits;
 private import std.range : lockstep;
 private import std.algorithm.iteration : reduce;
@@ -33,3 +33,15 @@ static Slice!(N, O*) asType(O, V, size_t N)(Slice!(N, V*) inslice) {
 		static assert(0, "Type " ~ V.stringof ~ " is not convertible to type " ~ O.stringof ~ ".");
 	}
 }
+
+
+/*
+Slice!() meshgrid(V, XShape..., )(XShape shape) 
+{
+
+}
+*/
+
+
+private:
+

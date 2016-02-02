@@ -4,7 +4,7 @@
  * Color format convertion module.
  */
 
-private import mir.ndslice;
+private import std.experimental.ndslice;
 
 private import dcv.core.utils;
 
