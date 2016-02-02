@@ -22,10 +22,10 @@ just before timing the convolution...*
 
 
 Complete output on my machine is:
-'''
+```
 Waiting for threads to be spawned and ready...
 Convolution done in: 122ms
-'''
+```
 
 Input image:
 
