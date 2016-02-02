@@ -14,7 +14,7 @@ Should also provide insight to basic setup for any image processing, such as ima
 ## Result
 
 Naive version of the algorithm is implemented so far, so it's quite slow - my machine with six core AMD Phenom processor 
-takes ~55ms for this example. Separable implementation should be done in the future, aswell as simd support for 
+takes ~120ms for this example. Separable implementation should be done in the future, aswell as simd support for 
 spatial domain 1D convolution.
 
 *note: thread spawning on the application entry can mess up stopwatch significantly on my machine, so I've put Thread.getThis.sleep
@@ -24,7 +24,7 @@ just before timing the convolution...*
 Complete output on my machine is:
 '''
 Waiting for threads to be spawned and ready...
-Convolution done in: 55ms
+Convolution done in: 122ms
 '''
 
 Input image:

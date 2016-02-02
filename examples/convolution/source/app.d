@@ -38,7 +38,7 @@ int main(string[] args) {
 		.sliced!float; // slice image data - calls img.data!float.sliced(img.height, img.width, img.channels)
 
     // create gaussian convolution kernel
-    auto kernel = gaussian!float(0.87, 3, 3);
+    auto kernel = gaussian!float(2, 5, 5);
 
 	StopWatch s;
 
