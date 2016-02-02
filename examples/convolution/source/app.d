@@ -4,25 +4,32 @@ module dcv.example.convolution;
  * Convolution example using dcv library.
  */
 
-import std.stdio;
+import std.experimental.ndslice;
+import std.stdio : writeln;
+import std.datetime : StopWatch;
+import core.thread;
 
-import dcv.core;
-import dcv.io;
-import dcv.imgproc.convolution;
-import dcv.imgproc.color;
+import dcv.core : Image, asType;
+import dcv.io : imread, imwrite;
+import dcv.imgproc.convolution : conv;
+import dcv.imgproc.filter : gaussian;
 
 
 int main(string[] args) {
 	
-    if (args.length < 2) {
-        writeln("Invalid argument count - first argument should be a path to RGB image.");
-		return 1;
-    }
+    Image img = null;
+	string impath = "";
 
-    Image img = imread(args[1]); // read an image from filesystem.
+    if (args.length < 2) {
+		impath = "../data/lena.png";
+    } else {
+		impath = args[1];
+	}
+
+	img = imread(impath); // read an image from filesystem.
 
     if (img.empty) { // check if image is properly read.
-        writeln("Cannot read image at: " ~ args[1]);
+        writeln("Cannot read image at: " ~ impath);
         return 1;
     }
 
@@ -30,14 +37,18 @@ int main(string[] args) {
 		.asType!float // convert Image data type from ubyte to float
 		.sliced!float; // slice image data - calls img.data!float.sliced(img.height, img.width, img.channels)
 
-    auto imgray = imslice.rgb2gray; // convert image from rgb to gray
+    // create gaussian convolution kernel
+    auto kernel = gaussian!float(0.87, 3, 3);
 
-    // create average convolution kernel
-    auto kernel = new float[9].sliced(3, 3);
-    kernel[] = 1. / 9.;
+	StopWatch s;
 
+	writeln("Waiting for threads to be spawned and ready...");
+	Thread.getThis.sleep(dur!"msecs"(1000));
+
+	s.start;
     // perform convultionon gray image using average kernel
-    auto blur = imgray.conv(kernel);
+    auto blur = imslice.conv(kernel);
+	writeln("Convolution done in: ", s.peek.msecs, "ms");
 
     /*
 	//Pre-allocation of the return buffer is allowed through third input parameter:
@@ -48,10 +59,8 @@ int main(string[] args) {
 	*/
 
     auto blur_byte = blur.asType!ubyte; // convert average image to ubyte for writing.
-    auto imgray_byte = imgray.asType!ubyte; // also the gray image...
 
     // write resulting images on the filesystem.
-    imgray_byte.imwrite("./result/outgray.png");
     blur_byte.imwrite("./result/outblur.png");
 
     return 0;

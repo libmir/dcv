@@ -6,22 +6,31 @@ Should also provide insight to basic setup for any image processing, such as ima
 
 
 ## Modules used
-* dcv.core.image - Image
+* dcv.core.image - Image, asType
 * dcv.core.utils - Slice.asType
 * dcv.io - imread, imwrite
-* dcv.imgproc.color - rgb2gray
 - dcv.imgproc.convolution - conv
 
 ## Result
+
+Naive version of the algorithm is implemented so far, so it's quite slow - my machine with six core AMD Phenom processor 
+takes ~55ms for this example. Separable implementation should be done in the future, aswell as simd support for 
+spatial domain 1D convolution.
+
+*note: thread spawning on the application entry can mess up stopwatch significantly on my machine, so I've put Thread.getThis.sleep
+just before timing the convolution...*
+
+
+Complete output on my machine is:
+'''
+Waiting for threads to be spawned and ready...
+Convolution done in: 55ms
+'''
 
 Input image:
 
 ![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/lena.png)
 
-Grayscale version:
-
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/convolution/result/outgray.png)
-
-Average:
+Blurred image:
 
 ![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/convolution/result/outblur.png)
