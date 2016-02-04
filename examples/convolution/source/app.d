@@ -36,7 +36,7 @@ int main(string[] args) {
     Slice!(3, float*) imslice = img.asType!float // convert Image data type from ubyte to float
     .sliced!float; // slice image data - calls img.data!float.sliced(img.height, img.width, img.channels)
 
-    // create gaussian convolution kernel
+    // create gaussian convolution kernel (sigma, kernel width and height)
     auto kernel = gaussian!float(2, 5, 5);
 
     StopWatch s;
@@ -50,12 +50,11 @@ int main(string[] args) {
     writeln("Convolution done in: ", s.peek.msecs, "ms");
 
     /*
-	//Pre-allocation of the return buffer is allowed through third input parameter:
-	import std.algorithm.iteration : reduce;
-	auto blur = new float[imgray.shape.reduce!"a*b"].sliced(imgray.shape);
-
-	blur = imgray.conv(kernel, blur); // here covolution will be stored to a blur buffer
-	*/
+    //Pre-allocation of the return buffer is allowed through third input parameter:
+    import std.algorithm.iteration : reduce;
+    auto blur = new float[imgray.shape.reduce!"a*b"].sliced(imgray.shape);
+    blur = imgray.conv(kernel, blur); // here covolution will be stored to a blur buffer
+    */
 
     auto blur_byte = blur.asType!ubyte; // convert average image to ubyte for writing.
 
