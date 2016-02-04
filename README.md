@@ -9,11 +9,12 @@ Library design stage. Implementing core structures and algorithms.
 
 ## Modules
 Initial design of the library is to split it into following modules:
-* core - Core structures and algorithms (mainly relying on std.experimental.ndslice)
-* imgproc - Image processing tasks.
-* io - Input/Output support for different image and video formats. 
-* plot - Ploting module, showing images, videos, basic 2D shape drawing etc.
-* features - Feature detection, description and matching module.
+* core - Core structures and algorithms (mainly relying on std.experimental.ndslice);
+* imgproc - Image processing tasks;
+* io - Input/Output support for different image and video formats;
+* plot - Ploting module, showing images, videos, basic 2D shape drawing etc;
+* tracking - video tracking module - optical flow and other related methods;
+* features - Feature detection, description and matching module;
 * multiview - Multiview geometry module, camera calibration, stereo, reconstruction etc.
 
 Initial idea for project organization may change in time. If anybody would like to share some advice on that matter, please do!
