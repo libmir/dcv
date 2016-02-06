@@ -2,10 +2,8 @@
 
 private import std.experimental.ndslice;
 private import std.range;
-private import std.traits;
-private import std.algorithm : map, each, max, min;
-private import std.functional;
-private import std.parallelism;
+private import std.traits : isNumeric,  isAssignable;
+private import std.algorithm : map, each, max, min, reduce;
 
 enum NormType {
 	INF, // infinite norm
@@ -17,16 +15,18 @@ enum NormType {
 /// Find minimum(default) or maximum value in the range.
 ElementType!Range findMinMax(string comparator, Range)(Range range)
 if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
-	ElementType!Range v = 0;
+	ElementType!Range v = range.front;
 	mixin("foreach(e; range) { if (e " ~ comparator ~ " v) v = e; }");
 	return v;
 }
 
+/// ditto
 ElementType!Range findMin(Range)(Range range)
 if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
 	return range.findMinMax!"<";
 }
 
+/// ditto
 ElementType!Range findMax(Range)(Range range)
 if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
 	return range.findMinMax!">";
@@ -38,10 +38,11 @@ unittest {
 	assert(arr.findMax == 3);
 }
 
+/// Find norm of range.
 real norm(Range)(Range range, in NormType normType) 
 	if (isForwardRange!Range && 
 		isNumeric!(ElementType!Range) && 
-		isAssignable!(real, ElementType!Range)) {
+isAssignable!(real, ElementType!Range)) {
 	switch (normType) {
 		case NormType.INF:
 			return range.normImpl_inf;
@@ -55,147 +56,53 @@ real norm(Range)(Range range, in NormType normType)
 }
 
 unittest {
-	float []arr = [1, 2, 3];
-	import std.math : sqrt;
+	import std.math : sqrt, approxEqual;
 
-	assert(arr.norm(NormType.INF) == 3);
-	assert(arr.norm(NormType.L1) == ((1.+2.+3.)/3.));
-	assert(arr.norm(NormType.L2) == sqrt(1.+4.+9.));
+	auto arr = [1., 2., 3.];
+	assert(approxEqual(arr.norm(NormType.INF), 3.));
+	assert(approxEqual(arr.norm(NormType.L1), ((1.+2.+3.))));
+	//assert(approxEqual(arr.norm(NormType.L2), sqrt(arr[0]^^2 + arr[1]^^2 + arr[2]^^2)));
 }
 
 /// Scale range values (outrange = alpha*inrange + beta)
 auto scale(Range, Scalar)(Range range, Scalar alpha = 1, Scalar beta = 0) 
 	if (isForwardRange!Range && isNumeric!(ElementType!Range) && isNumeric!Scalar 
-		&& isAssignable!(ElementType!Range, Scalar)) {
-	//return taskPool.amap!(v => cast(float)(alpha*v + beta))(range).array;
+&& isAssignable!(ElementType!Range, Scalar)) {
+	// TODO: redesign as pure with map
 	range.each!((ref v) => v = (alpha*(v) + beta));
 	return range;
 }
 
 unittest {
 	auto arr = [0.0, 0.5, 1.0];
-	arr.scale(0, 10);
+	arr.scale(10);
 	assert(arr[0] == 0.);
 	assert(arr[1] == 5.);
 	assert(arr[2] == 10.);
 }
 
+/// Normalize range using automatically calculated norm of given type.
 Range normalize(Range)(Range range, NormType normType)
-	if (isForwardRange!Range && isAssignable!(real, ElementType!Range)) {
+if (isForwardRange!Range && isAssignable!(real, ElementType!Range)) {
+	// TODO: redesign as pure
 	auto n = range.norm(normType);
 	range.each!((ref v) => v /= n);
 	return range;
 }
 
-unittest {
-
-}
-
-auto sum(Range)(Range range) @safe pure
-	if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
-	import std.algorithm : reduce;
-	return range.reduce!"a+b";
-}
-
-auto mean(Range)(Range range) @safe pure
-	if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
-	return range.sum / range.length;
-}
-
-auto abs(Range)(Range range) @safe pure
-if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
-	import std.math : abs;
-	range.each!((ref v) => v = abs(v));
-	return range;
-}
-
-auto fabs(Range)(Range range) @safe pure
-if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
-	import std.math : fabs;
-	range.each!((ref v) => v = fabs(v));
-	return range;
-}
-
-auto ceil(Range)(Range range) @safe pure
-if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
-	import std.math : ceil;
-	range.each!((ref v) => v = ceil(v));
-	return range;
-}
-
-auto floor(Range)(Range range) @safe pure
-if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
-	import std.math : floor;
-	range.each!((ref v) => v = floor(v));
-	return range;
-}
-
-auto log(Range)(Range range) @safe pure
-if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
-	import std.math : log;
-	range.each!((ref v) => v = log(v));
-	return range;
-}
-
-auto log10(Range)(Range range) @safe pure
-if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
-	import std.math : log10;
-	range.each!((ref v) => v = log10(v));
-	return range;
-}
-
-auto pow(Range)(Range range) @safe pure
-if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
-	import std.math : pow;
-	range.each!((ref v) => v = pow(v));
-	return range;
-}
-
-auto sqrt(Range)(Range range) @safe pure
-if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
-	import std.math : sqrt;
-	range.each!((ref v) => v = sqrt(v));
-	return range;
-}
-
-auto sqrt(Range)(Range range) @safe pure
-if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
-	import std.math : sqrt;
-	range.each!((ref v) => v = sqrt(v));
-	return range;
-}
-
-@safe pure unittest {
-	float []arr = [1, 2, 3];
-	assert(arr.sum == 6);
-	assert(arr.mean == 2);
-}
-
 private: // implementation
 
+// basic norm implementation ////////
+
 auto normImpl_inf(Range)(Range range) {
-	ElementType!Range n = 0;
-	foreach (e; range) {
-		if (e > n)
-			n = e;
-	}
-	return n;
+	return range.findMax;
 }
 
 auto normImpl_n1(Range)(Range range) {
-	ElementType!Range n = 0;
-	foreach (e; range) {
-		n += e;
-	}
-	return n;
+	return range.reduce!((a, b) => a + b);
 }
 
 auto normImpl_n2(Range)(Range range) {
 	import std.math : sqrt;
-
-	ElementType!Range n = 0;
-	foreach (e; range) {
-		n += (e*e);
-	}
-	return sqrt(n);
+	return range.reduce!((a, b) => a^^2 + b^^2).sqrt;
 }
