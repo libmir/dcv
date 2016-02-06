@@ -101,7 +101,7 @@ version(skipSIMD) {
 unittest {
 	// TODO: design the test...
 
-	import mir.ndslice;
+	import std.experimental.ndslice;
 
 	int [] arr = allocArray!int(3);
 	scope(exit) arr.freeArray;
