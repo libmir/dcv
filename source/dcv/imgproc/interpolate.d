@@ -58,9 +58,9 @@ private:
 auto linearImpl_1(T)(Slice!(1, T*) range, double pos) pure 
 {
 	import std.math : floor;
-	if (pos >= range.length) {
-		throw new Exception("Invalid interpolation position.");
-	} else if (pos == range.length - 1) {
+	assert (pos < range.length);
+
+	if (pos == range.length - 1) {
 		return range[$-1];
 	}
 
