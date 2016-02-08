@@ -2,4 +2,4 @@
 ./dub.selections.json
 /dcv
 /dub.selections.json
-./.dub/
+.dub/
