@@ -13,15 +13,14 @@
  */
 
 private	import std.range : isRandomAccessRange, ElementType;
-private import std.traits : isNumeric, isScalarType, isIntegral, allSameType, allSatisfy;
+private import std.traits : isNumeric, isScalarType, isIntegral, allSameType, allSatisfy, ReturnType;
 private import std.exception;
 
 private import std.experimental.ndslice;
 
 static bool isInterpolationFunc(alias F)() {
-	auto s = [0, 1].sliced(2);
-	return (__traits(compiles, F(s, 3)) && 
-		is(typeof(F(s, 3)) == Slice!(1, typeof(s[0])*)));
+	auto s = [0., 1.].sliced(2);
+	return (__traits(compiles, F(s, 0))); // TODO: check the return type?
 }
 
 static bool isInterpolationFunc1D(alias F)() {
@@ -30,8 +29,13 @@ static bool isInterpolationFunc1D(alias F)() {
 
 static bool isInterpolationFunc2D(alias F)() {
 	auto s = [0, 1, 2, 3].sliced(2, 2);
-	return (__traits(compiles, F(s, 3, 3)) &&
-		is(typeof(F(s, 3)) == Slice!(2, typeof(s[0, 0])*)));
+	return (__traits(compiles, F(s, 3, 3)));
+}
+
+unittest {
+	static assert(isInterpolationFunc!linear);
+	static assert(isInterpolationFunc1D!linear);
+	static assert(isInterpolationFunc2D!linear);
 }
 
 /**
