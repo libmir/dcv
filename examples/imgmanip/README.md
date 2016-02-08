@@ -19,7 +19,7 @@ Such custom interpolation method can be used in any transformation function as:
 ```d
 auto resizedArray = array.resize!customInterpolation(newsize)
 //or...
-auto scaledImage = array.scale!customInterpolation(scaleValue) etc.
+auto scaledArray = array.scale!customInterpolation(scaleValue) etc.
 ```
 
 Example so far only demonstrates how to resize an ND array.
