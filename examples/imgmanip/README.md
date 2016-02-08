@@ -18,7 +18,7 @@ Such custom interpolation method can be used in any transformation function as:
 
 ```d
 auto resizedArray = array.resize!customInterpolation(newsize)
-or...
+//or...
 auto scaledImage = array.scale!customInterpolation(scaleValue) etc.
 ```
 
