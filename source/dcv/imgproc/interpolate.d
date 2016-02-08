@@ -2,6 +2,14 @@
 
 /**
  * Value interpolation module.
+ * 
+ * v0.1 norm:
+ * nn
+ * linear
+ * cubic
+ * 
+ * v0.1+:
+ * lanczos?
  */
 
 private	import std.range : isRandomAccessRange, ElementType;

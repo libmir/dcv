@@ -2,6 +2,17 @@
 
 /*
  * Color format convertion module.
+ * 
+ * v0.1 norm:
+ * rgb2gray vice versa (done)
+ * hsv2rgb -||-
+ * hls2rgb -||-
+ * lab2rgb -||-
+ * luv2rgb -||-
+ * luv2rgb -||-
+ * 
+ * v0.1+:
+ * bayer2rgb - maybe move to v0.1 norm?
  */
 
 private import std.experimental.ndslice;

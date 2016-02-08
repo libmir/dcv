@@ -2,6 +2,9 @@
 
 /*
  * Module for various utilities used throughout the library.
+ * 
+ * v0.1 norm:
+ * unknown - each new utility should be implemented on the fly - as it's needed by other modules?
  */
 
 private import std.experimental.ndslice;

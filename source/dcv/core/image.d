@@ -1,5 +1,12 @@
 module dcv.core.image;
 
+/**
+ * Module introducing Image type.
+ * 
+ * v0.1 norm:
+ * Implemented and tested Image class.
+ */
+
 private import std.exception : enforce;
 public import std.experimental.ndslice;
 

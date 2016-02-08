@@ -2,6 +2,13 @@
 
 /**
  * Module introduces image filtering functions and utilities.
+ * 
+ * v0.1 norm:
+ * gaussian (done)
+ * sobel
+ * scharr
+ * prewitt
+ * canny
  */
 
 private import std.experimental.ndslice;

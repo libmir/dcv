@@ -2,6 +2,13 @@
 
 /**
  * Module introduces array convolution functions.
+ * 
+ * v0.1 norm:
+ * conv (done)
+ * separable_conv
+ * 
+ * v0.1+ plans:
+ * 1d_conv_simd
  */
 private import dcv.core.memory;
 private import dcv.core.utils;

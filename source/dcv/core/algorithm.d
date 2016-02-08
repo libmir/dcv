@@ -1,5 +1,12 @@
 ﻿module dcv.core.algorithm;
 
+/**
+ * Module implements various algorithms used often in
+ * computer vision.
+ * 
+ * v0.1 norm:
+ * ???
+ */ 
 private import std.experimental.ndslice;
 private import std.range;
 private import std.traits : isNumeric,  isAssignable;
@@ -65,7 +72,7 @@ unittest {
 }
 
 /// Scale range values (outrange = alpha*inrange + beta)
-auto scale(Range, Scalar)(Range range, Scalar alpha = 1, Scalar beta = 0) 
+auto scaleValues(Range, Scalar)(Range range, Scalar alpha = 1, Scalar beta = 0) 
 	if (isForwardRange!Range && isNumeric!(ElementType!Range) && isNumeric!Scalar 
 && isAssignable!(ElementType!Range, Scalar)) {
 	// TODO: redesign as pure with map
@@ -75,7 +82,7 @@ auto scale(Range, Scalar)(Range range, Scalar alpha = 1, Scalar beta = 0)
 
 unittest {
 	auto arr = [0.0, 0.5, 1.0];
-	arr.scale(10);
+	arr.scaleValues(10);
 	assert(arr[0] == 0.);
 	assert(arr[1] == 5.);
 	assert(arr[2] == 10.);

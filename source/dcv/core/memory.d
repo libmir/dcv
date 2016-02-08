@@ -7,6 +7,9 @@
  * 
  * TODO: should introduce SIMD vector convertions, from 
  * ordinary pointer to simd vector type, and vise versa.
+ * 
+ * v0.1 norm:
+ * ???
  */
 
 private import core.simd; // TODO: implement simd stuff?
