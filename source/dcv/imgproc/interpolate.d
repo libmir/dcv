@@ -10,6 +10,22 @@ private import std.exception;
 
 private import std.experimental.ndslice;
 
+static bool isInterpolationFunc(alias F)() {
+	auto s = [0, 1].sliced(2);
+	return (__traits(compiles, F(s, 3)) && 
+		is(typeof(F(s, 3)) == Slice!(1, typeof(s[0])*)));
+}
+
+static bool isInterpolationFunc1D(alias F)() {
+	return isInterpolationFunc!F;
+}
+
+static bool isInterpolationFunc2D(alias F)() {
+	auto s = [0, 1, 2, 3].sliced(2, 2);
+	return (__traits(compiles, F(s, 3, 3)) &&
+		is(typeof(F(s, 3)) == Slice!(2, typeof(s[0, 0])*)));
+}
+
 /**
  * Linear interpolation.
  */
@@ -91,8 +107,8 @@ auto linearImpl_2(T)(Slice!(2, T*) range, double pos_x, double pos_y) pure
 	double wy = pos_y - cast(double)ry;
 
 	auto w00 = (1. - wx) * (1. - wy);
-	auto w01 = (1. - wx) * (wy);
-	auto w10 = (wx)* (1. - wy);
+	auto w01 = (wx)* (1. - wy);
+	auto w10 = (1. - wx) * (wy);
 	auto w11 = (wx)* (wy);
 
 	auto x_end = rx == range.length!0 - 1;
@@ -104,13 +120,13 @@ auto linearImpl_2(T)(Slice!(2, T*) range, double pos_x, double pos_y) pure
 		v1 = cast(double)range[rx, ry];
 		v2 = cast(double)range[x_end ? rx : rx + 1, ry];
 		v3 = cast(double)range[rx, y_end ? ry : ry + 1];
-		v4 = cast(double)range[x_end ? rx : rx + 1, y_end ? rx : ry + 1];
+		v4 = cast(double)range[x_end ? rx : rx + 1, y_end ? ry : ry + 1];
 	} else {
 		T v1, v2, v3, v4;
 		v1 = range[rx, ry];
 		v2 = range[x_end ? rx : rx + 1, ry];
 		v3 = range[rx, y_end ? ry : ry + 1];
-		v4 = range[x_end ? rx : rx + 1, y_end ? rx : ry + 1];
+		v4 = range[x_end ? rx : rx + 1, y_end ? ry : ry + 1];
 	}
 	return cast(T)(v1*w00 + v2*w01 + v3*w10 + v4*w11);
 }
