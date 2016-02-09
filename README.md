@@ -1,4 +1,4 @@
-# DCV [![Build Status](https://travis-ci.org/ljubobratovicrelja/dcv.svg?branch=master)](https://travis-ci.org/ljubobratovicrelja/dcv)
+# DCV [![Build Status](https://travis-ci.org/ljubobratovicrelja/dcv.svg?branch=master)](https://travis-ci.org/ljubobratovicrelja/dcv) [![codecov.io](https://codecov.io/github/ljubobratovicrelja/dcv/coverage.svg?branch=master)](https://codecov.io/github/ljubobratovicrelja/dcv?branch=master)
 Computer Vision library for D programming language
 
 
