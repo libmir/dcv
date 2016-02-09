@@ -1,0 +1,3 @@
+language: d
+script:
+  - dub test || exit 1
