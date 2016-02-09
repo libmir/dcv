@@ -1,4 +1,4 @@
-module dcv.example.convolution;
+module dcv.example.imgmanip;
 
 /** 
  * Image manipulation example using dcv library.
