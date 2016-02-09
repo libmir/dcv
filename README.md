@@ -1,5 +1,7 @@
-# DCV
+# DCV [![Build Status](https://travis-ci.org/ljubobratovicrelja/dcv.svg?branch=master)](https://travis-ci.org/ljubobratovicrelja/dcv)
 Computer Vision library for D programming language
+
+
 
 ## Project idea
 The idea behind the project is to write an open source computer vision library in D, by using as much modeling power from D as possible, but in the same time getting the desirable performance. Goal would be to implement tools for solving most common computer vision problems - various image processing tasks, feature detection and tracking, camera calibration, stereo etc. Hopefully other D enthusiasts and computer vision scientists/engineers would like the idea, and help the project!
