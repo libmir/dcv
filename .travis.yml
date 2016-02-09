@@ -1,3 +1,15 @@
 language: d
+
+os:
+ - linux
+
+d:
+ - dmd-2.070.0
+ 
+addons:
+  apt:
+    packages:
+      liblapack-dev
+
 script:
   - dub test || exit 1
