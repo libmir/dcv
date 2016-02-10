@@ -191,17 +191,16 @@ Slice!(3, R*) rgb2hsv(R, V)(Slice!(3, V*) range,
 			(cmax == g) ? 60. * ((b - r) / cdelta + 2) :
 			((r - g) / cdelta + 4));
 
-		if (hsv[0] < 0.0)
-			hsv[0] += 360.0;
+		if (hsv[0] < 0)
+			hsv[0] += 360;
 
 		static if (isFloatingPoint!R) {
 			hsv[1] = cast(R)(cmax == 0 ? 0 : cdelta / cmax);
 			hsv[2] = cast(R)(cmax);
 		} else {
-			hsv[1] = cast(R)(100 * cmax == 0 ? 0 : cdelta / cmax);
-			hsv[2] = cast(R)(100 * cmax);
+			hsv[1] = cast(R)(100.0 * (cmax == 0 ? 0 : cdelta / cmax));
+			hsv[2] = cast(R)(100.0 * cmax);
 		} 
-
 	}
 	return prealloc;
 }
@@ -228,7 +227,7 @@ Slice!(3, R*) rgb2hsv(R, V)(Slice!(3, V*) range,
  */
 Slice!(3, R*) hsv2rgb(R, V)(Slice!(3, V*) range, 
 	Slice!(3, R*) prealloc = emptySlice!(3, R)) @trusted
-	if (isNumeric!R && isNumeric!V && isFloatingPoint!V)
+	if (isNumeric!R && isNumeric!V)
 {
 	import std.math : fabs;
 	enforce(range.length!2 == 3, "Invalid channel count.");
@@ -249,9 +248,16 @@ Slice!(3, R*) hsv2rgb(R, V)(Slice!(3, V*) range,
 	];
 
 	foreach (hsv, rgb; lockstep(range.pack!1.byElement, prealloc.pack!1.byElement)) {
-		auto h = hsv[0];
-		auto s = hsv[1];
-		auto v = hsv[2];
+
+		static if (isFloatingPoint!V) {
+			auto h = hsv[0];
+			auto s = hsv[1];
+			auto v = hsv[2];
+		} else {
+			float h = cast(float)hsv[0];
+			float s = cast(float)hsv[1] / 100.0;
+			float v = cast(float)hsv[2] / 100.0;
+		}
 
 		float c = v*s;
 		float x = c * (1. - fabs((h / 60.) % 2 - 1));
