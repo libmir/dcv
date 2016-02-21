@@ -65,6 +65,16 @@ Slice!(2, V*) rgb2gray(V)(Slice!(3, V*) range,
 	return rgb2grayImpl(range, prealloc, m);
 }
 
+unittest {
+	import std.math : approxEqual;
+	auto rgb = [ 	0, 0, 0, 	1, 1, 1, 
+					2, 2, 2, 	3, 3, 3 ].sliced(2, 2, 3);
+
+	auto gray = rgb.rgb2gray;
+
+	assert(equal!approxEqual(gray.byElement, [0, 1, 2, 3]));
+}
+
 /**
  * Convert BGR image to grayscale.
  * 
@@ -92,6 +102,16 @@ Slice!(2, V*) bgr2gray(V)(Slice!(3, V*) range,
 	m[0].swap(m[2]);
 
 	return rgb2grayImpl(range, prealloc, m);
+}
+
+unittest {
+	import std.math : approxEqual;
+	auto rgb = [ 	0, 0, 0, 	1, 1, 1, 
+					2, 2, 2, 	3, 3, 3 ].sliced(2, 2, 3);
+
+	auto gray = rgb.bgr2gray;
+
+	assert(equal!approxEqual(gray.byElement, [0, 1, 2, 3]));
 }
 
 /**
@@ -127,6 +147,15 @@ Slice!(3, V*) gray2rgb(V)(Slice!(2, V*) range,
 	}
 
 	return prealloc;
+}
+
+unittest {
+	import std.math : approxEqual;
+	auto gray = [0, 1, 2, 3].sliced(2, 2);
+
+	auto rgb = gray.gray2rgb;
+
+	assert(equal!approxEqual(rgb.byElement, [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3]));
 }
 
 /**
@@ -314,8 +343,8 @@ Slice!(2, V*) rgb2grayImpl(V)(Slice!(3, V*) range,
 		auto g_row = prealloc[i, 0..cols];
 		auto rgb_row = rp[i, 0..cols];
 		size_t j = 0;
-		auto rgb = rgb_row[0];
 		for (; j < cols; ++j) {
+			auto rgb = rgb_row[j];
 			g_row[j] = cast(V) (
 				rgb[0]*m[0] +
 				rgb[1]*m[1] +
