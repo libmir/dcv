@@ -13,3 +13,5 @@ module dcv.features;
  * v0.1+:
  * other popular feature detectors, descriptor (surf, brief, orb, akaze, etc.)
  */
+
+public import dcv.features.corner, dcv.features.utils;
