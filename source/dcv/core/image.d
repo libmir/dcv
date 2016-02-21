@@ -170,16 +170,19 @@ public:
 		return newim;
 	}
 
-	auto data(T)() inout {
+	auto data(T = ubyte)() inout {
 		static assert(is(T == ubyte) ||
 			is(T == ushort) ||
 			is(T == float), "Pixel data type not supported. Supported ones are: ubyte(8bit), ushort(16bit), float(32bit)");
 		enforce(isOfType!T, "Invalid pixel data type cast.");
-		return cast(T[])_data;
+		static if (is (typeof(_data) == T))
+			return _data;
+		else
+			return cast(T[])_data;
 	}
 
 	/// Get row at given index.
-	auto row(V)(size_t i) inout
+	auto row(V = ubyte)(size_t i) inout
 	in {
 		assert(i < height);
 	} body {
@@ -188,7 +191,7 @@ public:
 	}
 
 	/// Get col at given index.
-	auto col(V)(size_t i) inout
+	auto col(V = ubyte)(size_t i) inout
 	in {
 		assert(i < width);
 	} body {
