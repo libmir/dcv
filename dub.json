@@ -20,6 +20,11 @@
 			"targetType": "sourceLibrary"
 		}
 	],
+	"subPackages": [
+		"examples/convolution/",
+		"examples/imgmanip/",
+		"examples/features/"
+	],
 	"license": "MIT"
 
 }
