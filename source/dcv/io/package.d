@@ -119,10 +119,10 @@ bool imwrite(size_t dims, T)(Slice!(dims, T*) slice, in string path) {
 	auto sdata = slice.reshape(slice.shape[].reduce!"a*b").array;
 
 	static if (is(T == ubyte)) {
-		return imwrite(path, slice.shape[0], slice.shape[1], format, BitDepth.BD_8, sdata);
+		return imwrite(path, slice.shape[1], slice.shape[0], format, BitDepth.BD_8, sdata);
 	} else static if (is(T == ushort)) {
 		enforce(path.extension.toLower == ".png", "Writing 16-bit image has to be in PNG format.");
-		return imwrite(path, slice.shape[0], slice.shape[1], format, BitDepth.BD_16, cast(ubyte[])sdata);
+		return imwrite(path, slice.shape[1], slice.shape[0], format, BitDepth.BD_16, cast(ubyte[])sdata);
 	} else static if (is (T == float)) {
 		throw new Exception("Writting image format not supported.");
 	} else {
