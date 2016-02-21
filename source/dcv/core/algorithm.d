@@ -20,7 +20,7 @@ enum NormType {
 
 
 /// Find minimum(default) or maximum value in the range.
-ElementType!Range findMinMax(string comparator, Range)(Range range)
+ElementType!Range findMinMax(string comparator, Range)(Range range) @trusted pure nothrow
 if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
 	ElementType!Range v = range.front;
 	mixin("foreach(e; range) { if (e " ~ comparator ~ " v) v = e; }");
@@ -28,13 +28,13 @@ if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
 }
 
 /// ditto
-ElementType!Range findMin(Range)(Range range)
+ElementType!Range findMin(Range)(Range range) @safe pure nothrow
 if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
 	return range.findMinMax!"<";
 }
 
 /// ditto
-ElementType!Range findMax(Range)(Range range)
+ElementType!Range findMax(Range)(Range range) @safe pure nothrow
 if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
 	return range.findMinMax!">";
 }
@@ -72,29 +72,36 @@ unittest {
 }
 
 /// Scale range values (outrange = alpha*inrange + beta)
-auto scaleValues(Range, Scalar)(Range range, Scalar alpha = 1, Scalar beta = 0) 
+auto scaled(Range, Scalar)(Range range, Scalar alpha = 1, Scalar beta = 0) pure @safe nothrow
 	if (isForwardRange!Range && isNumeric!(ElementType!Range) && isNumeric!Scalar 
 && isAssignable!(ElementType!Range, Scalar)) {
-	// TODO: redesign as pure with map
-	range.each!((ref v) => v = (alpha*(v) + beta));
-	return range;
+	return range.map!(v => alpha*(v) + beta);
+}
+
+auto ranged(Range, Scalar)(Range range, Scalar min = 0, Scalar max = 1) pure @safe nothrow
+	if (isForwardRange!Range && isNumeric!(ElementType!Range) && isNumeric!Scalar 
+&& isAssignable!(ElementType!Range, Scalar)) {
+	auto _min = range.findMin;
+	auto _max = range.findMax;
+	auto _d = _max - _min;
+	auto sc_val = (max / _d);
+	return range.map!(a => (a - _min) * sc_val);
 }
 
 unittest {
 	auto arr = [0.0, 0.5, 1.0];
-	arr.scaleValues(10);
+	arr = arr.scaled(10).array;
 	assert(arr[0] == 0.);
 	assert(arr[1] == 5.);
 	assert(arr[2] == 10.);
 }
 
 /// Normalize range using automatically calculated norm of given type.
-Range normalize(Range)(Range range, NormType normType)
+auto normalize(Range)(Range range, NormType normType = NormType.L2)
 if (isForwardRange!Range && isAssignable!(real, ElementType!Range)) {
 	// TODO: redesign as pure
 	auto n = range.norm(normType);
-	range.each!((ref v) => v /= n);
-	return range;
+	return range.map!(v => v / n);
 }
 
 private: // implementation
