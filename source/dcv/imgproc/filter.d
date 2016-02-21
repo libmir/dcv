@@ -72,3 +72,47 @@ unittest {
 	static assert(__traits(compiles, gaussian!int(1, 3, 3)) == false, 
 		"Integral test failed in gaussian kernel.");
 }
+
+Slice!(2, T*) filterNonMaximum(T)(Slice!(2, T*) image, size_t filterSize = 10) {
+
+	assert(!image.empty && filterSize);
+
+	typeof(image) lmsw;  // local maxima search window
+	int lms_r, lms_c;
+	int win_rows, win_cols;
+	float lms_val;
+	auto rows = image.length!0;
+	auto cols = image.length!1;
+
+	for (int br = 0; br < rows; br += filterSize / 2) {
+		for (int bc = 0; bc < cols; bc += filterSize / 2) {
+			win_rows = cast(int)((br + filterSize < rows) ? 
+				filterSize : filterSize - ((br + filterSize) - rows) - 1);
+			win_cols = cast(int)((bc + filterSize < cols) ? 
+				filterSize : filterSize - ((bc + filterSize) - cols) - 1);
+
+			if (win_rows <= 0 || win_cols <= 0) {
+				continue;
+			}
+
+			lmsw = image[br..br+win_rows, bc..bc+win_cols];
+
+			lms_val = -1;
+			for (int r = 0; r < lmsw.length!0; r++) {
+				for (int c = 0; c < lmsw.length!1; c++) {
+					if (lmsw[r, c] > lms_val) {
+						lms_val = lmsw[r, c];
+						lms_r = r;
+						lms_c = c;
+					}
+				}
+			}
+			lmsw[] = cast(T)0;
+			if (lms_val != -1) {
+				lmsw[lms_r, lms_c] = lms_val;
+			}
+		}
+	}
+
+	return image;
+}
