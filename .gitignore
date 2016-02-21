@@ -3,3 +3,4 @@
 /dcv
 /dub.selections.json
 .dub/
+*.userprefs
