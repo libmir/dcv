@@ -1,1 +1,2 @@
-*.lst
+/dub.selections.json
+/dcv_ignore
