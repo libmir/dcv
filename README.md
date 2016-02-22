@@ -10,7 +10,7 @@ Computer Vision library for D programming language
 The idea behind the project is to write an open source computer vision library in D, by using as much modeling power from D as possible, but in the same time getting the desirable performance. Goal would be to implement tools for solving most common computer vision problems - various image processing tasks, feature detection and tracking, camera calibration, stereo etc. Hopefully other D enthusiasts and computer vision scientists/engineers would like the idea, and help the project!
 
 ## Development Stage
-Currently, library is in early development (design) stage. Each module's header should note the **v0.1 norm**, which should list completion goals, after which the library could be used for most basic computer vision tasks. Also, the v0.1 should mark the version at which the library base is well formed, and the library itself is actually presentable. **Please note that v0.1 norm may be changing at first.**
+Currently, library is in early development (design) stage. Each module's header should note the **v0.1 norm**, which should list completion goals, after which the library could be used for most basic computer vision tasks. In the v0.1 development state, all algorithms will be naively implemented, without too much care for performance or factoring, but with proper API design. Goal of v0.1 is to have the overall shape of the library with good coverage, so it can be refactored and optimized in future versions.
 
 ## Modules
 Initial design of the library is to split it into following modules:
