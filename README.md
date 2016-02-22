@@ -5,12 +5,13 @@
 Computer Vision library for D programming language
 
 
-
 ## Project idea
 The idea behind the project is to write an open source computer vision library in D, by using as much modeling power from D as possible, but in the same time getting the desirable performance. Goal would be to implement tools for solving most common computer vision problems - various image processing tasks, feature detection and tracking, camera calibration, stereo etc. Hopefully other D enthusiasts and computer vision scientists/engineers would like the idea, and help the project!
 
 ## Development Stage
 Currently, library is in early development (design) stage. Each module's header should note the **v0.1 norm**, which should list completion goals, after which the library could be used for most basic computer vision tasks. In the v0.1 development state, all algorithms will be naively implemented, without too much care for performance or factoring, but with proper API design. Goal of v0.1 is to have the overall shape of the library with good coverage, so it can be refactored and optimized in future versions.
+
+**Note:** Even though project is in early stage, and there's no real need for it, I've started a gitter chat room so anyone can freely ask anything and/or propose anything regarding this project.
 
 ## Modules
 Initial design of the library is to split it into following modules:
@@ -25,7 +26,7 @@ Initial design of the library is to split it into following modules:
 Initial idea for project organization may change in time. If anybody would like to share some advice on that matter, please do!
 
 ## Contributions
-Any help is much appreciated! If you like the idea of having computer vision library in D, please contact me via email (**ljubobratovic.relja@gmail.com**) .
+Any help is much appreciated! If you like the idea of having computer vision library in D, please contact me via email (**ljubobratovic.relja@gmail.com**), or just ask in the gitter chat room!
 
 ## Dependencies
 Library should be primarilly based on scientific libraries from [DlangScience](https://github.com/DlangScience). Imageformats library from **dub** is used for Image I/O. When library is well formed, list of dependencies will be written plain - at this moment it is unsure which libraries project would depend on.
