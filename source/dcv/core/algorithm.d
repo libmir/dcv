@@ -72,20 +72,32 @@ unittest {
 }
 
 /// Scale range values (outrange = alpha*inrange + beta)
-auto scaled(Range, Scalar)(Range range, Scalar alpha = 1, Scalar beta = 0) pure @safe nothrow
+auto scaled(Scalar, Range)(Range range, Scalar alpha = 1, Scalar beta = 0) pure @safe nothrow
 	if (isForwardRange!Range && isNumeric!(ElementType!Range) && isNumeric!Scalar 
 && isAssignable!(ElementType!Range, Scalar)) {
-	return range.map!(v => alpha*(v) + beta);
+	static if (is(ElementType!Range == Scalar))
+		return range.map!(v => alpha*(v) + beta);
+	else
+		return range.map!(v => cast(ElementType!Range)(alpha*(v) + beta));
 }
 
-auto ranged(Range, Scalar)(Range range, Scalar min = 0, Scalar max = 1) pure @safe nothrow
-	if (isForwardRange!Range && isNumeric!(ElementType!Range) && isNumeric!Scalar 
+auto ranged(Scalar, Range)(Range range, Scalar min = 0, Scalar max = 1) //pure @safe nothrow
+	if (isForwardRange!Range && isNumeric!(ElementType!Range) && isNumeric!Scalar
 && isAssignable!(ElementType!Range, Scalar)) {
+	import std.traits : isFloatingPoint;
 	auto _min = range.findMin;
 	auto _max = range.findMax;
 	auto _d = _max - _min;
-	auto sc_val = (max / _d);
-	return range.map!(a => (a - _min) * sc_val);
+	static if (isFloatingPoint!Scalar) {
+		auto sc_val = (max / _d);
+		static if (is(ElementType!Range == Scalar))
+			return range.map!(a => (a - _min) * sc_val);
+		else
+			return range.map!(a => cast(ElementType!Range)((a - _min) * sc_val));
+	} else {
+		auto sc_val = cast(float)(max / _d);
+		return range.map!(a => cast(ElementType!Range)(cast(float)(a - _min) * sc_val));
+	}
 }
 
 unittest {
