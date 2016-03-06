@@ -9,6 +9,7 @@
 
 private import std.experimental.ndslice;
 private import std.traits;
+private import std.meta : allSatisfy;
 private import std.range : lockstep;
 private import std.algorithm.iteration : reduce;
 
@@ -37,14 +38,158 @@ static Slice!(N, O*) asType(O, V, size_t N)(Slice!(N, V*) inslice) {
 	}
 }
 
-
-/*
-Slice!() meshgrid(V, XShape..., )(XShape shape) 
-{
-
+template isBoundaryCondition(alias bc) {
+	import std.typetuple;
+	alias Indices = TypeTuple!(int, int);
+	alias bct = bc!(2, float, Indices);
+	static if (isCallable!(bct) && 
+		is(Parameters!bct[0] == Slice!(2, float*)) &&
+		is(Parameters!bct[1] == int) &&
+		is(Parameters!bct[2] == int) &&
+		is(ReturnType!bct == float))
+	{
+		enum bool isBoundaryCondition = true;
+	} else {
+		enum bool isBoundaryCondition = false;
+	}
 }
-*/
 
+//! No boundary condition test.
+ref T nobc(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices) 
+if (allSameType!Indices && allSatisfy!(isIntegral, Indices))
+{
+	static assert (indices.length == N, "Invalid index dimension");
+	return slice[indices];
+}
+
+//! Neumann's boundary condition test
+ref T neumann(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices) 
+if (allSameType!Indices && allSatisfy!(isIntegral, Indices))
+{
+	static assert (indices.length == N, "Invalid index dimension");
+	return slice.bcImpl!_neumann(indices);
+}
+
+//! Periodic boundary condition test
+ref T periodic(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices)
+if (allSameType!Indices && allSatisfy!(isIntegral, Indices))
+{
+	static assert (indices.length == N, "Invalid index dimension");
+	return slice.bcImpl!_periodic(indices);
+}
+
+//! Symmetric boundary condition test
+ref T symmetric(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices)
+if (allSameType!Indices && allSatisfy!(isIntegral, Indices))
+{
+	static assert (indices.length == N, "Invalid index dimension");
+	return slice.bcImpl!_symmetric(indices);
+}
+
+template BoundaryConditionTest(size_t N, T, Indices...) {
+alias BoundaryConditionTest = ref T function(ref Slice!(N, T*) slice, Indices indices);
+}
+
+unittest {
+	import std.range : iota;
+	import std.array : array;
+
+	static assert(isBoundaryCondition!nobc);
+	static assert(isBoundaryCondition!neumann);
+	static assert(isBoundaryCondition!periodic);
+	static assert(isBoundaryCondition!symmetric);
+
+	/*
+	 * [0, 1, 2,
+	 *  3, 4, 5,
+	 *  6, 7, 8]
+	 */
+	auto s = iota(9).array.sliced(3, 3);
+
+	assert(s.nobc(0, 0) == s[0, 0]);
+	assert(s.nobc(2, 2) == s[2, 2]);
+
+	assert(s.neumann(-1, -1) == s[0, 0]);
+	assert(s.neumann(0, -1) == s[0, 0]);
+	assert(s.neumann(-1, 0) == s[0, 0]);
+	assert(s.neumann(0, 0) == s[0, 0]);
+	assert(s.neumann(2, 2) == s[2, 2]);
+	assert(s.neumann(3, 3) == s[2, 2]);
+	assert(s.neumann(1, 3) == s[1, 2]);
+	assert(s.neumann(3, 1) == s[2, 1]);
+
+	assert(s.symmetric(-1, -1) == s[1, 1]);
+	assert(s.symmetric(-2, -2) == s[2, 2]);
+	assert(s.symmetric(0, 0) == s[0, 0]);
+	assert(s.symmetric(2, 2) == s[2, 2]);
+	assert(s.symmetric(3, 3) == s[1, 1]);
+}
 
 private:
 
+ref auto bcImpl(alias bcfunc, size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices) {
+	static if (N == 1) {
+		return slice[bcfunc(cast(int)indices[0], cast(int)slice.length)];
+	} else static if (N == 2) {
+		return slice[
+			bcfunc(cast(int)indices[0], cast(int)slice.length!0),
+			bcfunc(cast(int)indices[1], cast(int)slice.length!1)
+		];
+	} else static if (N == 3) {
+		return slice[
+			bcfunc(cast(int)indices[0], cast(int)slice.length!0),
+			bcfunc(cast(int)indices[1], cast(int)slice.length!1),
+			bcfunc(cast(int)indices[2], cast(int)slice.length!2)
+		];
+	} else {
+		foreach(i, ref id; indices) {
+			id = bcfunc(cast(int)id, cast(int)slice.shape[i]);
+		}
+		return slice[indices];
+	}
+}
+
+int _neumann(int x, int nx) {
+	if (x < 0) {
+		x = 0;
+	} else if (x >= nx) {
+		x = nx - 1;
+	}
+
+	return x;
+}
+
+int _periodic(int x, int nx) {
+	if (x < 0) {
+		const int n = 1 - cast(int) (x / (nx + 1));
+		const int ixx = x + n * nx;
+
+		x = ixx % nx;
+	} else if (x >= nx) {
+		x = x % nx;
+	}
+
+	return x;
+}
+
+int _symmetric(int x, int nx) {
+	if (x < 0) {
+		const int borde = nx - 1;
+		const int xx = -x;
+		const int n = cast(int) (xx / borde) % 2;
+
+		if (n)
+			x = borde - (xx % borde);
+		else
+			x = xx % borde;
+	} else if (x >= nx) {
+		const int borde = nx - 1;
+		const int n = cast(int) (x / borde) % 2;
+
+		if (n)
+			x = borde - (x % borde);
+		else
+			x = x % borde;
+	}
+	return x;
+}

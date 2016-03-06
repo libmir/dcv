@@ -42,10 +42,11 @@ private	import std.math : abs, floor;
  * mask = Masking range. Convolution will skip each element where mask is 0. Default value
  * is empty slice, which tells that convolution will be performed on the whole range.
  */
-Slice!(N, V*) conv(V, K, size_t N, size_t NK)(Slice!(N, V*) range, Slice!(NK, K*) kernel, 
+Slice!(N, V*) conv(alias bc = neumann, V, K, size_t N, size_t NK)(Slice!(N, V*) range, Slice!(NK, K*) kernel, 
 	Slice!(N, V*) prealloc = emptySlice!(N, V),
 	Slice!(NK, V*) mask = emptySlice!(NK, V))
 {
+	static assert(isBoundaryCondition!bc, "Invalid boundary condition test function.");
 	static assert(isAssignable!(V, K), "Uncompatible types for range and kernel");
 
 	if (!mask.empty && !mask.shape[].equal(range.shape[])) {
@@ -56,13 +57,13 @@ Slice!(N, V*) conv(V, K, size_t N, size_t NK)(Slice!(N, V*) range, Slice!(NK, K*
 
 	static if (N == 1) {
 		static assert(NK == 1, "Invalid kernel dimension");
-		return conv1Impl(range, kernel, prealloc, mask);
+		return conv1Impl!bc(range, kernel, prealloc, mask);
 	} else static if (N == 2) {
 		static assert(NK == 2,  "Invalid kernel dimension");
-		return conv2Impl(range, kernel, prealloc, mask);
+		return conv2Impl!bc(range, kernel, prealloc, mask);
 	} else static if (N == 3) {
-		static assert(NK == 2 || NK == 3, "Invalid kernel dimension");
-		return conv3Impl(range, kernel, prealloc, mask);
+		static assert(NK == 2, "Invalid kernel dimension");
+		return conv3Impl!bc(range, kernel, prealloc, mask);
 	} else {
 		import std.conv : to;
 		static assert(0, "Convolution over " ~ N.to!string ~ "D ranges is not implemented");
@@ -73,7 +74,7 @@ unittest {
 	auto r1 = [0., 1., 2., 3., 4., 5.].sliced(6);
 	auto k1 = [-1., 0., 1.].sliced(3);
 	auto res1 = r1.conv(k1);
-	assert(res1.equal([0., 2., 2., 2., 2., 0.]));
+	assert(res1.equal([1., 2., 2., 2., 2., 1.]));
 
 	/*
 	 k1 = [0.3333, 0.3333, 0.3333].sliced(3);
@@ -138,7 +139,7 @@ void calcPartialDerivatives(T)(Slice!(2, T*) image,
 private:
 
 // TODO: implement SIMD
-Slice!(1, V*) conv1Impl(V, K)(Slice!(1, V*) range, Slice!(1, K*) kernel, 
+Slice!(1, V*) conv1Impl(alias bc, V, K)(Slice!(1, V*) range, Slice!(1, K*) kernel, 
 	Slice!(1, V*) prealloc, Slice!(1, V*) mask) {
 
 	if (prealloc.empty || prealloc.shape != range.shape)
@@ -156,42 +157,20 @@ Slice!(1, V*) conv1Impl(V, K)(Slice!(1, V*) range, Slice!(1, K*) kernel,
 	bool useMask = !mask.empty;
 
 	// run main (inner) loop
-	foreach(i; kh.iota(rt).parallel) {
+	foreach(i; iota(rl).parallel) {
 		if (useMask && !mask[i])
 			continue;
 		V v = 0;
-		V *rp = &range[i];
 		for(int j = -kh; j < ke+1; ++j) {
-			v += rp[j]*kernel[j+kh];
+			v += bc(range, i+j)*kernel[j+kh];
 		}
 		prealloc[i] = v;
 	}
 
-	// run starting edge with mirror (symmetric) indexing.
-	foreach(i; 0 .. kh) {
-		if (useMask && !mask[i])
-			continue;
-		V v_start = 0;
-		for(int j = -kh; j < ke+1; ++j) {
-			v_start += range[abs(i+j)]*kernel[j+kh];
-		}
-		prealloc[i] = v_start;
-	}
-
-	// run ending edge with mirror (symmetric) indexing.
-	foreach(i; rt .. rl) {
-		if (useMask && !mask[i])
-			continue;
-		V v_end = 0;
-		for(int j = -kh; j < ke+1; ++j) {
-			v_end += range[(rl-1)-abs(j)]*kernel[j+kh];
-		}
-		prealloc[i] = v_end;
-	}
 	return prealloc;
 }
 
-Slice!(2, V*) conv2Impl(V, K)(Slice!(2, V*) range, Slice!(2, K*) kernel, 
+Slice!(2, V*) conv2Impl(alias bc, V, K)(Slice!(2, V*) range, Slice!(2, K*) kernel, 
 	Slice!(2, V*) prealloc, Slice!(2, V*) mask) {
 
 	if (prealloc.empty || prealloc.shape != range.shape)
@@ -209,357 +188,41 @@ Slice!(2, V*) conv2Impl(V, K)(Slice!(2, V*) range, Slice!(2, K*) kernel,
 	int krh = max(1, cast(int)(floor(cast(float)krs / 2.))); // kernel rows size half
 	int kch = max(1, cast(int)(floor(cast(float)kcs / 2.))); // kernel rows size half
 
-	int kre = cast(int)(krs % 2 == 0 ? krh-1 : krh);
-	int kce = cast(int)(kcs % 2 == 0 ? kch-1 : kch);
-
-	int rrt = cast(int)(krs % 2 == 0 ? rr - 1 - krh : rr - krh); // range top
-	int rct = cast(int)(kcs % 2 == 0 ? rc - 1 - kch : rc - kch); // range top
-
 	bool useMask = !mask.empty;
 
 	// run inner body convolution of the matrix.
-	foreach(i; krh.iota(rrt).parallel) {
+	foreach(i; iota(rr).parallel) {
 		auto row = prealloc[i, 0..rc];
-		foreach(j; kch.iota(rct)) {
+		foreach(j; iota(rc)) {
 			if (useMask && !mask[i, j])
 				continue;
 			V v = 0;
 			for(int ii = -krh; ii < krh+1; ++ii) {
 				for(int jj = -kch; jj < kch+1; ++jj) {
-					v += range[i+ii, j+jj]*kernel[ii+krh, jj+kch];
+					v += bc(range, i+ii, j+jj)*kernel[ii+krh, jj+kch];
 				}
 			}
 			row[j] = v;
 		}
 	}
 
-	// run upper edge with mirror (symmetric) indexing.
-	auto row = prealloc[0, 0..rc];
-	foreach(j; 0.iota(rc).parallel) {
-		if (useMask && !mask[0, j])
-			continue;
-		V v = 0;
-		for(int ii = -krh; ii < krh+1; ++ii) {
-			for(int jj = -kch; jj < kch+1; ++jj) {
-				immutable jjj = j+jj;
-				immutable jj_pos = jjj < 0 ? abs(jjj) :	jjj > rc-1 ? rc-1-abs(jj) : jjj;
-				v += range[abs(ii), jj_pos]*kernel[ii+krh, jj+kch];
-			}
-		}
-		row[j] = v;
-	}
-
-	// run lower edge with mirror (symmetric) indexing.
-	row = prealloc[rr-1, 0..rc];
-	foreach(j; 0.iota(rc).parallel) {
-		if (useMask && !mask[rr-1, j])
-			continue;
-		V v = 0;
-		for(int ii = -krh; ii < krh+1; ++ii) {
-			for(int jj = -kch; jj < kch+1; ++jj) {
-				immutable jjj = j+jj;
-				immutable jj_pos = jjj < 0 ? abs(jjj) :	jjj > rc-1 ? rc-1-abs(jj) : jjj;
-				v += range[(rr-1)-abs(ii), jj_pos]*kernel[ii+krh, jj+kch];
-			}
-		}
-		row[j] = v;
-	}
-
-	// run left edge with mirror (symmetric) indexing.
-	auto col = prealloc[0..rr, 0];
-	foreach(i; 0.iota(rr).parallel) {
-		if (useMask && !mask[i, 0])
-			continue;
-		V v = 0;
-		for(int ii = -krh; ii < krh+1; ++ii) {
-			for(int jj = -kch; jj < kch+1; ++jj) {
-				immutable iii = i+ii;
-				immutable ii_pos = iii < 0 ? abs(iii) :	iii > rr - 1 ? rr-1-abs(ii) : iii;
-				v += range[ii_pos, abs(jj)]*kernel[ii+krh, jj+kch];
-			}
-		}
-		col[i] = v;
-	}
-
-	// run right edge with mirror (symmetric) indexing.
-	col = prealloc[0..rr, rc-1];
-	foreach(i; 0.iota(rr).parallel) {
-		if (useMask && !mask[i, rc-1])
-			continue;
-		V v = 0;
-		for(int ii = -krh; ii < krh+1; ++ii) {
-			for(int jj = -kch; jj < kch+1; ++jj) {
-				immutable iii = i+ii;
-				immutable ii_pos = iii < 0 ? abs(iii) :	iii > rr - 1 ? rr-1-abs(ii) : iii;
-				v += range[ii_pos, (rc-1)-abs(jj)]*kernel[ii+krh, jj+kch];
-			}
-		}
-		col[i] = v;
-	}
-
 	return prealloc;
 }
 
-// TODO: think of less boilerplate implementation.
-Slice!(3, V*) conv3Impl(V, K, size_t NK)(Slice!(3, V*) range, Slice!(NK, K*) kernel, 
+Slice!(3, V*) conv3Impl(alias bc, V, K, size_t NK)(Slice!(3, V*) range, Slice!(NK, K*) kernel, 
 	Slice!(3, V*) prealloc, Slice!(NK, V*) mask)
 {
-	static if (NK == 2) {
-		return conv3Impl_kernel2(range, kernel, prealloc, mask);
-	} else if (NK == 3) {
-		return conv3Impl_kernel3(range, kernel, prealloc, mask);
-	} // else other is statically checked in the main conv call.
-}
-
-Slice!(3, V*) conv3Impl_kernel2(V, K)(Slice!(3, V*) range, Slice!(2, K*) kernel, 
-	Slice!(3, V*) prealloc, Slice!(2, V*) mask)
-{
 	if (prealloc.empty || prealloc.shape != range.shape)
 		prealloc = uninitializedArray!(V[])(cast(ulong)range.shape.reduce!"a*b").sliced(range.shape);
 
 	enforce(&range[0, 0, 0] != &prealloc[0, 0, 0], 
 		"Preallocated has to contain different data from that of a input range.");
 
-	auto rr = range.length!0; // range rows
-	auto rc = range.length!1; // range columns
-	auto rch = range.length!2; // range channels
-
-	int krs = cast(int)kernel.length!0; // kernel rows
-	int kcs = cast(int)kernel.length!1; // kernel rows
-
-	int krh = max(1, cast(int)(floor(cast(float)krs / 2.))); // kernel rows size half
-	int kch = max(1, cast(int)(floor(cast(float)kcs / 2.))); // kernel rows size half
-
-	int kre = cast(int)(krs % 2 == 0 ? krh-1 : krh);
-	int kce = cast(int)(kcs % 2 == 0 ? kch-1 : kch);
-
-	int rrt = cast(int)(krs % 2 == 0 ? rr - 1 - krh : rr - krh); // range top
-	int rct = cast(int)(kcs % 2 == 0 ? rc - 1 - kch : rc - kch); // range top
-
-	bool useMask = !mask.empty;
-
-	// run inner body convolution of the matrix.
-	foreach(i; krh.iota(rrt).parallel) {
-		auto row = prealloc[i, 0..rc, 0..rch];
-		foreach(j; kch.iota(rct)) {
-			if (useMask && !mask[i, j])
-				continue;
-			row[j, 0..rch][] = 0;
-			for(int ii = -krh; ii < krh+1; ++ii) {
-				for(int jj = -kch; jj < kch+1; ++jj) {
-					foreach(c; 0.iota(rch)) {
-						row[j, c] += range[i+ii, j+jj, c]*kernel[ii+krh, jj+kch];
-					}
-				}
-			}
-		}
-	}
-
-	// run upper edge with mirror (symmetric) indexing.
-	foreach(i; 0.iota(krh+1)) {
-		auto row = prealloc[i, 0..rc, 0..rch];
-		foreach(j; 0.iota(rc).parallel) {
-			if (useMask && !mask[0, j])
-				continue;
-			row[j, 0..rch][] = 0;
-			for(int ii = -krh; ii < krh+1; ++ii) {
-				for(int jj = -kch; jj < kch+1; ++jj) {
-					immutable jjj = j+jj;
-					immutable jj_pos = jjj < 0 ? abs(jjj) :	jjj > rc-1 ? rc-1-abs(jj) : jjj;
-					foreach(c; 0.iota(rch)) {
-						row[j, c] += range[abs(ii), jj_pos, c]*kernel[ii+krh, jj+kch];
-					}
-				}
-			}
-		}
-	}
-
-	// run lower edge with mirror (symmetric) indexing.
-	foreach(i; rrt.iota(rr)) {
-		auto row = prealloc[i, 0..rc, 0..rch];
-		foreach(j; 0.iota(rc).parallel) {
-			if (useMask && !mask[rr-1, j])
-				continue;
-			row[j, 0..rch][] = 0;
-			for(int ii = -krh; ii < krh+1; ++ii) {
-				for(int jj = -kch; jj < kch+1; ++jj) {
-					immutable jjj = j+jj;
-					immutable jj_pos = jjj < 0 ? abs(jjj) :	jjj > rc-1 ? rc-1-abs(jj) : jjj;
-					foreach(c; 0.iota(rch)) {
-						row[j, c] += range[(rr-1)-abs(ii), jj_pos, c]*kernel[ii+krh, jj+kch];
-					}
-				}
-			}
-		}
-	}
-
-	// run left edge with mirror (symmetric) indexing.
-	foreach(j; 0.iota(kch)) {
-		auto col = prealloc[0..rr, j, 0..rch];
-		foreach(i; 0.iota(rr).parallel) {
-			if (useMask && !mask[i, 0])
-				continue;
-			col[i, 0..rch][] = 0;
-			for(int ii = -krh; ii < krh+1; ++ii) {
-				for(int jj = -kch; jj < kch+1; ++jj) {
-					immutable iii = i+ii;
-					immutable ii_pos = iii < 0 ? abs(iii) :	iii > rr - 1 ? rr-1-abs(ii) : iii;
-					foreach(c; 0.iota(rch)) {
-						col[i, c] += range[ii_pos, abs(jj), c]*kernel[ii+krh, jj+kch];
-					}
-				}
-			}
-		}
-	}
-
-	// run right edge with mirror (symmetric) indexing.
-	foreach(j; rct.iota(rc)) {
-		auto col = prealloc[0..rr, j, 0..rch];
-		foreach(i; 0.iota(rr).parallel) {
-			if (useMask && !mask[i, rc-1])
-				continue;
-			col[i, 0..rch][] = 0;
-			for(int ii = -krh; ii < krh+1; ++ii) {
-				for(int jj = -kch; jj < kch+1; ++jj) {
-					immutable iii = i+ii;
-					immutable ii_pos = iii < 0 ? abs(iii) :	iii > rr - 1 ? rr-1-abs(ii) : iii;
-					foreach(c; 0.iota(rch)) {
-						col[i, c] += range[ii_pos, (rc-1)-abs(jj), c]*kernel[ii+krh, jj+kch];
-					}
-				}
-			}
-		}
+	foreach(i; iota(range.length!2)) {
+		auto r_c = range[0..$, 0..$, i];
+		auto p_c = prealloc[0..$, 0..$, i];
+		r_c.conv(kernel, p_c);
 	}
 
 	return prealloc;
 }
-
-Slice!(3, V*) conv3Impl_kernel3(V, K)(Slice!(3, V*) range, Slice!(3, K*) kernel, 
-	Slice!(3, V*) prealloc, Slice!(3, V*) mask)
-{
-	if (prealloc.empty || prealloc.shape != range.shape)
-		prealloc = uninitializedArray!(V[])(cast(ulong)range.shape.reduce!"a*b").sliced(range.shape);
-
-	enforce(&range[0, 0, 0] != &prealloc[0, 0, 0], 
-		"Preallocated has to contain different data from that of a input range.");
-
-	auto rr = range.length!0; // range rows
-	auto rc = range.length!1; // range columns
-	auto rch = range.length!2; // range channels
-
-	int krs = cast(int)kernel.length!0; // kernel rows
-	int kcs = cast(int)kernel.length!1; // kernel rows
-
-	int krh = max(1, cast(int)(floor(cast(float)krs / 2.))); // kernel rows size half
-	int kch = max(1, cast(int)(floor(cast(float)kcs / 2.))); // kernel cols size half
-
-	int kre = cast(int)(krs % 2 == 0 ? krh-1 : krh);
-	int kce = cast(int)(kcs % 2 == 0 ? kch-1 : kch);
-
-	int rrt = cast(int)(krs % 2 == 0 ? rr - 1 - krh : rr - krh); // range top
-	int rct = cast(int)(kcs % 2 == 0 ? rc - 1 - kch : rc - kch); // range top
-
-	bool useMask = !mask.empty;
-
-	// run inner body convolution of the matrix.
-	foreach(i; krh.iota(rrt).parallel) {
-		auto row = prealloc[i, 0..rc, 0..rch];
-		foreach(j; kch.iota(rct)) {
-			foreach(c; 0.iota(rch)) {
-				if (useMask && !mask[i, j, c])
-					continue;
-				V v = 0;
-				for(int ii = -krh; ii < krh+1; ++ii) {
-					for(int jj = -kch; jj < kch+1; ++jj) {
-						v += range[i+ii, j+jj, c]*kernel[ii+krh, jj+kch, c];
-					}
-				}
-				row[j, c] = v;
-			}
-		}
-	}
-
-	// run upper edge with mirror (symmetric) indexing.
-	foreach(i; 0.iota(krh+1)) {
-		auto row = prealloc[i, 0..rc, 0..rch];
-		foreach(j; 0.iota(rc).parallel) {
-			foreach(c; 0.iota(rch)) {
-				if (useMask && !mask[0, j, c])
-					continue;
-				V v = 0;
-				for(int ii = -krh; ii < krh+1; ++ii) {
-					for(int jj = -kch; jj < kch+1; ++jj) {
-						immutable jjj = j+jj;
-						immutable jj_pos = jjj < 0 ? abs(jjj) :	jjj > rc-1 ? rc-1-abs(jj) : jjj;
-						v += range[abs(ii), jj_pos, c]*kernel[ii+krh, jj+kch, c];
-					}
-				}
-				row[j, c] = v;
-			}
-		}
-	}
-
-	// run lower edge with mirror (symmetric) indexing.
-	foreach(i; rrt.iota(rr)) {
-		auto row = prealloc[i, 0..rc, 0..rch];
-		foreach(j; 0.iota(rc).parallel) {
-			foreach(c; 0.iota(rch)) {
-				if (useMask && !mask[rr-1, j, c])
-					continue;
-				V v = 0;
-				for(int ii = -krh; ii < krh+1; ++ii) {
-					for(int jj = -kch; jj < kch+1; ++jj) {
-						immutable jjj = j+jj;
-						immutable jj_pos = jjj < 0 ? abs(jjj) :	jjj > rc-1 ? rc-1-abs(jj) : jjj;
-						v += range[(rr-1)-abs(ii), jj_pos, c]*kernel[ii+krh, jj+kch, c];
-					}
-				}
-				row[j, c] = v;
-			}
-		}
-	}
-
-	// run left edge with mirror (symmetric) indexing.
-	foreach(j; 0.iota(kch)) {
-		auto col = prealloc[0..rr, j, 0..rch];
-		foreach(i; 0.iota(rr).parallel) {
-			foreach(c; 0.iota(rch)) {
-				if (useMask && !mask[i, 0, c])
-					continue;
-				V v = 0;
-				for(int ii = -krh; ii < krh+1; ++ii) {
-					for(int jj = -kch; jj < kch+1; ++jj) {
-						immutable iii = i+ii;
-						immutable ii_pos = iii < 0 ? abs(iii) :	iii > rr - 1 ? rr-1-abs(ii) : iii;
-						v += range[ii_pos, abs(jj), c]*kernel[ii+krh, jj+kch, c];
-					}
-				}
-				col[i, c] = v;
-			}
-		}
-	}
-
-	// run right edge with mirror (symmetric) indexing.
-	foreach(j; rct.iota(rc)) {
-		auto col = prealloc[0..rr, j, 0..rch];
-		foreach(i; 0.iota(rr).parallel) {
-			foreach(c; 0.iota(rch)) {
-				if (useMask && !mask[i, rc-1, c])
-					continue;
-				V v = 0;
-				for(int ii = -krh; ii < krh+1; ++ii) {
-					for(int jj = -kch; jj < kch+1; ++jj) {
-						immutable iii = i+ii;
-						immutable ii_pos = iii < 0 ? abs(iii) :	iii > rr - 1 ? rr-1-abs(ii) : iii;
-						v += range[ii_pos, (rc-1)-abs(jj), c]*kernel[ii+krh, jj+kch, c];
-					}
-				}
-				col[i, c] = v;
-			}
-		}
-	}
-
-	return prealloc;
-}
-
-
