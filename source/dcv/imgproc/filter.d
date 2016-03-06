@@ -24,7 +24,7 @@ private import std.algorithm : copy;
 /**
  * Instantiate 2D gaussian kernel.
  */
-Slice!(2, V*) gaussian(V)(real sigma, size_t width, size_t height) pure {
+Slice!(2, V*) gaussian(V = real)(real sigma, size_t width, size_t height) pure {
 
 	static assert(isFloatingPoint!V, "Gaussian kernel can be constructed "
 		"only using floating point types.");
@@ -73,6 +73,135 @@ unittest {
 		"Integral test failed in gaussian kernel.");
 }
 
+/**
+ * Create negative laplacian 3x3 kernel matrix.
+ * 
+ * Creates laplacian kernel matrix using
+ * 
+ * I - image
+ * Laplacian(I) =   
+ *              [a/4,    (1-a)/4,   a/4]
+ *    4/(a+1) * |(1-a)/4   -1   (1-a)/4|
+ *              [a/4,    (1-a)/4,   a/4]
+ * 
+ */
+Slice!(2, T*) laplacian(T = real)(real a = 0.) pure nothrow 
+if (isNumeric!T) 
+in {
+	assert(a >= 0. && a <= 1.);
+} body {
+	auto k = new T[9].sliced(3, 3);
+	auto m = 4. / (a + 1.);
+	auto e1 = (a / 4.) * m;
+	auto e2 = ((1. - a) / 4.) * m;
+	k[0, 0] = e1;
+	k[0, 2] = e1;
+	k[2, 0] = e1;
+	k[2, 2] = e1;
+	k[0, 1] = e2;
+	k[1, 0] = e2;
+	k[1, 2] = e2;
+	k[2, 1] = e2;
+	k[1, 1] = -m;
+	return k;
+}
+
+unittest {
+	import std.algorithm.comparison : equal;
+	auto l4 = laplacian(); // laplacian!real(0);
+	assert(equal(l4.byElement, [0, 1, 0, 1, -4, 1, 0, 1, 0]));
+}
+
+
+/**
+ * Create laplacian of gaussian (LoG) filter kernel.
+ * 
+ * params:
+ * sigma = gaussian sigma variance value
+ * width = width of the kernel matrix
+ * height = height of the kernel matrix
+ */
+Slice!(2, T*) laplacianOfGaussian(T = real)(real sigma, size_t width, size_t height) {
+	import std.traits : isSigned;
+	static assert(isSigned!T);
+
+	import std.algorithm.comparison : max;
+	import std.math : E;
+
+	auto k = new T[width*height].sliced(height, width);
+
+	auto ts = -1./(PI*(sigma^^4));
+	auto ss = sigma^^2;
+	auto ss2 = 2.*ss;
+	auto w_h = cast(T)max(1, width / 2);
+	auto h_h = cast(T)max(1, height / 2);
+
+	foreach(i; iota(height)) {
+		foreach(j; iota(width)) {
+			auto xx = (cast(T)j - w_h);
+			auto yy = (cast(T)i - h_h);
+			xx *= xx;
+			yy *= yy;
+			auto xy = (xx+yy) / ss2;
+			k[i, j] = ts * (1. - xy) * exp(-xy);
+		}
+	}
+
+	k[] -= cast(T)(cast(float)k.byElement.sum / cast(float)(width*height));
+	return k;
+}
+
+enum GradientDirection {
+	DIR_X, // x direction (x partial gradients)
+	DIR_Y, // y direction (y partial gradients)
+	DIAG, // diagonal, from top-left to bottom right
+	DIAG_INV, // inverse diagonal, from top-right to bottom left
+}
+
+Slice!(2, T*) sobel(T = real)(GradientDirection direction) nothrow pure @trusted {
+	switch(direction) {
+		case GradientDirection.DIR_X:
+			return [
+				-1, 0, 1,
+				-2, 0, 2,
+				-1, 0, 1
+			].map!(a => cast(T)a).array.sliced(3, 3);
+		case GradientDirection.DIR_Y:
+			return [
+				-1, -2, -1,
+				0, 0, 0,
+				1, 2, 1
+			].map!(a => cast(T)a).array.sliced(3, 3);
+		case GradientDirection.DIAG:
+			return [
+				-2, -1, 0,
+				-1, 0, 1,
+				0, 1, 2
+			].map!(a => cast(T)a).array.sliced(3, 3);
+		case GradientDirection.DIAG_INV:
+			return [
+				0, -1, -2,
+				1, 0, -1,
+				2, 1, 0
+			].map!(a => cast(T)a).array.sliced(3, 3);
+		default:
+			assert(0);
+	}
+}
+
+enum NonMaximumFilter {
+	POINT,
+	LINE
+}
+
+/**
+ * Perform non-maxima filtering of the image.
+ * 
+ * @Note: proxy function, not a proper API! 
+ * @TODO: Implement non-maxima supression for edge detection (canny), and
+ * make the interface of the function fit both needs.
+ * 
+ */
 Slice!(2, T*) filterNonMaximum(T)(Slice!(2, T*) image, size_t filterSize = 10) {
 
 	assert(!image.empty && filterSize);
@@ -113,6 +242,5 @@ Slice!(2, T*) filterNonMaximum(T)(Slice!(2, T*) image, size_t filterSize = 10) {
 			}
 		}
 	}
-
 	return image;
 }
