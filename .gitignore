@@ -4,3 +4,5 @@
 /dub.selections.json
 .dub/
 *.userprefs
+*.lst
+__test__*
