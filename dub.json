@@ -21,7 +21,7 @@
 		}
 	],
 	"subPackages": [
-		"examples/convolution/",
+		"examples/filter/",
 		"examples/imgmanip/",
 		"examples/features/"
 	],
