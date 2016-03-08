@@ -5,3 +5,4 @@ __dummy.html
 *.obj
 *.selections.json
 /imgmanip
+/dcv_imgmanip

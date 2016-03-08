@@ -24,7 +24,7 @@ auto scaledArray = array.scale!customInterpolation(scaleValue) etc.
 
 Example so far only demonstrates how to resize an ND array.
 
-### 1D resize
+### 1D Resize
 
 Resize method supports 1D (vector) interpolated resizing.
 As shown in the example code:
@@ -39,7 +39,7 @@ array_1d.resize(9).writeln
 [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1]
 ```
 
-### 2D resize
+### 2D Resize
 
 ... Or the matrix resize, for the following code:
 
@@ -62,7 +62,7 @@ foreach(row; res_2d) row.writeln;
 [3, 3.125, 3.25, 3.375, 3.5, 3.625, 3.75, 3.875, 4]
 ```
 
-### 3D resize
+### 3D Resize
 
 3D resize is defined as would be on the multi-channel image - values of each channel are interpolated individualy as
 in 2D resize:
@@ -88,7 +88,7 @@ foreach(row; res_3d) row.writeln;
 [[5, 6], [5.25, 6.25], [5.5, 6.5], [5.75, 6.75], [6, 7], [6.25, 7.25], [6.5, 7.5], [6.75, 7.75], [7, 8]]
 ```
 
-### Image resize
+### Image Resize
 
 As shown in the **3D resize** example, multi-channel (RGB) images can be resized as:
 
@@ -101,3 +101,55 @@ resizedImage.imwrite("./result/resizedImage.png");
 Output image:
 
 ![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/imgmanip/result/resizedImage.png)
+
+### Image Scale
+
+Similar to resize, images can be scaled. Image scaling calls resize internally with scaled image size by given value.
+
+```d
+// scale image:
+auto scaledImage = resizedImage.scale(2., 2.);
+scaledImage.imwrite("./result/scaledImage.png");
+```
+
+Output image:
+
+![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/imgmanip/result/scaledImage.png)
+
+
+## Image Transform
+
+Affine and Perspective transformation over images can be performed by using dcv.imgproc.imgmanip.transformAffine,
+and transformPerspective functions. 
+
+Functions take the slice of an image as first argument, which can be 2D, and 3D. Second argument is a 3x3 
+transformation matrix, which can be defined as Slice object, or as build in 2D array in floating point type. 
+Third argument is the output image size. And as in resize, first template argument is an alias to interpolation 
+function, which is by default linear.
+
+### Code
+
+```d
+import std.math : sin, cos, PI;
+
+image = imread("../data/lena.png").sliced!ubyte;
+
+double ang = PI / 4.; // rotation angle
+double t_x = 30.; // x offset
+double t_y = -100.; // y offset
+size_t [2] outSize = [image.length!1 * 2, image.length!0 * 2]; // output size: [width*2, height*2]
+
+// transform image:
+auto transformedImage = image.transformAffine([
+		[cos(ang), -sin(ang), t_x],
+		[sin(ang), cos(ang), t_y],
+		[0., 0., 1.]
+	], outSize); 
+
+transformedImage.imwrite("./result/transformedImage.png");
+```
+
+Output image:
+
+![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/imgmanip/result/transformedImage.png)
+
