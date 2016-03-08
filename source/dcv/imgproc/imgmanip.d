@@ -20,6 +20,7 @@ private import std.traits;
 private import std.algorithm : each;
 private import std.range : iota;
 private import std.parallelism : parallel;
+private import std.range : isArray, ElementType;
 
 
 /**
@@ -43,7 +44,7 @@ private import std.parallelism : parallel;
  */
 Slice!(N, V*) resize(alias interp = linear, V, size_t N, Size...)
 (Slice!(N, V*) slice, Size newsize) 
-if (allSameType!Size && allSatisfy!(isIntegral, Size))
+if (allSameType!Size && allSatisfy!(isIntegral, Size) && isInterpolationFunc!interp)
 {
 	static if (N == 1) {
 		static assert(newsize.length == 1, 
@@ -75,7 +76,7 @@ if (allSameType!Size && allSatisfy!(isIntegral, Size))
  */
 Slice!(N, V*) scale(alias interp = linear, V, size_t N, Scale...)
 (Slice!(N, V*) slice, Scale scale) 
-if (allSameType!Scale && allSatisfy!(isFloatingPoint, Scale))
+if (allSameType!Scale && allSatisfy!(isFloatingPoint, Scale) &&	isInterpolationFunc!interp)
 {
 	foreach(v;scale)
 		assert(v > 0., "Invalid scale values (v > 0.0)");
@@ -108,9 +109,74 @@ unittest {
 	// TODO: design the test
 }
 
+private enum TransformType : size_t {
+	AFFINE_TRANSFORM = 0,
+	PERSPECTIVE_TRANSFORM = 1
+}
+
+private static bool isTransformMatrix(TransformMatrix)() {
+	// static if its float[][], or its Slice!(2, float*)
+	static if(isArray!TransformMatrix) {
+		static if (isArray!(ElementType!TransformMatrix) 
+			&& isScalarType!(ElementType!(ElementType!TransformMatrix))
+			&& isFloatingPoint!(ElementType!(ElementType!TransformMatrix)))
+			return true;
+		else 
+			return false;
+	} else static if (__traits(compiles, TemplateOf!TransformMatrix)) {
+		static if (__traits(isSame, TemplateOf!TransformMatrix, Slice)
+			&& (TemplateArgsOf!TransformMatrix)[0] == 2
+			&& isPointer!((TemplateArgsOf!TransformMatrix)[1])
+			&& isFloatingPoint!(PointerTarget!((TemplateArgsOf!TransformMatrix)[1]))) 
+		{
+			return true;
+		} else {
+			return false;
+		}
+	}
+	else 
+	{
+		return false;
+	}
+}
+
+unittest {
+	static assert(isTransformMatrix!(float[][]));
+	static assert(isTransformMatrix!(double[][]));
+	static assert(isTransformMatrix!(real[][]));
+	static assert(isTransformMatrix!(real[3][3]));
+	static assert(isTransformMatrix!(Slice!(2, float*)));
+	static assert(isTransformMatrix!(Slice!(2, double*)));
+	static assert(isTransformMatrix!(Slice!(2, real*)));
+
+	static assert(!isTransformMatrix!(int[][]));
+	static assert(!isTransformMatrix!(real[]));
+	static assert(!isTransformMatrix!(real[][][]));
+	static assert(!isTransformMatrix!(Slice!(2, int*)));
+	static assert(!isTransformMatrix!(Slice!(1, float*)));
+}
+
+Slice!(N, V*) transformAffine(alias interp = linear, V, TransformMatrix, size_t N) 
+	(Slice!(N, V*) slice, TransformMatrix transform, int[2] outSize = [-1, -1])
+{
+	static if (isTransformMatrix!TransformMatrix) {
+		return transformImpl!(TransformType.AFFINE_TRANSFORM, interp)(slice, transform, outSize);
+	} else {
+		static assert(0, "Invalid transform matrix type: " ~ typeof(transform).stringof);
+	}
+}
+
+Slice!(N, V*) transformPerspective(alias interp = linear, V, TransformMatrix, size_t N) 
+	(Slice!(N, V*) slice, TransformMatrix transform, int[2] outSize = [-1, -1])
+{
+	static if (isTransformMatrix!TransformMatrix) {
+		return transformImpl!(TransformType.PERSPECTIVE_TRANSFORM, linear)(slice, transform, outSize);
+	} else {
+		static assert(0, "Invalid transform matrix type: " ~ typeof(transform).stringof);
+	}
+}
 
 private:
-
 
 // 1d resize implementation
 Slice!(1, V*) resizeImpl_1(alias interp, V)(Slice!(1, V*) slice, ulong newsize) {
@@ -185,4 +251,94 @@ Slice!(3, V*) resizeImpl_3(alias interp, V)(Slice!(3, V*) slice, ulong width, ul
 	}
 
 	return retval;
+}
+
+
+// hope someday slice gets integrated into scid. :) until that day...
+Slice!(2, float*) invertTransformMatrix(TransformMatrix)(TransformMatrix t) {
+	import scid.matrix;
+	import scid.linalg : invert;
+	float []tarray = [
+		t[0, 0], t[0, 1], t[0, 2],
+		t[1, 0], t[1, 1], t[1, 2],
+		t[2, 0], t[2, 1], t[2, 2]
+	];
+
+	auto tmatrix = MatrixView!float(tarray, 3, 3);
+	invert(tmatrix);
+
+	return tmatrix.array.sliced(3, 3);
+}
+
+Slice!(N, V*) transformImpl(TransformType transformType, alias interp, V, TransformMatrix, size_t N) 
+	(Slice!(N, V*) slice, TransformMatrix transform, int[2] outSize) 
+in {
+	static assert(N == 2 || N == 3, "Unsupported slice dimension (only 2D and 3D supported)");
+
+	uint rcount = 0;
+	foreach(r; transform) {
+		assert(r.length == 3);
+		rcount++;
+	}
+	assert(rcount == 3);
+} body {
+	// outsize is [width, height]
+	if (outSize[0] <= 0)
+		outSize[0] = cast(int)slice.length!1;
+	if (outSize[1] <= 0)
+		outSize[1] = cast(int)slice.length!0;
+
+	static if (N == 2) {
+		auto tSlice = new V[outSize[0]*outSize[1]]
+		.sliced(outSize[1], outSize[0]);
+	} else {
+		auto tSlice = new V[outSize[0]*outSize[1]*slice.length!2]
+		.sliced(outSize[1], outSize[0], slice.length!2);
+	}
+
+	tSlice[] = cast(V)0;
+
+	auto t = transform.invertTransformMatrix;
+
+	static if (N == 3) {
+		auto sliceChannels = new Slice!(2, V*)[N];
+		foreach(c; iota(slice.length!2)) {
+			sliceChannels[c] = slice[0..$, 0..$, c];
+		}
+	}
+
+	double centerOffset_x = cast(double)outSize[0]/2.;
+	double centerOffset_y = cast(double)outSize[1]/2.;
+
+	foreach(i; iota(outSize[1])) { // height, rows
+		foreach(j; iota(outSize[0])) { // width, columns
+			double src_x, src_y;
+			double dst_x = cast(double)j - centerOffset_x;
+			double dst_y = cast(double)i - centerOffset_y;
+			static if (transformType == TransformType.AFFINE_TRANSFORM) {
+				src_x = t[0, 0]*dst_x + t[0, 1]*dst_y + t[0, 2];
+				src_y = t[1, 0]*dst_x + t[1, 1]*dst_y + t[1, 2];
+			} else static if (transformType == TransformType.PERSPECTIVE_TRANSFORM) {
+				double d = (t[2, 9]*dst_x + t[2, 1]*dst_y + t[2, 2]);
+				src_x = (t[0, 0]*dst_x + t[0, 1]*dst_y + t[0, 2]) / d;
+				src_y = (t[1, 0]*dst_x + t[1, 1]*dst_y + t[1, 2]) / d;
+			} else {
+				static assert(0, "Invalid transform type"); // should never happen
+			}
+			src_x += centerOffset_x;
+			src_y += centerOffset_y;
+			if (src_x >= 0 && src_x < slice.length!1 &&
+				src_y >= 0 && src_y < slice.length!0) {
+				static if (N == 2) {
+					tSlice[i, j] = interp(slice, src_y, src_x);
+				} else if (N == 3) {
+					foreach(c; iota(slice.length!2)) {
+						tSlice[i, j, c] = interp(sliceChannels[c], src_y, src_x);
+					}
+				}
+			}
+		}
+	}
+
+	return tSlice;
 }
