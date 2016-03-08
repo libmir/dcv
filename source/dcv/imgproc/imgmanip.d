@@ -86,19 +86,19 @@ if (allSameType!Scale && allSatisfy!(isFloatingPoint, Scale) &&	isInterpolationF
 			"Invalid scale setup - dimension does not match with input slice.");
 		auto newsize = slice.length*scale[0];
 		enforce (newsize > 0, "Scaling value invalid - after scaling array size is zero.");
-		return resizeImpl_1!interp(slice, newsize);
+		return resizeImpl_1!interp(slice, cast(ulong)newsize);
 	} else static if (N == 2) {
 		static assert(scale.length == 2, 
 			"Invalid scale setup - dimension does not match with input slice.");
 		auto newsize = [slice.length!0*scale[0], slice.length!1*scale[1]];
 		enforce (newsize[0] > 0 && newsize[1] > 0, "Scaling value invalid - after scaling array size is zero.");
-		return resizeImpl_2!interp(slice, newsize[0], newsize[1]);
+		return resizeImpl_2!interp(slice, cast(ulong)newsize[0], cast(ulong)newsize[1]);
 	} else static if (N == 3) {
 		static assert(scale.length == 2, 
 			"Invalid scale setup - 3D scale is performed as 2D."); // TODO: find better way to say this...
 		auto newsize = [slice.length!0*scale[0], slice.length!1*scale[1]];
 		enforce (newsize[0] > 0 && newsize[1] > 0, "Scaling value invalid - after scaling array size is zero.");
-		return resizeImpl_3!interp(slice, newsize[0], newsize[1]);
+		return resizeImpl_3!interp(slice, cast(ulong)newsize[0], cast(ulong)newsize[1]);
 	} else {
 		import std.conv : to;
 		static assert(0, "Resize is not supported for slice with " ~ N.to!string ~ " dimensions.");
