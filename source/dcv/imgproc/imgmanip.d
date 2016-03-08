@@ -157,7 +157,7 @@ unittest {
 }
 
 Slice!(N, V*) transformAffine(alias interp = linear, V, TransformMatrix, size_t N) 
-	(Slice!(N, V*) slice, TransformMatrix transform, int[2] outSize = [-1, -1])
+	(Slice!(N, V*) slice, TransformMatrix transform, size_t[2] outSize = [0, 0])
 {
 	static if (isTransformMatrix!TransformMatrix) {
 		return transformImpl!(TransformType.AFFINE_TRANSFORM, interp)(slice, transform, outSize);
@@ -167,7 +167,7 @@ Slice!(N, V*) transformAffine(alias interp = linear, V, TransformMatrix, size_t 
 }
 
 Slice!(N, V*) transformPerspective(alias interp = linear, V, TransformMatrix, size_t N) 
-	(Slice!(N, V*) slice, TransformMatrix transform, int[2] outSize = [-1, -1])
+	(Slice!(N, V*) slice, TransformMatrix transform, size_t[2] outSize = [0, 0])
 {
 	static if (isTransformMatrix!TransformMatrix) {
 		return transformImpl!(TransformType.PERSPECTIVE_TRANSFORM, linear)(slice, transform, outSize);
@@ -258,11 +258,19 @@ Slice!(3, V*) resizeImpl_3(alias interp, V)(Slice!(3, V*) slice, ulong width, ul
 Slice!(2, float*) invertTransformMatrix(TransformMatrix)(TransformMatrix t) {
 	import scid.matrix;
 	import scid.linalg : invert;
-	float []tarray = [
-		t[0, 0], t[0, 1], t[0, 2],
-		t[1, 0], t[1, 1], t[1, 2],
-		t[2, 0], t[2, 1], t[2, 2]
-	];
+	static if (isArray!TransformMatrix) {
+		float []tarray = [
+			t[0][0], t[0][1], t[0][2],
+			t[1][0], t[1][1], t[1][2],
+			t[2][0], t[2][1], t[2][2]
+		];
+	} else {
+		float []tarray = [
+			t[0, 0], t[0, 1], t[0, 2],
+			t[1, 0], t[1, 1], t[1, 2],
+			t[2, 0], t[2, 1], t[2, 2]
+		];
+	}
 
 	auto tmatrix = MatrixView!float(tarray, 3, 3);
 	invert(tmatrix);
@@ -271,7 +279,7 @@ Slice!(2, float*) invertTransformMatrix(TransformMatrix)(TransformMatrix t) {
 }
 
 Slice!(N, V*) transformImpl(TransformType transformType, alias interp, V, TransformMatrix, size_t N) 
-	(Slice!(N, V*) slice, TransformMatrix transform, int[2] outSize) 
+	(Slice!(N, V*) slice, TransformMatrix transform, size_t[2] outSize) 
 in {
 	static assert(N == 2 || N == 3, "Unsupported slice dimension (only 2D and 3D supported)");
 
@@ -283,10 +291,10 @@ in {
 	assert(rcount == 3);
 } body {
 	// outsize is [width, height]
-	if (outSize[0] <= 0)
-		outSize[0] = cast(int)slice.length!1;
-	if (outSize[1] <= 0)
-		outSize[1] = cast(int)slice.length!0;
+	if (outSize[0] == 0)
+		outSize[0] = slice.length!1;
+	if (outSize[1] == 0)
+		outSize[1] = slice.length!0;
 
 	static if (N == 2) {
 		auto tSlice = new V[outSize[0]*outSize[1]]
@@ -307,14 +315,16 @@ in {
 		}
 	}
 
-	double centerOffset_x = cast(double)outSize[0]/2.;
-	double centerOffset_y = cast(double)outSize[1]/2.;
+	double outOffset_x = cast(double)outSize[0]/2.;
+	double outOffset_y = cast(double)outSize[1]/2.;
+	double inOffset_x = cast(double)slice.length!1 /2.;
+	double inOffset_y = cast(double)slice.length!0 /2.;
 
 	foreach(i; iota(outSize[1])) { // height, rows
 		foreach(j; iota(outSize[0])) { // width, columns
 			double src_x, src_y;
-			double dst_x = cast(double)j - centerOffset_x;
-			double dst_y = cast(double)i - centerOffset_y;
+			double dst_x = cast(double)j - outOffset_x;
+			double dst_y = cast(double)i - outOffset_y;
 			static if (transformType == TransformType.AFFINE_TRANSFORM) {
 				src_x = t[0, 0]*dst_x + t[0, 1]*dst_y + t[0, 2];
 				src_y = t[1, 0]*dst_x + t[1, 1]*dst_y + t[1, 2];
@@ -325,8 +335,8 @@ in {
 			} else {
 				static assert(0, "Invalid transform type"); // should never happen
 			}
-			src_x += centerOffset_x;
-			src_y += centerOffset_y;
+			src_x += inOffset_x;
+			src_y += inOffset_y;
 			if (src_x >= 0 && src_x < slice.length!1 &&
 				src_y >= 0 && src_y < slice.length!0) {
 				static if (N == 2) {
