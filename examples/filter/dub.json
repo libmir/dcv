@@ -1,0 +1,12 @@
+{
+	"name": "filter",
+	"description": "Image filtering example for DCV library.",
+	"copyright": "Copyright © 2016, Relja Ljubobratovic",
+	"authors": ["Relja Ljubobratovic"],
+	"dependencies": {
+		"dcv": {
+			"version": "~master",
+			"path": "../../"
+		}
+	}
+}
