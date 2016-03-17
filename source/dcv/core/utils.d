@@ -38,6 +38,32 @@ static Slice!(N, O*) asType(O, V, size_t N)(Slice!(N, V*) inslice) {
 	}
 }
 
+/**
+ * Clip value by it's value range.
+ * 
+ * params:
+ * v = input value, of the input type
+ * 
+ * return:
+ * Clipped value of the output type.
+ */
+static T clip(T, V)(V v) 
+if (isNumeric!V && isNumeric!T)
+{
+	import std.traits : isFloatingPoint;
+	static if (is(T == V)) {
+		return v;
+	} else static if (isFloatingPoint!T || T.sizeof >= 8) {
+		return cast(T)v;
+	} else {
+		if (v <= T.min)
+			return T.min;
+		else if (v >= T.max)
+			return T.max;
+		return cast(T)v;
+	}
+}
+
 template isBoundaryCondition(alias bc) {
 	import std.typetuple;
 	alias Indices = TypeTuple!(int, int);
