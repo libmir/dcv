@@ -1,14 +1,28 @@
-module dcv.core.image;
+﻿module dcv.io.image;
 
 /**
- * Module introducing Image type.
+ * Module for image I/O.
  * 
  * v0.1 norm:
  * Implemented and tested Image class.
  */
 
 private import std.exception : enforce;
+private import std.range : array;
+private import std.algorithm : reduce, map;
+private import std.string : toLower;
+private import std.path : extension;
+
 public import std.experimental.ndslice;
+
+private import imageformats;
+
+
+/// Image reading parameter package type.
+struct ReadParams {
+	ImageFormat format = ImageFormat.IF_UNASSIGNED;
+	BitDepth depth = BitDepth.BD_UNASSIGNED;
+}
 
 /// Image (pixel) format.
 enum ImageFormat : size_t {
@@ -16,7 +30,10 @@ enum ImageFormat : size_t {
 	IF_MONO = 1,
 	IF_MONO_ALPHA = 2,
 	IF_RGB = 3,
-	IF_RGB_ALPHA = 4
+	IF_BGR = 3,
+	IF_YUV = 3,
+	IF_RGB_ALPHA = 4,
+	IF_BGR_ALPHA = 4
 }
 
 /// Bit depth of a pixel in an image.
@@ -131,6 +148,10 @@ public:
 	@property pixelSize() const @safe pure {
 		return channels * cast(size_t) _depth;
 	}
+	/// Number of bytes contained in the image.
+	@property byteSize() const @safe pure {
+		return width*height*pixelSize;
+	}
 	/// Number of bytes contained in one row of the image.
 	@property rowStride() const @safe pure {
 		return pixelSize * _width;
@@ -234,7 +255,7 @@ public:
 			size_t iter = 0;
 			size_t end = 0;
 
-			bool empty() const { return iter == end; }
+			bool empty() const { return (iter + ch) >= end; }
 			void popFront() { iter+=ch; }
 			T [] front() { return data[iter..iter+ch]; }
 			const(T[]) front() const { return data[iter..iter+ch]; }
@@ -242,7 +263,7 @@ public:
 
 		PixelRange r;
 		r.data = cast(T[])_data;
-		r.end = rowStride*height;
+		r.end = width*height*channels;
 
 		return r;
 	}
@@ -296,4 +317,151 @@ unittest {
 	assert(data[0] == 2);
 	assert(data[1] == 4);
 	assert(data[2] == 6);
+}
+
+
+/** 
+ * Read image from the file system.
+ * 
+ * params:
+ * path = File system path to the image.
+ * params = Reading parameters - desired format and depth of the image that's read. 
+ * Default parameters include no convertion, but loading image orignal data depth and 
+ * color format. To load original depth or format, set to _UNASSIGNED (ImageFormat.IF_UNASSIGNED,
+ * BitDepth.BD_UNASSIGNED).
+ * 
+ * return:
+ * Image read from the filesystem.
+ * 
+ * throws:
+ * Exception and ImageIOException from imageformats library.
+ */
+Image imread(in string path,
+	ReadParams params = ReadParams(ImageFormat.IF_UNASSIGNED, BitDepth.BD_UNASSIGNED)) {
+	return imreadImpl_imageformats(path, params);
+}
+
+/**
+ * Write image to the given path on the filesystem.
+ * 
+ * params:
+ * path = Path where the image will be written.
+ * width = Width of the image.
+ * height = Height of the image.
+ * format = Format of the image.
+ * depth = Bit depth of the image.
+ * data = Image data in unsigned bytes.
+ * 
+ * return:
+ * Status of the writing as bool.
+ */
+bool imwrite(in string path, ulong width, ulong height, ImageFormat format, BitDepth depth, ubyte [] data) {
+	assert(depth != BitDepth.BD_UNASSIGNED);
+	assert(width > 0 && height > 0);
+	if (depth == BitDepth.BD_8) {
+		write_image(path, cast(long)width, cast(long)height, data, cast(long)format);
+	} else if (depth == BitDepth.BD_16) {
+		enforce(path.extension.toLower == ".png", "Writting 16-bit image has to be in PNG format.");
+		write_image(path, cast(long)width, cast(long)height, data, cast(long)format);
+	} else {
+		throw new Exception("Writting image format not supported.");
+	}
+	return true;
+}
+
+/**
+ * Convenience wrapper for imwrite with Image.
+ * 
+ * params:
+ * image = Image to be written;
+ * path = Path where the image will be written.
+ * 
+ * return:
+ * Status of the writing as bool.
+ */
+bool imwrite(in Image image, in string path) {
+	return imwrite(path, image.width, image.height, image.format, image.depth, image.data!ubyte);
+}
+
+/**
+ * Convenience wrapper for imwrite with Slice type.
+ * 
+ * Assumes 2D slice as grayscale image, and 3D is interpreted
+ * by number of elements in the 3rd dimension (1 - mono, 2 - mono with 
+ * alpha, 3 - rgb, 4 - rgba).
+ * 
+ * params:
+ * slice = Slice of the image data;
+ * path = Path where the image will be written.
+ * 
+ * return:
+ * Status of the writing as bool.
+ */
+bool imwrite(size_t dims, T)(Slice!(dims, T*) slice, in string path) {
+	static assert(dims >= 2);
+
+	static if (dims == 2) {
+		ImageFormat format = ImageFormat.IF_MONO;
+	} else {
+		ImageFormat format = cast(ImageFormat)slice.shape[2];
+	}
+	auto sdata = slice.reshape(slice.shape[].reduce!"a*b").array;
+
+	static if (is(T == ubyte)) {
+		return imwrite(path, slice.shape[1], slice.shape[0], format, BitDepth.BD_8, sdata);
+	} else static if (is(T == ushort)) {
+		enforce(path.extension.toLower == ".png", "Writing 16-bit image has to be in PNG format.");
+		return imwrite(path, slice.shape[1], slice.shape[0], format, BitDepth.BD_16, cast(ubyte[])sdata);
+	} else static if (is (T == float)) {
+		throw new Exception("Writting image format not supported.");
+	} else {
+		throw new Exception("Writting image format not supported.");
+	}
+}
+
+private:
+
+Image imreadImpl_imageformats(in string path, ReadParams params) {
+	enforce(params.depth != BitDepth.BD_32,
+		"Currenly reading of 32-bit image data is not supported");
+
+	Image im = null;
+	auto ch = imreadImpl_imageformats_adoptFormat(params.format);
+
+	if (params.depth == BitDepth.BD_UNASSIGNED || params.depth == BitDepth.BD_8) {
+		IFImage ifim = read_image(path, ch);
+		if (params.format == ImageFormat.IF_UNASSIGNED)
+			params.format = ImageFormat.IF_RGB;
+		im = new Image(cast(ulong) ifim.w, cast(ulong) ifim.h, params.format,
+			BitDepth.BD_8, ifim.pixels);
+	} else if (params.depth == BitDepth.BD_16) {
+		enforce (path.extension.toLower == ".png", "Reading 16-bit image has to be in PNG format.");
+		IFImage16 ifim = read_png16(path, ch);
+		im = new Image(cast(ulong)ifim.w, cast(ulong)ifim.h, params.format, BitDepth.BD_16, cast(ubyte[])ifim.pixels);
+	} else {
+		throw new Exception("Reading image depth not supported.");
+	}
+
+	return im;
+}
+
+int imreadImpl_imageformats_adoptFormat(ImageFormat format) {
+	typeof(return) ch = 0;
+	switch(format) {
+		case ImageFormat.IF_RGB:
+			ch = ColFmt.RGB;
+			break;
+		case ImageFormat.IF_RGB_ALPHA:
+			ch = ColFmt.RGBA;
+			break;
+		case ImageFormat.IF_MONO:
+			ch = ColFmt.Y;
+			break;
+		case ImageFormat.IF_MONO_ALPHA:
+			ch = ColFmt.YA;
+			break;
+		default:
+			assert(0, "Unsupported image format: " ~ format.stringof);
+	}
+	return ch;
 }
