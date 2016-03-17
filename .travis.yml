@@ -8,9 +8,11 @@ os:
 d:
  - dmd-2.070.0
  
-before_install:
-  - sudo apt-get install liblapack-dev
-  - sudo apt-get install ffmpeg
+addons:
+ apt:
+   sources:
+   - liblapack-dev
+   - ffmpeg
 
 script:
  - dub test -b unittest-cov
