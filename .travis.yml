@@ -11,8 +11,8 @@ d:
 addons:
  apt:
    packages:
-   - liblapack-dev
-   - ffmpeg
+    - liblapack-dev
+    - ffmpeg
 
 script:
  - dub test -b unittest-cov
