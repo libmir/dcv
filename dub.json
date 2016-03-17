@@ -5,8 +5,10 @@
 	"authors": ["Relja Ljubobratovic"],
 	"dependencies": {
 		"imageformats": "~>5.2.0",
-		"scid": "~>0.3.0"
+		"scid": "~>0.3.0",
+		"ffmpeg-d": "~master"
 	},
+
 	"sourcePaths": [
 		"source/"
 	],
