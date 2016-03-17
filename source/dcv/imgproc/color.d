@@ -3,6 +3,9 @@
 /*
  * Color format convertion module.
  * 
+ * TODO: redesign functions - one function to iterate, separated format convertions as template alias. 
+ * Consider grouping color convertion routines into one function.
+ * 
  * v0.1 norm:
  * rgb2gray vice versa (done)
  * hsv2rgb -||-
@@ -10,9 +13,7 @@
  * lab2rgb -||-
  * luv2rgb -||-
  * luv2rgb -||-
- * 
- * v0.1+:
- * bayer2rgb - maybe move to v0.1 norm?
+ * bayer2rgb -||-
  */
 
 private import std.experimental.ndslice;
@@ -33,12 +34,10 @@ private import std.exception : enforce;
 /**
  * RGB to Grayscale convertion strategy.
  */
-enum Rgb2GrayConvertion : size_t {
-	MEAN = 0, /// Mean the RGB values and assign to gray.
-	LUMINANCE_PRESERVE = 1 /// Use luminance preservation technique (0.2126R + 0.715G + 0.0722B). 
+enum Rgb2GrayConvertion {
+	MEAN, /// Mean the RGB values and assign to gray.
+	LUMINANCE_PRESERVE /// Use luminance preservation (0.2126R + 0.715G + 0.0722B). 
 }
-
-
 
 /**
  * Convert RGB image to grayscale.
@@ -318,6 +317,56 @@ unittest {
 	// TODO: design the test...
 }
 
+/**
+ * Convert RGB image format to YUV.
+ * 
+ * YUV images in dcv are organized in the same buffer plane
+ * where quantity of luma and chroma values are the same (as in
+ * YUV444 format).
+ */
+Slice!(3, R*) rgb2yuv(V, R = V)(Slice!(3, V*) range, 
+	Slice!(3, R*) prealloc = emptySlice!(3, R)) {
+
+	enforce(range.length!2 == 3, "Invalid channel count.");
+
+	if (prealloc.empty || prealloc.shape[].equal(range.shape[])) {
+		prealloc = uninitializedArray!(R[])(range.length!0*range.length!1*3)
+			.sliced(range.length!0, range.length!1, 3);
+	}
+
+	foreach(rgb, yuv; lockstep(range.pack!1, prealloc.pack!1)) {
+		auto r = cast(int)rgb[0];
+		auto g = cast(int)rgb[1];
+		auto b = cast(int)rgb[2];
+		yuv[0] = clip!R(r *  .299000 + g *  .587000 + b *  .114000);
+		yuv[1] = clip!R(r * -.168736 + g * -.331264 + b *  .500000 + 128);
+		yuv[2] = clip!R(r *  .500000 + g * -.418688 + b * -.081312 + 128);	
+	}
+
+	return prealloc;
+}
+
+Slice!(3, R*) yuv2rgb(V, R = V)(Slice!(3, V*) range, 
+	Slice!(3, R*) prealloc = emptySlice!(3, R)) {
+
+	enforce(range.length!2 == 3, "Invalid channel count.");
+
+	if (prealloc.empty || prealloc.shape[].equal(range.shape[])) {
+		prealloc = uninitializedArray!(R[])(range.length!0*range.length!1*3)
+			.sliced(range.length!0, range.length!1, 3);
+	}
+
+	foreach(yuv, rgb; lockstep(range.pack!1.byElement, prealloc.pack!1.byElement)) {
+		auto y = cast(int)(yuv[0]);
+		auto u = cast(int)(yuv[1]) - 128;
+		auto v = cast(int)(yuv[2]) - 128;
+		rgb[0] = clip!R(y + 1.4075 * v);
+		rgb[1] = clip!R(y - 0.3455 * u - (0.7169 * v));
+		rgb[2] = clip!R(y + 1.7790 * u);
+	}
+
+	return prealloc;
+}
 
 private:
 
@@ -352,14 +401,6 @@ Slice!(2, V*) rgb2grayImpl(V)(Slice!(3, V*) range,
 				);
 		}
 	}
-
-	/*
-	 // this is ~4x slower than nested foor loops?
-	 range.pack!1
-	 .byElement
-	 .map!(rgb => cast(ubyte)(rgb[0]*m[0] + rgb[1]*m[1] + rgb[2]*m[2]))
-	 .copy(prealloc.byElement);
-	 */
 
 	return prealloc;
 }
