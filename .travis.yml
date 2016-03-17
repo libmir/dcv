@@ -10,7 +10,7 @@ d:
  
 addons:
  apt:
-   sources:
+   packages:
    - liblapack-dev
    - ffmpeg
 
