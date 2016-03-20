@@ -14,6 +14,9 @@ addons:
     - liblapack-dev
     - ffmpeg
 
+before_install:
+ - chmod +x ./scripts/ffmpeg_travis_setup.sh
+
 before_script: ./scripts/ffmpeg_travis_setup.sh
 
 script:
