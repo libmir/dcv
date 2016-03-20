@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 CURR_DIR="$(pwd)"
 cd ${HOME}
 wget https://github.com/FFmpeg/FFmpeg/archive/n2.7.6.tar.gz
