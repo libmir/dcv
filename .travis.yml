@@ -14,6 +14,8 @@ addons:
     - liblapack-dev
     - ffmpeg
 
+before_script: ./scripts/ffmpeg_travis_setup.sh
+
 script:
  - dub test -b unittest-cov
 
