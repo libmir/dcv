@@ -1,4 +1,5 @@
 #!/usr/bin/bash
+CURR_DIR="$(pwd)"
 cd ${HOME}
 wget https://github.com/FFmpeg/FFmpeg/archive/n2.7.6.tar.gz
 tar zxf n2.7.6.tar.gz
@@ -10,4 +11,4 @@ cd build
 make
 make install
 cp ${HOME}/install/lib/*.so* ~/dmd2/linux/lib64/
-cd ${HOME}
+cd ${CURR_DIR}
