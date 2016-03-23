@@ -3,6 +3,10 @@
 
 /**
  * Module for video I/O
+ * 
+ * Wraps the ffmpeg library to perform video streaming.
+ * 
+ * TODO: Document!
  */
 
 private import std.stdio : writeln;
@@ -17,13 +21,19 @@ private import ffmpeg.libavfilter.avfilter;
 
 public import dcv.io.image;
 
-enum VideoStreamType : size_t {
-	INVALID = 0x00100,
-	INPUT = 0x00200,
-	OUTPUT = 0x00300,
-	LIVE = 0x00400
+enum VideoStreamType : int {
+	INVALID = 0,
+	INPUT = 0x00100,
+	OUTPUT = 0x00200,
+	FILE = 0x00010,
+	LIVE = 0x00020,
 }
 
+/**
+ * Video streaming utility.
+ * 
+ * Perform FILE/output video streaming. Wraps FFmpeg library.
+ */
 class VideoStream {
 private:
 	AVFormatContext *formatContext = null;
@@ -37,24 +47,81 @@ public:
 	}
 
 	~this() {
-		release();
+		close();
 	}
 
-	bool open(in string filepath, in VideoStreamType type) { 
+	//! Check if stream is open.
+	@property isOpen() const {
+		return formatContext !is null;
+	}
+
+	/**
+	 * Check type of the stream.
+	 */
+	@property isInputStream() const {
+		return (type & VideoStreamType.INPUT) == VideoStreamType.INPUT;
+	}
+	//! ditto
+	@property isOutputStream() const {
+		return (type & VideoStreamType.OUTPUT) == VideoStreamType.OUTPUT;
+	}
+	//! ditto
+	@property isFileStream() const {
+		return (type & VideoStreamType.FILE) == VideoStreamType.FILE;
+	}
+	//! ditto
+	@property isLiveStream() const {
+		return (type & VideoStreamType.LIVE) == VideoStreamType.LIVE;
+	}
+
+	/**
+	 * Open the video stream.
+	 * 
+	 * params:
+	 * path = Path to the stream. 
+	 * type = Stream type. 
+	 */
+	bool open(in string path, VideoStreamType type = (VideoStreamType.INPUT | VideoStreamType.FILE)) { 
 		this.type = type;
-		switch(type) {
-			case VideoStreamType.INPUT:
-				return openInputStream(filepath);
-			case VideoStreamType.LIVE:
-				throw new Exception("Not implemented");
-			case VideoStreamType.OUTPUT:
-				throw new Exception("Not implemented");
-			default:
-				throw new Exception("Cannot open invalid stream.");
+		if (isInputStream) {
+			if (isFileStream) {
+				return openInputStreamImpl(null, path);
+			} else if (isLiveStream) {
+				version(Windows) {
+					AVInputFormat *fmt = av_find_input_format("dshow");
+					if (fmt is null) {
+						fmt = av_find_input_format("vfwcap");
+					}
+				} else version(linux) {
+					AVInputFormat *fmt = av_find_input_format("v4l2");
+				} else version (OSX) {
+					AVInputFormat *fmt = av_find_input_format("avfoundation");
+				} else {
+					static assert(0, "Not supported platform");
+				}
+				
+				if (fmt is null) {
+					throw new Exception("Cannot find correspoding FILE format for the platform"); 
+				}
+				return openInputStreamImpl(fmt, path);
+			} else {
+				throw new Exception("Invalid video type input.");
+			}
+		} else {
+			throw new Exception("Output Stream Yet Not Implemented");
+		}
+	}
+
+	void close() {
+		if (formatContext) {
+			avformat_close_input(&formatContext);
+			formatContext = null;
 		}
 	}
 
 	bool seekFrame(size_t frame) {
+		enforce(isFileStream && isInputStream, "Only input file streams can be seeked.");
+
 		if (stream is null)
 			throw new Exception("Stream is not open");
 		if (codecContext is null)
@@ -74,6 +141,8 @@ public:
 	}
 	
 	bool seekTime(double seekSeconds) {
+		enforce(isFileStream && isInputStream, "Only input file streams can be seeked.");
+
 		if (stream is null)
 			throw new Exception("Stream is not open");
 		if (codecContext is null)
@@ -88,14 +157,18 @@ public:
 
 		return true;
 	}
+
 	bool readFrame(ref Image image) {
-		if (type & VideoStreamType.INPUT) {
-			return readInputFrame(image);
-		} else if (type & VideoStreamType.LIVE) {
-			throw new Exception("Not implemented"); // TODO: replace with custom exception
+		if (isInputStream) {
+			return readFrameImpl(image);
 		} else {
-			throw new Exception("Not an input stream"); // TODO: replace with custom exception
+			throw new Exception("Not an input stream");
 		}
+	}
+
+	bool writeFrame(Image image) {
+		enforce(isOutputStream, "Stream is not output, cannot write frame");
+		throw new Exception("Not implemented");
 	}
 
 	@property size_t width() const {
@@ -133,115 +206,15 @@ public:
 	}
 
 	void dumpFormat() const {
-		av_dump_format(cast(AVFormatContext*)formatContext, 0, "", 0);
+		if (formatContext)
+			av_dump_format(cast(AVFormatContext*)formatContext, 0, "", 0);
+		else
+			writeln("Cannot dump format: format invalid (stream is not opened)");
 	}
 
 private:
-
-	bool openInputStream(in string filepath) {
-		const char *file = cast(const char *)filepath.dup.ptr;
-		int streamIndex = -1;
-
-		// open input file, and allocate format context
-		if (avformat_open_input(&formatContext, filepath.ptr, null, null) < 0) {
-			writeln("Could not open stream for file: ", filepath);
-			return false;
-		}
-
-		// retrieve stream information 
-		if (avformat_find_stream_info(formatContext, null) < 0) {
-			writeln("Could not find stream information");
-			return false;
-		}
-
-		if (open_codec_context(&streamIndex, formatContext, AVMediaType.AVMEDIA_TYPE_VIDEO)	>= 0) {
-			stream = formatContext.streams[streamIndex];
-			codecContext = stream.codec;
-		}
 		
-		if (!stream) {
-			writeln("Could not find video stream in the input, aborting");
-			return false;
-		}
-
-		debug {
-			av_dump_format(formatContext, 0, file, 0);
-		}
-		
-		//////////////////////////////////////////////////////////////////////////
-
-		return true;
-	}
-
-	AVPixelFormat convertDepricatedPixelFormat(AVPixelFormat pix) const {
-		AVPixelFormat pixFormat = pix;
-		switch (pix) {
-			case AVPixelFormat.AV_PIX_FMT_YUVJ420P :
-				pixFormat = AVPixelFormat.AV_PIX_FMT_YUV420P;
-				break;
-			case AVPixelFormat.AV_PIX_FMT_YUVJ422P  :
-				pixFormat = AVPixelFormat.AV_PIX_FMT_YUV422P;
-				break;
-			case AVPixelFormat.AV_PIX_FMT_YUVJ444P   :
-				pixFormat = AVPixelFormat.AV_PIX_FMT_YUV444P;
-				break;
-			case AVPixelFormat.AV_PIX_FMT_YUVJ440P :
-				pixFormat = AVPixelFormat.AV_PIX_FMT_YUV440P;
-				break;
-			default:
-				break;
-		}
-		return pixFormat;
-	}
-
-	void release() {
-		if (formatContext)
-			avformat_close_input(&formatContext);
-	}
-
-	int open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, AVMediaType type) {
-		int ret;
-
-		AVStream *st;
-		AVCodecContext *dec_ctx = null;
-		AVCodec *dec = null;
-		AVDictionary *opts = null;
-
-		ret = av_find_best_stream(fmt_ctx, type, -1, -1, null, 0);
-		if (ret < 0) {
-			writeln("Could not find stream in input file.");
-			return ret;
-		} else {
-			*stream_idx = ret;
-			st = fmt_ctx.streams[*stream_idx];
-			/* find decoder for the stream */
-			dec_ctx = st.codec;
-			dec = avcodec_find_decoder(dec_ctx.codec_id);
-
-			if (!dec) {
-				writeln("Failed to find codec: ", av_get_media_type_string(type));
-				return -1;
-			}
-
-			if ((ret = avcodec_open2(dec_ctx, dec, &opts)) < 0) {
-				writeln("Failed to open codec: ",
-					av_get_media_type_string(type));
-				return ret;
-			}
-		}
-
-		return 0;
-	}
-
-	@property AVPixelFormat pixelFormat() const {
-		if (stream is null)
-			throw new Exception("Stream is not open");
-		return convertDepricatedPixelFormat(stream.codec.pix_fmt);
-	}
-
-	
-	bool readInputFrame(ref Image image) {
-		import std.stdio : writeln;
+	bool readFrameImpl(ref Image image) {
 		bool stat = false;
 
 		AVPacket packet;
@@ -284,9 +257,107 @@ private:
 				}
 			}
 		}
-
 		return stat;
 	}
+
+	bool openInputStreamImpl(AVInputFormat *inputFormat, in string filepath) {
+		const char *file = cast(const char *)filepath.dup.ptr;
+		int streamIndex = -1;
+
+		// open FILE file, and allocate format context
+		if (avformat_open_input(&formatContext, filepath.ptr, inputFormat, null) < 0) {
+			writeln("Could not open stream for file: ", filepath);
+			return false;
+		}
+
+		// retrieve stream information 
+		if (avformat_find_stream_info(formatContext, null) < 0) {
+			writeln("Could not find stream information");
+			return false;
+		}
+
+		if (openCodecContext(&streamIndex, formatContext, AVMediaType.AVMEDIA_TYPE_VIDEO)	>= 0) {
+			stream = formatContext.streams[streamIndex];
+			codecContext = stream.codec;
+		}
+		
+		if (!stream) {
+			writeln("Could not find video stream in the FILE, aborting");
+			return false;
+		}
+
+		debug {
+			av_dump_format(formatContext, 0, file, 0);
+		}
+		
+		//////////////////////////////////////////////////////////////////////////
+
+		return true;
+	}
+
+	AVPixelFormat convertDepricatedPixelFormat(AVPixelFormat pix) const {
+		AVPixelFormat pixFormat = pix;
+		switch (pix) {
+			case AVPixelFormat.AV_PIX_FMT_YUVJ420P :
+				pixFormat = AVPixelFormat.AV_PIX_FMT_YUV420P;
+				break;
+			case AVPixelFormat.AV_PIX_FMT_YUVJ422P  :
+				pixFormat = AVPixelFormat.AV_PIX_FMT_YUV422P;
+				break;
+			case AVPixelFormat.AV_PIX_FMT_YUVJ444P   :
+				pixFormat = AVPixelFormat.AV_PIX_FMT_YUV444P;
+				break;
+			case AVPixelFormat.AV_PIX_FMT_YUVJ440P :
+				pixFormat = AVPixelFormat.AV_PIX_FMT_YUV440P;
+				break;
+			default:
+				break;
+		}
+		return pixFormat;
+	}
+
+	
+	int openCodecContext(int *stream_idx, AVFormatContext *fmt_ctx, AVMediaType type) {
+		int ret;
+
+		AVStream *st;
+		AVCodecContext *dec_ctx = null;
+		AVCodec *dec = null;
+		AVDictionary *opts = null;
+
+		ret = av_find_best_stream(fmt_ctx, type, -1, -1, null, 0);
+		if (ret < 0) {
+			writeln("Could not find stream in FILE file.");
+			return ret;
+		} else {
+			*stream_idx = ret;
+			st = fmt_ctx.streams[*stream_idx];
+			/* find decoder for the stream */
+			dec_ctx = st.codec;
+			dec = avcodec_find_decoder(dec_ctx.codec_id);
+
+			if (!dec) {
+				writeln("Failed to find codec: ", av_get_media_type_string(type));
+				return -1;
+			}
+
+			if ((ret = avcodec_open2(dec_ctx, dec, &opts)) < 0) {
+				writeln("Failed to open codec: ",
+					av_get_media_type_string(type));
+				return ret;
+			}
+		}
+
+		return 0;
+	}
+
+	@property AVPixelFormat pixelFormat() const {
+		if (stream is null)
+			throw new Exception("Stream is not open");
+		return convertDepricatedPixelFormat(stream.codec.pix_fmt);
+	}
+
+
 }
 
 private:
@@ -303,6 +374,7 @@ class AVStarter {
 		avformat_network_init();
 		avcodec_register_all();
 		avfilter_register_all();
+		avdevice_register_all();
 	}
 }
 
@@ -319,6 +391,7 @@ immutable IF_YUV_TYPES = [
 	AVPixelFormat.AV_PIX_FMT_YUV411P,
 	AVPixelFormat.AV_PIX_FMT_YUV420P,
 	AVPixelFormat.AV_PIX_FMT_YUV422P,
+	AVPixelFormat.AV_PIX_FMT_YUYV422,
 	AVPixelFormat.AV_PIX_FMT_YUV440P,
 	AVPixelFormat.AV_PIX_FMT_YUV444P
 ];
@@ -404,10 +477,6 @@ void adoptFormat(AVPixelFormat format, AVFrame *frame, ubyte [] data) {
 }
 
 void adoptYUV(AVPixelFormat format, AVFrame *frame, ubyte []data) {
-	debug {
-		import std.conv : to;
-		writeln(format.to!string);
-	}
 	switch (format) {
 		case AVPixelFormat.AV_PIX_FMT_YUV410P,
 			AVPixelFormat.AV_PIX_FMT_YUV420P,
@@ -419,6 +488,9 @@ void adoptYUV(AVPixelFormat format, AVFrame *frame, ubyte []data) {
 			break;
 		case AVPixelFormat.AV_PIX_FMT_YUV422P:
 			adoptYUV422P(frame, data);
+			break;
+		case AVPixelFormat.AV_PIX_FMT_YUYV422:
+			adoptYUYV422(frame, data);
 			break;
 		case AVPixelFormat.AV_PIX_FMT_YUV444P:
 			adoptYUV444P(frame, data);
@@ -517,6 +589,33 @@ void adoptYUV422P(AVFrame *frame, ubyte []data) {
 		data[i*6 + 3] = y2;
 		data[i*6 + 4] = u;
 		data[i*6 + 5] = v;
+	}
+}
+
+void adoptYUYV422(AVFrame *frame, ubyte []data) {
+
+	int w = frame.width;
+	int h = frame.height;
+	int s = (w*h) / 2;
+
+	auto yuyvdata = frame.data[0];
+
+	ulong dataIter = 0;
+	ulong yuyvIter = 0;
+
+	foreach(i; 0..s) {
+		auto y1 = yuyvdata[yuyvIter++];
+		auto u = yuyvdata[yuyvIter++];
+		auto y2 = yuyvdata[yuyvIter++];
+		auto v = yuyvdata[yuyvIter++];
+
+		data[dataIter++] = y1;
+		data[dataIter++] = u;
+		data[dataIter++] = v;
+
+		data[dataIter++] = y2;
+		data[dataIter++] = u;
+		data[dataIter++] = v;
 	}
 }
 
