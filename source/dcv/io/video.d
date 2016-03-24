@@ -39,7 +39,7 @@ private:
 	AVFormatContext *formatContext = null;
 	AVCodecContext *codecContext = null;
 	AVStream *stream = null;
-	VideoStreamType type = VideoStreamType.INVALID;
+	int type = VideoStreamType.INVALID;
 
 public:
 	this() {
