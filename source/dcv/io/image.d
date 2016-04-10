@@ -25,16 +25,27 @@ struct ReadParams {
 }
 
 /// Image (pixel) format.
-enum ImageFormat : size_t {
+enum ImageFormat {
 	IF_UNASSIGNED = 0,
-	IF_MONO = 1,
-	IF_MONO_ALPHA = 2,
-	IF_RGB = 3,
-	IF_BGR = 3,
-	IF_YUV = 3,
-	IF_RGB_ALPHA = 4,
-	IF_BGR_ALPHA = 4
+	IF_MONO,
+	IF_MONO_ALPHA,
+	IF_RGB,
+	IF_BGR,
+	IF_YUV,
+	IF_RGB_ALPHA,
+	IF_BGR_ALPHA
 }
+
+private immutable ulong [] imageFormatChannelCount = [
+	0, // unassigned
+	1, // mono
+	2, // mono alpha
+	3, // rgb
+	3, // bgr
+	3, // yuv
+	4, // rgba
+	4  // bgra
+];
 
 /// Bit depth of a pixel in an image.
 enum BitDepth : size_t {
@@ -130,18 +141,7 @@ public:
 	}
 	/// Channel count of the image.
 	@property channels() const @safe pure {
-		switch (_format) {
-			case ImageFormat.IF_MONO:
-				return 0;
-			case ImageFormat.IF_MONO_ALPHA:
-				return 2;
-			case ImageFormat.IF_RGB:
-				return 3;
-			case ImageFormat.IF_RGB_ALPHA:
-				return 4;
-			default:
-				return -1;
-		}
+		return imageFormatChannelCount[cast(int)format];
 	}
 
 	/// Number of bytes contained in one pixel of the image.
@@ -273,25 +273,28 @@ public:
 		return "Image [" ~ width.to!string ~ "x" ~ height.to!string ~ "]"; 
 	}
 
-	auto sliced(T)() {
+	auto sliced(T = ubyte)() {
 		return data!T.sliced(height, width, channels);
 	}
 }
 
-Image asImage(size_t N, T)(Slice!(N, T*) slice) {
+Image asImage(size_t N, T)(Slice!(N, T*) slice, ImageFormat format) {
+	import std.conv : to;
+
 	BitDepth depth = getDepthFromType!T;
 	enforce (depth != BitDepth.BD_UNASSIGNED, "Invalid type of slice for convertion to image: ", T.stringof);
 	static if (N == 2) {
 		ubyte* ptr = cast(ubyte*)&slice[0, 0];
-		ubyte [] s_arr = ptr[0 .. slice.shape.reduce!"a*b"*T*sizeof][];
-		return new Image(slice.shape[1], slice.shape[0], ImageFormat.IF_MONO, depth, s_arr);
+		ubyte [] s_arr = ptr[0 .. slice.shape.reduce!"a*b"*T.sizeof][];
+		enforce (format.to!int == 1, "Invalid image format - has to be single channel");
+		return new Image(slice.shape[1], slice.shape[0], format, depth, s_arr);
 	} else static if (N == 3) {
 		ubyte* ptr = cast(ubyte*)&slice[0, 0, 0];
-		ubyte [] s_arr = ptr[0 .. slice.shape.reduce!"a*b"*T*sizeof][];
+		ubyte [] s_arr = ptr[0 .. slice.shape.reduce!"a*b"*T.sizeof][];
 		auto ch = slice.shape[2];
 		enforce(ch >= 1 && ch <= 4, 
 			"Invalid slice shape - third dimension should contain from 1(grayscale) to 4(rgba) values.");
-		ImageFormat format = cast(ImageFormat)ch;
+		enforce (ch == imageFormatChannelCount[format], "Invalid image format - channel count missmatch");
 		return new Image(slice.shape[1], slice.shape[0], format, depth, s_arr);
 	} else {
 		static assert(0, "Invalid slice dimension - should be 2(mono image) or 3(channel image) dimensional.");
@@ -461,7 +464,7 @@ int imreadImpl_imageformats_adoptFormat(ImageFormat format) {
 			ch = ColFmt.YA;
 			break;
 		default:
-			assert(0, "Unsupported image format: " ~ format.stringof);
+			ch = ColFmt.RGB;
 	}
 	return ch;
 }
