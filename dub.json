@@ -25,6 +25,7 @@
 	"subPackages": [
 		"examples/filter/",
 		"examples/imgmanip/",
+		"examples/video/",
 		"examples/features/"
 	],
 	"license": "MIT"
