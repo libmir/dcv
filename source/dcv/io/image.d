@@ -115,8 +115,7 @@ public:
 		_height = height;
 		_depth = depth;
 		_format = format;
-		_data = (data.length) ? data : new ubyte[width * height * cast(
-				size_t) format * (cast(size_t) depth / 8)];
+		_data = (data.length) ? data : new ubyte[width * height * channels * (cast(size_t) depth / 8)];
 	}
 
 	/// Get format of an image.
