@@ -9,10 +9,12 @@ unittest {
 	/*
 	 Only a temp solution for a test. More complete and correct form of testing should be provided in future.
 	 */
-
-	import dcv.imgproc.color : yuv2rgb;
+	import std.stdio;
 	import std.file;
 	import std.math : abs;
+
+	import dcv.imgproc.color : yuv2rgb;
+
 
 	immutable ubyte[][] frameColorMap = [
 		[255, 255, 255],
