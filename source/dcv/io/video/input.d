@@ -150,12 +150,12 @@ public:
 
 	void close() {
 		if (formatContext) {
+			if (stream && stream.codec) {
+				avcodec_close(stream.codec);
+				stream = null;
+			}
 			avformat_close_input(&formatContext);
 			formatContext = null;
-		}
-		if (stream) {
-			avcodec_close(stream.codec);
-			stream = null;
 		}
 	}
 
