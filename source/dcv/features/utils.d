@@ -10,6 +10,18 @@ private import std.traits : isNumeric;
 
 
 /**
+ * Feature point.
+ */
+struct Feature {
+	size_t x; // x coordinate of the feature centroid
+	size_t y; // y coordinate of the feature centroid
+	size_t width; // width of the feature
+	size_t height; // height of the feature
+	size_t octave; // octave in which the feature is detected.
+	float score; // feature strengh.
+}
+
+/**
  * Extract corners as array of 2D points, from response matrix.
  * 
  * params:
