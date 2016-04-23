@@ -16,19 +16,20 @@
  * bayer2rgb -||-
  */
 
-private import std.experimental.ndslice;
+import std.experimental.ndslice;
 
-private import dcv.core.utils;
+import dcv.core.utils;
 
-private import std.array : uninitializedArray;
-private import std.traits : CommonType, isFloatingPoint, isAssignable, isNumeric;
-private import std.algorithm.iteration : sum, each, reduce, map;
-private import std.algorithm.mutation : copy;
-private import std.algorithm.comparison : equal;
-private import std.algorithm : swap;
-private import std.range : zip, array, iota;
-private import std.parallelism : parallel;
-private import std.exception : enforce;
+import std.array : uninitializedArray;
+import std.traits : CommonType, isFloatingPoint, isAssignable, isNumeric;
+import std.algorithm.iteration : sum, each, reduce, map;
+import std.algorithm.mutation : copy;
+import std.algorithm.comparison : equal;
+import std.algorithm : swap;
+import std.range : zip, array, iota;
+import std.parallelism : parallel;
+import std.exception : enforce;
+import std.range : lockstep;
 
 
 /**
@@ -183,6 +184,7 @@ Slice!(3, R*) rgb2hsv(R, V)(Slice!(3, V*) range,
 	if (isNumeric!R && isNumeric!V)
 {
 	import std.algorithm.comparison : max, min;
+
 	static assert(R.max >= 360, "Invalid output type for HSV (R.max >= 360)");
 
 	enforce(range.length!2 == 3, "Invalid channel count.");
@@ -258,6 +260,7 @@ Slice!(3, R*) hsv2rgb(R, V)(Slice!(3, V*) range,
 	if (isNumeric!R && isNumeric!V)
 {
 	import std.math : fabs;
+
 	enforce(range.length!2 == 3, "Invalid channel count.");
 
 	if (prealloc.empty || prealloc.shape[].equal(range.shape[])) {
