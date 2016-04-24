@@ -31,3 +31,6 @@ Any help is much appreciated! If you like the idea of having computer vision lib
 ## Dependencies
 Library should be primarilly based on scientific libraries from [DlangScience](https://github.com/DlangScience). Imageformats library from **dub** is used for Image I/O. When library is well formed, list of dependencies will be written plain - at this moment it is unsure which libraries project would depend on.
 
+## License
+Library is licensed under Boost Software License - Version 1.0. Some modules in the library contain code that is licensed under some other terms. If a module in the library states different license terms in it's header, then the Boost Software License does not apply to that module.
+
