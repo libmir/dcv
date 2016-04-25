@@ -13,6 +13,8 @@ addons:
  apt:
    packages:
     - liblapack-dev
+    - libedit-dev
+    - libconfig++-dev
     - ffmpeg
 
 before_install:
