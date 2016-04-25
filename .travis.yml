@@ -15,6 +15,7 @@ addons:
     - liblapack-dev
     - libedit-dev
     - libconfig++-dev
+    - gcc-multilib
     - ffmpeg
 
 before_install:
