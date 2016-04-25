@@ -7,6 +7,7 @@ os:
 
 d:
  - dmd-2.070.0
+ - ldc-1.0.0-beta1
  
 addons:
  apt:
