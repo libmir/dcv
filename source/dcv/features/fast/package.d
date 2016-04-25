@@ -38,12 +38,14 @@
  */
 
 import std.experimental.ndslice;
-import core.stdc.stdlib : free;
 
 import dcv.core.image : BitDepth;
 import dcv.features.utils : Feature;
 import dcv.features.fast.base : xy;
 import dcv.features.fast.fast_9;
+import dcv.features.fast.fast_10;
+import dcv.features.fast.fast_11;
+import dcv.features.fast.fast_12;
 import dcv.features.fast.nonmax;
 
 public import dcv.features.detector;
@@ -61,15 +63,27 @@ public import dcv.features.detector;
  */
 class FASTDetector : Detector {
 
+	/// Should the non-maximum suppression be performed with the detection.
 	public static immutable PERFORM_NON_MAX_SUPRESSION = 0x0100;
+	/// Should the features be sorted by score at the output.
 	public static immutable SORT_OUT_FEATURES_BY_SCORE = 0x0200;
 
-	private int _flags;
-	private uint _threshold;
+	/// Type of the FAST corner.
+	public enum Type {
+		FAST_9,
+		FAST_10,
+		FAST_11,
+		FAST_12,
+	}
 
-	this(uint threshold = 100, int flags = 0) {
+	private uint _threshold;
+	private Type _type;
+	private int _flags;
+
+	this(uint threshold = 100, Type type = Type.FAST_9, int flags = 0) {
 		assert(threshold > 0);
 		this._threshold = threshold;
+		this._type = type;
 		this._flags = flags;
 	}
 
@@ -80,10 +94,16 @@ class FASTDetector : Detector {
 		assert(value > 0);
 		_threshold = value;
 	}
+	/// Type of the detector.
+	@property type() const { return _type; }
+	/// ditto
+	@property type(Type type) { _type = type; }
 	/// Algorithm flags.
 	@property flags() const { return _flags; }
 
+	/// Detect features for given image.
 	override Feature[] detect(in Image image, size_t count = 0) const {
+		import core.stdc.stdlib : free;
 		import std.exception : enforce;
 		import std.array : reserve;
 		import std.algorithm : min;
@@ -103,7 +123,31 @@ class FASTDetector : Detector {
 			free(xyFeatures);
 		}
 
-		xyFeatures = fast9_detect(cast(const ubyte*)image.data.ptr, 
+		xy* function(const ubyte*, int, int, int, int, int*) detectFunc;
+		int* function(const ubyte* i, int stride, xy* corners, int num_corners, int b) scoreFunc;
+
+		switch(_type) {
+			case Type.FAST_9:
+				detectFunc = &fast9_detect;
+				scoreFunc = &fast9_score;
+				break;
+			case Type.FAST_10:
+				detectFunc = &fast10_detect;
+				scoreFunc = &fast10_score;
+				break;
+			case Type.FAST_11:
+				detectFunc = &fast11_detect;
+				scoreFunc = &fast11_score;
+				break;
+			case Type.FAST_12:
+				detectFunc = &fast12_detect;
+				scoreFunc = &fast12_score;
+				break;
+			default:
+				assert(0);
+		}
+
+		xyFeatures = detectFunc(cast(const ubyte*)image.data.ptr, 
 			cast(int)image.width, cast(int)image.height, 
 			cast(int)image.rowStride, cast(int)threshold, &featureCount);
 
@@ -111,8 +155,9 @@ class FASTDetector : Detector {
 			int nonMaxFeatureCount = 0;
 			xy *xySuppressed = null;
 
-			featureScore = fast9_score(cast(ubyte*)image.data.ptr, 
+			featureScore = scoreFunc(cast(ubyte*)image.data.ptr, 
 				cast(int)image.rowStride, xyFeatures, featureCount, cast(int)threshold);
+
 			xySuppressed = nonmax_suppression(xyFeatures, featureScore, 
 				featureCount, &nonMaxFeatureCount);
 
@@ -128,7 +173,7 @@ class FASTDetector : Detector {
 			xyFeatures = xySuppressed;
 		} 
 
-		featureScore = fast9_score(cast(ubyte*)image.data.ptr, 
+		featureScore = scoreFunc(cast(ubyte*)image.data.ptr, 
 			cast(int)image.rowStride, xyFeatures, featureCount, cast(int)threshold);
 
 		features.reserve(featureCount);
@@ -136,14 +181,14 @@ class FASTDetector : Detector {
 			Feature f;
 			f.x = xyFeatures[i].x;
 			f.y = xyFeatures[i].y;
-			f.width = 9;
-			f.height = 9;
+			f.width = 16.;
+			f.height = 16.;
 			f.octave = 0;
 			f.score = featureScore[i];
 			features ~= f;
 		}
 
-		// TODO: sort raw results. (before creating te Feature objects)
+		// TODO: sort raw results. (before creating Feature objects)
 		if (flags & FASTDetector.SORT_OUT_FEATURES_BY_SCORE) {
 			import std.algorithm : sort;
 			features.sort!((a, b) => a.score > b.score);
@@ -180,7 +225,7 @@ unittest {
 		FASTDetector.SORT_OUT_FEATURES_BY_SCORE;
 	size_t cornerCount = 10;
 
-	FASTDetector detector = new FASTDetector(threshold, flags);
+	FASTDetector detector = new FASTDetector(threshold, FASTDetector.Type.FAST_9, flags);
 	Feature [] features = detector.detect(lslice, cornerCount);
 
 	assert(features.length == cornerCount);
@@ -197,7 +242,7 @@ unittest {
 	int flags = 0;
 	size_t cornerCount = 10;
 
-	FASTDetector detector = new FASTDetector(threshold, flags);
+	FASTDetector detector = new FASTDetector(threshold, FASTDetector.Type.FAST_9, flags);
 	Feature [] features = detector.detect(lslice, 0);
 
 	assert(features.length != cornerCount); // real count should be around 23 with 43 without suppression
