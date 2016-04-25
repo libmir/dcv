@@ -7,15 +7,11 @@ os:
 
 d:
  - dmd-2.070.0
- - ldc-1.0.0-beta1
  
 addons:
  apt:
    packages:
     - liblapack-dev
-    - libedit-dev
-    - libconfig++-dev
-    - gcc-multilib
     - ffmpeg
 
 before_install:
