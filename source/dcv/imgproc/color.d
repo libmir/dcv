@@ -57,10 +57,10 @@ enum Rgb2GrayConvertion {
  */
 Slice!(2, V*) rgb2gray(V)(Slice!(3, V*) range, 
 	Slice!(2, V*) prealloc = emptySlice!(2, V), 
-	Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow @trusted {
+	Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow {
 
 	auto m = rgb2GrayMltp[conv].map!(a => cast(real)a).array;
-	m[] /= m.sum;
+	m[] /= cast(real)m.sum;
 
 	return rgb2grayImpl(range, prealloc, m);
 }
@@ -68,10 +68,9 @@ Slice!(2, V*) rgb2gray(V)(Slice!(3, V*) range,
 unittest {
 	import std.math : approxEqual;
 	auto rgb = [ 	0, 0, 0, 	1, 1, 1, 
-					2, 2, 2, 	3, 3, 3 ].sliced(2, 2, 3);
+		2, 2, 2, 	3, 3, 3 ].sliced(2, 2, 3);
 
 	auto gray = rgb.rgb2gray;
-
 	assert(equal!approxEqual(gray.byElement, [0, 1, 2, 3]));
 }
 
@@ -107,7 +106,7 @@ Slice!(2, V*) bgr2gray(V)(Slice!(3, V*) range,
 unittest {
 	import std.math : approxEqual;
 	auto rgb = [ 	0, 0, 0, 	1, 1, 1, 
-					2, 2, 2, 	3, 3, 3 ].sliced(2, 2, 3);
+		2, 2, 2, 	3, 3, 3 ].sliced(2, 2, 3);
 
 	auto gray = rgb.bgr2gray;
 
@@ -394,7 +393,7 @@ immutable real [][] rgb2GrayMltp = [
 ];
 
 Slice!(2, V*) rgb2grayImpl(V)(Slice!(3, V*) range, 
-	Slice!(2, V*) prealloc, in real[] m) pure nothrow @trusted {
+	Slice!(2, V*) prealloc, in real[] m) pure nothrow {
 	if (prealloc.empty) {
 		if (!(range.shape[0..2][].equal(prealloc.shape[0..2][])))
 			prealloc = uninitializedArray!(V[])(range.shape[0]*range.shape[1])
@@ -412,11 +411,16 @@ Slice!(2, V*) rgb2grayImpl(V)(Slice!(3, V*) range,
 		size_t j = 0;
 		for (; j < cols; ++j) {
 			auto rgb = rgb_row[j];
-			g_row[j] = cast(V) (
+			auto v =
 				rgb[0]*m[0] +
 				rgb[1]*m[1] +
-				rgb[2]*m[2]
-				);
+				rgb[2]*m[2];
+			static if (isFloatingPoint!(typeof(v)) && !isFloatingPoint!V) {
+				import std.math : floor;
+				g_row[j] = cast(V)(v+0.5).floor;
+			} else {
+				g_row[j] = cast(V)v;
+			}
 		}
 	}
 
