@@ -28,6 +28,5 @@
 		"examples/video/",
 		"examples/features/"
 	],
-	"license": "MIT"
-
+	"license": "Boost Software License v1.0"
 }
