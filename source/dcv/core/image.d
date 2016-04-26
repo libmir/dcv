@@ -26,7 +26,7 @@ enum ImageFormat {
 	IF_BGR_ALPHA
 }
 
-private immutable ulong [] imageFormatChannelCount = [
+immutable ulong [] imageFormatChannelCount = [
 	0, // unassigned
 	1, // mono
 	2, // mono alpha
