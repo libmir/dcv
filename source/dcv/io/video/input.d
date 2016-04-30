@@ -1,6 +1,7 @@
 ﻿module dcv.io.video.input;
 
 import std.exception : enforce;
+import std.string;
 
 debug {
 	import std.stdio;
@@ -247,11 +248,11 @@ private:
 	}
 
 	bool openInputStreamImpl(AVInputFormat* inputFormat, in string filepath) {
-		const char* file = cast(const char*) filepath.dup.ptr;
+		const char* file = toStringz(filepath);
 		int streamIndex = -1;
 
 		// open file, and allocate format context
-		if (avformat_open_input(&formatContext, filepath.ptr, inputFormat, null) < 0) {
+		if (avformat_open_input(&formatContext, file, inputFormat, null) < 0) {
 			debug writeln("Could not open stream for file: " ~ filepath);
 			return false;
 		}

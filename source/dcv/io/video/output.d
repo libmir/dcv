@@ -5,6 +5,7 @@ debug {
 }
 
 import std.exception : enforce;
+import std.string;
 
 import ffmpeg.libavcodec.avcodec;
 import ffmpeg.libavformat.avformat;
@@ -57,7 +58,7 @@ public:
 	 */
 	bool open(in string filepath, in OutputDefinition props = OutputDefinition()) {
 		this.properties = props;
-		const char* path = (filepath.dup ~ '\0').ptr;
+		const char* path = toStringz(filepath);
 		char *formatString = null;
 
 		// Determinate output format
