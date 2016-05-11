@@ -6,9 +6,8 @@
 	"dependencies": {
 		"imageformats": "~>5.2.0",
 		"scid": "~>0.3.0",
-		"ffmpeg-d": "~master"
+		"ffmpeg-d": "2.5.0"
 	},
-
 	"sourcePaths": [
 		"source/"
 	],
@@ -20,7 +19,14 @@
 		{
 			"name": "d_source_library",
 			"targetType": "sourceLibrary"
-		}
+		},
+        {
+            "name": "unittest",
+            "preBuildCommands": ["dub run unit-threaded -c gen_ut_main"],
+            "dependencies": {
+                "unit-threaded": "~>0.6.0"
+            }
+        }
 	],
 	"subPackages": [
 		"examples/filter/",
