@@ -7,21 +7,23 @@
  * resize (done, not tested)
  * scale (done, not tested)
  * transform!affine,perspective
- * remap (pixel-wise displacement)
+ * warp (pixel-wise displacement)
+ * remap (pixel-wise image remapping)
  * split (split multichannel image to single channels)
  * merge (merge multiple channels to one image)
  * channelChain (chain mono images into multi-channel)
  */
 public import dcv.imgproc.interpolate;
 
-private import std.exception : enforce;
-private import std.experimental.ndslice;
-private import std.traits;
-private import std.algorithm : each;
-private import std.range : iota;
-private import std.parallelism : parallel;
-private import std.range : isArray, ElementType;
+import std.exception : enforce;
+import std.experimental.ndslice;
+import std.traits;
+import std.algorithm : each;
+import std.range : iota;
+import std.parallelism : parallel;
+import std.range : isArray, ElementType;
 
+import dcv.core.utils;
 
 /**
  * Resize array using custom interpolation function.
@@ -107,6 +109,80 @@ if (allSameType!Scale && allSatisfy!(isFloatingPoint, Scale) &&	isInterpolationF
 
 unittest {
 	// TODO: design the test
+}
+
+/**
+ * Pixel-wise warping of the image.
+ */
+Slice!(N, T*) warp(alias interp = linear, size_t N, T, V)
+	(Slice!(N, T*) image, Slice!(3, V*) map, Slice!(N, T*) prealloc = emptySlice!(N, T)) pure {
+	return pixelWiseDisplacementImpl!(linear, warpImpl, N, T, V)(image, map, prealloc);
+}
+
+
+/**
+ * Pixel-wise remapping of the image.
+ */
+Slice!(N, T*) remap(alias interp = linear, size_t N, T, V)
+	(Slice!(N, T*) image, Slice!(3, V*) map, Slice!(N, T*) prealloc = emptySlice!(N, T)) pure {
+	return pixelWiseDisplacementImpl!(linear, remapImpl, N, T, V)(image, map, prealloc);
+}
+
+private {
+
+	Slice!(N, T*) pixelWiseDisplacementImpl(alias interp, alias dispFunc, size_t N, T, V)
+		(Slice!(N, T*) image, Slice!(3, V*) map, Slice!(N, T*) prealloc = emptySlice!(N, T)) pure {
+		static assert (isNumeric!T);
+		import std.algorithm.comparison : equal;
+		import std.algorithm.iteration : reduce;
+		import std.array : array, uninitializedArray;
+	 
+		typeof(image) warped;
+		if (prealloc.empty || prealloc.shape.array.equal(image.shape.array)) {
+			warped = uninitializedArray!(T[])(image.shape.reduce!"a*b").sliced(image.shape);
+		} else {
+			enforce(&(warped.byElement.front) != &(image.byElement.front), 
+				"Invalid preallocation slice - it must not share data with input image slice");
+			warped = prealloc;
+		}
+
+		static if (N == 2) {
+			dispFunc!(interp, T, V)(image, map, warped);
+		} else static if (N == 3) {
+			auto imp = image.pack!1;
+			foreach(i; 0..image.length!2) {
+				dispFunc!(interp, T, V)(image[0..$, 0..$, i], map, warped[0..$, 0..$, i]);
+			}
+		} else {
+			import std.conv : to;
+			static assert(0, "Invalid slice dimension - " ~ N.to!string);
+		}
+		return warped;
+	}
+
+	Slice!(2, T*) warpImpl(alias interp, T, V)
+		(Slice!(2, T*) image, Slice!(3, V*) map, Slice!(2, T*) warped) pure {
+		auto const rows = image.length!0;
+		auto const cols = image.length!1;
+		foreach(i; 0..rows) {
+			foreach(j; 0..cols) {
+				warped[i, j] = interp(image, cast(float)i + map[i, j, 1], cast(float)j + map[i, j, 0]); 
+			}
+		}
+		return warped;
+	}
+
+	Slice!(2, T*) remapImpl(alias interp, T, V)
+		(Slice!(2, T*) image, Slice!(3, V*) map, Slice!(2, T*) warped) pure {
+		auto const rows = image.length!0;
+		auto const cols = image.length!1;
+		foreach(i; 0..rows) {
+			foreach(j; 0..cols) {
+				warped[i, j] = interp(image, map[i, j, 1], map[i, j, 0]); 
+			}
+		}
+		return warped;
+	}
 }
 
 private enum TransformType : size_t {
@@ -196,7 +272,7 @@ Slice!(1, V*) resizeImpl_1(alias interp, V)(Slice!(1, V*) slice, ulong newsize) 
 }
 
 // 1d resize implementation
-Slice!(2, V*) resizeImpl_2(alias interp, V)(Slice!(2, V*) slice, ulong width, ulong height) {
+Slice!(2, V*) resizeImpl_2(alias interp, V)(Slice!(2, V*) slice, ulong height, ulong width) {
 		static assert(__traits(compiles, interp(slice, width, height)), 
 		"Interpolation function is not supported for given slice.");
 
@@ -221,7 +297,7 @@ Slice!(2, V*) resizeImpl_2(alias interp, V)(Slice!(2, V*) slice, ulong width, ul
 }
 
 // 1d resize implementation
-Slice!(3, V*) resizeImpl_3(alias interp, V)(Slice!(3, V*) slice, ulong width, ulong height) {
+Slice!(3, V*) resizeImpl_3(alias interp, V)(Slice!(3, V*) slice, ulong height, ulong width) {
 
 	/*
 	static assert(__traits(compiles, interp(slice, width, height)), 
