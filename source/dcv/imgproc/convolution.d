@@ -226,3 +226,4 @@ Slice!(3, V*) conv3Impl(alias bc, V, K, size_t NK)(Slice!(3, V*) range, Slice!(N
 
 	return prealloc;
 }
+
