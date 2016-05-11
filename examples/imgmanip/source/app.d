@@ -59,11 +59,11 @@ void main()
 	// resize image:
 	auto image = [255, 0, 0,  0, 255, 0,  0, 0, 255,  255, 255, 255].sliced(2, 2, 3).asType!ubyte;
 	auto resizedImage = image.resize(300, 300);
-	resizedImage.imwrite("./result/resizedImage.png");
+	resizedImage.imwrite(ImageFormat.IF_RGB, "./result/resizedImage.png");
 
 	// scale image:
 	auto scaledImage = resizedImage.scale(2., 2.);
-	scaledImage.imwrite("./result/scaledImage.png");
+	scaledImage.imwrite(ImageFormat.IF_RGB, "./result/scaledImage.png");
 
 	/*
 	 * Image transformation
@@ -94,5 +94,5 @@ void main()
 			[0., 0., 1.]
 		], outSize); 
 
-	transformedImage.imwrite("./result/transformedImage.png");
+	transformedImage.imwrite(ImageFormat.IF_RGB, "./result/transformedImage.png");
 }

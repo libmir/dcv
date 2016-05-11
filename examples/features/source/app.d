@@ -51,7 +51,7 @@ void main()
 		.array
 		.sliced(shiTomasiResponse.shape)
 		.asType!ubyte
-		.imwrite("result/shiTomasiResponse.png");
+		.imwrite(ImageFormat.IF_MONO, "result/shiTomasiResponse.png");
 
 	harrisResponse
 		.byElement
@@ -59,10 +59,10 @@ void main()
 		.array
 		.sliced(harrisResponse.shape)
 		.asType!ubyte
-		.imwrite("result/harrisResponse.png");
+		.imwrite(ImageFormat.IF_MONO, "result/harrisResponse.png");
 
-	shiTomasiDraw.imwrite("result/shiTomasiCorners.png");
-	harrisDraw.imwrite("result/harrisCorners.png");
+	shiTomasiDraw.imwrite(ImageFormat.IF_RGB, "result/shiTomasiCorners.png");
+	harrisDraw.imwrite(ImageFormat.IF_RGB, "result/harrisCorners.png");
 
 }
 
