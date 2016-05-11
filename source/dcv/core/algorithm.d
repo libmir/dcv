@@ -18,9 +18,8 @@ enum NormType {
 	L2 // eucledian norm
 }
 
-
 /// Find minimum(default) or maximum value in the range.
-ElementType!Range findMinMax(string comparator, Range)(Range range) @trusted pure nothrow
+private ElementType!Range findMinMax(string comparator, Range)(Range range) pure nothrow
 if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
 	ElementType!Range v = range.front;
 	mixin("foreach(e; range) { if (e " ~ comparator ~ " v) v = e; }");
@@ -28,13 +27,13 @@ if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
 }
 
 /// ditto
-ElementType!Range findMin(Range)(Range range) @safe pure nothrow
+ElementType!Range findMin(Range)(Range range) pure nothrow
 if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
 	return range.findMinMax!"<";
 }
 
 /// ditto
-ElementType!Range findMax(Range)(Range range) @safe pure nothrow
+ElementType!Range findMax(Range)(Range range) pure nothrow
 if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
 	return range.findMinMax!">";
 }
@@ -125,10 +124,17 @@ auto normImpl_inf(Range)(Range range) {
 }
 
 auto normImpl_n1(Range)(Range range) {
-	return range.reduce!((a, b) => a + b);
+	import std.math : abs, fabs;
+	import std.traits : isFloatingPoint;
+	static if (isFloatingPoint!(ElementType!Range)) {
+		return range.reduce!((a, b) => fabs(a + b));
+	} else {
+		return range.reduce!((a, b) => abs(a + b));
+	}
 }
 
 auto normImpl_n2(Range)(Range range) {
 	import std.math : sqrt;
 	return range.reduce!((a, b) => a^^2 + b^^2).sqrt;
 }
+
