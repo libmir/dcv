@@ -145,6 +145,12 @@ public:
 	@property rowStride() const @safe pure {
 		return pixelSize * _width;
 	}
+
+	/// Size of the image.
+	/// Returns an array of 3 sizes: [width, height, channels]
+	@property size_t [3] size() const @safe pure {
+		return [width, height, channels];
+	}
 	
 	bool isOfType(T)() const @safe {
 		return (depth != BitDepth.BD_UNASSIGNED && ((depth == BitDepth.BD_8 && is(T == ubyte)) ||
@@ -262,7 +268,7 @@ public:
 		return "Image [" ~ width.to!string ~ "x" ~ height.to!string ~ "]"; 
 	}
 	
-	auto sliced(T = ubyte)() {
+	auto sliced(T = ubyte)() inout {
 		return data!T.sliced(height, width, channels);
 	}
 }
@@ -310,3 +316,4 @@ unittest {
 	assert(data[1] == 4);
 	assert(data[2] == 6);
 }
+
