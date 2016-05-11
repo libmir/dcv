@@ -47,7 +47,7 @@ static Slice!(N, O*) asType(O, V, size_t N)(Slice!(N, V*) inslice) {
  * return:
  * Clipped value of the output type.
  */
-static T clip(T, V)(V v) 
+T clip(T, V)(V v) 
 if (isNumeric!V && isNumeric!T)
 {
 	import std.traits : isFloatingPoint;
@@ -64,6 +64,37 @@ if (isNumeric!V && isNumeric!T)
 	}
 }
 
+// TODO: document
+auto merge(Slices...)(Slices ranges) {
+
+	import std.algorithm.iteration: map;
+
+    alias ElementRange = typeof(ranges[0].byElement);
+    alias T = typeof(ranges[0].byElement.front);
+
+    immutable D = ranges[0].shape.length;
+    const auto length = ranges[0].shape.reduce!"a*b";
+
+	auto data = uninitializedArray!(T[])(length*ranges.length);
+    ElementRange [ranges.length] elRange;
+
+    foreach(i, v; ranges) {
+        elRange[i] = v.byElement;
+    }
+
+    auto i = 0;
+    foreach(e; 0..length) {
+        foreach(ecol; elRange) {
+            data[i++] = ecol[e];
+        }
+	}
+
+	size_t [D+1] newShape;
+    newShape[0..D] = ranges[0].shape[0..D];
+    newShape[D] = ranges.length;
+
+	return data.sliced(newShape);
+}
 template isBoundaryCondition(alias bc) {
 	import std.typetuple;
 	alias Indices = TypeTuple!(int, int);
