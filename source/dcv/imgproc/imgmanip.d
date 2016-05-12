@@ -189,8 +189,8 @@ private {
 		const auto cf = cast(float)cols;;
 		foreach(i; 0..rows) {
 			foreach(j; 0..cols) {
-				auto x = cast(float)i + map[i, j, 1];
-				auto y = cast(float)j + map[i, j, 0];
+				auto x = map[i, j, 1];
+				auto y = map[i, j, 0];
 				if (x >= 0.0f && x < rf && 
 					y >= 0.0f && y < cf) {
 					remapped[i, j] = interp(image, x, y); 
