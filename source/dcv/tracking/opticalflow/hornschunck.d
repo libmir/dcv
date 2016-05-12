@@ -17,7 +17,7 @@ struct HornSchunckProperties {
 }
 
 
-class HornSchunckFlow : OpticalFlow {
+class HornSchunckFlow : DenseOpticalFlow {
 
 	private {
 		Slice!(2, float*) current;
@@ -39,9 +39,7 @@ class HornSchunckFlow : OpticalFlow {
 		import std.algorithm : copy;
 		import std.range : lockstep, iota;
 		import std.array : array;
-		import std.parallelism : parallel;
-		import core.atomic;
-		import core.memory : GC;
+		import std.algorithm.comparison : equal;
 
 		if (current.length!0 != f1.height || current.length!1 != f1.width) {
 			auto imsize = f1.width*f1.height;
@@ -49,8 +47,9 @@ class HornSchunckFlow : OpticalFlow {
 			next = new float[imsize].sliced(f2.height, f2.width);
 		}
 
+
 		// initialize flow
-		if (!usePrevious || prealloc.shape != current.shape) {
+		if (!usePrevious || !prealloc.shape[0..2].array.equal(current.shape.array)) {
 			const auto arrayLen = current.shape.reduce!"a*b"*2;
 			ulong [current.shape.length + 1] arrayShape;
 			arrayShape[0..$-1] = current.shape[];
@@ -79,7 +78,7 @@ class HornSchunckFlow : OpticalFlow {
 		int iter = 0;
 		float err = props.tol;
 
-		auto flow_b = prealloc.byElement.array.sliced(prealloc.shape);
+		auto flow_b = new float[prealloc.shape.reduce!"a*b"].sliced(prealloc.shape);
 
 		auto const rows = cast(int)current.length!0;
 		auto const cols = cast(int)current.length!1;
@@ -106,7 +105,7 @@ class HornSchunckFlow : OpticalFlow {
 
 private:
 
-void hsflowImpl(in int rows, in int cols, float *current, float *next, float *flow_b, float *prealloc, float a2, ref float err) {
+void hsflowImpl(in int rows, in int cols, float *current, float *next, float *flow_b, float *prealloc, float a2, ref float err) @nogc {
 
 	immutable div12 = (1.0f / 12.0f);
 	immutable div6 = (1.0f / 6.0f);
