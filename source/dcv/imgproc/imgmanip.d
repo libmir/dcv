@@ -17,7 +17,8 @@ public import dcv.imgproc.interpolate;
 
 import std.exception : enforce;
 import std.experimental.ndslice;
-import std.traits;
+import std.traits : allSatisfy, isFloatingPoint, 
+	allSameType, isNumeric, isIntegral;
 import std.algorithm : each;
 import std.range : iota;
 import std.parallelism : parallel;
@@ -43,6 +44,8 @@ import dcv.core.utils;
  * newsize = tuple that defines new shape. New dimension has to be
  * the same as input slice in the 1D and 2D resize, where in the 
  * 3D resize newsize has to be 2D.
+ * 
+ * TODO: consider size input as array, and add prealloc
  */
 Slice!(N, V*) resize(alias interp = linear, V, size_t N, Size...)
 (Slice!(N, V*) slice, Size newsize) 
@@ -119,7 +122,6 @@ Slice!(N, T*) warp(alias interp = linear, size_t N, T, V)
 	return pixelWiseDisplacementImpl!(linear, warpImpl, N, T, V)(image, map, prealloc);
 }
 
-
 /**
  * Pixel-wise remapping of the image.
  */
@@ -164,24 +166,38 @@ private {
 		(Slice!(2, T*) image, Slice!(3, V*) map, Slice!(2, T*) warped) pure {
 		auto const rows = image.length!0;
 		auto const cols = image.length!1;
+		const auto rf = cast(float)rows;
+		const auto cf = cast(float)cols;
 		foreach(i; 0..rows) {
 			foreach(j; 0..cols) {
-				warped[i, j] = interp(image, cast(float)i + map[i, j, 1], cast(float)j + map[i, j, 0]); 
+				auto x = cast(float)i + map[i, j, 1];
+				auto y = cast(float)j + map[i, j, 0];
+				if (x >= 0.0f && x < rf && 
+					y >= 0.0f && y < cf) {
+					warped[i, j] = interp(image, x, y); 
+				}
 			}
 		}
 		return warped;
 	}
 
 	Slice!(2, T*) remapImpl(alias interp, T, V)
-		(Slice!(2, T*) image, Slice!(3, V*) map, Slice!(2, T*) warped) pure {
+		(Slice!(2, T*) image, Slice!(3, V*) map, Slice!(2, T*) remapped) pure {
 		auto const rows = image.length!0;
 		auto const cols = image.length!1;
+		const auto rf = cast(float)rows;
+		const auto cf = cast(float)cols;;
 		foreach(i; 0..rows) {
 			foreach(j; 0..cols) {
-				warped[i, j] = interp(image, map[i, j, 1], map[i, j, 0]); 
+				auto x = cast(float)i + map[i, j, 1];
+				auto y = cast(float)j + map[i, j, 0];
+				if (x >= 0.0f && x < rf && 
+					y >= 0.0f && y < cf) {
+					remapped[i, j] = interp(image, x, y); 
+				}
 			}
 		}
-		return warped;
+		return remapped;
 	}
 }
 
