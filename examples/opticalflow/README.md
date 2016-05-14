@@ -15,11 +15,11 @@ This example demonstrates usage of Pyramidal Horn-Schunck optical flow algorithm
 
 In this example, optical flow benchmark data set from [Middlebury University's website](http://vision.middlebury.edu/flow/data/) 
 is used to demonstrate the algorithm results. Some of this data is present in the 
-[library's example data directory](https://github.com/ljubobratovicrelja/dcv/blob/master/data/optflow/).
+[library's example data directory](https://github.com/ljubobratovicrelja/dcv/tree/master/examples/data/optflow).
 
 For simple demonstaration, let's take the **Army** image pair from Middlebury:
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/optflow/Army/frame10.png)
+![alt tag](https://github.com/ljubobratovicrelja/dcv/tree/master/examples/data/optflow/Army/frame10.png)
 ![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/optflow/Army/frame11.png)
 
 The Horn-Schunck properties are stored in the `HornSchunckProperties` structure. Here is the chunck of code
