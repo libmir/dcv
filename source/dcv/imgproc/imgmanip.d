@@ -186,7 +186,7 @@ private {
 		auto const rows = image.length!0;
 		auto const cols = image.length!1;
 		const auto rf = cast(float)rows;
-		const auto cf = cast(float)cols;;
+		const auto cf = cast(float)cols;
 		foreach(i; 0..rows) {
 			foreach(j; 0..cols) {
 				auto x = map[i, j, 1];
