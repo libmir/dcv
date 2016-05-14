@@ -258,7 +258,7 @@ Slice!(3, R*) hsv2rgb(R, V)(Slice!(3, V*) range,
 	Slice!(3, R*) prealloc = emptySlice!(3, R)) @trusted
 	if (isNumeric!R && isNumeric!V)
 {
-	import std.math : fabs;
+    import std.math : fabs, abs;
 
 	enforce(range.length!2 == 3, "Invalid channel count.");
 
@@ -293,7 +293,7 @@ Slice!(3, R*) hsv2rgb(R, V)(Slice!(3, V*) range,
 		float x = c * (1. - fabs((h / 60.) % 2 - 1));
 		float m = v - c;
 
-		int hh = cast(int)(h / 60.);
+        int hh = abs(cast(int)(h / 60.) % 6);
 		_rgb = [c, x, 0.];
 
 		static if (isFloatingPoint!R) {
