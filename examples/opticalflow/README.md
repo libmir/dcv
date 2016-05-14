@@ -19,7 +19,7 @@ is used to demonstrate the algorithm results. Some of this data is present in th
 
 For simple demonstaration, let's take the **Army** image pair from Middlebury:
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/tree/master/examples/data/optflow/Army/frame10.png)
+![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/optflow/Army/frame10.png)
 ![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/optflow/Army/frame11.png)
 
 The Horn-Schunck properties are stored in the `HornSchunckProperties` structure. Here is the chunck of code
