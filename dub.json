@@ -32,6 +32,7 @@
 		"examples/filter/",
 		"examples/imgmanip/",
 		"examples/video/",
+		"examples/opticalflow/",
 		"examples/features/"
 	],
 	"license": "Boost Software License v1.0"
