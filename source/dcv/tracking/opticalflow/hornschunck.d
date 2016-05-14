@@ -47,7 +47,6 @@ class HornSchunckFlow : DenseOpticalFlow {
 			next = new float[imsize].sliced(f2.height, f2.width);
 		}
 
-
 		// initialize flow
 		if (!usePrevious || !prealloc.shape[0..2].array.equal(current.shape.array)) {
 			const auto arrayLen = current.shape.reduce!"a*b"*2;
