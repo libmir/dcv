@@ -13,6 +13,6 @@ public import dcv.features.utils : Feature;
  */
 interface Detector
 {
-	Feature [] detect(in Image image, size_t count) const;
+    Feature [] detect(in Image image, size_t count) const;
 }
 

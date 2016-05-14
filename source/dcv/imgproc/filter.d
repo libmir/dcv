@@ -26,51 +26,51 @@ private import std.algorithm : copy;
  */
 Slice!(2, V*) gaussian(V = real)(real sigma, size_t width, size_t height) pure {
 
-	static assert(isFloatingPoint!V, "Gaussian kernel can be constructed "
-		"only using floating point types.");
+    static assert(isFloatingPoint!V, "Gaussian kernel can be constructed "
+        "only using floating point types.");
 
-	enforce(width > 2 && height > 2 && sigma > 0, "Invalid kernel values");
+    enforce(width > 2 && height > 2 && sigma > 0, "Invalid kernel values");
 
-	auto h = new V[width*height].sliced(height, width);
+    auto h = new V[width*height].sliced(height, width);
 
-	int arrv_w = -(cast(int)width-1)/2;
-	int arrv_h = -(cast(int)height-1)/2;
-	float sgm = 2*(sigma^^2);
+    int arrv_w = -(cast(int)width-1)/2;
+    int arrv_h = -(cast(int)height-1)/2;
+    float sgm = 2*(sigma^^2);
 
-	// build rows
-	foreach(r; 0..height) {
-		arrv_w.iota(-arrv_w+1)
-			.map!(e => cast(V)(e^^2))
-				.array
-				.copy(h[r]);
-	}
+    // build rows
+    foreach(r; 0..height) {
+        arrv_w.iota(-arrv_w+1)
+            .map!(e => cast(V)(e^^2))
+                .array
+                .copy(h[r]);
+    }
 
-	// build columns
-	foreach(c; 0..width) {
-		auto cadd = arrv_h.iota(-arrv_h+1)
-			.map!(e => cast(V)(e^^2))
-				.array;
-		h[0..height, c][] += cadd[];
-		h[0..height, c].map!((ref v) => v = (-(v) / sgm).exp).copy(h[0..height, c]);
-	}
+    // build columns
+    foreach(c; 0..width) {
+        auto cadd = arrv_h.iota(-arrv_h+1)
+            .map!(e => cast(V)(e^^2))
+                .array;
+        h[0..height, c][] += cadd[];
+        h[0..height, c].map!((ref v) => v = (-(v) / sgm).exp).copy(h[0..height, c]);
+    }
 
-	// normalize
-	h[] /= h.byElement.sum;
+    // normalize
+    h[] /= h.byElement.sum;
 
-	return h;
+    return h;
 }
 
 unittest {
-	// TODO: design the test
+    // TODO: design the test
 
-	auto fg = gaussian!float(1.0, 3, 3);
-	auto dg = gaussian!double(1.0, 3, 3);
-	auto rg = gaussian!real(1.0, 3, 3);
+    auto fg = gaussian!float(1.0, 3, 3);
+    auto dg = gaussian!double(1.0, 3, 3);
+    auto rg = gaussian!real(1.0, 3, 3);
 
-	import std.traits;
+    import std.traits;
 
-	static assert(__traits(compiles, gaussian!int(1, 3, 3)) == false, 
-		"Integral test failed in gaussian kernel.");
+    static assert(__traits(compiles, gaussian!int(1, 3, 3)) == false, 
+        "Integral test failed in gaussian kernel.");
 }
 
 /**
@@ -86,30 +86,30 @@ unittest {
  * 
  */
 Slice!(2, T*) laplacian(T = real)(real a = 0.) pure nothrow 
-if (isNumeric!T) 
-in {
-	assert(a >= 0. && a <= 1.);
+    if (isNumeric!T) 
+    in {
+        assert(a >= 0. && a <= 1.);
 } body {
-	auto k = new T[9].sliced(3, 3);
-	auto m = 4. / (a + 1.);
-	auto e1 = (a / 4.) * m;
-	auto e2 = ((1. - a) / 4.) * m;
-	k[0, 0] = e1;
-	k[0, 2] = e1;
-	k[2, 0] = e1;
-	k[2, 2] = e1;
-	k[0, 1] = e2;
-	k[1, 0] = e2;
-	k[1, 2] = e2;
-	k[2, 1] = e2;
-	k[1, 1] = -m;
-	return k;
+    auto k = new T[9].sliced(3, 3);
+    auto m = 4. / (a + 1.);
+    auto e1 = (a / 4.) * m;
+    auto e2 = ((1. - a) / 4.) * m;
+    k[0, 0] = e1;
+    k[0, 2] = e1;
+    k[2, 0] = e1;
+    k[2, 2] = e1;
+    k[0, 1] = e2;
+    k[1, 0] = e2;
+    k[1, 2] = e2;
+    k[2, 1] = e2;
+    k[1, 1] = -m;
+    return k;
 }
 
 unittest {
-	import std.algorithm.comparison : equal;
-	auto l4 = laplacian(); // laplacian!real(0);
-	assert(equal(l4.byElement, [0, 1, 0, 1, -4, 1, 0, 1, 0]));
+    import std.algorithm.comparison : equal;
+    auto l4 = laplacian(); // laplacian!real(0);
+    assert(equal(l4.byElement, [0, 1, 0, 1, -4, 1, 0, 1, 0]));
 }
 
 
@@ -122,76 +122,76 @@ unittest {
  * height = height of the kernel matrix
  */
 Slice!(2, T*) laplacianOfGaussian(T = real)(real sigma, size_t width, size_t height) {
-	import std.traits : isSigned;
-	static assert(isSigned!T);
+    import std.traits : isSigned;
+    static assert(isSigned!T);
 
-	import std.algorithm.comparison : max;
-	import std.math : E;
+    import std.algorithm.comparison : max;
+    import std.math : E;
 
-	auto k = new T[width*height].sliced(height, width);
+    auto k = new T[width*height].sliced(height, width);
 
-	auto ts = -1./(PI*(sigma^^4));
-	auto ss = sigma^^2;
-	auto ss2 = 2.*ss;
-	auto w_h = cast(T)max(1, width / 2);
-	auto h_h = cast(T)max(1, height / 2);
+    auto ts = -1./(PI*(sigma^^4));
+    auto ss = sigma^^2;
+    auto ss2 = 2.*ss;
+    auto w_h = cast(T)max(1, width / 2);
+    auto h_h = cast(T)max(1, height / 2);
 
-	foreach(i; iota(height)) {
-		foreach(j; iota(width)) {
-			auto xx = (cast(T)j - w_h);
-			auto yy = (cast(T)i - h_h);
-			xx *= xx;
-			yy *= yy;
-			auto xy = (xx+yy) / ss2;
-			k[i, j] = ts * (1. - xy) * exp(-xy);
-		}
-	}
+    foreach(i; iota(height)) {
+        foreach(j; iota(width)) {
+            auto xx = (cast(T)j - w_h);
+            auto yy = (cast(T)i - h_h);
+            xx *= xx;
+            yy *= yy;
+            auto xy = (xx+yy) / ss2;
+            k[i, j] = ts * (1. - xy) * exp(-xy);
+        }
+    }
 
-	k[] -= cast(T)(cast(float)k.byElement.sum / cast(float)(width*height));
-	return k;
+    k[] -= cast(T)(cast(float)k.byElement.sum / cast(float)(width*height));
+    return k;
 }
 
 enum GradientDirection {
-	DIR_X, // x direction (x partial gradients)
-	DIR_Y, // y direction (y partial gradients)
-	DIAG, // diagonal, from top-left to bottom right
-	DIAG_INV, // inverse diagonal, from top-right to bottom left
+    DIR_X, // x direction (x partial gradients)
+    DIR_Y, // y direction (y partial gradients)
+    DIAG, // diagonal, from top-left to bottom right
+    DIAG_INV, // inverse diagonal, from top-right to bottom left
 }
 
 Slice!(2, T*) sobel(T = real)(GradientDirection direction) nothrow pure @trusted {
-	switch(direction) {
-		case GradientDirection.DIR_X:
-			return [
-				-1, 0, 1,
-				-2, 0, 2,
-				-1, 0, 1
-			].map!(a => cast(T)a).array.sliced(3, 3);
-		case GradientDirection.DIR_Y:
-			return [
-				-1, -2, -1,
-				0, 0, 0,
-				1, 2, 1
-			].map!(a => cast(T)a).array.sliced(3, 3);
-		case GradientDirection.DIAG:
-			return [
-				-2, -1, 0,
-				-1, 0, 1,
-				0, 1, 2
-			].map!(a => cast(T)a).array.sliced(3, 3);
-		case GradientDirection.DIAG_INV:
-			return [
-				0, -1, -2,
-				1, 0, -1,
-				2, 1, 0
-			].map!(a => cast(T)a).array.sliced(3, 3);
-		default:
-			assert(0);
-	}
+    switch(direction) {
+        case GradientDirection.DIR_X:
+            return [
+                -1, 0, 1,
+                -2, 0, 2,
+                -1, 0, 1
+            ].map!(a => cast(T)a).array.sliced(3, 3);
+        case GradientDirection.DIR_Y:
+            return [
+                -1, -2, -1,
+                0, 0, 0,
+                1, 2, 1
+            ].map!(a => cast(T)a).array.sliced(3, 3);
+        case GradientDirection.DIAG:
+            return [
+                -2, -1, 0,
+                -1, 0, 1,
+                0, 1, 2
+            ].map!(a => cast(T)a).array.sliced(3, 3);
+        case GradientDirection.DIAG_INV:
+            return [
+                0, -1, -2,
+                1, 0, -1,
+                2, 1, 0
+            ].map!(a => cast(T)a).array.sliced(3, 3);
+        default:
+            assert(0);
+    }
 }
 
 enum NonMaximumFilter {
-	POINT,
-	LINE
+    POINT,
+    LINE
 }
 
 /**
@@ -204,43 +204,43 @@ enum NonMaximumFilter {
  */
 Slice!(2, T*) filterNonMaximum(T)(Slice!(2, T*) image, size_t filterSize = 10) {
 
-	assert(!image.empty && filterSize);
+    assert(!image.empty && filterSize);
 
-	typeof(image) lmsw;  // local maxima search window
-	int lms_r, lms_c;
-	int win_rows, win_cols;
-	float lms_val;
-	auto rows = image.length!0;
-	auto cols = image.length!1;
+    typeof(image) lmsw;  // local maxima search window
+    int lms_r, lms_c;
+    int win_rows, win_cols;
+    float lms_val;
+    auto rows = image.length!0;
+    auto cols = image.length!1;
 
-	for (int br = 0; br < rows; br += filterSize / 2) {
-		for (int bc = 0; bc < cols; bc += filterSize / 2) {
-			win_rows = cast(int)((br + filterSize < rows) ? 
-				filterSize : filterSize - ((br + filterSize) - rows) - 1);
-			win_cols = cast(int)((bc + filterSize < cols) ? 
-				filterSize : filterSize - ((bc + filterSize) - cols) - 1);
+    for (int br = 0; br < rows; br += filterSize / 2) {
+        for (int bc = 0; bc < cols; bc += filterSize / 2) {
+            win_rows = cast(int)((br + filterSize < rows) ? 
+                filterSize : filterSize - ((br + filterSize) - rows) - 1);
+            win_cols = cast(int)((bc + filterSize < cols) ? 
+                filterSize : filterSize - ((bc + filterSize) - cols) - 1);
 
-			if (win_rows <= 0 || win_cols <= 0) {
-				continue;
-			}
+            if (win_rows <= 0 || win_cols <= 0) {
+                continue;
+            }
 
-			lmsw = image[br..br+win_rows, bc..bc+win_cols];
+            lmsw = image[br..br+win_rows, bc..bc+win_cols];
 
-			lms_val = -1;
-			for (int r = 0; r < lmsw.length!0; r++) {
-				for (int c = 0; c < lmsw.length!1; c++) {
-					if (lmsw[r, c] > lms_val) {
-						lms_val = lmsw[r, c];
-						lms_r = r;
-						lms_c = c;
-					}
-				}
-			}
-			lmsw[] = cast(T)0;
-			if (lms_val != -1) {
-				lmsw[lms_r, lms_c] = lms_val;
-			}
-		}
-	}
-	return image;
+            lms_val = -1;
+            for (int r = 0; r < lmsw.length!0; r++) {
+                for (int c = 0; c < lmsw.length!1; c++) {
+                    if (lmsw[r, c] > lms_val) {
+                        lms_val = lmsw[r, c];
+                        lms_r = r;
+                        lms_c = c;
+                    }
+                }
+            }
+            lmsw[] = cast(T)0;
+            if (lms_val != -1) {
+                lmsw[lms_r, lms_c] = lms_val;
+            }
+        }
+    }
+    return image;
 }

@@ -38,8 +38,8 @@ private import std.experimental.allocator.mallocator : AlignedMallocator, Malloc
  * 
  */
 @nogc @trusted T[] alignedAlloc(T)(size_t count, uint alignment = 16) {
-	auto buff = AlignedMallocator.instance.alignedAllocate(count*T.sizeof, alignment);
-	return (cast(T*)buff)[0..count][];
+    auto buff = AlignedMallocator.instance.alignedAllocate(count*T.sizeof, alignment);
+    return (cast(T*)buff)[0..count][];
 }
 
 /**
@@ -57,7 +57,7 @@ private import std.experimental.allocator.mallocator : AlignedMallocator, Malloc
  * Status of reallocation. Returns AlignedMallocator.reallocate out status.
  */
 @nogc bool alignedRealloc(ref void [] ptr, size_t newSize) {
-	return AlignedMallocator.instance.reallocate(ptr, newSize);
+    return AlignedMallocator.instance.reallocate(ptr, newSize);
 }
 
 /**
@@ -69,110 +69,110 @@ private import std.experimental.allocator.mallocator : AlignedMallocator, Malloc
  * ptr = Pointer to memory that is to be freed.
  */
 void alignedFree(void [] ptr) @nogc {
-	AlignedMallocator.instance.deallocate(ptr);
+    AlignedMallocator.instance.deallocate(ptr);
 }
 
 /**
  * Performs aligned allocation using alignedAlloc function, 
  * but adds allocated range to the GC using GC.addRange.
  *
-@trusted T [] alignedAllocGC(T)(size_t size, size_t alignment = 16) {
-	auto arr = alignedAlloc(size, alignment);
-	GC.addRange(arr.ptr, size*T.sizeof);
-	return arr;
-}
-*/
+ @trusted T [] alignedAllocGC(T)(size_t size, size_t alignment = 16) {
+ auto arr = alignedAlloc(size, alignment);
+ GC.addRange(arr.ptr, size*T.sizeof);
+ return arr;
+ }
+ */
 
 /**
  * Frees memory allocate using alignedAllocGC.
  * Removes given range, and afterwards calls alignedFree.
  *
-@trusted void alignedFreeGC(void [] ptr) {
-	GC.removeRange(ptr.ptr);
-	AlignedMallocator.instance.deallocate(ptr);
-}
-*/
+ @trusted void alignedFreeGC(void [] ptr) {
+ GC.removeRange(ptr.ptr);
+ AlignedMallocator.instance.deallocate(ptr);
+ }
+ */
 
 version(skipSIMD) {
-	T [] allocArray(T)(size_t length) { return new T[length]; }
-	void freeArray(void [] ptr) @nogc { ptr.destroy; }
+    T [] allocArray(T)(size_t length) { return new T[length]; }
+    void freeArray(void [] ptr) @nogc { ptr.destroy; }
 } else {
-	T [] allocArray(T)(size_t length) @trusted @nogc { return alignedAlloc!T(length, 16); }
-	void freeArray(void [] ptr) @nogc { ptr.alignedFree; }
+    T [] allocArray(T)(size_t length) @trusted @nogc { return alignedAlloc!T(length, 16); }
+    void freeArray(void [] ptr) @nogc { ptr.alignedFree; }
 }
 
 unittest {
-	// TODO: design the test...
+    // TODO: design the test...
 
-	import std.experimental.ndslice;
+    import std.experimental.ndslice;
 
-	int [] arr = allocArray!int(3);
-	scope(exit) arr.freeArray;
+    int [] arr = allocArray!int(3);
+    scope(exit) arr.freeArray;
 
-	auto slice = arr.sliced(3);
-	assert(&arr[0] == &slice[0]);
+    auto slice = arr.sliced(3);
+    assert(&arr[0] == &slice[0]);
 }
 
 /**
  * Template to get alias to SSE2 compatible vector for given type.
  */
 template VectorSSE2(T) {
-	import std.traits : isNumeric;
-	static assert(isNumeric!T, "SIMD vector has to be composed of numberic type");
-	static if (is(T == ubyte) ) {
-		alias VectorSSE2 = ubyte16;
-	} else static if (is(T == ushort)) {
-		alias VectorSSE2 = ushort8;
-	} else static if (is(T == uint)) {
-		alias VectorSSE2 = uint4;
-	} else static if (is(T == ulong)) {
-		alias VectorSSE2 = ulong2;
-	} else static if (is(T == byte)) {
-		alias VectorSSE2 = byte16;
-	} else static if (is(T == short)) {
-		alias VectorSSE2 = short8;
-	} else static if (is(T == int)) {
-		alias VectorSSE2 = int4;
-	} else static if (is(T == long)) {
-		alias VectorSSE2 = long2;
-	} else static if (is(T == float)) {
-		alias VectorSSE2 = float4;
-	} else static if (is(T == double)) {
-		alias VectorSSE2 = double2;
-	} else {
-		alias VectorSSE2 = void;
-	}
+    import std.traits : isNumeric;
+    static assert(isNumeric!T, "SIMD vector has to be composed of numberic type");
+    static if (is(T == ubyte) ) {
+        alias VectorSSE2 = ubyte16;
+    } else static if (is(T == ushort)) {
+        alias VectorSSE2 = ushort8;
+    } else static if (is(T == uint)) {
+        alias VectorSSE2 = uint4;
+    } else static if (is(T == ulong)) {
+        alias VectorSSE2 = ulong2;
+    } else static if (is(T == byte)) {
+        alias VectorSSE2 = byte16;
+    } else static if (is(T == short)) {
+        alias VectorSSE2 = short8;
+    } else static if (is(T == int)) {
+        alias VectorSSE2 = int4;
+    } else static if (is(T == long)) {
+        alias VectorSSE2 = long2;
+    } else static if (is(T == float)) {
+        alias VectorSSE2 = float4;
+    } else static if (is(T == double)) {
+        alias VectorSSE2 = double2;
+    } else {
+        alias VectorSSE2 = void;
+    }
 }
 
 /**
  * Template to get alias to AVX compatible vector for given type.
  */
 template VectorAVX(T) {
-	import std.traits : isNumeric;
-	static assert(isNumeric!T, "SIMD vector has to be composed of numberic type");
-	static if (is(T == ubyte) ) {
-		alias VectorAVX = ubyte32;
-	} else static if (is(T == ushort)) {
-		alias VectorAVX = ushort16;
-	} else static if (is(T == uint)) {
-		alias VectorAVX = uint8;
-	} else static if (is(T == ulong)) {
-		alias VectorAVX = ulong4;
-	} else static if (is(T == byte)) {
-		alias VectorAVX = byte32;
-	} else static if (is(T == short)) {
-		alias VectorAVX = short16;
-	} else static if (is(T == int)) {
-		alias VectorAVX = int8;
-	} else static if (is(T == long)) {
-		alias VectorAVX = long4;
-	} else static if (is(T == float)) {
-		alias VectorAVX = float8;
-	} else static if (is(T == double)) {
-		alias VectorAVX = double4;
-	} else {
-		alias VectorAVX = void;
-	}
+    import std.traits : isNumeric;
+    static assert(isNumeric!T, "SIMD vector has to be composed of numberic type");
+    static if (is(T == ubyte) ) {
+        alias VectorAVX = ubyte32;
+    } else static if (is(T == ushort)) {
+        alias VectorAVX = ushort16;
+    } else static if (is(T == uint)) {
+        alias VectorAVX = uint8;
+    } else static if (is(T == ulong)) {
+        alias VectorAVX = ulong4;
+    } else static if (is(T == byte)) {
+        alias VectorAVX = byte32;
+    } else static if (is(T == short)) {
+        alias VectorAVX = short16;
+    } else static if (is(T == int)) {
+        alias VectorAVX = int8;
+    } else static if (is(T == long)) {
+        alias VectorAVX = long4;
+    } else static if (is(T == float)) {
+        alias VectorAVX = float8;
+    } else static if (is(T == double)) {
+        alias VectorAVX = double4;
+    } else {
+        alias VectorAVX = void;
+    }
 }
 
 enum size_t vectorSize(T) = T.init.length;

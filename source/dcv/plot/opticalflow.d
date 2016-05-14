@@ -34,7 +34,7 @@ Slice!(3, ubyte*) colorCode(Slice!(3, float*) flow, float maxSize = 0) {
     }
 
     auto hsv = new float[flow.length!0*flow.length!1*3]
-        .sliced(flow.length!0, flow.length!1, 3);
+    .sliced(flow.length!0, flow.length!1, 3);
 
     foreach(r; 0..flow.length!0) {
         foreach(c; 0..flow.length!1) {
@@ -55,11 +55,11 @@ Slice!(3, ubyte*) colorCode(Slice!(3, float*) flow, float maxSize = 0) {
 
     // Range saturation values
     auto rangedS = hsv[0..$, 0..$, 1]
-                    .byElement
-                    .ranged(0.0f, maxSize) // range values from 0 to maxSize
-                    .map!(v => v / maxSize) // normalize values
-                    .array
-                    .sliced(hsv[0..$, 0..$, 0].shape);
+    .byElement
+        .ranged(0.0f, maxSize) // range values from 0 to maxSize
+            .map!(v => v / maxSize) // normalize values
+            .array
+            .sliced(hsv[0..$, 0..$, 0].shape);
 
     hsv[0..$, 0..$, 1][] = rangedS[];
 

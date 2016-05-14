@@ -24,43 +24,43 @@ public import dcv.io.image;
 
 class StreamException : Exception {
     @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null) {
-		super(msg, file, line, next);
-	}
+        super(msg, file, line, next);
+    }
 }
 
 class StreamNotOpenException : StreamException {
     @safe pure nothrow this(string file = __FILE__, size_t line = __LINE__, Throwable next = null) {
-		super("Stream is not opened.", file, line, next);
-	}
+        super("Stream is not opened.", file, line, next);
+    }
 }
 
 class OpenException : StreamException {
     @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null) {
-		super(msg, file, line, next);
-	}
+        super(msg, file, line, next);
+    }
 }
 
 enum CodecID {
-	NONE = 0,
+    NONE = 0,
     RAW = AVCodecID.AV_CODEC_ID_RAWVIDEO,
     MPEG1VIDEO = AVCodecID.AV_CODEC_ID_MPEG1VIDEO,
     MPEG2VIDEO = AVCodecID.AV_CODEC_ID_MPEG2VIDEO,
-	MPEG4 = AVCodecID.AV_CODEC_ID_MPEG4,
+    MPEG4 = AVCodecID.AV_CODEC_ID_MPEG4,
     H263 = AVCodecID.AV_CODEC_ID_H263,
     H264 = AVCodecID.AV_CODEC_ID_H264
 }
 
 string getCodecString(CodecID codec) {
-	switch(codec) {
-	case CodecID.NONE: return "";
-	case CodecID.RAW: return "rawvideo";
-	case CodecID.MPEG1VIDEO : return "mpeg1video";
-	case CodecID.MPEG2VIDEO : return "mpeg2video";
-	case CodecID.MPEG4: return "mp4";
-	case CodecID.H263: return "h263";
-	case CodecID.H264: return "h264";
-	default: return "";
-	}
+    switch(codec) {
+        case CodecID.NONE: return "";
+        case CodecID.RAW: return "rawvideo";
+        case CodecID.MPEG1VIDEO : return "mpeg1video";
+        case CodecID.MPEG2VIDEO : return "mpeg2video";
+        case CodecID.MPEG4: return "mp4";
+        case CodecID.H263: return "h263";
+        case CodecID.H264: return "h264";
+        default: return "";
+    }
 }
 
 class AVStarter {
@@ -115,24 +115,24 @@ alias IF_YUV_PREFERED = AVPixelFormat.AV_PIX_FMT_YUV444P;
 
 
 AVPixelFormat convertDepricatedPixelFormat(AVPixelFormat pix) {
-	AVPixelFormat pixFormat = pix;
-	switch (pix) {
-		case AVPixelFormat.AV_PIX_FMT_YUVJ420P:
-			pixFormat = AVPixelFormat.AV_PIX_FMT_YUV420P;
-			break;
-		case AVPixelFormat.AV_PIX_FMT_YUVJ422P:
-			pixFormat = AVPixelFormat.AV_PIX_FMT_YUV422P;
-			break;
-		case AVPixelFormat.AV_PIX_FMT_YUVJ444P:
-			pixFormat = AVPixelFormat.AV_PIX_FMT_YUV444P;
-			break;
-		case AVPixelFormat.AV_PIX_FMT_YUVJ440P:
-			pixFormat = AVPixelFormat.AV_PIX_FMT_YUV440P;
-			break;
-		default:
-			break;
-	}
-	return pixFormat;
+    AVPixelFormat pixFormat = pix;
+    switch (pix) {
+        case AVPixelFormat.AV_PIX_FMT_YUVJ420P:
+            pixFormat = AVPixelFormat.AV_PIX_FMT_YUV420P;
+            break;
+        case AVPixelFormat.AV_PIX_FMT_YUVJ422P:
+            pixFormat = AVPixelFormat.AV_PIX_FMT_YUV422P;
+            break;
+        case AVPixelFormat.AV_PIX_FMT_YUVJ444P:
+            pixFormat = AVPixelFormat.AV_PIX_FMT_YUV444P;
+            break;
+        case AVPixelFormat.AV_PIX_FMT_YUVJ440P:
+            pixFormat = AVPixelFormat.AV_PIX_FMT_YUV440P;
+            break;
+        default:
+            break;
+    }
+    return pixFormat;
 }
 
 ImageFormat AVPixelFormat_to_ImageFormat(AVPixelFormat format) {
@@ -167,24 +167,24 @@ ImageFormat AVPixelFormat_to_ImageFormat(AVPixelFormat format) {
 }
 
 AVPixelFormat ImageFormat_to_AVPixelFormat(ImageFormat format) {
-	switch(format) {
-		case ImageFormat.IF_MONO:
-			return IF_MONO_PREFERED;
-		case ImageFormat.IF_MONO_ALPHA:
-			return IF_MONO_ALPHA_PREFERED;
-		case ImageFormat.IF_BGR:
-			return IF_BGR_PREFERED;
-		case ImageFormat.IF_BGR_ALPHA:
-			return IF_BGR_ALPHA_PREFERED;
-		case ImageFormat.IF_RGB:
-			return IF_RGB_PREFERED;
-		case ImageFormat.IF_RGB_ALPHA:
-			return IF_RGB_ALPHA_PREFERED;
-		case ImageFormat.IF_YUV:
-			return IF_YUV_PREFERED;
-		default:
-			assert(0);
-	}
+    switch(format) {
+        case ImageFormat.IF_MONO:
+            return IF_MONO_PREFERED;
+        case ImageFormat.IF_MONO_ALPHA:
+            return IF_MONO_ALPHA_PREFERED;
+        case ImageFormat.IF_BGR:
+            return IF_BGR_PREFERED;
+        case ImageFormat.IF_BGR_ALPHA:
+            return IF_BGR_ALPHA_PREFERED;
+        case ImageFormat.IF_RGB:
+            return IF_RGB_PREFERED;
+        case ImageFormat.IF_RGB_ALPHA:
+            return IF_RGB_ALPHA_PREFERED;
+        case ImageFormat.IF_YUV:
+            return IF_YUV_PREFERED;
+        default:
+            assert(0);
+    }
 }
 void adoptFormat(AVPixelFormat format, AVFrame* frame, ubyte[] data) {
 
@@ -219,24 +219,24 @@ void adoptFormat(AVPixelFormat format, AVFrame* frame, ubyte[] data) {
 
 void adoptYUV(AVPixelFormat format, AVFrame* frame, ubyte[] data) {
     switch (format) {
-    case AVPixelFormat.AV_PIX_FMT_YUV410P, AVPixelFormat.AV_PIX_FMT_YUV420P,
+        case AVPixelFormat.AV_PIX_FMT_YUV410P, AVPixelFormat.AV_PIX_FMT_YUV420P,
             AVPixelFormat.AV_PIX_FMT_YUV440P:
-            adoptYUVGrouped(frame, data);
+                adoptYUVGrouped(frame, data);
         break;
-    case AVPixelFormat.AV_PIX_FMT_YUV411P:
-        adoptYUV411P(frame, data);
-        break;
-    case AVPixelFormat.AV_PIX_FMT_YUV422P:
-        adoptYUV422P(frame, data);
-        break;
-    case AVPixelFormat.AV_PIX_FMT_YUYV422:
-        adoptYUYV422(frame, data);
-        break;
-    case AVPixelFormat.AV_PIX_FMT_YUV444P:
-        adoptYUV444P(frame, data);
-        break;
-    default:
-        assert(0);
+        case AVPixelFormat.AV_PIX_FMT_YUV411P:
+            adoptYUV411P(frame, data);
+            break;
+        case AVPixelFormat.AV_PIX_FMT_YUV422P:
+            adoptYUV422P(frame, data);
+            break;
+        case AVPixelFormat.AV_PIX_FMT_YUYV422:
+            adoptYUYV422(frame, data);
+            break;
+        case AVPixelFormat.AV_PIX_FMT_YUV444P:
+            adoptYUV444P(frame, data);
+            break;
+        default:
+            assert(0);
     }
 }
 

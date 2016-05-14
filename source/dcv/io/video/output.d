@@ -1,7 +1,7 @@
 ﻿module dcv.io.video.output;
 
 debug {
-	import std.stdio;
+    import std.stdio;
 }
 
 import std.exception : enforce;
@@ -22,332 +22,332 @@ public import dcv.io.video.common;
 public import dcv.io.image;
 
 struct OutputDefinition {
-	size_t width = 0;
-	size_t height = 0;
-	size_t bitRate = 400000;
-	size_t frameRate = 30;
-	size_t frames = 0;
-	size_t pts = 0;
-	ImageFormat imageFormat = ImageFormat.IF_RGB;
-	CodecID codecId = CodecID.NONE;
+    size_t width = 0;
+    size_t height = 0;
+    size_t bitRate = 400000;
+    size_t frameRate = 30;
+    size_t frames = 0;
+    size_t pts = 0;
+    ImageFormat imageFormat = ImageFormat.IF_RGB;
+    CodecID codecId = CodecID.NONE;
 }
 
 
 class OutputStream {
 private:
-	AVFormatContext *formatContext;
-	AVStream *stream;
-	AVFrame* frame;
-	SwsContext *swsContext;
-	OutputDefinition properties;
+    AVFormatContext *formatContext;
+    AVStream *stream;
+    AVFrame* frame;
+    SwsContext *swsContext;
+    OutputDefinition properties;
 
 public:
-	this() { AVStarter AV_STARTER_INSTANCE = AVStarter.instance(); }
+    this() { AVStarter AV_STARTER_INSTANCE = AVStarter.instance(); }
 
-	~this() { close(); }
+    ~this() { close(); }
 
-	//! Check if stream is open.
-	@property isOpen() const { return formatContext !is null; }
+    //! Check if stream is open.
+    @property isOpen() const { return formatContext !is null; }
 
-	/**
-	 * Open the video stream.
-	 * 
-	 * params:
-	 * path = Path to the stream. 
-	 * type = Stream type. 
-	 */
-	bool open(in string filepath, in OutputDefinition props = OutputDefinition()) {
-		this.properties = props;
-		const char* path = toStringz(filepath);
-		char *formatString = null;
+    /**
+     * Open the video stream.
+     * 
+     * params:
+     * path = Path to the stream. 
+     * type = Stream type. 
+     */
+    bool open(in string filepath, in OutputDefinition props = OutputDefinition()) {
+        this.properties = props;
+        const char* path = toStringz(filepath);
+        char *formatString = null;
 
-		// Determinate output format
-		AVOutputFormat *outputFormat = null;
-		if (cast(int)props.codecId) {
-			formatString = (getCodecString(props.codecId).dup ~ '\0').ptr;
-			outputFormat = av_guess_format(formatString, null, null);
-		} else {
-			outputFormat = av_guess_format(null, path, null);
-		}
+        // Determinate output format
+        AVOutputFormat *outputFormat = null;
+        if (cast(int)props.codecId) {
+            formatString = (getCodecString(props.codecId).dup ~ '\0').ptr;
+            outputFormat = av_guess_format(formatString, null, null);
+        } else {
+            outputFormat = av_guess_format(null, path, null);
+        }
 
-		if (outputFormat is null) {
-			debug writeln("Could not find suitable output format");
-			return false;
-		}
+        if (outputFormat is null) {
+            debug writeln("Could not find suitable output format");
+            return false;
+        }
 
-		// Allocate format context
-		formatContext = avformat_alloc_context();
-		if (formatContext is null) {
-			debug writeln("Cannot allocate context");
-			return false;
-		}
+        // Allocate format context
+        formatContext = avformat_alloc_context();
+        if (formatContext is null) {
+            debug writeln("Cannot allocate context");
+            return false;
+        }
 
-		// Open the file
-		formatContext.oformat = outputFormat;
-		formatContext.filename[0..filepath.length] = filepath[];
+        // Open the file
+        formatContext.oformat = outputFormat;
+        formatContext.filename[0..filepath.length] = filepath[];
 
-		// Find right encoder
-		auto codecCheck = AVCodecIDToCodecID(outputFormat.video_codec);
-		if (codecCheck == CodecID.NONE) {
-			debug writeln("Codec is unsupported for given video format.");
-			return false;
-		}
+        // Find right encoder
+        auto codecCheck = AVCodecIDToCodecID(outputFormat.video_codec);
+        if (codecCheck == CodecID.NONE) {
+            debug writeln("Codec is unsupported for given video format.");
+            return false;
+        }
 
-		if (properties.codecId == CodecID.NONE) {
-			properties.codecId = codecCheck;
-		}
+        if (properties.codecId == CodecID.NONE) {
+            properties.codecId = codecCheck;
+        }
 
-		AVCodec *codec = avcodec_find_encoder(outputFormat.video_codec);
-		if (!codec) {
-			codec = avcodec_find_encoder_by_name(formatString);
-			if (!codec) {
-				debug writeln("Cannot find encoder.");
-				return false;
-			}
-		}
+        AVCodec *codec = avcodec_find_encoder(outputFormat.video_codec);
+        if (!codec) {
+            codec = avcodec_find_encoder_by_name(formatString);
+            if (!codec) {
+                debug writeln("Cannot find encoder.");
+                return false;
+            }
+        }
 
-		// Add a video stream
-		stream = avformat_new_stream(formatContext, null);
-		if (stream is null) {
-			debug writeln("Could not allocate stream");
-			return false;
-		}
+        // Add a video stream
+        stream = avformat_new_stream(formatContext, null);
+        if (stream is null) {
+            debug writeln("Could not allocate stream");
+            return false;
+        }
 
-		AVCodecContext *c= avcodec_alloc_context3(codec);
-		stream.codec = c;
+        AVCodecContext *c= avcodec_alloc_context3(codec);
+        stream.codec = c;
 
-		c.codec_id = outputFormat.video_codec;
-		c.codec_type = AVMediaType.AVMEDIA_TYPE_VIDEO;
-		c.bit_rate = cast(int)properties.bitRate;
-		c.width = cast(int)properties.width;
-		c.height = cast(int)properties.height;
-		c.time_base = AVRational(1, cast(int)properties.frameRate);
-		c.gop_size = 12;
-		c.pix_fmt = codec.pix_fmts[0];
-		c.frame_number = 0;
-		stream.time_base = c.time_base;
+        c.codec_id = outputFormat.video_codec;
+        c.codec_type = AVMediaType.AVMEDIA_TYPE_VIDEO;
+        c.bit_rate = cast(int)properties.bitRate;
+        c.width = cast(int)properties.width;
+        c.height = cast(int)properties.height;
+        c.time_base = AVRational(1, cast(int)properties.frameRate);
+        c.gop_size = 12;
+        c.pix_fmt = codec.pix_fmts[0];
+        c.frame_number = 0;
+        stream.time_base = c.time_base;
 
-		assert(c.pix_fmt != AVPixelFormat.AV_PIX_FMT_NONE, "Codec pixel format not defined");
+        assert(c.pix_fmt != AVPixelFormat.AV_PIX_FMT_NONE, "Codec pixel format not defined");
 
-		if (c.codec_id == AVCodecID.AV_CODEC_ID_MPEG1VIDEO) {
-			c.mb_decision = 2;
-		} else if (c.codec_id == AVCodecID.AV_CODEC_ID_MPEG2VIDEO) {
-			c.max_b_frames = 2;
-		}
-		
-		if (formatContext.oformat.flags & AVFMT_GLOBALHEADER)
-			c.flags |= CODEC_FLAG_GLOBAL_HEADER;
+        if (c.codec_id == AVCodecID.AV_CODEC_ID_MPEG1VIDEO) {
+            c.mb_decision = 2;
+        } else if (c.codec_id == AVCodecID.AV_CODEC_ID_MPEG2VIDEO) {
+            c.max_b_frames = 2;
+        }
+        
+        if (formatContext.oformat.flags & AVFMT_GLOBALHEADER)
+            c.flags |= CODEC_FLAG_GLOBAL_HEADER;
 
-		if (properties.codecId == CodecID.H264)
-			av_opt_set(c.priv_data, "preset", "slow", 0);
+        if (properties.codecId == CodecID.H264)
+            av_opt_set(c.priv_data, "preset", "slow", 0);
 
-		if (avcodec_open2(c, codec, null) < 0) {
-			debug writeln("could not open codec");
-			return false;
-		}
-		
-		swsContext = sws_getContext(cast(int)width, cast(int)height, ImageFormat_to_AVPixelFormat(properties.imageFormat),
-			cast(int)width, cast(int)height, c.pix_fmt, SWS_BICUBIC, null, null, null);
+        if (avcodec_open2(c, codec, null) < 0) {
+            debug writeln("could not open codec");
+            return false;
+        }
+        
+        swsContext = sws_getContext(cast(int)width, cast(int)height, ImageFormat_to_AVPixelFormat(properties.imageFormat),
+            cast(int)width, cast(int)height, c.pix_fmt, SWS_BICUBIC, null, null, null);
 
-		// Allocate output frame
-		frame = allocPicture(c.pix_fmt, c.width, c.height);
-		if (!frame) {
-			debug writeln("Could not allocate frame\n");
-			return false;
-		}
+        // Allocate output frame
+        frame = allocPicture(c.pix_fmt, c.width, c.height);
+        if (!frame) {
+            debug writeln("Could not allocate frame\n");
+            return false;
+        }
 
-		// open file
-		if (avio_open(&formatContext.pb, path, AVIO_FLAG_WRITE) < 0) {
-			debug writeln("Cannot open file at given path");
-			return false;
-		}
+        // open file
+        if (avio_open(&formatContext.pb, path, AVIO_FLAG_WRITE) < 0) {
+            debug writeln("Cannot open file at given path");
+            return false;
+        }
 
-		// Write stream header, if any
-		avformat_write_header(formatContext, null);
+        // Write stream header, if any
+        avformat_write_header(formatContext, null);
 
-		return true;
-	}
+        return true;
+    }
 
-	void close() {
-		if (formatContext) {
-			av_write_trailer(formatContext);
-			avio_close(formatContext.pb);
-			formatContext = null;
-		}
-		if (stream) {
-			avcodec_close(stream.codec);
-			av_freep(stream);
-			stream = null;
-		}
-		if (frame) {
-			av_frame_free(&frame);
-			frame = null;
-		}
-		if (swsContext) {
-			sws_freeContext(swsContext);
-			swsContext = null;
-		}
-	}
+    void close() {
+        if (formatContext) {
+            av_write_trailer(formatContext);
+            avio_close(formatContext.pb);
+            formatContext = null;
+        }
+        if (stream) {
+            avcodec_close(stream.codec);
+            av_freep(stream);
+            stream = null;
+        }
+        if (frame) {
+            av_frame_free(&frame);
+            frame = null;
+        }
+        if (swsContext) {
+            sws_freeContext(swsContext);
+            swsContext = null;
+        }
+    }
 
-	bool writeFrame(Image image) {
-		import ffmpeg.libavutil.mathematics;
+    bool writeFrame(Image image) {
+        import ffmpeg.libavutil.mathematics;
 
-		enforce(image.format == properties.imageFormat, "Image format does not match the output configuration.");
-		enforce(image.height == properties.height, "Image height does not match the output configuration.");
-		enforce(image.width == properties.width, "Image width does not match the output configuration.");
+        enforce(image.format == properties.imageFormat, "Image format does not match the output configuration.");
+        enforce(image.height == properties.height, "Image height does not match the output configuration.");
+        enforce(image.width == properties.width, "Image width does not match the output configuration.");
 
-		AVPacket packet;
-		av_init_packet(&packet);
-		packet.data = null;
-		packet.size = 0;
+        AVPacket packet;
+        av_init_packet(&packet);
+        packet.data = null;
+        packet.size = 0;
 
-		scope (exit) {
-			av_packet_unref(&packet);
-			av_free_packet(&packet);
-		}
+        scope (exit) {
+            av_packet_unref(&packet);
+            av_free_packet(&packet);
+        }
 
-		ubyte *[] data;
-		int [] linesize;
+        ubyte *[] data;
+        int [] linesize;
 
-		extractDataFromImage(image, data, linesize);
+        extractDataFromImage(image, data, linesize);
 
-		sws_scale(swsContext, data.ptr, linesize.ptr, 0, cast(int)height, frame.data.ptr, frame.linesize.ptr);
+        sws_scale(swsContext, data.ptr, linesize.ptr, 0, cast(int)height, frame.data.ptr, frame.linesize.ptr);
 
-		int gotPacket = 0;
+        int gotPacket = 0;
 
-		if (formatContext.oformat.flags & AVFMT_RAWPICTURE) {
+        if (formatContext.oformat.flags & AVFMT_RAWPICTURE) {
 
-			packet.flags |= AV_PKT_FLAG_KEY;
-			packet.stream_index = stream.index;
-			packet.data = cast(ubyte*)frame;
-			packet.size = frame.sizeof;
+            packet.flags |= AV_PKT_FLAG_KEY;
+            packet.stream_index = stream.index;
+            packet.data = cast(ubyte*)frame;
+            packet.size = frame.sizeof;
 
-			gotPacket = 1;
-			
-		} else {
-			while(true) {
-				int outSize = avcodec_encode_video2(stream.codec, &packet, frame, &gotPacket);
-				frame.pts++;
-				if (gotPacket) {
-					break;
-				}
-			}
-		}
-		if (!gotPacket)
-			return false;
+            gotPacket = 1;
+            
+        } else {
+            while(true) {
+                int outSize = avcodec_encode_video2(stream.codec, &packet, frame, &gotPacket);
+                frame.pts++;
+                if (gotPacket) {
+                    break;
+                }
+            }
+        }
+        if (!gotPacket)
+            return false;
 
-		if (packet.pts != AV_NOPTS_VALUE)
-			packet.pts = av_rescale_q(packet.pts, stream.codec.time_base, stream.time_base);
+        if (packet.pts != AV_NOPTS_VALUE)
+            packet.pts = av_rescale_q(packet.pts, stream.codec.time_base, stream.time_base);
 
-		if (packet.dts != AV_NOPTS_VALUE)
-			packet.dts = av_rescale_q(packet.dts, stream.codec.time_base, stream.time_base);
+        if (packet.dts != AV_NOPTS_VALUE)
+            packet.dts = av_rescale_q(packet.dts, stream.codec.time_base, stream.time_base);
 
-		if (stream.codec.coded_frame.key_frame)
-			packet.flags |= AV_PKT_FLAG_KEY;
+        if (stream.codec.coded_frame.key_frame)
+            packet.flags |= AV_PKT_FLAG_KEY;
 
-		auto ret = av_interleaved_write_frame(formatContext, &packet);
+        auto ret = av_interleaved_write_frame(formatContext, &packet);
 
-		if (ret != 0) {
-			debug writeln("Error writing frame");
-			return false;
-		} else {
-			return true;
-		}
-	}
+        if (ret != 0) {
+            debug writeln("Error writing frame");
+            return false;
+        } else {
+            return true;
+        }
+    }
 
-	@property const {
-		auto width() { return properties.width; }
-		auto height() { return properties.height; }
-		auto frameCount() { return properties.frames; }
-		auto frameRate() { return properties.frameRate; }
-		auto codec() { return properties.codecId; }
-	}
+    @property const {
+        auto width() { return properties.width; }
+        auto height() { return properties.height; }
+        auto frameCount() { return properties.frames; }
+        auto frameRate() { return properties.frameRate; }
+        auto codec() { return properties.codecId; }
+    }
 
 private:
 
-	AVFrame* allocPicture(AVPixelFormat pix_fmt, int width, int height) {
-		AVFrame* picture;
-		ubyte[] picture_buf;
-		int size;
+    AVFrame* allocPicture(AVPixelFormat pix_fmt, int width, int height) {
+        AVFrame* picture;
+        ubyte[] picture_buf;
+        int size;
 
-		picture = av_frame_alloc();
-		if (!picture) {
-			debug writeln("Cannot allocate memory for the frame");
-			return null;
-		}
+        picture = av_frame_alloc();
+        if (!picture) {
+            debug writeln("Cannot allocate memory for the frame");
+            return null;
+        }
 
-		size = avpicture_get_size(pix_fmt, width, height);
-		picture_buf.length = size;
-		avpicture_fill(cast(AVPicture*) picture, picture_buf.ptr, pix_fmt, width, height);
+        size = avpicture_get_size(pix_fmt, width, height);
+        picture_buf.length = size;
+        avpicture_fill(cast(AVPicture*) picture, picture_buf.ptr, pix_fmt, width, height);
 
-		picture.format = pix_fmt;
-		picture.width = width;
-		picture.height = height;
-		picture.pts = 0;
+        picture.format = pix_fmt;
+        picture.width = width;
+        picture.height = height;
+        picture.pts = 0;
 
-		return picture;
-	}
+        return picture;
+    }
 
-	@property AVPixelFormat pixelFormat() const {
-		return convertDepricatedPixelFormat(stream.codec.pix_fmt);
-	}
+    @property AVPixelFormat pixelFormat() const {
+        return convertDepricatedPixelFormat(stream.codec.pix_fmt);
+    }
 }
 
 private:
 
 CodecID AVCodecIDToCodecID(AVCodecID avcodecId) {
-	CodecID c;
+    CodecID c;
 
-	switch (avcodecId) {
-		case AVCodecID.AV_CODEC_ID_RAWVIDEO,
-			AVCodecID.AV_CODEC_ID_MPEG1VIDEO,
-			AVCodecID.AV_CODEC_ID_MPEG2VIDEO,
-			AVCodecID.AV_CODEC_ID_MPEG4,
-			AVCodecID.AV_CODEC_ID_H263,
-			AVCodecID.AV_CODEC_ID_H264:
-				c = cast(CodecID)(cast(int)avcodecId);
-		break;
-		default:
-			c = CodecID.NONE;
-	}
-	return c;
+    switch (avcodecId) {
+        case AVCodecID.AV_CODEC_ID_RAWVIDEO,
+            AVCodecID.AV_CODEC_ID_MPEG1VIDEO,
+            AVCodecID.AV_CODEC_ID_MPEG2VIDEO,
+            AVCodecID.AV_CODEC_ID_MPEG4,
+            AVCodecID.AV_CODEC_ID_H263,
+            AVCodecID.AV_CODEC_ID_H264:
+                c = cast(CodecID)(cast(int)avcodecId);
+        break;
+        default:
+            c = CodecID.NONE;
+    }
+    return c;
 }
 
 void extractDataFromImage(in Image image, ref ubyte *[] data, ref int [] linesize) {
-	enforce(image.depth == BitDepth.BD_8, "Image bit depth not supported so far."); // todo: support other types
+    enforce(image.depth == BitDepth.BD_8, "Image bit depth not supported so far."); // todo: support other types
 
-	auto pixelCount = image.width*image.height;
-	auto imdata = image.data;
-	auto w = cast(int)image.width;
-	auto h = cast(int)image.height;
+    auto pixelCount = image.width*image.height;
+    auto imdata = image.data;
+    auto w = cast(int)image.width;
+    auto h = cast(int)image.height;
 
-	switch(image.format) {
-		case ImageFormat.IF_MONO:
-			data = [image.data.ptr];
-			linesize = [w];
-			break;
-		case ImageFormat.IF_MONO_ALPHA:
-			data = [image.data.ptr];
-			linesize = [w*2];
-			break;
-		case ImageFormat.IF_RGB, ImageFormat.IF_BGR:
-			data = [image.data.ptr];
-			linesize = [w*3];
-			break;
-		case ImageFormat.IF_RGB_ALPHA, ImageFormat.IF_BGR_ALPHA:
-			data = [image.data.ptr];
-			linesize = [w*4];
-			break;
-		case ImageFormat.IF_YUV:
-			data = [ new ubyte[w*h].ptr, new ubyte[w*h].ptr, new ubyte[w*h].ptr ];
-			foreach(i; 0..pixelCount) {
-				data[0][i] = imdata[i*3 + 0];
-				data[0][i] = imdata[i*3 + 1];
-				data[0][i] = imdata[i*3 + 2];
-			}
-			linesize = [w, w, w];
-			break;
-		default:
-			assert(0);
-	}
+    switch(image.format) {
+        case ImageFormat.IF_MONO:
+            data = [image.data.ptr];
+            linesize = [w];
+            break;
+        case ImageFormat.IF_MONO_ALPHA:
+            data = [image.data.ptr];
+            linesize = [w*2];
+            break;
+        case ImageFormat.IF_RGB, ImageFormat.IF_BGR:
+            data = [image.data.ptr];
+            linesize = [w*3];
+            break;
+        case ImageFormat.IF_RGB_ALPHA, ImageFormat.IF_BGR_ALPHA:
+            data = [image.data.ptr];
+            linesize = [w*4];
+            break;
+        case ImageFormat.IF_YUV:
+            data = [ new ubyte[w*h].ptr, new ubyte[w*h].ptr, new ubyte[w*h].ptr ];
+            foreach(i; 0..pixelCount) {
+                data[0][i] = imdata[i*3 + 0];
+                data[0][i] = imdata[i*3 + 1];
+                data[0][i] = imdata[i*3 + 2];
+            }
+            linesize = [w, w, w];
+            break;
+        default:
+            assert(0);
+    }
 }

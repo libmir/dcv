@@ -15,4 +15,4 @@ module dcv.io;
  */
 
 public import dcv.io.image, 
-	dcv.io.video;
+    dcv.io.video;
