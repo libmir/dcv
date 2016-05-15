@@ -19,14 +19,7 @@
 		{
 			"name": "d_source_library",
 			"targetType": "sourceLibrary"
-		},
-        {
-            "name": "unittest",
-            "preBuildCommands": ["dub run unit-threaded -c gen_ut_main"],
-            "dependencies": {
-                "unit-threaded": "~>0.6.0"
-            }
-        }
+		}
 	],
 	"subPackages": [
 		"examples/filter/",
