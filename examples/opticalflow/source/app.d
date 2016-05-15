@@ -20,7 +20,7 @@ import dcv.plot.opticalflow : colorCode;
 
 void printHelp() {
     writeln( `
-DCV Optical Flow example.
+DCV Optical DenseFlow example.
 
 If only one parameter is given it is considered to be
 the name of the subfolder of the data/optflow directory.

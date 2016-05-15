@@ -21,8 +21,8 @@ class DensePyramidFlow : DenseOpticalFlow {
         levelCount = levels;
     }
 
-    override Flow evaluate(inout Image f1, inout Image f2, 
-        Flow prealloc = emptySlice!(3, float),bool usePrevious = false) 
+    override DenseFlow evaluate(inout Image f1, inout Image f2, 
+        DenseFlow prealloc = emptySlice!(3, float),bool usePrevious = false) 
     in {
         assert(prealloc.length!2 == 2);
         assert(!f1.empty && f1.size == f2.size && 
@@ -46,7 +46,7 @@ class DensePyramidFlow : DenseOpticalFlow {
         flowPyramid.length = levelCount;
         flowPyramid[$-1] = size.dup;
 
-        Flow flow;
+        DenseFlow flow;
 
         foreach_reverse (i; 0..(levelCount-1)) { 
             size[] /= 2; 

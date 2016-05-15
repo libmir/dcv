@@ -28,7 +28,7 @@ class HornSchunckFlow : DenseOpticalFlow {
     this(HornSchunckProperties props = HornSchunckProperties()) { this.props = props; }
     ~this() {}
 
-    override Flow evaluate(inout Image f1, inout Image f2, Flow prealloc = emptySlice!(3, float), bool usePrevious = false) 
+    override DenseFlow evaluate(inout Image f1, inout Image f2, DenseFlow prealloc = emptySlice!(3, float), bool usePrevious = false) 
     in {
         assert(!f1.empty && !f2.empty &&
             f1.channels == 1 && 
