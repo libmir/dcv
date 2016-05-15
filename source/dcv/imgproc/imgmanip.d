@@ -206,8 +206,12 @@ private enum TransformType : size_t {
     PERSPECTIVE_TRANSFORM = 1
 }
 
+private enum bool _isSlice(T) = is(T : Slice!(N, Range), size_t N, Range);
+
 private static bool isTransformMatrix(TransformMatrix)() {
     // static if its float[][], or its Slice!(2, float*)
+    import std.traits : isScalarType, isPointer, TemplateArgsOf, PointerTarget;
+
     static if(isArray!TransformMatrix) {
         static if (isArray!(ElementType!TransformMatrix) 
             && isScalarType!(ElementType!(ElementType!TransformMatrix))
@@ -215,9 +219,8 @@ private static bool isTransformMatrix(TransformMatrix)() {
             return true;
         else 
             return false;
-    } else static if (__traits(compiles, TemplateOf!TransformMatrix)) {
-        static if (__traits(isSame, TemplateOf!TransformMatrix, Slice)
-            && (TemplateArgsOf!TransformMatrix)[0] == 2
+    } else static if (_isSlice!TransformMatrix) {
+        if ((TemplateArgsOf!TransformMatrix)[0] == 2
             && isPointer!((TemplateArgsOf!TransformMatrix)[1])
             && isFloatingPoint!(PointerTarget!((TemplateArgsOf!TransformMatrix)[1]))) 
         {
