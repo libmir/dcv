@@ -1,4 +1,4 @@
-module dcv.features.fast.base;
+module dcv.features.corner.fast.base;
 
 /**
  * Authors: Edward Rosten

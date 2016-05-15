@@ -1,4 +1,4 @@
-﻿module dcv.features.fast;
+﻿module dcv.features.corner.fast;
 
 /**
  * Authors: Edward Rosten, Relja Ljubobratovic
@@ -41,12 +41,12 @@ import std.experimental.ndslice;
 
 import dcv.core.image : BitDepth;
 import dcv.features.utils : Feature;
-import dcv.features.fast.base : xy;
-import dcv.features.fast.fast_9;
-import dcv.features.fast.fast_10;
-import dcv.features.fast.fast_11;
-import dcv.features.fast.fast_12;
-import dcv.features.fast.nonmax;
+import dcv.features.corner.fast.base : xy;
+import dcv.features.corner.fast.fast_9;
+import dcv.features.corner.fast.fast_10;
+import dcv.features.corner.fast.fast_11;
+import dcv.features.corner.fast.fast_12;
+import dcv.features.corner.fast.nonmax;
 
 public import dcv.features.detector;
 

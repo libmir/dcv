@@ -1,4 +1,4 @@
-module dcv.features.fast.fast_11;
+module dcv.features.corner.fast.fast_11;
 
 /**
  * Authors: Edward Rosten
@@ -39,7 +39,7 @@ module dcv.features.fast.fast_11;
 
 import core.stdc.stdlib : malloc, free, realloc;
 
-import dcv.features.fast.base;
+import dcv.features.corner.fast.base;
 
 
 int fast11_corner_score(const ubyte* p, const int *pixel, int bstart)

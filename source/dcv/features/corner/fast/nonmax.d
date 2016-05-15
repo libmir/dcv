@@ -1,4 +1,4 @@
-module dcv.features.fast.nonmax;
+module dcv.features.corner.fast.nonmax;
 
 /**
  * Authors: Edward Rosten
@@ -39,7 +39,7 @@ module dcv.features.fast.nonmax;
 
 import core.stdc.stdlib : malloc, free, realloc;
 
-import dcv.features.fast.base;
+import dcv.features.corner.fast.base;
 
 alias Compare = (X, Y) => (X>=Y);
 

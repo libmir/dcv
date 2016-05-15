@@ -1,4 +1,4 @@
-module dcv.features.corner;
+module dcv.features.corner.harris;
 
 private import std.experimental.ndslice;
 
