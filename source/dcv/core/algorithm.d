@@ -80,7 +80,7 @@ auto scaled(Scalar, Range)(Range range, Scalar alpha = 1, Scalar beta = 0) pure 
         return range.map!(v => cast(ElementType!Range)(alpha*(v) + beta));
 }
 
-auto ranged(Scalar, Range)(Range range, Scalar min = 0, Scalar max = 1) //pure @safe nothrow
+auto ranged(Scalar, Range)(Range range, Scalar min = 0, Scalar max = 1)
     if (isForwardRange!Range && isNumeric!(ElementType!Range) && isNumeric!Scalar
 && isAssignable!(ElementType!Range, Scalar)) {
     import std.traits : isFloatingPoint;
