@@ -159,36 +159,43 @@ enum GradientDirection {
 }
 
 Slice!(2, T*) sobel(T = real)(GradientDirection direction) nothrow pure @trusted {
+    return sobelScharr!(T)(direction, cast(T)1, cast(T)2);
+}
+
+Slice!(2, T*) scharr(T = real)(GradientDirection direction) nothrow pure @trusted {
+    return sobelScharr!(T)(direction, cast(T)3, cast(T)10);
+}
+
+private Slice!(2, T*) sobelScharr(T)(GradientDirection direction, T lv, T hv) nothrow pure @trusted {
     switch(direction) {
         case GradientDirection.DIR_X:
             return [
-                -1, 0, 1,
-                -2, 0, 2,
-                -1, 0, 1
+                -lv, 0, lv,
+                -hv, 0, hv,
+                -lv, 0, lv
             ].map!(a => cast(T)a).array.sliced(3, 3);
         case GradientDirection.DIR_Y:
             return [
-                -1, -2, -1,
+                -lv, -hv, -lv,
                 0, 0, 0,
-                1, 2, 1
+                lv, hv, lv
             ].map!(a => cast(T)a).array.sliced(3, 3);
         case GradientDirection.DIAG:
             return [
-                -2, -1, 0,
-                -1, 0, 1,
-                0, 1, 2
+                -hv, -lv, 0,
+                -lv, 0, lv,
+                0, lv, hv
             ].map!(a => cast(T)a).array.sliced(3, 3);
         case GradientDirection.DIAG_INV:
             return [
-                0, -1, -2,
-                1, 0, -1,
-                2, 1, 0
+                0, -lv, -hv,
+                lv, 0, -lv,
+                hv, lv, 0
             ].map!(a => cast(T)a).array.sliced(3, 3);
         default:
             assert(0);
     }
 }
-
 enum NonMaximumFilter {
     POINT,
     LINE
@@ -238,7 +245,7 @@ Slice!(2, T*) filterNonMaximum(T)(Slice!(2, T*) image, size_t filterSize = 10) {
             }
             lmsw[] = cast(T)0;
             if (lms_val != -1) {
-                lmsw[lms_r, lms_c] = lms_val;
+                lmsw[lms_r, lms_c] = cast(T)lms_val;
             }
         }
     }
