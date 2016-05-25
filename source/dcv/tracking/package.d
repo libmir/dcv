@@ -1,4 +1,4 @@
 module dcv.tracking;
 
 
-import dcv.tracking.opticalflow;
+public import dcv.tracking.opticalflow;

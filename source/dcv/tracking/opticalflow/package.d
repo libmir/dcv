@@ -1,5 +1,5 @@
 module dcv.tracking.opticalflow;
 
 
-import dcv.tracking.opticalflow.hornschunck;
-import dcv.tracking.opticalflow.pyramidflow;
+public import dcv.tracking.opticalflow.hornschunck;
+public import dcv.tracking.opticalflow.pyramidflow;

@@ -7,6 +7,8 @@ import dcv.core.image;
 import dcv.tracking.opticalflow.base;
 import dcv.core.utils : emptySlice;
 
+public import dcv.tracking.opticalflow.base : DenseFlow;
+
 
 struct HornSchunckProperties {
     size_t iterationCount = 100;
