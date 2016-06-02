@@ -15,7 +15,7 @@ void main(string [] args) {
 
 	// set default video if invalid argument set is given.
 	if (args.length != 2) {
-		args = [args[0], "centaur_1.mpg"];
+		args = [args[0], "../data/centaur_1.mpg"];
 	}
 
 	Main.init(args);

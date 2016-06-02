@@ -1,15 +1,15 @@
-# Optical Flow Example
+# Horn-Schunck Optical Flow Example
 
 
 This example demonstrates usage of Pyramidal Horn-Schunck optical flow algorithm implementation in DCV library.
 
 
 ## Modules used
-* import dcv.core
-* import dcv.io
-* import dcv.imgproc.imgmanip
-* import dcv.tracking.opticalflow
-* import dcv.plot.opticalflow
+* dcv.core
+* dcv.io
+* dcv.imgproc.imgmanip
+* dcv.tracking.opticalflow
+* dcv.plot.opticalflow
 
 ## Example description
 
@@ -75,7 +75,7 @@ and see clearly the difference between the original and computed (warped) one.
 
 ## Example Program
 
-Please refer to example program's help for more info (./optical flow -h).
+Please refer to example program's help for more info (./hornschunck -h).
 
 ## Note
 

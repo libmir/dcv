@@ -28,7 +28,7 @@ These directories represent the benchmark dataset from the
 Middlebury University website: http://vision.middlebury.edu/flow/data/
 
 Example:
-./opticalflow Army
+./hornschunck Army
 
 Note:
 This mode will use default parameters (described in the following section).
@@ -44,7 +44,7 @@ If multiple parameters are given, then parameters are considered to be:
 7 - optical flow pyramid level count; [3]
 
 Example:
-./opticalflow ../data/optflow/Evergreen/frame10.png ../data/optflow/Evergreen/frame11.png 300 25 3 5 4
+./hornschunck ../../data/optflow/Evergreen/frame10.png ../../data/optflow/Evergreen/frame11.png 300 25 3 5 4
 
 ... which will compute the optical flow for given two images, 
 by 300 iteration at each pyramid level, by using value of 25.0 
@@ -66,11 +66,11 @@ void main(string [] args) {
     string currentPath, nextPath;
 
     if (args.length == 2) {
-        currentPath = "../data/optflow/" ~ args[1] ~ "/frame10.png";
-        nextPath = "../data/optflow/" ~ args[1] ~ "/frame11.png";
+        currentPath = "../../data/optflow/" ~ args[1] ~ "/frame10.png";
+        nextPath = "../../data/optflow/" ~ args[1] ~ "/frame11.png";
     } else {
-        currentPath = args.length >= 2 ? args[1] : "../data/optflow/Army/frame10.png";
-        nextPath = args.length >= 3 ? args[2] : "../data/optflow/Army/frame11.png";
+        currentPath = args.length >= 2 ? args[1] : "../../data/optflow/Army/frame10.png";
+        nextPath = args.length >= 3 ? args[2] : "../../data/optflow/Army/frame11.png";
     }
 
     auto current = imread(currentPath, rparams);

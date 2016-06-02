@@ -9,7 +9,7 @@ Should also provide insight to basic setup for any image processing, such as ima
 * dcv.core.image
 * dcv.core.utils
 * dcv.io
-- dcv.imgproc
+* dcv.imgproc
 
 ## Source Image
 

@@ -25,7 +25,8 @@
 		"examples/filter/",
 		"examples/imgmanip/",
 		"examples/video/",
-		"examples/opticalflow/",
+		"examples/tracking/hornschunck",
+		"examples/tracking/klt",
 		"examples/features/"
 	],
 	"license": "Boost Software License v1.0"
