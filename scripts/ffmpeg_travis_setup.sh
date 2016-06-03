@@ -10,5 +10,5 @@ cd build
 ../configure --disable-yasm --enable-shared --prefix=${HOME}/install
 make
 make install
-cp ${HOME}/install/lib/*.so* ~/dmd2/linux/lib64/
+cp ${HOME}/install/lib/*.so* ${LD_LIBRARY_PATH//:}/
 cd ${CURR_DIR}
