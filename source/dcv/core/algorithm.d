@@ -7,10 +7,10 @@
  * v0.1 norm:
  * ???
  */ 
-private import std.experimental.ndslice;
-private import std.range;
-private import std.traits : isNumeric,  isAssignable;
-private import std.algorithm : map, each, max, min, reduce;
+import std.experimental.ndslice;
+import std.range;
+import std.traits : isNumeric,  isAssignable;
+import std.algorithm : map, each, max, min, reduce;
 
 enum NormType {
     INF, // infinite norm
@@ -49,25 +49,43 @@ real norm(Range)(Range range, in NormType normType)
     if (isForwardRange!Range && 
         isNumeric!(ElementType!Range) && 
 isAssignable!(real, ElementType!Range)) {
-    switch (normType) {
+    final switch (normType) {
         case NormType.INF:
             return range.normImpl_inf;
         case NormType.L1:
             return range.normImpl_n1;
         case NormType.L2:
             return range.normImpl_n2;
-        default:
-            assert(0);
     }
 }
 
 unittest {
     import std.math : sqrt, approxEqual;
 
-    auto arr = [1., 2., 3.];
-    assert(approxEqual(arr.norm(NormType.INF), 3.));
-    assert(approxEqual(arr.norm(NormType.L1), ((1.+2.+3.))));
-    //assert(approxEqual(arr.norm(NormType.L2), sqrt(arr[0]^^2 + arr[1]^^2 + arr[2]^^2)));
+    auto arr = [1.0f, 2.0f, 3.0f];
+    assert(approxEqual(arr.norm(NormType.INF), 3.0f));
+    assert(approxEqual(arr.norm(NormType.L1), ((arr[0]+arr[1]+arr[2]))));
+    assert(approxEqual(arr.norm(NormType.L2), sqrt(arr[0]^^2 + arr[1]^^2 + arr[2]^^2)));
+}
+
+/// Normalize range using automatically calculated norm of given type.
+auto normalize(Range)(Range range, NormType normType = NormType.L2)
+if (isForwardRange!Range && isAssignable!(real, ElementType!Range)) {
+    // TODO: redesign as pure
+    auto n = range.norm(normType);
+    return range.map!(v => v / n);
+}
+
+unittest {
+    import std.algorithm.comparison : equal;
+    import std.math : sqrt, approxEqual;
+    auto arr = [0.0, 1.0, 2.0];
+    auto infNorm = 2.0;
+    auto l1Norm = 3.0;
+    auto l2Norm = sqrt(5.0);
+    assert(equal!approxEqual([arr[0] / infNorm, arr[1] / infNorm, arr[2] / infNorm], arr.normalize(NormType.INF).array)); 
+    assert(equal!approxEqual([arr[0] / l1Norm, arr[1] / l1Norm, arr[2] / l1Norm], arr.normalize(NormType.L1).array)); 
+    assert(equal!approxEqual([arr[0] / l2Norm, arr[1] / l2Norm, arr[2] / l2Norm], arr.normalize(NormType.L2).array)); 
 }
 
 /// Scale range values (outrange = alpha*inrange + beta)
@@ -78,6 +96,22 @@ auto scaled(Scalar, Range)(Range range, Scalar alpha = 1, Scalar beta = 0) pure 
         return range.map!(v => alpha*(v) + beta);
     else
         return range.map!(v => cast(ElementType!Range)(alpha*(v) + beta));
+}
+
+unittest {
+    auto arr = [0.0, 0.5, 1.0];
+    arr = arr.scaled(10).array;
+    assert(arr[0] == 0.);
+    assert(arr[1] == 5.);
+    assert(arr[2] == 10.);
+}
+
+unittest {
+    auto arr = [0.0, 0.5, 1.0];
+    arr = arr.scaled(10.0).array;
+    assert(arr[0] == 0.0);
+    assert(arr[1] == 5.0);
+    assert(arr[2] == 10.0);
 }
 
 auto ranged(Scalar, Range)(Range range, Scalar min = 0, Scalar max = 1)
@@ -100,19 +134,24 @@ auto ranged(Scalar, Range)(Range range, Scalar min = 0, Scalar max = 1)
 }
 
 unittest {
-    auto arr = [0.0, 0.5, 1.0];
-    arr = arr.scaled(10).array;
+    auto arr = [0.0, 0.5, 1.0].ranged(0, 10).array;
     assert(arr[0] == 0.);
     assert(arr[1] == 5.);
     assert(arr[2] == 10.);
 }
 
-/// Normalize range using automatically calculated norm of given type.
-auto normalize(Range)(Range range, NormType normType = NormType.L2)
-if (isForwardRange!Range && isAssignable!(real, ElementType!Range)) {
-    // TODO: redesign as pure
-    auto n = range.norm(normType);
-    return range.map!(v => v / n);
+unittest {
+    auto arr = [0.0, 0.5, 1.0].ranged(0.0, 10.0).array;
+    assert(arr[0] == 0.);
+    assert(arr[1] == 5.);
+    assert(arr[2] == 10.);
+}
+
+unittest {
+    auto arr = [0.0, 0.5, 1.0].ranged(0.0f, 10.0f).array;
+    assert(arr[0] == 0.);
+    assert(arr[1] == 5.);
+    assert(arr[2] == 10.);
 }
 
 private: // implementation
@@ -124,17 +163,16 @@ auto normImpl_inf(Range)(Range range) {
 }
 
 auto normImpl_n1(Range)(Range range) {
-    import std.math : abs, fabs;
-    import std.traits : isFloatingPoint;
-    static if (isFloatingPoint!(ElementType!Range)) {
-        return range.reduce!((a, b) => fabs(a + b));
-    } else {
-        return range.reduce!((a, b) => abs(a + b));
-    }
+    import std.math : abs;
+    return range.reduce!((a, b) => abs(a + b));
 }
 
 auto normImpl_n2(Range)(Range range) {
     import std.math : sqrt;
-    return range.reduce!((a, b) => a^^2 + b^^2).sqrt;
+    ElementType!Range v = 0;
+    foreach(e; range) {
+        v += e^^2;
+    }
+    return sqrt(v);
 }
 
