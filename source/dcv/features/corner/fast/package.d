@@ -62,11 +62,12 @@ public import dcv.features.detector;
  * https://github.com/edrosten/fast-C-src
  */
 class FASTDetector : Detector {
-
-    /// Should the non-maximum suppression be performed with the detection.
-    public static immutable PERFORM_NON_MAX_SUPRESSION = 0x0100;
-    /// Should the features be sorted by score at the output.
-    public static immutable SORT_OUT_FEATURES_BY_SCORE = 0x0200;
+    public {
+        /// Should the non-maximum suppression be performed with the detection.
+        static immutable PERFORM_NON_MAX_SUPRESSION = 0x0100;
+        /// Should the features be sorted by score at the output.
+        static immutable SORT_OUT_FEATURES_BY_SCORE = 0x0200;
+    }
 
     /// Type of the FAST corner.
     public enum Type {
@@ -76,15 +77,31 @@ class FASTDetector : Detector {
         FAST_12,
     }
 
-    private uint _threshold;
-    private Type _type;
-    private int _flags;
+    private {
+        uint _threshold;
+        Type _type;
+        int _flags;
+    }
 
-    this(uint threshold = 100, Type type = Type.FAST_9, int flags = 0) {
+    @safe pure nothrow this(uint threshold = 100, Type type = Type.FAST_9, int flags = 0) {
         assert(threshold > 0);
         this._threshold = threshold;
         this._type = type;
         this._flags = flags;
+    }
+
+    @safe pure nothrow unittest {
+        FASTDetector detector = new FASTDetector;
+        assert(detector.threshold == 100);
+        assert(detector.type == Type.FAST_9);
+        assert(detector.flags == 0);
+    }
+
+    @safe pure nothrow unittest {
+        FASTDetector detector = new FASTDetector(3, Type.FAST_10,PERFORM_NON_MAX_SUPRESSION);
+        assert(detector.threshold == 3);
+        assert(detector.type == Type.FAST_10);
+        assert(detector.flags == PERFORM_NON_MAX_SUPRESSION);
     }
 
     /// Threshold for corner detection.
@@ -94,6 +111,7 @@ class FASTDetector : Detector {
         assert(value > 0);
         _threshold = value;
     }
+
     /// Type of the detector.
     @property type() const { return _type; }
     /// ditto
@@ -126,7 +144,7 @@ class FASTDetector : Detector {
         xy* function(const ubyte*, int, int, int, int, int*) detectFunc;
         int* function(const ubyte* i, int stride, xy* corners, int num_corners, int b) scoreFunc;
 
-        switch(_type) {
+        final switch(_type) {
             case Type.FAST_9:
                 detectFunc = &fast9_detect;
                 scoreFunc = &fast9_score;
@@ -142,9 +160,6 @@ class FASTDetector : Detector {
             case Type.FAST_12:
                 detectFunc = &fast12_detect;
                 scoreFunc = &fast12_score;
-                break;
-            default:
-                assert(0);
         }
 
         xyFeatures = detectFunc(cast(const ubyte*)image.data.ptr, 
@@ -225,11 +240,14 @@ unittest {
         FASTDetector.SORT_OUT_FEATURES_BY_SCORE;
     size_t cornerCount = 10;
 
-    FASTDetector detector = new FASTDetector(threshold, FASTDetector.Type.FAST_9, flags);
-    Feature [] features = detector.detect(lslice, cornerCount);
+    foreach( type; [FASTDetector.Type.FAST_9, FASTDetector.Type.FAST_10, 
+            FASTDetector.Type.FAST_11, FASTDetector.Type.FAST_12]) {
+        FASTDetector detector = new FASTDetector(threshold, type, flags);
+        Feature [] features = detector.detect(lslice, cornerCount);
 
-    assert(features.length == cornerCount);
-    assert(features.isSorted!"a.score > b.score");
+        assert(features.length == cornerCount);
+        assert(features.isSorted!"a.score > b.score");
+    }
 }
 
 unittest {
@@ -242,9 +260,12 @@ unittest {
     int flags = 0;
     size_t cornerCount = 10;
 
-    FASTDetector detector = new FASTDetector(threshold, FASTDetector.Type.FAST_9, flags);
-    Feature [] features = detector.detect(lslice, 0);
+    foreach( type; [FASTDetector.Type.FAST_9, FASTDetector.Type.FAST_10, 
+            FASTDetector.Type.FAST_11, FASTDetector.Type.FAST_12]) {
+        FASTDetector detector = new FASTDetector(threshold, type, flags);
+        Feature [] features = detector.detect(lslice, 0);
 
-    assert(features.length != cornerCount); // real count should be around 23 with 43 without suppression
-    assert(!features.isSorted!"a.score > b.score");
+        assert(features.length != cornerCount); // real count should be around 23 with 43 without suppression
+        assert(!features.isSorted!"a.score > b.score");
+    }
 }

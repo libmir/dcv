@@ -5,8 +5,8 @@ module dcv.features.utils;
  * Module contains utilities common for all algorithms which operate with feature points.
  */
 
-private import std.experimental.ndslice;
-private import std.traits : isNumeric;
+import std.experimental.ndslice;
+import std.traits : isNumeric;
 
 
 /**
@@ -48,7 +48,7 @@ ulong [2][] extractCorners(T)(Slice!(2, T*) cornerResponse,
     ulong [2] [float] features;
 
     if (cornerResponse.empty) {
-        return typeof(return).init;
+        return null;
     }
 
     auto rows = cornerResponse.length!0;
@@ -66,6 +66,11 @@ ulong [2][] extractCorners(T)(Slice!(2, T*) cornerResponse,
         .take(count > 0 ? min(count, features.length) : features.length)
             .map!(a => features[a])
             .array;
+}
+
+unittest {
+    auto res = Slice!(2, float*).init.extractCorners;
+    assert(res is null);
 }
 
 unittest {

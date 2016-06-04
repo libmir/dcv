@@ -7,11 +7,15 @@
  * unknown - each new utility should be implemented on the fly - as it's needed by other modules?
  */
 
-private import std.experimental.ndslice;
-private import std.traits;
-private import std.meta : allSatisfy;
-private import std.range : lockstep;
-private import std.algorithm.iteration : reduce;
+import std.experimental.ndslice;
+import std.traits;
+import std.meta : allSatisfy;
+import std.range : lockstep;
+import std.algorithm.iteration : reduce;
+
+
+/// Check if an type is a Slice.
+enum bool isSlice(T) = is( T : Slice!(N, Range), size_t N, Range);
 
 /// Convenience method to return an empty slice - used mainly as default argument in functions in library.
 static Slice!(N, V*) emptySlice(size_t N, V)() pure @safe nothrow { return Slice!(N, V*)(); }
@@ -38,6 +42,17 @@ static Slice!(N, O*) asType(O, V, size_t N)(Slice!(N, V*) inslice) {
     }
 }
 
+unittest {
+    import std.range : iota;
+    import std.array : array;
+
+    auto slice = 6.iota.array.sliced(2, 3);
+    auto fslice = slice.asType!float;
+    foreach(ref s, ref f; lockstep(slice.byElement, fslice.byElement)) {
+        assert(cast(float)s == f);
+    }
+}
+
 /**
  * Clip value by it's value range.
  * 
@@ -47,14 +62,12 @@ static Slice!(N, O*) asType(O, V, size_t N)(Slice!(N, V*) inslice) {
  * return:
  * Clipped value of the output type.
  */
-T clip(T, V)(V v) 
+static pure nothrow @safe T clip(T, V)(V v) 
     if (isNumeric!V && isNumeric!T)
 {
     import std.traits : isFloatingPoint;
     static if (is(T == V)) {
         return v;
-    } else static if (isFloatingPoint!T || T.sizeof >= 8) {
-        return cast(T)v;
     } else {
         if (v <= T.min)
             return T.min;
@@ -64,21 +77,51 @@ T clip(T, V)(V v)
     }
 }
 
-// TODO: document
-auto merge(Slices...)(Slices ranges) {
+pure nothrow @safe unittest {
+    int value = 30;
+    assert(clip!int(value) == cast(int)30);
+}
 
+pure nothrow @safe unittest {
+    int max_ubyte_value = cast(int)ubyte.max + 1;
+    int min_ubyte_value = cast(int)ubyte.min -1;
+    assert(clip!ubyte(max_ubyte_value) == cast(ubyte)255);
+    assert(clip!ubyte(min_ubyte_value) == cast(ubyte)0);
+}
+
+/**
+ * Merge multiple slices into one.
+ * 
+ * By input of multiple Slice!(N, T*) objects, produces one Slice!(N+1, T*)
+ * object, where length of last dimension is number of input slices. Values
+ * of input slices' elements are copied to resulting slice, where [..., i] element
+ * of j-th input slice is copied to [..., i, j] element of output slice.
+ * 
+ * e.g. If three single channel images (Slice!(2, T*)) are merged, output will be 
+ * a three channel image (Slice!(3, T*)).
+ * 
+ * params:
+ * slices = Input slices. All must by Slice object with same input template parameters.
+ * 
+ * returns:
+ * For input of n Slice!(N, T*) objects, outputs Slice!(N+1, T*) object, where 
+ * last dimension size is n.
+ */
+pure auto merge(Slices...)(Slices slices) 
+if (Slices.length > 0 && isSlice!(Slices[0]) && allSameType!Slices) {
     import std.algorithm.iteration: map;
+    import std.array : uninitializedArray;
 
-    alias ElementRange = typeof(ranges[0].byElement);
-    alias T = typeof(ranges[0].byElement.front);
+    alias ElementRange = typeof(slices[0].byElement);
+    alias T = typeof(slices[0].byElement.front);
 
-    immutable D = ranges[0].shape.length;
-    const auto length = ranges[0].shape.reduce!"a*b";
+    immutable D = slices[0].shape.length;
+    const auto length = slices[0].shape.reduce!"a*b";
 
-    auto data = uninitializedArray!(T[])(length*ranges.length);
-    ElementRange [ranges.length] elRange;
+    auto data = uninitializedArray!(T[])(length*slices.length);
+    ElementRange [slices.length] elRange;
 
-    foreach(i, v; ranges) {
+    foreach(i, v; slices) {
         elRange[i] = v.byElement;
     }
 
@@ -90,11 +133,31 @@ auto merge(Slices...)(Slices ranges) {
     }
 
     size_t [D+1] newShape;
-    newShape[0..D] = ranges[0].shape[0..D];
-    newShape[D] = ranges.length;
+    newShape[0..D] = slices[0].shape[0..D];
+    newShape[D] = slices.length;
 
     return data.sliced(newShape);
 }
+
+version(unittest) {
+    import std.algorithm.comparison : equal;
+    import std.array : array;
+}
+
+unittest {
+    auto s1 = [1, 2, 3].sliced(3);
+    auto s2 = [4, 5, 6].sliced(3);
+    auto m = merge(s1, s2);
+    assert(m == [1, 4, 2, 5, 3, 6].sliced(3, 2));
+}
+
+unittest {
+    auto s1 = [1, 2, 3, 4].sliced(2, 2);
+    auto s2 = [5, 6, 7, 8].sliced(2, 2);
+    auto m = merge(s1, s2);
+    assert(m == [1, 5, 2, 6, 3, 7, 4, 8].sliced(2, 2, 2));
+}
+
 template isBoundaryCondition(alias bc) {
     import std.typetuple;
     alias Indices = TypeTuple!(int, int);
@@ -151,10 +214,10 @@ unittest {
     import std.range : iota;
     import std.array : array;
 
-    static assert(isBoundaryCondition!nobc);
-    static assert(isBoundaryCondition!neumann);
-    static assert(isBoundaryCondition!periodic);
-    static assert(isBoundaryCondition!symmetric);
+    assert(isBoundaryCondition!nobc);
+    assert(isBoundaryCondition!neumann);
+    assert(isBoundaryCondition!periodic);
+    assert(isBoundaryCondition!symmetric);
 
     /*
      * [0, 1, 2,

@@ -3,17 +3,8 @@ module dcv.features.corner.harris;
 private import std.experimental.ndslice;
 
 private import dcv.core.utils : emptySlice;
-
 private import dcv.imgproc.convolution : calcPartialDerivatives;
 
-/**
- * Corner detection module.
- *
- * v0.1 norm:
- * harris
- * shi-tomasi
- * fast
- */
 
 /**
  * Harris corner detector.
@@ -32,6 +23,44 @@ Slice!(2, O*) shiTomasiCorners(T, O = T)(Slice!(2, T*) image,
         in uint winSize = 3, in float gauss = .84, Slice!(2, O*) prealloc = emptySlice!(2, O)) {
     ShiTomasiDetector det;
     return calcCorners(image, winSize, gauss, prealloc, det);
+}
+
+unittest {
+    import std.algorithm.comparison : equal;
+    auto image = new float[9].sliced(3, 3);
+    auto result = harrisCorners(image, 3, 0.64, 0.84);
+    assert(result.shape[].equal(image.shape[]));
+}
+
+unittest {
+    import std.algorithm.comparison : equal;
+    import std.range : lockstep;
+    auto image = new float[9].sliced(3, 3);
+    auto resultBuffer = new double[9].sliced(3, 3);
+    auto result = harrisCorners!(float, double)(image, 3, 0.64, 0.84, resultBuffer);
+    assert(result.shape[].equal(image.shape[]));
+    foreach(ref r1, ref r2; lockstep(result.byElement, resultBuffer.byElement)) {
+        assert(&r1 == &r2);
+    }
+}
+
+unittest {
+    import std.algorithm.comparison : equal;
+    auto image = new float[9].sliced(3, 3);
+    auto result = shiTomasiCorners(image, 3, 0.84);
+    assert(result.shape[].equal(image.shape[]));
+}
+
+unittest {
+    import std.algorithm.comparison : equal;
+    import std.range : lockstep;
+    auto image = new float[9].sliced(3, 3);
+    auto resultBuffer = new double[9].sliced(3, 3);
+    auto result = shiTomasiCorners!(float, double)(image, 3, 0.84, resultBuffer);
+    assert(result.shape[].equal(image.shape[]));
+    foreach(ref r1, ref r2; lockstep(result.byElement, resultBuffer.byElement)) {
+        assert(&r1 == &r2);
+    }
 }
 
 private:
@@ -66,8 +95,7 @@ Slice!(2, O*) calcCorners(Detector, T, O)(Slice!(2, T*) image, uint winSize,
     if (!prealloc.shape[].equal(image.shape[])) {
         prealloc = uninitializedArray!(O[])(image.shape[].reduce!"a*b").sliced(image.shape);
     }
-
-    prealloc.byElement.each!((ref e) => e = 0);
+    prealloc[] = cast(O)0;
 
     auto rows = image.length!0;
     auto cols = image.length!1;
