@@ -89,73 +89,78 @@ pure nothrow @safe unittest {
     assert(clip!ubyte(min_ubyte_value) == cast(ubyte)0);
 }
 
-/**
- * Merge multiple slices into one.
- * 
- * By input of multiple Slice!(N, T*) objects, produces one Slice!(N+1, T*)
- * object, where length of last dimension is number of input slices. Values
- * of input slices' elements are copied to resulting slice, where [..., i] element
- * of j-th input slice is copied to [..., i, j] element of output slice.
- * 
- * e.g. If three single channel images (Slice!(2, T*)) are merged, output will be 
- * a three channel image (Slice!(3, T*)).
- * 
- * params:
- * slices = Input slices. All must by Slice object with same input template parameters.
- * 
- * returns:
- * For input of n Slice!(N, T*) objects, outputs Slice!(N+1, T*) object, where 
- * last dimension size is n.
- */
-pure auto merge(Slices...)(Slices slices) 
-if (Slices.length > 0 && isSlice!(Slices[0]) && allSameType!Slices) {
-    import std.algorithm.iteration: map;
-    import std.array : uninitializedArray;
+import std.compiler;
 
-    alias ElementRange = typeof(slices[0].byElement);
-    alias T = typeof(slices[0].byElement.front);
+static if (__VERSION__ >= 2071) { // due to undefined bug in byElement in dmd 2.070.0
 
-    immutable D = slices[0].shape.length;
-    const auto length = slices[0].shape.reduce!"a*b";
+    /**
+     * Merge multiple slices into one.
+     * 
+     * By input of multiple Slice!(N, T*) objects, produces one Slice!(N+1, T*)
+     * object, where length of last dimension is number of input slices. Values
+     * of input slices' elements are copied to resulting slice, where [..., i] element
+     * of j-th input slice is copied to [..., i, j] element of output slice.
+     * 
+     * e.g. If three single channel images (Slice!(2, T*)) are merged, output will be 
+     * a three channel image (Slice!(3, T*)).
+     * 
+     * params:
+     * slices = Input slices. All must by Slice object with same input template parameters.
+     * 
+     * returns:
+     * For input of n Slice!(N, T*) objects, outputs Slice!(N+1, T*) object, where 
+     * last dimension size is n.
+     */
+    pure auto merge(Slices...)(Slices slices) 
+    if (Slices.length > 0 && isSlice!(Slices[0]) && allSameType!Slices) {
+        import std.algorithm.iteration: map;
+        import std.array : uninitializedArray;
 
-    auto data = uninitializedArray!(T[])(length*slices.length);
-    ElementRange [slices.length] elRange;
+        alias ElementRange = typeof(slices[0].byElement);
+        alias T = typeof(slices[0].byElement.front);
 
-    foreach(i, v; slices) {
-        elRange[i] = v.byElement;
-    }
+        immutable D = slices[0].shape.length;
+        const auto length = slices[0].shape.reduce!"a*b";
 
-    auto i = 0;
-    foreach(e; 0..length) {
-        foreach(ecol; elRange) {
-            data[i++] = ecol[e];
+        auto data = uninitializedArray!(T[])(length*slices.length);
+        ElementRange [slices.length] elRange;
+
+        foreach(i, v; slices) {
+            elRange[i] = v.byElement;
         }
+
+        auto i = 0;
+        foreach(e; 0..length) {
+            foreach(ecol; elRange) {
+                data[i++] = ecol[e];
+            }
+        }
+
+        size_t [D+1] newShape;
+        newShape[0..D] = slices[0].shape[0..D];
+        newShape[D] = slices.length;
+
+        return data.sliced(newShape);
     }
 
-    size_t [D+1] newShape;
-    newShape[0..D] = slices[0].shape[0..D];
-    newShape[D] = slices.length;
+    version(unittest) {
+        import std.algorithm.comparison : equal;
+        import std.array : array;
+    }
 
-    return data.sliced(newShape);
-}
+    unittest {
+        auto s1 = [1, 2, 3].sliced(3);
+        auto s2 = [4, 5, 6].sliced(3);
+        auto m = merge(s1, s2);
+        assert(m == [1, 4, 2, 5, 3, 6].sliced(3, 2));
+    }
 
-version(unittest) {
-    import std.algorithm.comparison : equal;
-    import std.array : array;
-}
-
-unittest {
-    auto s1 = [1, 2, 3].sliced(3);
-    auto s2 = [4, 5, 6].sliced(3);
-    auto m = merge(s1, s2);
-    assert(m == [1, 4, 2, 5, 3, 6].sliced(3, 2));
-}
-
-unittest {
-    auto s1 = [1, 2, 3, 4].sliced(2, 2);
-    auto s2 = [5, 6, 7, 8].sliced(2, 2);
-    auto m = merge(s1, s2);
-    assert(m == [1, 5, 2, 6, 3, 7, 4, 8].sliced(2, 2, 2));
+    unittest {
+        auto s1 = [1, 2, 3, 4].sliced(2, 2);
+        auto s2 = [5, 6, 7, 8].sliced(2, 2);
+        auto m = merge(s1, s2);
+        assert(m == [1, 5, 2, 6, 3, 7, 4, 8].sliced(2, 2, 2));
+    }
 }
 
 template isBoundaryCondition(alias bc) {
