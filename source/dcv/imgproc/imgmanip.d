@@ -4,14 +4,13 @@
  * Image manipulation module.
  * 
  * v0.1 norm:
- * resize (done, not tested)
- * scale (done, not tested)
- * transform!affine,perspective
- * warp (pixel-wise displacement)
- * remap (pixel-wise image remapping)
- * split (split multichannel image to single channels)
- * merge (merge multiple channels to one image)
- * channelChain (chain mono images into multi-channel)
+ * resize (done)
+ * scale (done)
+ * transform!affine,perspective (done)
+ * warp (pixel-wise displacement) (done)
+ * remap (pixel-wise image remapping) (done
+ * split (split multichannel image to single channels) - discarded since splitting is very easy using Slice.
+ * merge (merge multiple channels to one image) (done)
  */
 public import dcv.imgproc.interpolate;
 
@@ -69,6 +68,24 @@ Slice!(N, V*) resize(alias interp = linear, V, size_t N, Size...)
     }
 }
 
+unittest {
+    auto vector = [0.0f, 0.1f, 0.2f].sliced(3);
+    auto matrix = [0.0f, 0.1f, 0.2f, 0.3f].sliced(2, 2);
+    auto image = [0.0f, 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f].sliced(2, 2, 2);
+
+    auto resv = vector.resize!linear(10);
+    assert(resv.shape.length == 1);
+    assert(resv.length == 10);
+
+    auto resm = matrix.resize!linear(10, 15);
+    assert(resm.shape.length == 2);
+    assert(resm.length!0 == 10 && resm.length!1 == 15);
+
+    auto resi = image.resize!linear(20, 14);
+    assert(resi.shape.length == 3);
+    assert(resi.length!0 == 20 && resi.length!1 == 14 && resi.length!2 == 2);
+}
+
 /**
  * Scale array size using custom interpolation function.
  * 
@@ -111,11 +128,39 @@ Slice!(N, V*) scale(alias interp = linear, V, size_t N, Scale...)
 }
 
 unittest {
-    // TODO: design the test
+    auto vector = [0.0f, 0.1f, 0.2f].sliced(3);
+    auto matrix = [0.0f, 0.1f, 0.2f, 0.3f].sliced(2, 2);
+    auto image = [0.0f, 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f].sliced(2, 2, 2);
+
+    auto resv = vector.scale!linear(2.0f);
+    assert(resv.shape.length == 1);
+    assert(resv.length == vector.length * 2);
+    
+    auto resm = matrix.scale!linear(3.0f, 4.0f);
+    assert(resm.shape.length == 2);
+    assert(resm.length!0 == matrix.length!0*3 && resm.length!1 == matrix.length!1*4);
+    
+    auto resi = image.scale!linear(5.0f, 8.0f);
+    assert(resi.shape.length == 3);
+    assert(resi.length!0 == image.length!0*5 && 
+        resi.length!1 == image.length!1*8 && 
+        resi.length!2 == 2);
 }
 
 /**
  * Pixel-wise warping of the image.
+ * 
+ * Displace each pixel of an image by given [x, y] values.
+ * 
+ * params:
+ * interp = (template parameter) Interpolation function, default linear.
+ * image = Input image, which is warped. Single and multiple channel images are allowed.
+ * map = Displacement map, which holds [x, y] displacement for each pixel of an image.
+ * prealloc = Pre-allocated memory where resulting warped image is stored, if defined. 
+ * Should be of same shape as input image, or an emptySlice, which implies newly allocated image is used.
+ * 
+ * returns:
+ * Warped input image by given map.
  */
 Slice!(N, T*) warp(alias interp = linear, size_t N, T, V)
 (Slice!(N, T*) image, Slice!(3, V*) map, Slice!(N, T*) prealloc = emptySlice!(N, T)) pure {
@@ -124,10 +169,73 @@ Slice!(N, T*) warp(alias interp = linear, size_t N, T, V)
 
 /**
  * Pixel-wise remapping of the image.
+ * 
+ * Move each pixel of an image to a given [x, y] location defined by the map.
+ * Function is similar to dcv.imgproc.imgmanip.warp, except displacement of pixels
+ * is absolute, rather than relative.
+ * 
+ * params:
+ * interp = (template parameter) Interpolation function, default linear.
+ * image = Input image, which is remapped. Single and multiple channel images are allowed.
+ * map = Target map, which holds [x, y] position for each pixel of an image.
+ * prealloc = Pre-allocated memory where resulting remapped image is stored, if defined. 
+ * Should be of same shape as input image, or an emptySlice, which implies newly allocated image is used.
+ * 
+ * returns:
+ * Remapped input image by given map.
  */
 Slice!(N, T*) remap(alias interp = linear, size_t N, T, V)
 (Slice!(N, T*) image, Slice!(3, V*) map, Slice!(N, T*) prealloc = emptySlice!(N, T)) pure {
     return pixelWiseDisplacementImpl!(linear, remapImpl, N, T, V)(image, map, prealloc);
+}
+
+/// Test if warp and remap always returns slice of corresponding format.
+unittest {
+    import std.algorithm.iteration : map;
+    import std.random : uniform;
+    import std.array : array;
+    auto image = 9.iota.map!(v => cast(float)v).array.sliced(3, 3);
+    auto wmap = 18.iota.map!(v => cast(float)uniform(0.0f, 1.0f)).array.sliced(3, 3, 2);
+
+    auto warped = image.warp(wmap);
+    assert(warped.shape == image.shape);
+
+    auto remapped = image.remap(wmap);
+    assert(remapped.shape == image.shape);
+}
+
+/// ditto
+unittest {
+    import std.algorithm.iteration : map;
+    import std.random : uniform;
+    import std.array : array;
+    auto image = (9*3).iota.map!(v => cast(float)v).array.sliced(3, 3, 3);
+    auto wmap = 18.iota.map!(v => cast(float)uniform(0.0f, 1.0f)).array.sliced(3, 3, 2);
+    auto warped = image.warp(wmap);
+    assert(warped.shape == image.shape);
+
+    auto remapped = image.remap(wmap);
+    assert(remapped.shape == image.shape);
+}
+
+/// ditto
+unittest {
+    import std.algorithm.iteration : map;
+    import std.random : uniform;
+    import std.array : array;
+    auto image = 9.iota.map!(v => cast(float)v).array.sliced(3, 3);
+    auto warped = new float[9].sliced(3, 3);
+    auto remapped = new float[9].sliced(3, 3);
+    auto wmap = 18.iota.map!(v => cast(float)uniform(0.0f, 1.0f)).array.sliced(3, 3, 2);
+    auto warpedRetVal = image.warp(wmap, warped);
+    assert(warped.shape == image.shape);
+    assert(warpedRetVal.shape == image.shape);
+    assert(&warped[0, 0] == &warpedRetVal[0, 0]);
+
+    auto remappedRetVal = image.remap(wmap, remapped);
+    assert(remapped.shape == image.shape);
+    assert(remappedRetVal.shape == image.shape);
+    assert(&remapped[0, 0] == &remappedRetVal[0, 0]);
 }
 
 private {
@@ -140,7 +248,7 @@ private {
         import std.array : array, uninitializedArray;
         
         typeof(image) warped;
-        if (prealloc.empty || prealloc.shape.array.equal(image.shape.array)) {
+        if (prealloc.empty || !prealloc.shape.array.equal(image.shape.array)) {
             warped = uninitializedArray!(T[])(image.shape.reduce!"a*b").sliced(image.shape);
         } else {
             enforce(&(warped.byElement.front) != &(image.byElement.front), 
@@ -251,8 +359,25 @@ unittest {
     static assert(!isTransformMatrix!(Slice!(1, float*)));
 }
 
+/**
+ * Transform an image by given affine transformation.
+ * 
+ * params:
+ * interp = (template parameter) Interpolation function. Default linear.
+ * slice = Slice of an image which is transformed.
+ * transform = 2D Transformation matrix (3x3). Its element type must be floating point type,
+ * and it can be defined as Slice object, dynamic or static 2D array.
+ * outSize = Output image size - if transformation potentially moves parts of image out
+ * of input image bounds, output image can be sized differently to maintain information.
+ * 
+ * note:
+ * Given transformation is considered to be an affine transformation. If it is not, result is undefined.
+ * 
+ * returns:
+ * Transformed image.
+ */
 Slice!(N, V*) transformAffine(alias interp = linear, V, TransformMatrix, size_t N) 
-    (Slice!(N, V*) slice, TransformMatrix transform, size_t[2] outSize = [0, 0])
+    (Slice!(N, V*) slice, inout TransformMatrix transform, size_t[2] outSize = [0, 0])
 {
     static if (isTransformMatrix!TransformMatrix) {
         return transformImpl!(TransformType.AFFINE_TRANSFORM, interp)(slice, transform, outSize);
@@ -261,8 +386,25 @@ Slice!(N, V*) transformAffine(alias interp = linear, V, TransformMatrix, size_t 
     }
 }
 
+/**
+ * Transform an image by given perspective transformation.
+ * 
+ * params:
+ * interp = (template parameter) Interpolation function. Default linear.
+ * slice = Slice of an image which is transformed.
+ * transform = 2D Transformation matrix (3x3). Its element type must be floating point type,
+ * and it can be defined as Slice object, dynamic or static 2D array.
+ * outSize = Output image size [width, height] - if transformation potentially moves parts of image out
+ * of input image bounds, output image can be sized differently to maintain information.
+ * 
+ * note:
+ * Given transformation is considered to be an perspective transformation. If it is not, result is undefined.
+ * 
+ * returns:
+ * Transformed image.
+ */
 Slice!(N, V*) transformPerspective(alias interp = linear, V, TransformMatrix, size_t N) 
-    (Slice!(N, V*) slice, TransformMatrix transform, size_t[2] outSize = [0, 0])
+    (Slice!(N, V*) slice, inout TransformMatrix transform, size_t[2] outSize = [0, 0])
 {
     static if (isTransformMatrix!TransformMatrix) {
         return transformImpl!(TransformType.PERSPECTIVE_TRANSFORM, linear)(slice, transform, outSize);
@@ -271,12 +413,45 @@ Slice!(N, V*) transformPerspective(alias interp = linear, V, TransformMatrix, si
     }
 }
 
+version(unittest) {
+    auto transformMatrix = [
+        [1.0f, 0.0f, 5.0f],
+        [0.0f, 1.0f, 5.0f],
+        [0.0f, 0.0f, 1.0f]
+    ];
+}
+
+unittest {
+    // test if affine transform without outSize parameter gives out same-shaped result.
+    auto image = new float[9].sliced(3, 3);
+    auto transformed = transformAffine(image, transformMatrix);
+    assert(image.shape == transformed.shape);
+}
+
+unittest {
+    // test if affine transform with outSize parameter gives out proper-shaped result.
+    auto image = new float[9].sliced(3, 3);
+    auto transformed = transformAffine(image, transformMatrix, [5, 10]);
+    assert(transformed.length!0 == 10 && transformed.length!1 == 5);
+}
+
+unittest {
+    // test if perspective transform without outSize parameter gives out same-shaped result.
+    auto image = new float[9].sliced(3, 3);
+    auto transformed = transformPerspective(image, transformMatrix);
+    assert(image.shape == transformed.shape);
+}
+
+unittest {
+    // test if perspective transform with outSize parameter gives out proper-shaped result.
+    auto image = new float[9].sliced(3, 3);
+    auto transformed = transformPerspective(image, transformMatrix, [5, 10]);
+    assert(transformed.length!0 == 10 && transformed.length!1 == 5);
+}
 private:
 
 // 1d resize implementation
 Slice!(1, V*) resizeImpl_1(alias interp, V)(Slice!(1, V*) slice, ulong newsize) {
-    static assert(__traits(compiles, interp(slice, newsize)), 
-        "Interpolation function is not supported for given slice.");
 
     enforce(!slice.empty && newsize > 0);
 
@@ -292,8 +467,6 @@ Slice!(1, V*) resizeImpl_1(alias interp, V)(Slice!(1, V*) slice, ulong newsize) 
 
 // 1d resize implementation
 Slice!(2, V*) resizeImpl_2(alias interp, V)(Slice!(2, V*) slice, ulong height, ulong width) {
-    static assert(__traits(compiles, interp(slice, width, height)), 
-        "Interpolation function is not supported for given slice.");
 
     enforce(!slice.empty && width > 0 && height > 0);
 
@@ -317,11 +490,6 @@ Slice!(2, V*) resizeImpl_2(alias interp, V)(Slice!(2, V*) slice, ulong height, u
 
 // 1d resize implementation
 Slice!(3, V*) resizeImpl_3(alias interp, V)(Slice!(3, V*) slice, ulong height, ulong width) {
-
-    /*
-     static assert(__traits(compiles, interp(slice, width, height)), 
-     "Interpolation function is not supported for given slice.");
-     */
 
     enforce(!slice.empty && width > 0 && height > 0);
 
@@ -348,8 +516,6 @@ Slice!(3, V*) resizeImpl_3(alias interp, V)(Slice!(3, V*) slice, ulong height, u
     return retval;
 }
 
-
-// hope someday slice gets integrated into scid. :) until that day...
 Slice!(2, float*) invertTransformMatrix(TransformMatrix)(TransformMatrix t) {
     import scid.matrix;
     import scid.linalg : invert;
@@ -424,7 +590,7 @@ in {
                 src_x = t[0, 0]*dst_x + t[0, 1]*dst_y + t[0, 2];
                 src_y = t[1, 0]*dst_x + t[1, 1]*dst_y + t[1, 2];
             } else static if (transformType == TransformType.PERSPECTIVE_TRANSFORM) {
-                double d = (t[2, 9]*dst_x + t[2, 1]*dst_y + t[2, 2]);
+                double d = (t[2, 0]*dst_x + t[2, 1]*dst_y + t[2, 2]);
                 src_x = (t[0, 0]*dst_x + t[0, 1]*dst_y + t[0, 2]) / d;
                 src_y = (t[1, 0]*dst_x + t[1, 1]*dst_y + t[1, 2]) / d;
             } else {

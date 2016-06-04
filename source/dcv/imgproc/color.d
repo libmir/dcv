@@ -94,7 +94,7 @@ unittest {
  */
 Slice!(2, V*) bgr2gray(V)(Slice!(3, V*) range, 
     Slice!(2, V*) prealloc = emptySlice!(2, V), 
-    Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow @trusted {
+    Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow {
 
     auto m = rgb2GrayMltp[conv].map!(a => cast(real)a).array;
     m[] /= m.sum;
@@ -130,7 +130,7 @@ unittest {
  * Returns RGB version of the given grayscale image.
  */
 Slice!(3, V*) gray2rgb(V)(Slice!(2, V*) range, 
-    Slice!(3, V*) prealloc = emptySlice!(3, V)) pure nothrow @trusted {
+    Slice!(3, V*) prealloc = emptySlice!(3, V)) pure nothrow {
 
     if (prealloc.empty || (range.shape[0..2][]).equal(prealloc.shape[0..2][]) || prealloc.shape[2] != 3)
         prealloc = uninitializedArray!(V[])(range.length!0*range.length!1*3)
@@ -179,7 +179,7 @@ unittest {
  * Returns HSV verion of the given RGB image.
  */
 Slice!(3, R*) rgb2hsv(R, V)(Slice!(3, V*) range, 
-    Slice!(3, R*) prealloc = emptySlice!(3, R)) @trusted
+    Slice!(3, R*) prealloc = emptySlice!(3, R))
     if (isNumeric!R && isNumeric!V)
 {
     import std.algorithm.comparison : max, min;
@@ -216,9 +216,9 @@ Slice!(3, R*) rgb2hsv(R, V)(Slice!(3, V*) range,
         auto cdelta = cmax - cmin;
 
         hsv[0] = cast(R)((cdelta == 0) ? 0 :
-            (cmax == r) ? 60. * ((g - b)  / cdelta) :
-            (cmax == g) ? 60. * ((b - r) / cdelta + 2) :
-            ((r - g) / cdelta + 4));
+            (cmax == r) ? 60.0f * ((g - b)  / cdelta) :
+            (cmax == g) ? 60.0f * ((b - r) / cdelta + 2) :
+            60.0f * ((r - g) / cdelta + 4));
 
         if (hsv[0] < 0)
             hsv[0] += 360;
@@ -232,6 +232,27 @@ Slice!(3, R*) rgb2hsv(R, V)(Slice!(3, V*) range,
         } 
     }
     return prealloc;
+}
+
+unittest {
+    // value comparison based on results from http://www.rapidtables.com/convert/color/rgb-to-hsv.htm
+    auto rgb2hsvTest(RGBType, HSVType)(RGBType[] rgb, HSVType[] expectedHSV) {
+        import std.algorithm.comparison : equal;
+        import std.array : array;
+        import std.math : approxEqual;
+        assert(rgb.sliced(1, 1, 3).rgb2hsv!HSVType.byElement.array.equal!approxEqual(expectedHSV));
+    }
+
+    rgb2hsvTest( cast(ubyte[])[255, 0, 0], cast(ushort[])[0, 100, 100]);
+    rgb2hsvTest( cast(ubyte[])[255, 0, 0], cast(float[])[0, 1.0f, 1.0f]); // test float result
+
+    // test same input values as above for 16-bit and 32-bit images
+    rgb2hsvTest( cast(ushort[])[ushort.max, 0, 0], cast(ushort[])[0, 100, 100]);
+    rgb2hsvTest( cast(float[])[1.0f, 0, 0], cast(ushort[])[0, 100, 100]);
+
+    rgb2hsvTest( cast(ubyte[])[0, 255, 0], cast(ushort[])[120, 100, 100]);
+    rgb2hsvTest( cast(ubyte[])[0, 0, 255], cast(ushort[])[240, 100, 100]);
+    rgb2hsvTest( cast(ubyte[])[122, 158, 200], cast(float[])[212, 0.39, 0.784]);
 }
 
 /**
@@ -255,7 +276,7 @@ Slice!(3, R*) rgb2hsv(R, V)(Slice!(3, V*) range,
  * Returns HSV verion of the given RGB image.
  */
 Slice!(3, R*) hsv2rgb(R, V)(Slice!(3, V*) range, 
-    Slice!(3, R*) prealloc = emptySlice!(3, R)) @trusted
+    Slice!(3, R*) prealloc = emptySlice!(3, R))
     if (isNumeric!R && isNumeric!V)
 {
     import std.math : fabs, abs;
@@ -316,7 +337,36 @@ Slice!(3, R*) hsv2rgb(R, V)(Slice!(3, V*) range,
 }
 
 unittest {
-    // TODO: design the test...
+    // value comparison based on results from http://www.rapidtables.com/convert/color/hsv-to-rgb.htm
+    auto hsv2rgbTest(HSVType, RGBType)(HSVType[] hsv, RGBType[] expectedRgb) {
+        import std.algorithm.comparison : equal;
+        import std.array : array;
+        import std.math : approxEqual;
+        assert(hsv.sliced(1, 1, 3).hsv2rgb!RGBType.byElement.array.equal!approxEqual(expectedRgb));
+    }
+
+    import std.random : uniform;
+
+    foreach(i; 0..10) {
+        // test any value with value of 0, should give rgb [0, 0, 0]
+        hsv2rgbTest( cast(ushort[])[uniform(0, 359), uniform(0, 99), 0], cast(ubyte[])[0, 0, 0]); 
+    }
+
+    hsv2rgbTest( cast(ushort[])[0, 0, 100], cast(ubyte[])[255, 255, 255]); 
+    hsv2rgbTest( cast(ushort[])[150, 50, 100], cast(ubyte[])[128, 255, 191]); 
+    hsv2rgbTest( cast(ushort[])[150, 50, 80], cast(ubyte[])[102, 204, 153]); 
+
+    hsv2rgbTest( cast(float[])[0.0f, 0.0f, 1.0f], cast(ubyte[])[255, 255, 255]); 
+    hsv2rgbTest( cast(float[])[150.0f, 0.5f, 1.0f], cast(ubyte[])[128, 255, 191]); 
+    hsv2rgbTest( cast(float[])[150.0f, 0.5f, 0.8f], cast(ubyte[])[102, 204, 153]); 
+
+    hsv2rgbTest( cast(ushort[])[0, 0, 100], cast(ushort[])[65535, 65535, 65535]); 
+    hsv2rgbTest( cast(ushort[])[150, 50, 100], cast(ushort[])[32896, 65535, 49087]); 
+    hsv2rgbTest( cast(ushort[])[150, 50, 80], cast(ushort[])[26214, 52428, 39321]); 
+
+    hsv2rgbTest( cast(float[])[0.0f, 0.0f, 1.0f], cast(float[])[1.0f, 1.0f, 1.0f]); 
+    hsv2rgbTest( cast(float[])[150.0f, 0.5f, 1.0f], cast(float[])[0.5f, 1.0f, 0.75f]); 
+    hsv2rgbTest( cast(float[])[150.0f, 0.5f, 0.8f], cast(float[])[0.4f, 0.8f, 0.6f]); 
 }
 
 /**
@@ -357,6 +407,14 @@ Slice!(3, V*) rgb2yuv(V)(Slice!(3, V*) range,
     return prealloc;
 }
 
+/**
+ * Convert YUV image to RGB.
+ * 
+ * As in rgb2yuv conversion, YUV format is considered to have 
+ * same amount of luma and chroma.
+ * 
+ * TODO: Separate inupt and output type as in rgb2hsv etc.
+ */
 Slice!(3, V*) yuv2rgb(V)(Slice!(3, V*) range, 
     Slice!(3, V*) prealloc = emptySlice!(3, V)) {
 
@@ -383,6 +441,36 @@ Slice!(3, V*) yuv2rgb(V)(Slice!(3, V*) range,
     }
 
     return prealloc;
+}
+
+unittest {
+    // test rgb to yuv conversion
+    auto rgb2yuvTest(Type)(Type[] rgb, Type[] expectedYuv) {
+        import std.algorithm.comparison : equal;
+        import std.array : array;
+        import std.math : approxEqual;
+        assert(rgb.sliced(1, 1, 3).rgb2yuv.byElement.array.equal!approxEqual(expectedYuv));
+    }
+
+    rgb2yuvTest( cast(ubyte[])[0, 0, 0], cast(ubyte[])[16, 128, 128]);
+    rgb2yuvTest( cast(ubyte[])[255, 0, 0], cast(ubyte[])[82, 90, 240]);
+    rgb2yuvTest( cast(ubyte[])[0, 255, 0], cast(ubyte[])[144, 54, 34]);
+    rgb2yuvTest( cast(ubyte[])[0, 0, 255], cast(ubyte[])[41, 240, 110]);
+}
+
+unittest {
+    // test yuv to rgb conversion
+    auto yuv2rgbTest(Type)(Type[] yuv, Type[] expectedRgb) {
+        import std.algorithm.comparison : equal;
+        import std.array : array;
+        import std.math : approxEqual;
+        assert(yuv.sliced(1, 1, 3).yuv2rgb.byElement.array.equal!approxEqual(expectedRgb));
+    }
+
+    yuv2rgbTest(cast(ubyte[])[16, 128, 128], cast(ubyte[])[0, 0, 0]);
+    yuv2rgbTest(cast(ubyte[])[150, 54, 125], cast(ubyte[])[151, 187, 7]);
+    yuv2rgbTest(cast(ubyte[])[144, 54, 34], cast(ubyte[])[0, 255, 0]);
+    yuv2rgbTest(cast(ubyte[])[41, 240, 110], cast(ubyte[])[0, 0, 255]);
 }
 
 private:

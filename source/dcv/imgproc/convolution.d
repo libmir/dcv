@@ -71,16 +71,27 @@ Slice!(N, V*) conv(alias bc = neumann, V, K, size_t N, size_t NK)(Slice!(N, V*) 
 }
 
 unittest {
+    import std.math : approxEqual;
     auto r1 = [0., 1., 2., 3., 4., 5.].sliced(6);
     auto k1 = [-1., 0., 1.].sliced(3);
     auto res1 = r1.conv(k1);
-    assert(res1.equal([1., 2., 2., 2., 2., 1.]));
+    assert(res1.equal!approxEqual([1., 2., 2., 2., 2., 1.]));
+}
 
-    /*
-     k1 = [0.3333, 0.3333, 0.3333].sliced(3);
-     auto res2 = r1.conv(k1);
-     assert(res2.equal([2. / 3., 1., 2., 3., 4., 13. / 3.]));
-     */
+unittest {
+    import std.algorithm.comparison : equal;
+    auto image = new float[15*15].sliced(15, 15);
+    auto kernel = new float[3*3].sliced(3, 3);
+    auto convres = conv(image, kernel);
+    assert(convres.shape[].equal(image.shape[]));
+}
+
+unittest {
+    import std.algorithm.comparison : equal;
+    auto image = new float[15*15*3].sliced(15, 15, 3);
+    auto kernel = new float[3*3].sliced(3, 3);
+    auto convres = conv(image, kernel);
+    assert(convres.shape[].equal(image.shape[]));
 }
 
 /**

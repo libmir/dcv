@@ -151,6 +151,17 @@ Slice!(2, T*) laplacianOfGaussian(T = real)(real sigma, size_t width, size_t hei
     return k;
 }
 
+unittest {
+    import std.algorithm.comparison : equal;
+    import std.math : approxEqual;
+    auto log = laplacianOfGaussian!float(0.84f, 3, 3);
+    auto expected = [
+        0.147722, -0.00865228, 0.147722, 
+        -0.00865228, -0.556277, -0.00865228, 
+        0.147722, -0.00865228, 0.147722].sliced(3, 3);
+    assert(log.byElement.array.equal!approxEqual(expected.byElement.array));
+}
+
 enum GradientDirection {
     DIR_X, // x direction (x partial gradients)
     DIR_Y, // y direction (y partial gradients)
@@ -167,7 +178,7 @@ Slice!(2, T*) scharr(T = real)(GradientDirection direction) nothrow pure @truste
 }
 
 private Slice!(2, T*) sobelScharr(T)(GradientDirection direction, T lv, T hv) nothrow pure @trusted {
-    switch(direction) {
+    final switch(direction) {
         case GradientDirection.DIR_X:
             return [
                 -lv, 0, lv,
@@ -192,10 +203,54 @@ private Slice!(2, T*) sobelScharr(T)(GradientDirection direction, T lv, T hv) no
                 lv, 0, -lv,
                 hv, lv, 0
             ].map!(a => cast(T)a).array.sliced(3, 3);
-        default:
-            assert(0);
     }
 }
+
+// test sobel and scharr
+unittest {
+    import std.algorithm.comparison : equal;
+    auto s = sobelScharr!int(GradientDirection.DIR_X, 1, 2);
+    auto expected = (cast(int[])[
+            -1, 0, 1,
+            -2, 0, 2,
+            -1, 0, 1
+        ]).sliced(3, 3);
+    assert(s.byElement.array.equal(expected.byElement.array));
+}
+
+unittest {
+    import std.algorithm.comparison : equal;
+    auto s = sobelScharr!int(GradientDirection.DIR_Y, 1, 2);
+    auto expected = (cast(int[])[
+            -1, -2, -1,
+            0, 0, 0,
+            1, 2, 1
+        ]).sliced(3, 3);
+    assert(s.byElement.array.equal(expected.byElement.array));
+}
+
+unittest {
+    import std.algorithm.comparison : equal;
+    auto s = sobelScharr!int(GradientDirection.DIAG, 1, 2);
+    auto expected = (cast(int[])[
+            -2, -1, 0,
+            -1, 0, 1,
+            0, 1, 2
+        ]).sliced(3, 3);
+    assert(s.byElement.array.equal(expected.byElement.array));
+}
+
+unittest {
+    import std.algorithm.comparison : equal;
+    auto s = sobelScharr!int(GradientDirection.DIAG_INV, 1, 2);
+    auto expected = (cast(int[])[
+            0, -1, -2,
+            1, 0, -1,
+            2, 1, 0
+        ]).sliced(3, 3);
+    assert(s.byElement.array.equal(expected.byElement.array));
+}
+
 enum NonMaximumFilter {
     POINT,
     LINE
@@ -204,8 +259,10 @@ enum NonMaximumFilter {
 /**
  * Perform non-maxima filtering of the image.
  * 
- * @Note: proxy function, not a proper API! 
- * @TODO: Implement non-maxima supression for edge detection (canny), and
+ * note: 
+ * proxy function, not a proper API! 
+ * 
+ * TODO: Implement non-maxima supression for edge detection (canny), and
  * make the interface of the function fit both needs.
  * 
  */

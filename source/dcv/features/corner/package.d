@@ -8,7 +8,7 @@ public import dcv.features.corner.harris,
  * Corner detection module.
  *
  * v0.1 norm: (done)
- * harris 
- * shi-tomasi 
+ * harris (done)
+ * shi-tomasi (done)
  * fast 
  */
