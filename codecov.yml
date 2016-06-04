@@ -2,6 +2,6 @@ comment:
   layout: header, changes, diff
 coverage:
   ignore:
-  - ./source/dcv/features/corner/fast/fast_*
+  - "source/dcv/features/corner/fast/fast_*.d"
   status:
     patch: false
