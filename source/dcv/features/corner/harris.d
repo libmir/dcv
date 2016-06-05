@@ -3,7 +3,7 @@ module dcv.features.corner.harris;
 private import std.experimental.ndslice;
 
 private import dcv.core.utils : emptySlice;
-private import dcv.imgproc.convolution : calcPartialDerivatives;
+private import dcv.imgproc.filter : calcPartialDerivatives;
 
 
 /**

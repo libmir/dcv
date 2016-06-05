@@ -13,13 +13,14 @@
 
 private import std.experimental.ndslice;
 
-private import std.traits : allSameType, allSatisfy, isFloatingPoint, isNumeric;
-private import std.range : iota, array, lockstep;
-private import std.exception : enforce;
-private import std.math : abs, PI, floor, exp, pow;
-private import std.algorithm.iteration : map, sum, each;
-private import std.algorithm : copy;
+import std.traits : allSameType, allSatisfy, isFloatingPoint, isNumeric;
+import std.range : iota, array, lockstep;
+import std.exception : enforce;
+import std.math : abs, PI, floor, exp, pow;
+import std.algorithm.iteration : map, sum, each;
+import std.algorithm : copy;
 
+import dcv.core.utils : emptySlice;
 
 /**
  * Instantiate 2D gaussian kernel.
@@ -169,15 +170,50 @@ enum GradientDirection {
     DIAG_INV, // inverse diagonal, from top-right to bottom left
 }
 
+/**
+ * Convolution kernel type for edge detection.
+ */
+public enum EdgeKernel {
+    SIMPLE,
+    SOBEL,
+    SCHARR,
+    PREWITT
+}
+/// Create a Sobel edge kernel.
 Slice!(2, T*) sobel(T = real)(GradientDirection direction) nothrow pure @trusted {
-    return sobelScharr!(T)(direction, cast(T)1, cast(T)2);
+    return edgeKernelImpl!(T)(direction, cast(T)1, cast(T)2);
 }
 
+/// Create a Scharr edge kernel.
 Slice!(2, T*) scharr(T = real)(GradientDirection direction) nothrow pure @trusted {
-    return sobelScharr!(T)(direction, cast(T)3, cast(T)10);
+    return edgeKernelImpl!(T)(direction, cast(T)3, cast(T)10);
 }
 
-private Slice!(2, T*) sobelScharr(T)(GradientDirection direction, T lv, T hv) nothrow pure @trusted {
+/// Create a Prewitt edge kernel.
+Slice!(2, T*) prewitt(T = real)(GradientDirection direction) nothrow pure @trusted {
+    return edgeKernelImpl!(T)(direction, cast(T)1, cast(T)1);
+}
+
+/// Create a kernel of given type.
+Slice!(2, T*) edgeKernel(T)(EdgeKernel kernelType, GradientDirection direction) nothrow pure @trusted {
+    typeof(return) k;
+    final switch(kernelType) {
+        case EdgeKernel.SOBEL:
+            k = sobel!T(direction);
+            break;
+        case EdgeKernel.SCHARR:
+            k = scharr!T(direction);
+            break;
+        case EdgeKernel.PREWITT:
+            k = prewitt!T(direction);
+            break;
+        case EdgeKernel.SIMPLE:
+            break;
+    }
+    return k;
+}
+
+private Slice!(2, T*) edgeKernelImpl(T)(GradientDirection direction, T lv, T hv) nothrow pure @trusted {
     final switch(direction) {
         case GradientDirection.DIR_X:
             return [
@@ -209,7 +245,7 @@ private Slice!(2, T*) sobelScharr(T)(GradientDirection direction, T lv, T hv) no
 // test sobel and scharr
 unittest {
     import std.algorithm.comparison : equal;
-    auto s = sobelScharr!int(GradientDirection.DIR_X, 1, 2);
+    auto s = edgeKernelImpl!int(GradientDirection.DIR_X, 1, 2);
     auto expected = (cast(int[])[
             -1, 0, 1,
             -2, 0, 2,
@@ -220,7 +256,7 @@ unittest {
 
 unittest {
     import std.algorithm.comparison : equal;
-    auto s = sobelScharr!int(GradientDirection.DIR_Y, 1, 2);
+    auto s = edgeKernelImpl!int(GradientDirection.DIR_Y, 1, 2);
     auto expected = (cast(int[])[
             -1, -2, -1,
             0, 0, 0,
@@ -231,7 +267,7 @@ unittest {
 
 unittest {
     import std.algorithm.comparison : equal;
-    auto s = sobelScharr!int(GradientDirection.DIAG, 1, 2);
+    auto s = edgeKernelImpl!int(GradientDirection.DIAG, 1, 2);
     auto expected = (cast(int[])[
             -2, -1, 0,
             -1, 0, 1,
@@ -242,7 +278,7 @@ unittest {
 
 unittest {
     import std.algorithm.comparison : equal;
-    auto s = sobelScharr!int(GradientDirection.DIAG_INV, 1, 2);
+    auto s = edgeKernelImpl!int(GradientDirection.DIAG_INV, 1, 2);
     auto expected = (cast(int[])[
             0, -1, -2,
             1, 0, -1,
@@ -266,16 +302,16 @@ enum NonMaximumFilter {
  * make the interface of the function fit both needs.
  * 
  */
-Slice!(2, T*) filterNonMaximum(T)(Slice!(2, T*) image, size_t filterSize = 10) {
+Slice!(2, T*) filterNonMaximum(T)(Slice!(2, T*) slice, size_t filterSize = 10) {
 
-    assert(!image.empty && filterSize);
+    assert(!slice.empty && filterSize);
 
-    typeof(image) lmsw;  // local maxima search window
+    typeof(slice) lmsw;  // local maxima search window
     int lms_r, lms_c;
     int win_rows, win_cols;
     float lms_val;
-    auto rows = image.length!0;
-    auto cols = image.length!1;
+    auto rows = slice.length!0;
+    auto cols = slice.length!1;
 
     for (int br = 0; br < rows; br += filterSize / 2) {
         for (int bc = 0; bc < cols; bc += filterSize / 2) {
@@ -288,7 +324,7 @@ Slice!(2, T*) filterNonMaximum(T)(Slice!(2, T*) image, size_t filterSize = 10) {
                 continue;
             }
 
-            lmsw = image[br..br+win_rows, bc..bc+win_cols];
+            lmsw = slice[br..br+win_rows, bc..bc+win_cols];
 
             lms_val = -1;
             for (int r = 0; r < lmsw.length!0; r++) {
@@ -306,5 +342,256 @@ Slice!(2, T*) filterNonMaximum(T)(Slice!(2, T*) image, size_t filterSize = 10) {
             }
         }
     }
-    return image;
+    return slice;
+}
+
+/**
+ * Calculate partial derivatives of an slice.
+ * 
+ * Partial derivatives are calculated by convolving an slice with
+ * [-1, 1] kernel, horizontally and vertically.
+ */
+void calcPartialDerivatives(T, V = T)(Slice!(2, T*) slice, 
+    ref Slice!(2, V*) fx, ref Slice!(2, V*) fy) 
+if (isFloatingPoint!V) in {
+    assert(!slice.empty);
+} body {
+    import std.range : iota;
+    import std.array : array, uninitializedArray;
+    import std.algorithm : equal, reduce;
+
+    auto itemLength = slice.shape.reduce!"a*b";
+    if (!fx.shape[].equal(slice.shape[]))
+        fx = uninitializedArray!(V[])(itemLength).sliced(slice.shape);
+    if (!fy.shape[].equal(slice.shape[]))
+        fy = uninitializedArray!(V[])(itemLength).sliced(slice.shape);
+
+    auto rows = slice.length!0;
+    auto cols = slice.length!1;
+
+    // calc mid-ground
+    foreach (r ; 1.iota(rows)) {
+        auto x_row = fx[r, 0..$];
+        auto y_row = fy[r, 0..$];
+        foreach (c; 1.iota(cols)) {
+            auto imrc = slice[r, c];
+            x_row[c] = cast(V)(-1. * slice[r, c - 1] + imrc);
+            y_row[c] = cast(V)(-1. * slice[r - 1, c] + imrc);
+        }
+    }
+
+    // calc border edges
+    auto x_row = fx[0, 0..$];
+    auto y_row = fy[0, 0..$];
+
+    foreach (c; 0.iota(cols - 1)) {
+        auto im_0c = slice[0, c];
+        x_row[c] = cast(V)(-1. * im_0c + slice[0, c + 1]);
+        y_row[c] = cast(V)(-1. * im_0c + slice[1, c]);
+    }
+
+    auto x_col = fx[0..$, 0];
+    auto y_col = fy[0..$, 0];
+
+    foreach (r; iota(rows - 1)) {
+        auto im_r_0 = slice[r, 0];
+        x_col[r] = cast(V)(-1. * im_r_0 + slice[r, 1]);
+        y_col[r] = cast(V)(-1. * im_r_0 + slice[r + 1, 0]);
+    }
+
+    // edges corner pixels
+    fx[0, cols-1] = cast(V)(-1* slice[0, cols-2] + slice[0, cols-1]);
+    fy[0, cols-1] = cast(V)(-1*slice[0, cols-1] + slice[1, cols-1]);
+    fx[rows-1, 0] = cast(V)(-1*slice[rows-1, 0] + slice[rows-1, 1]);
+    fy[rows-1, 0] = cast(V)(-1*slice[rows-2, 0] + slice[rows-1, 0]);
+}
+
+
+/**
+ * Calculate gradient magnitude and orientation of an image slice.
+ * 
+ * params:
+ * slice = Input slice of an image.
+ * mag = Output magnitude value of gradients.
+ * orient = Orientation value of gradients in radians.
+ * edgeKernelType = Optional convolution kernel type to calculate partial derivatives. 
+ * Default value is EdgeKernel.SIMPLE, which calls calcPartialDerivatives function
+ * to calculate derivatives. Other options will perform convolution with requested
+ * kernel type.
+ * 
+ */
+void calcGradients(T, V = T)
+    (Slice!(2, T*) slice, ref Slice!(2, V*) mag, ref Slice!(2, V*) orient, EdgeKernel edgeKernelType = EdgeKernel.SIMPLE) 
+if (isFloatingPoint!V) in {
+    assert(!slice.empty);
+} body {
+    import std.array : uninitializedArray;
+    import std.math : sqrt, atan2;
+
+    if (mag.shape[] != slice.shape[]) {
+        mag = uninitializedArray!(V[])(slice.length!0 * slice.length!1).sliced(slice.shape);
+    }
+
+    if (orient.shape[] != slice.shape[]) {
+        orient = uninitializedArray!(V[])(slice.length!0 * slice.length!1).sliced(slice.shape);
+    }
+
+    Slice!(2, V*) fx, fy;
+    if (edgeKernelType == EdgeKernel.SIMPLE) {
+        calcPartialDerivatives(slice, fx, fy);
+    } else {
+        import dcv.imgproc.convolution;
+        Slice!(2, V*) kx, ky;
+        kx = edgeKernel!V(edgeKernelType, GradientDirection.DIR_X);
+        ky = edgeKernel!V(edgeKernelType, GradientDirection.DIR_Y);
+        fx = slice.conv(kx);
+        fy = slice.conv(ky);
+    }
+
+    foreach(i; 0..slice.length!0) {
+        foreach(j; 0..slice.length!1) {
+            mag[i, j] = cast(V)sqrt(fx[i, j]^^2 + fy[i, j]^^2);
+            orient[i, j] = cast(V)atan2(fy[i, j], fx[i, j]);
+        }
+    }
+
+}
+
+/**
+ * Edge detection impuls non-maxima supression.
+ * 
+ * Filtering used in canny edge detection algorithm - suppresses all 
+ * edge impulses (gradient values along edges normal) except the peek value.
+ * 
+ * params:
+ * mag = Gradient magnitude.
+ * orient = Gradient orientation of the same image source as magnitude.
+ * prealloc = Optional pre-allocated buffer for output slice.
+ * 
+ * see:
+ * dcv.imgproc.filter.calcGradients, dcv.imgproc.convolution
+ */
+Slice!(2, V*) nonMaximaSupression(T, V = T)
+    (Slice!(2, T*) mag, Slice!(2, T*) orient, Slice!(2, V*) prealloc = emptySlice!(2, V)) 
+in {
+    assert(!mag.empty && !orient.empty);
+    assert(mag.shape[] == orient.shape[]);
+} body {
+    import std.array : uninitializedArray;
+
+    if (prealloc.shape[] != orient.shape[]) {
+        prealloc = uninitializedArray!(V[])(mag.length!0*mag.length!1).sliced(mag.shape);
+    }
+
+    auto compareNeighbours(int [2] p0,int [2]p1, int [2]p2) {
+        if (mag[p1[1],p1[0]] <= mag[p0[1],p0[0]] ||
+            mag[p1[1],p1[0]] <= mag[p2[1],p2[0]]) {
+            prealloc[p1[1],p1[0]] = 0;
+        } else {
+            prealloc[p1[1],p1[0]] = mag[p1[1],p1[0]];
+        }
+    }
+
+    int [2]p0;
+    int [2]p1;
+    int [2]p2;
+    double ang;
+
+    for (int i = 1; i < mag.length!0 - 1; ++i) {
+        for (int j = 1; j < mag.length!1 - 1; ++j) {
+            // quantize orientation
+            ang = orient[i, j];
+            int orient_q;
+
+            if (ang >= -3.15 && ang < -1.75) {
+                orient_q = 0;
+            } else if (ang >= -1.75 && ang < 0) {
+                orient_q = 1;
+            } else if (ang >= 0 && ang < 1.75) {
+                orient_q = 2;
+            } else if (ang >= 1.75 && ang < 3.15) {
+                orient_q = 3;
+            }
+
+            switch (orient_q) {
+                case 0:
+                    p0[0] = j - 1;
+                    p0[1] = i;
+                    p1[0] = j;
+                    p1[1] = i;
+                    p2[0] = j + 1;
+                    p2[1] = i;
+                    compareNeighbours(p0, p1, p2);
+                    break;
+                case 1:
+                    p0[0] = j - 1;
+                    p0[1] = i - 1;
+                    p1[0] = j;
+                    p1[1] = i;
+                    p2[0] = j + 1;
+                    p2[1] = i + 1;
+                    compareNeighbours(p0, p1, p2);
+                    break;
+                case 2:
+                    p0[0] = j;
+                    p0[1] = i - 1;
+                    p1[0] = j;
+                    p1[1] = i;
+                    p2[0] = j;
+                    p2[1] = i + 1;
+                    compareNeighbours(p0, p1, p2);
+                    break;
+                case 3:
+                    p0[0] = j + 1;
+                    p0[1] = i - 1;
+                    p1[0] = j;
+                    p1[1] = i;
+                    p2[0] = j - 1;
+                    p2[1] = i + 1;
+                    compareNeighbours(p0, p1, p2);
+                    break;
+                default:
+                    assert(0);
+            }
+        }
+    }
+
+    return prealloc;
+}
+
+/**
+ * Perform canny filtering on an image to expose edges.
+ * 
+ * params:
+ * slice = Input image slice.
+ * lowThresh = lower threshold value after non-maxima suppression.
+ * upThresh = upper threshold value after non-maxima suppression.
+ * edgeKernelType = Type of edge kernel used to calculate image gradients.
+ * prealloc = Optional pre-allocated buffer.
+ */
+Slice!(2, V*) canny(V, T)
+    (Slice!(2, T*) slice, T lowThresh, T upThresh, EdgeKernel edgeKernelType = EdgeKernel.SOBEL, Slice!(2, V*) prealloc = emptySlice!(2, V))
+{
+    import dcv.imgproc.threshold;
+    import dcv.core.algorithm : ranged;
+
+    V upval = isFloatingPoint!V ? 1 : V.max;
+
+    Slice!(2, float*) mag, orient;
+    calcGradients(slice, mag, orient, edgeKernelType);
+    auto nonmax = nonMaximaSupression(mag, orient);
+
+    return nonmax.byElement.ranged(0, upval).array.sliced(nonmax.shape).threshold!V(lowThresh, upThresh);
+}
+
+/**
+ * Perform canny filtering on an image to expose edges.
+ * 
+ * Convenience function to call canny with same lower and upper threshold values,
+ * similar to dcv.imgproc.threshold.threshold.
+ */
+Slice!(2, V*) canny(V, T)
+    (Slice!(2, T*) slice, T thresh, EdgeKernel edgeKernelType = EdgeKernel.SOBEL, Slice!(2, V*) prealloc = emptySlice!(2, V))
+{
+    return canny!(V, T)(slice, thresh, thresh, edgeKernelType, prealloc);
 }

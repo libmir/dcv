@@ -10,20 +10,20 @@
  * v0.1+ plans:
  * 1d_conv_simd
  */
-private import dcv.core.memory;
-private import dcv.core.utils;
+import dcv.core.memory;
+import dcv.core.utils;
 
-private import std.traits : isAssignable;
-private import std.range;
-private import std.algorithm.comparison : equal;
+import std.traits : isAssignable;
+import std.range;
+import std.algorithm.comparison : equal;
 
-private import std.experimental.ndslice;
+import std.experimental.ndslice;
 
-private import std.algorithm.iteration : reduce;
-private import std.algorithm.comparison : max, min;
-private import std.exception : enforce;
-private	import std.parallelism : parallel;
-private	import std.math : abs, floor;
+import std.algorithm.iteration : reduce;
+import std.algorithm.comparison : max, min;
+import std.exception : enforce;
+import std.parallelism : parallel;
+import std.math : abs, floor;
 
 
 /**
@@ -94,58 +94,6 @@ unittest {
     assert(convres.shape[].equal(image.shape[]));
 }
 
-/**
- * 
- */
-void calcPartialDerivatives(T)(Slice!(2, T*) image, 
-    ref Slice!(2, T*) fx, ref Slice!(2, T*) fy) {
-
-    assert(!image.empty);
-    auto itemLength = image.shape.reduce!"a*b";
-    if (!fx.shape[].equal(image.shape[]))
-        fx = uninitializedArray!(T[])(itemLength).sliced(image.shape);
-    if (!fy.shape[].equal(image.shape[]))
-        fy = uninitializedArray!(T[])(itemLength).sliced(image.shape);
-
-    auto rows = image.length!0;
-    auto cols = image.length!1;
-
-    // calc mid-ground
-    foreach (r ; 1.iota(rows)) {
-        auto x_row = fx[r, 0..$];
-        auto y_row = fy[r, 0..$];
-        foreach (c; 1.iota(cols)) {
-            auto imrc = image[r, c];
-            x_row[c] = cast(T)(-1. * image[r, c - 1] + imrc);
-            y_row[c] = cast(T)(-1. * image[r - 1, c] + imrc);
-        }
-    }
-
-    // calc border edges
-    auto x_row = fx[0, 0..$];
-    auto y_row = fy[0, 0..$];
-
-    foreach (c; 0.iota(cols - 1)) {
-        auto im_0c = image[0, c];
-        x_row[c] = cast(T)(-1. * im_0c + image[0, c + 1]);
-        y_row[c] = cast(T)(-1. * im_0c + image[1, c]);
-    }
-
-    auto x_col = fx[0..$, 0];
-    auto y_col = fy[0..$, 0];
-
-    foreach (r; iota(rows - 1)) {
-        auto im_r_0 = image[r, 0];
-        x_col[r] = cast(T)(-1. * im_r_0 + image[r, 1]);
-        y_col[r] = cast(T)(-1. * im_r_0 + image[r + 1, 0]);
-    }
-
-    // edges corner pixels
-    fx[0, cols-1] = cast(T)(-1* image[0, cols-2] + image[0, cols-1]);
-    fy[0, cols-1] = cast(T)(-1*image[0, cols-1] + image[1, cols-1]);
-    fx[rows-1, 0] = cast(T)(-1*image[rows-1, 0] + image[rows-1, 1]);
-    fy[rows-1, 0] = cast(T)(-1*image[rows-2, 0] + image[rows-1, 0]);
-}
 
 private:
 
