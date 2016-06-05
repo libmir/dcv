@@ -36,6 +36,11 @@ class HornSchunckFlow : DenseOpticalFlow {
             f1.channels == 1 && 
             f1.size == f2.size &&
             f1.depth == f2.depth);
+        if (usePrevious) {
+            assert(prealloc.length!0 == f1.height &&
+                prealloc.length!1 == f1.width &&
+                prealloc.length!2 == 2);
+        }
     } body {
         import std.algorithm.iteration : map, reduce;
         import std.algorithm : copy;
@@ -49,14 +54,17 @@ class HornSchunckFlow : DenseOpticalFlow {
             next = new float[imsize].sliced(f2.height, f2.width);
         }
 
-        // initialize flow
-        if (!usePrevious || !prealloc.shape[0..2].array.equal(current.shape.array)) {
+        if (!prealloc.shape[0..2].array.equal(current.shape.array)) {
             const auto arrayLen = current.shape.reduce!"a*b"*2;
             ulong [current.shape.length + 1] arrayShape;
             arrayShape[0..$-1] = current.shape[];
             arrayShape[$-1] = 2;
             prealloc = new float[arrayLen]
             .sliced(arrayShape);
+        }
+
+        // initialize flow
+        if (!usePrevious) {
             prealloc[] = 0.0f;
         }
 
@@ -66,7 +74,6 @@ class HornSchunckFlow : DenseOpticalFlow {
             import dcv.imgproc.convolution;
             import dcv.core.utils : neumann;
 
-            alias convFunc = conv!(neumann, float, float, 2, 2);
             auto g = gaussian!float(props.gaussSigma, props.gaussKernelSize, props.gaussKernelSize);
 
             auto f1Slice = f1.asType!float.sliced!float.reshape(current.length!0, current.length!1);
@@ -103,6 +110,26 @@ class HornSchunckFlow : DenseOpticalFlow {
     }
 }
 
+// TODO: implement functional tests.
+unittest {
+    HornSchunckFlow flow = new HornSchunckFlow;
+    auto f1 = new Image(3, 3, ImageFormat.IF_MONO, BitDepth.BD_8);
+    auto f2 = new Image(3, 3, ImageFormat.IF_MONO, BitDepth.BD_8);
+    auto f = flow.evaluate(f1, f2);
+    assert(f.length!0 == f1.height &&
+        f.length!1 == f1.width &&
+        f.length!2 == 2);
+}
+
+unittest {
+    HornSchunckFlow flow = new HornSchunckFlow;
+    auto f1 = new Image(3, 3, ImageFormat.IF_MONO, BitDepth.BD_8);
+    auto f2 = new Image(3, 3, ImageFormat.IF_MONO, BitDepth.BD_8);
+    auto f = new float[9*2].sliced(3, 3, 2);
+    auto fe = flow.evaluate(f1, f2, f);
+    assert(f.shape[] == fe.shape[]);
+    assert(&f[0, 0, 0] == &fe[0, 0, 0]);
+}
 
 private:
 

@@ -62,7 +62,8 @@ class LucasKanadeFlow : SparseOpticalFlow {
         const auto pointCount = points.length;
 
         if (!usePrevious) {
-            flow = uninitializedArray!(float[2][])(pointCount);
+            if (flow.length != pointCount) 
+                flow = uninitializedArray!(float[2][])(pointCount);
             flow[] = [0.0f, 0.0f];
         }
 
@@ -157,4 +158,39 @@ class LucasKanadeFlow : SparseOpticalFlow {
         return flow;
     }
 
+}
+
+// TODO: implement functional tests.
+version(unittest) {
+    import std.algorithm.iteration : map;
+    import std.range : iota;
+    import std.array : array;
+    import std.random : uniform;
+    private auto createImage() { 
+        return new Image(5, 5, ImageFormat.IF_MONO, BitDepth.BD_8, 25.iota.map!(v => cast(ubyte)uniform(0, 255)).array);
+    }
+}
+
+unittest {
+    LucasKanadeFlow flow = new LucasKanadeFlow;
+    auto f1 = createImage();
+    auto f2 = createImage();
+    auto p = 10.iota.map!(v => cast(float[2])[cast(float)uniform(0, 2), cast(float)uniform(0, 2)]).array;
+    auto r = 10.iota.map!(v => cast(float[2])[3.0f, 3.0f]).array;
+    auto f = flow.evaluate(f1, f2, p, r);
+    assert(f.length == p.length);
+    assert(flow.cornerResponse.length == p.length);
+}
+
+unittest {
+    LucasKanadeFlow flow = new LucasKanadeFlow;
+    auto f1 = createImage();
+    auto f2 = createImage();
+    auto p = 10.iota.map!(v => cast(float[2])[cast(float)uniform(0, 2), cast(float)uniform(0, 2)]).array;
+    auto f = 10.iota.map!(v => cast(float[2])[cast(float)uniform(0, 2), cast(float)uniform(0, 2)]).array;
+    auto r = 10.iota.map!(v => cast(float[2])[3.0f, 3.0f]).array;
+    auto fe = flow.evaluate(f1, f2, p, r, f);
+    assert(f.length == fe.length);
+    assert(f.ptr == fe.ptr);
+    assert(flow.cornerResponse.length == p.length);
 }

@@ -210,3 +210,50 @@ class DensePyramidFlow : DenseOpticalFlow {
     }
 
 }
+
+// TODO: implement functional tests.
+version(unittest) {
+
+    import std.algorithm.iteration : map;
+    import std.range : iota;
+    import std.array : array;
+    import std.random : uniform;
+
+    private auto createImage() { 
+        return new Image(32, 32, ImageFormat.IF_MONO, BitDepth.BD_8, (32*32).iota.map!(v => cast(ubyte)uniform(0, 255)).array);
+    }
+
+    class DummySparseFlow : SparseOpticalFlow {
+        override float[2][] evaluate(inout Image f1, inout Image f2, in float[2][] points,
+            in float[2][] searchRegions,float[2][] prevflow = null,bool usePrevious = false) {
+            import std.array : uninitializedArray;
+            return uninitializedArray!(float[2][])(points.length);
+        }
+    }
+
+    class DummyDenseFlow : DenseOpticalFlow {
+        override DenseFlow evaluate(inout Image f1,inout Image f2,DenseFlow prealloc = emptySlice!(3,float),bool usePrevious = false) {
+            return new float[f1.height*f1.width*2].sliced(f1.height, f1.width, 2);
+        }
+    }
+}
+
+unittest {
+    SparsePyramidFlow flow = new SparsePyramidFlow(new DummySparseFlow, 3);
+    auto f1 = createImage();
+    auto f2 = createImage();
+    auto p = 10.iota.map!(v => cast(float[2])[cast(float)uniform(0, 2), cast(float)uniform(0, 2)]).array;
+    auto r = 10.iota.map!(v => cast(float[2])[3.0f, 3.0f]).array;
+    auto f = flow.evaluate(f1, f2, p, r);
+    assert(f.length == p.length);
+}
+
+unittest {
+    DensePyramidFlow flow = new DensePyramidFlow(new DummyDenseFlow, 3);
+    auto f1 = createImage();
+    auto f2 = createImage();
+    auto f = flow.evaluate(f1, f2);
+    assert(f.length!0 == f1.height &&
+        f.length!1 == f1.width &&
+        f.length!2 == 2);
+}
