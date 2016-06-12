@@ -1,0 +1,28 @@
+<h1>dcv.imgproc.convolution</h1>
+           <br><br>
+<dl><dt><big><a name="conv"></a>Slice!(N, V*) <u>conv</u>(alias bc = neumann, V, K, size_t N, size_t NK)(Slice!(N, V*) <i>range</i>, Slice!(NK, K*) <i>kernel</i>, Slice!(N, V*) <i>prealloc</i> = emptySlice!(N, V), Slice!(NK, V*) <i>mask</i> = emptySlice!(NK, V));
+</big></dt>
+<dd>Perform convolution to given <i>range</i>, using given <i>kernel</i>.
+ Convolution is supported for 1, 2, and 3D slices.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Slice!(N, V*) <i>range</i></td>
+<td>Input <i>range</i> slice (1D, 2D, and 3D slice supported)</td></tr>
+<tr><td>Slice!(NK, K*) <i>kernel</i></td>
+<td>Convolution <i>kernel</i> slice. For 1D <i>range</i>, 1D <i>kernel</i> is expected.
+ For 2D <i>range</i>, 2D kernele is expected. For 3D <i>range</i>, 2D or 3D <i>kernel</i> is expected -
+ if 2D <i>kernel</i> is given, each item in <i>kernel</i> matrix is applied to each value in
+ corresponding 2D coordinate in the <i>range</i>.</td></tr>
+<tr><td>Slice!(N, V*) <i>prealloc</i></td>
+<td>Pre-allocated array where convolution result can be stored. Default
+ value is emptySlice, where resulting array will be newly allocated. Also if
+ <i>prealloc</i> is not of same shape as input <i>range</i>, resulting array will be newly allocated.</td></tr>
+<tr><td>Slice!(NK, V*) <i>mask</i></td>
+<td>Masking <i>range</i>. Convolution will skip each element where <i>mask</i> is 0. Default value
+ is empty slice, which tells that convolution will be performed on the whole <i>range</i>.</td></tr>
+</table><br>
+
+</dd>
+</dl>
+
+           <hr>

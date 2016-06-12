@@ -1,0 +1,179 @@
+
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="chrome=1">
+        <title>DCV - dcv.imgproc.imgmanip</title>
+        <link rel="stylesheet" href="stylesheets/styles.css">
+        <link rel="stylesheet" href="stylesheets/github-light.css">
+        <meta name="viewport" content="width=device-width">
+        <script src="javascripts/jquery.js"></script>
+        <script src="javascripts/ddocs.js"></script>
+        <!--[if lt IE 9]>
+            <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+    </head>
+    <body>
+        <div class="wrapper">
+            <div class="roundedbox" id="sourcetreebox">
+                <h2>Content</h2>
+                <ul id="sourcetree"></ul>
+            </div>
+            <section class="roundedbox" id="projectbox">
+                <div id="dcvtitle">
+                    <p id="dcvtitledesc">Computer Vision Library for D Programming Language</p>
+                    <h1>DCV</h1>
+                </div>
+                <ul id="menu">
+                    <li ><a href="https://ljubobratovicrelja.github.io/dcv"><strong>Home</strong></a></li>
+                    <li ><a href="https://ljubobratovicrelja.github.io/dcv"><strong>Examples</strong></a></li>
+                    <li ><a href="https://ljubobratovicrelja.github.io/dcv"><strong>Documentation</strong></a></li>
+                    <li ><a href="https://github.com/ljubobratovicrelja/dcv"><strong>GitHub</strong></a></li>
+                </ul>
+                <div id="pagemain">
+                       <h1>dcv.imgproc.imgmanip</h1>
+                       <br><br>
+<dl><dt><big><a name="resize"></a>Slice!(N, V*) <u>resize</u>(alias interp = linear, V, size_t N, Size...)(Slice!(N, V*) <i>slice</i>, Size <i>newsize</i>) if (allSameType!Size &amp;&amp; allSatisfy!(isIntegral, Size) &amp;&amp; isInterpolationFunc!interp);
+</big></dt>
+<dd>Resize array using custom interpolation function.
+<br><br>
+Primarilly implemented as image <u>resize</u>.
+ 1D, 2D and 3D arrays are supported, where 3D array is
+ treated as channeled image - each channel is interpolated
+ as isolated 2D array (matrix).
+<br><br>
+
+ Interpolation function is given as a template parameter.
+ Default interpolation function is linear. Custom interpolation
+ function can be implemented in the 3rd party code, by following
+ interpolation function rules in dcv.imgproc.interpolation.
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Slice!(N, V*) <i>slice</i></td>
+<td>Slice to an input array.</td></tr>
+<tr><td>Size <i>newsize</i></td>
+<td>tuple that defines new shape. New dimension has to be
+ the same as input <i>slice</i> in the 1D and 2D <u>resize</u>, where in the
+ 3D <u>resize</u> <i>newsize</i> has to be 2D.</td></tr>
+</table><br>
+<b>TODO:</b><br>
+consider size input as array, and add prealloc<br><br>
+
+</dd>
+<dt><big><a name="scale"></a>Slice!(N, V*) <u>scale</u>(alias interp = linear, V, size_t N, Scale...)(Slice!(N, V*) <i>slice</i>, Scale <u>scale</u>) if (allSameType!Scale &amp;&amp; allSatisfy!(isFloatingPoint, Scale) &amp;&amp; isInterpolationFunc!interp);
+</big></dt>
+<dd>Scale array size using custom interpolation function.
+<br><br>
+Implemented as convenience function which calls resize
+ using scaled shape of the input <i>slice</i> as:
+<br><br>
+
+ <pre class="d_code">scaled = resize(input, input.shape*<u>scale</u>)</pre><br><br>
+
+</dd>
+<dt><big><a name="warp"></a>pure Slice!(N, T*) <u>warp</u>(alias interp = linear, size_t N, T, V)(Slice!(N, T*) <i>image</i>, Slice!(3, V*) <i>map</i>, Slice!(N, T*) <i>prealloc</i> = emptySlice!(N, T));
+</big></dt>
+<dd>Pixel-wise warping of the <i>image</i>.
+<br><br>
+Displace each pixel of an <i>image</i> by given [x, y] values.
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>interp</td>
+<td>(template parameter) Interpolation function, default linear.</td></tr>
+<tr><td>Slice!(N, T*) <i>image</i></td>
+<td>Input <i>image</i>, which is warped. Single and multiple channel images are allowed.</td></tr>
+<tr><td>Slice!(3, V*) <i>map</i></td>
+<td>Displacement <i>map</i>, which holds [x, y] displacement for each pixel of an <i>image</i>.</td></tr>
+<tr><td>Slice!(N, T*) <i>prealloc</i></td>
+<td>Pre-allocated memory where resulting warped <i>image</i> is stored, if defined.
+ Should be of same shape as input <i>image</i>, or an emptySlice, which implies newly allocated <i>image</i> is used.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Warped input <i>image</i> by given <i>map</i>.<br><br>
+
+</dd>
+<dt><big><a name="remap"></a>pure Slice!(N, T*) <u>remap</u>(alias interp = linear, size_t N, T, V)(Slice!(N, T*) <i>image</i>, Slice!(3, V*) <i>map</i>, Slice!(N, T*) <i>prealloc</i> = emptySlice!(N, T));
+</big></dt>
+<dd>Pixel-wise remapping of the <i>image</i>.
+<br><br>
+Move each pixel of an <i>image</i> to a given [x, y] location defined by the <i>map</i>.
+ Function is similar to , except displacement of pixels
+ is absolute, rather than relative.
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>interp</td>
+<td>(template parameter) Interpolation function, default linear.</td></tr>
+<tr><td>Slice!(N, T*) <i>image</i></td>
+<td>Input <i>image</i>, which is remapped. Single and multiple channel images are allowed.</td></tr>
+<tr><td>Slice!(3, V*) <i>map</i></td>
+<td>Target <i>map</i>, which holds [x, y] position for each pixel of an <i>image</i>.</td></tr>
+<tr><td>Slice!(N, T*) <i>prealloc</i></td>
+<td>Pre-allocated memory where resulting remapped <i>image</i> is stored, if defined.
+ Should be of same shape as input <i>image</i>, or an emptySlice, which implies newly allocated <i>image</i> is used.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Remapped input <i>image</i> by given <i>map</i>.<br><br>
+
+</dd>
+<dt><big><a name="transformAffine"></a>Slice!(N, V*) <u>transformAffine</u>(alias interp = linear, V, TransformMatrix, size_t N)(Slice!(N, V*) <i>slice</i>, inout TransformMatrix <i>transform</i>, size_t[2] <i>outSize</i> = [0, 0]);
+</big></dt>
+<dd>Transform an image by given affine transformation.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>interp</td>
+<td>(template parameter) Interpolation function. Default linear.</td></tr>
+<tr><td>Slice!(N, V*) <i>slice</i></td>
+<td>Slice of an image which is transformed.</td></tr>
+<tr><td>TransformMatrix <i>transform</i></td>
+<td>2D Transformation matrix (3x3). Its element type must be floating point type,
+ and it can be defined as Slice object, dynamic or static 2D array.</td></tr>
+<tr><td>size_t[2] <i>outSize</i></td>
+<td>Output image size - if transformation potentially moves parts of image out
+ of input image bounds, output image can be sized differently to maintain information.</td></tr>
+</table><br>
+<b>note:</b><br>
+Given transformation is considered to be an affine transformation. If it is not, result is undefined.
+
+<br><br>
+<b>Returns:</b><br>
+Transformed image.<br><br>
+
+</dd>
+<dt><big><a name="transformPerspective"></a>Slice!(N, V*) <u>transformPerspective</u>(alias interp = linear, V, TransformMatrix, size_t N)(Slice!(N, V*) <i>slice</i>, inout TransformMatrix <i>transform</i>, size_t[2] <i>outSize</i> = [0, 0]);
+</big></dt>
+<dd>Transform an image by given perspective transformation.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>interp</td>
+<td>(template parameter) Interpolation function. Default linear.</td></tr>
+<tr><td>Slice!(N, V*) <i>slice</i></td>
+<td>Slice of an image which is transformed.</td></tr>
+<tr><td>TransformMatrix <i>transform</i></td>
+<td>2D Transformation matrix (3x3). Its element type must be floating point type,
+ and it can be defined as Slice object, dynamic or static 2D array.</td></tr>
+<tr><td>size_t[2] <i>outSize</i></td>
+<td>Output image size [width, height] - if transformation potentially moves parts of image out
+ of input image bounds, output image can be sized differently to maintain information.</td></tr>
+</table><br>
+<b>note:</b><br>
+Given transformation is considered to be an perspective transformation. If it is not, result is undefined.
+
+<br><br>
+<b>Returns:</b><br>
+Transformed image.<br><br>
+
+</dd>
+</dl>
+
+                </div>
+                <footer>
+                   <hr>
+                </footer>
+            </section>
+        </div>
+        <script src="javascripts/scale.fix.js"></script>
+    </body>
+</html>

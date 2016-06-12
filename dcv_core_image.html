@@ -1,0 +1,172 @@
+<h1>dcv.core.image</h1>
+           <br><br>
+<dl><dt><big><a name="ImageFormat"></a>enum <u>ImageFormat</u>: int;
+</big></dt>
+<dd>Image (pixel) format.<br><br>
+
+</dd>
+<dt><big><a name="BitDepth"></a>enum <u>BitDepth</u>: ulong;
+</big></dt>
+<dd>Bit depth of a pixel in an image.<br><br>
+
+</dd>
+<dt><big><a name="Image"></a>class <u>Image</u>;
+</big></dt>
+<dd><u>Image</u> abstraction type.<br><br>
+
+<dl><dt><big><a name="Image.this"></a>pure nothrow @safe this();
+</big></dt>
+<dd>Default constructor for image.
+<br><br>
+Creates an empty image structure.<br><br>
+
+</dd>
+<dt><big><a name="Image.this.2"></a>pure this(in Image <i>copy</i>, bool <i>deepCopy</i> = false);
+</big></dt>
+<dd>Copy constructor.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Image <i>copy</i></td>
+<td>Input image, which is copied into this image structure.</td></tr>
+<tr><td>bool <i>deepCopy</i></td>
+<td>if <b>false</b> (default) the data array will be referenced
+ from <i>copy</i>, esle values will be copied to newly allocated array.</td></tr>
+</table><br>
+
+</dd>
+<dt><big><a name="Image.this.3"></a>pure nothrow @safe this(size_t <i>width</i>, size_t <i>height</i>, ImageFormat <i>format</i> = ImageFormat.IF_RGB, BitDepth <i>depth</i> = BitDepth.BD_8, ubyte[] <i>data</i> = null);
+</big></dt>
+<dd>Construct an image by given size, <i>format</i> and bit <i>depth</i> information.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>size_t <i>width</i></td>
+<td><i>width</i> of a newly created image.</td></tr>
+<tr><td>size_t <i>height</i></td>
+<td><i>height</i> of a newly created image.</td></tr>
+<tr><td>ImageFormat <i>format</i></td>
+<td><i>format</i> of a newly created image.</td></tr>
+<tr><td>BitDepth <i>depth</i></td>
+<td>bit <i>depth</i> of a newly created image.</td></tr>
+<tr><td>ubyte[] <i>data</i></td>
+<td>potential <i>data</i> of an image, pre-allocated. If not a <b>null</b>, <i>data</i> array
+ has to be of correct size = <i>width</i>*<i>height</i>*channels*<i>depth</i>, where channels are
+ defined by the <i>format</i>, and <i>depth</i> is counded in bytes.</td></tr>
+</table><br>
+
+</dd>
+<dt><big><a name="Image.format"></a>const pure @property @safe auto <u>format</u>();
+</big></dt>
+<dd>Get <u>format</u> of an image.<br><br>
+
+</dd>
+<dt><big><a name="Image.width"></a>const pure @property @safe auto <u>width</u>();
+</big></dt>
+<dd>Get height of an image.<br><br>
+
+</dd>
+<dt><big><a name="Image.height"></a>const pure @property @safe auto <u>height</u>();
+</big></dt>
+<dd>Get <u>height</u> of an image.<br><br>
+
+</dd>
+<dt><big><a name="Image.depth"></a>const pure @property @safe auto <u>depth</u>();
+</big></dt>
+<dd>Get bit <u>depth</u> of the image.<br><br>
+
+</dd>
+<dt><big><a name="Image.empty"></a>const pure @property @safe auto <u>empty</u>();
+</big></dt>
+<dd>Check if image is <u>empty</u> (there's no data present).<br><br>
+
+</dd>
+<dt><big><a name="Image.channels"></a>const pure @property @safe auto <u>channels</u>();
+</big></dt>
+<dd>Channel count of the image.<br><br>
+
+</dd>
+<dt><big><a name="Image.pixelSize"></a>const pure @property @safe auto <u>pixelSize</u>();
+</big></dt>
+<dd>Number of bytes contained in one pixel of the image.<br><br>
+
+</dd>
+<dt><big><a name="Image.byteSize"></a>const pure @property @safe auto <u>byteSize</u>();
+</big></dt>
+<dd>Number of bytes contained in the image.<br><br>
+
+</dd>
+<dt><big><a name="Image.rowStride"></a>const pure @property @safe auto <u>rowStride</u>();
+</big></dt>
+<dd>Number of bytes contained in one row of the image.<br><br>
+
+</dd>
+<dt><big><a name="Image.size"></a>const pure @property @safe size_t[3] <u>size</u>();
+</big></dt>
+<dd>Size of the image.
+<br><br>
+Returns an array of 3 sizes: [width, height, channels]<br><br>
+
+</dd>
+<dt><big><a name="Image.isOfType"></a>const pure nothrow @safe bool <u>isOfType</u>(T)();
+</big></dt>
+<dd>Check if this images data corresponds to given value type.
+<br><br>
+Given value type is checked against the image data bit depth.
+ Data of 8-bit image is considered to be typed as ubyte array,
+ 16-bit as ushort, and 32-bit as float array. Any other type as
+ input returns <b>false</b> result.
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>T</td>
+<td>(template parameter) value type which is tested against the bit depth of the image data.</td></tr>
+</table><br>
+
+</dd>
+<dt><big><a name="Image.asType"></a>inout auto <u>asType</u>(T)();
+</big></dt>
+<dd>Convert image data type to given type.
+<br><br>
+Creates new image with data typed as given value type.
+ If this image's data type is the same as given type, deep
+ copy of this image is returned.
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>T</td>
+<td>(template parameter) value type to which image's data is converted.</td></tr>
+</table><br>
+<b>return:</b><br>
+Copy of this image with casted data to given type. If given type is same as
+ current data of this image, deep copy is returned.<br><br>
+
+</dd>
+<dt><big><a name="Image.data"></a>inout pure auto <u>data</u>(T = ubyte)();
+</big></dt>
+<dd>Get <u>data</u> array from this image.
+<br><br>
+Cast <u>data</u> array to corresponding dynamic array type,
+ and return it.
+ 8-bit <u>data</u> is considered ubyte, 16-bit ushort, and 32-bit float.
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>T</td>
+<td>(template parameter) value type (default ubyte) to which <u>data</u> array is casted to.</td></tr>
+</table><br>
+
+</dd>
+</dl>
+</dd>
+<dt><big><a name="asImage"></a>Image <u>asImage</u>(size_t N, T)(Slice!(N, T*) <i>slice</i>, ImageFormat <i>format</i>);
+</big></dt>
+<dd>Convert a ndslice object to an Image, with defined image <i>format</i>.<br><br>
+
+</dd>
+<dt><big><a name="asImage.2"></a>Image <u>asImage</u>(size_t N, T)(Slice!(N, T*) <i>slice</i>);
+</big></dt>
+<dd>Convert ndslice object into an image, with default format setup, regarding to <i>slice</i> dimension.<br><br>
+
+</dd>
+</dl>
+
+           <hr>

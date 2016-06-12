@@ -1,0 +1,113 @@
+<h1>dcv.core.memory</h1>
+           <br><br>
+<dl><dt><big><a name="alignedAlloc"></a>@nogc @trusted T[] <u>alignedAlloc</u>(T)(size_t <i>count</i>, uint <i>alignment</i> = 16);
+</big></dt>
+<dd>Allocate array using strict memory <i>alignment</i>.
+<br><br>
+Uses std.experimental.allocator.mallocator.AlignmedMallocator to
+ allocate memory.
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>size_t <i>count</i></td>
+<td>Count of elements to be allocated for the array.</td></tr>
+<tr><td>uint <i>alignment</i></td>
+<td>size in bytes for memory <i>alignment</i> pattern.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Dynamic array of type T, with lenght of given <i>count</i>, aligned using
+ given <i>alignment</i> size.
+
+<br><br>
+<b>note:</b><br>
+Dynamic array is not added to GC, so it has to be destoyed explicitly
+ using alignedFree. If GC is needed, use alignedAllocGC.<br><br>
+
+</dd>
+<dt><big><a name="alignedRealloc"></a>@nogc bool <u>alignedRealloc</u>(ref void[] <i>ptr</i>, size_t <i>newSize</i>);
+</big></dt>
+<dd>Allocate array using strict memory alignment.
+<br><br>
+Uses std.experimental.allocator.mallocator.AlignmedMallocator to
+ reallocate memory.
+ Forwards to AlignedMallocator.reallocate.
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>void[] <i>ptr</i></td>
+<td>Pointer to a memory where the reallocation is to be performed at.</td></tr>
+<tr><td>size_t <i>newSize</i></td>
+<td>Size of the reallocated array.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Status of reallocation. Returns AlignedMallocator.reallocate out status.<br><br>
+
+</dd>
+<dt><big><a name="alignedFree"></a>@nogc void <u>alignedFree</u>(void[] <i>ptr</i>);
+</big></dt>
+<dd>Frees memory allocated using alignedAlloc function.
+<br><br>
+Uses AlignedMallocator.deallocate.
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>void[] <i>ptr</i></td>
+<td>Pointer to memory that is to be freed.</td></tr>
+</table><br>
+
+</dd>
+<dt><big><a name="allocArray"></a>@nogc @trusted T[] <u>allocArray</u>(T)(size_t <i>length</i>);
+</big></dt>
+<dd>Performs aligned allocation using alignedAlloc function,
+ but adds allocated range to the GC using GC.addRange.
+<br><br>
+@trusted T [] alignedAllocGC(T)(size_t size, size_t alignment = 16) {
+ auto arr = alignedAlloc(size, alignment);
+ GC.addRange(arr.ptr, size*T.sizeof);
+ return arr;
+ }
+<br><br>
+
+ Frees memory allocate using alignedAllocGC.
+ Removes given range, and afterwards calls alignedFree.
+<br><br>
+
+ @trusted void alignedFreeGC(void [] ptr) {
+ GC.removeRange(ptr.ptr);
+ AlignedMallocator.instance.deallocate(ptr);
+ }<br><br>
+
+</dd>
+<dt><big><a name="freeArray"></a>@nogc void <u>freeArray</u>(void[] <i>ptr</i>);
+</big></dt>
+<dd>Performs aligned allocation using alignedAlloc function,
+ but adds allocated range to the GC using GC.addRange.
+<br><br>
+@trusted T [] alignedAllocGC(T)(size_t size, size_t alignment = 16) {
+ auto arr = alignedAlloc(size, alignment);
+ GC.addRange(arr.<i>ptr</i>, size*T.sizeof);
+ return arr;
+ }
+<br><br>
+
+ Frees memory allocate using alignedAllocGC.
+ Removes given range, and afterwards calls alignedFree.
+<br><br>
+
+ @trusted void alignedFreeGC(void [] <i>ptr</i>) {
+ GC.removeRange(<i>ptr</i>.<i>ptr</i>);
+ AlignedMallocator.instance.deallocate(<i>ptr</i>);
+ }<br><br>
+
+</dd>
+<dt><big><a name="VectorSSE2"></a>template <u>VectorSSE2</u>(T)</big></dt>
+<dd>Template to get alias to SSE2 compatible vector for given type.<br><br>
+
+</dd>
+<dt><big><a name="VectorAVX"></a>template <u>VectorAVX</u>(T)</big></dt>
+<dd>Template to get alias to AVX compatible vector for given type.<br><br>
+
+</dd>
+</dl>
+
+           <hr>

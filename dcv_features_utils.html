@@ -1,0 +1,31 @@
+<h1>dcv.features.utils</h1>
+           <br><br>
+<dl><dt><big><a name="Feature"></a>struct <u>Feature</u>;
+</big></dt>
+<dd><u>Feature</u> point.<br><br>
+
+</dd>
+<dt><big><a name="extractCorners"></a>pure nothrow @trusted ulong[2][] <u>extractCorners</u>(T)(Slice!(2, T*) <i>cornerResponse</i>, long <i>count</i> = -1, T <i>threshold</i> = cast(T)0) if (isNumeric!T);
+</big></dt>
+<dd>Extract corners as array of 2D points, from response matrix.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Slice!(2, T*) <i>cornerResponse</i></td>
+<td>Response matrix, collected as output from corner
+ detection algoritms such as harrisCorners, or shiTomasiCorners.</td></tr>
+<tr><td>long <i>count</i></td>
+<td>Number of corners which need to be extracted. Default is
+ -1 which indicate that all responses with value above the <i>threshold</i>
+ will be returned.</td></tr>
+<tr><td>T <i>threshold</i></td>
+<td>Response <i>threshold</i> - response values in the matrix
+ larger than this are considered as valid corners.</td></tr>
+</table><br>
+<b>return:</b><br>
+Dynamic array of ulong[2], as in array of 2D points, of corner reponses
+ which fit the given criteria.<br><br>
+
+</dd>
+</dl>
+
+           <hr>

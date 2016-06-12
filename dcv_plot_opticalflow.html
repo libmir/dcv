@@ -1,0 +1,22 @@
+<h1>dcv.plot.opticalflow</h1>
+           <br><br>
+<dl><dt><big><a name="colorCode"></a>Slice!(3, ubyte*) <u>colorCode</u>(Slice!(3, float*) <i>flow</i>, float <i>maxSize</i> = 0);
+</big></dt>
+<dd>Draw color-coded optical <i>flow</i>.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Slice!(3, float*) <i>flow</i></td>
+<td>Optical <i>flow</i> displacement vectors.</td></tr>
+<tr><td>float <i>maxSize</i></td>
+<td>Value which is considered to be the maximal
+ displacement value for color saturation. Default is
+ 0, which gets reset in the algorithm to 10% of image
+ diagonal length.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+RGB image of color-coded optical <i>flow</i>.<br><br>
+
+</dd>
+</dl>
+
+           <hr>

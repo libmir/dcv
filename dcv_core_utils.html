@@ -1,0 +1,63 @@
+<h1>dcv.core.utils</h1>
+           <br><br>
+<dl><dt><big><a name="isSlice"></a>enum bool <u>isSlice</u>(T);
+</big></dt>
+<dd>Check if an type is a Slice.<br><br>
+
+</dd>
+<dt><big><a name="emptySlice"></a>pure nothrow @safe Slice!(N, V*) <u>emptySlice</u>(size_t N, V)();
+</big></dt>
+<dd>Convenience method to return an empty slice - used mainly as default argument in functions in library.<br><br>
+
+</dd>
+<dt><big><a name="asType"></a>Slice!(N, O*) <u>asType</u>(O, V, size_t N)(Slice!(N, V*) <i>inslice</i>);
+</big></dt>
+<dd>Take another typed Slice. Type conversion for the Slice object.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Slice!(N, V*) <i>inslice</i></td>
+<td>Input slice, to be converted to the O type.</td></tr>
+</table><br>
+<b>return:</b><br>
+Return a slice with newly allocated data of type O, with same
+ shape as input slice.<br><br>
+
+</dd>
+<dt><big><a name="clip"></a>pure nothrow @safe T <u>clip</u>(T, V)(V <i>v</i>) if (isNumeric!V &amp;&amp; isNumeric!T);
+</big></dt>
+<dd>Clip value by it's value range.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>V <i>v</i></td>
+<td>input value, of the input type</td></tr>
+</table><br>
+<b>return:</b><br>
+Clipped value of the output type.<br><br>
+
+</dd>
+<dt><big><a name="merge"></a>pure auto <u>merge</u>(Slices...)(Slices <i>slices</i>) if (Slices.length &gt; 0 &amp;&amp; isSlice!(Slices[0]) &amp;&amp; allSameType!Slices);
+</big></dt>
+<dd>Merge multiple <i>slices</i> into one.
+<br><br>
+By input of multiple Slice!(N, T*) objects, produces one Slice!(N+1, T*)
+ object, where length of last dimension is number of input <i>slices</i>. Values
+ of input <i>slices</i>' elements are copied to resulting slice, where [..., i] element
+ of j-th input slice is copied to [..., i, j] element of output slice.
+<br><br>
+
+ e.g. If three single channel images (Slice!(2, T*)) are merged, output will be
+ a three channel image (Slice!(3, T*)).
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Slices <i>slices</i></td>
+<td>Input <i>slices</i>. All must by Slice object with same input template parameters.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+For input of n Slice!(N, T*) objects, outputs Slice!(N+1, T*) object, where
+ last dimension size is n.<br><br>
+
+</dd>
+</dl>
+
+           <hr>
