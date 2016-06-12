@@ -1,12 +1,13 @@
-﻿module dcv.core.image;
+﻿/**
+Module implements Image utility class, and basic API for image manipulation.
 
+Copyright: Copyright Relja Ljubobratovic 2016.
 
-/**
- * Module implements Image class.
- * 
- * v0.1 norm:
- * Implemented and tested Image class.
- */
+Authors: Relja Ljubobratovic
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+*/ 
+module dcv.core.image;
 
 import std.exception : enforce;
 import std.algorithm : reduce;

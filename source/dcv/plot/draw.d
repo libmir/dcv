@@ -1,9 +1,14 @@
-﻿module dcv.plot.draw;
+﻿/**
+Module implements shape drawing.
 
+Copyright: Copyright Relja Ljubobratovic 2016.
 
-/**
- * Shape drawing module.
- */
+Authors: Relja Ljubobratovic
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+*/
+
+module dcv.plot.draw;
 
 import std.experimental.ndslice;
 import std.traits;
@@ -11,6 +16,9 @@ import std.traits;
 import dcv.imgproc.interpolate;
 
 
+/**
+Draw point on image.
+*/
 void drawPoint(size_t D, Range, Point, Color)
     (Slice!(D, Range) canvas, Point point, 
 Color color, int strokeWidth) {
@@ -50,6 +58,9 @@ Color color, int strokeWidth) {
     }
 }
 
+/**
+Draw a line on image.
+*/
 void drawLine(size_t D, Range, Point, Color)
     (Slice!(D, Range) canvas, Point startPoint, Point endPoint, 
 Color color, int strokeWidth) {

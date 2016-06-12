@@ -1,10 +1,26 @@
-﻿module dcv.tracking.opticalflow.pyramidflow;
+﻿/**
+Module contains optical flow pyramid implementation.
+
+Pyramidal optical flow evaluation in $(BIG DCV) is designed to be a wrapper to actual optical flow algorithm. $(LINK2 #SparesePyramidFlow, Sparse) and 
+$(LINK2 #DensePyramidFlow, dense) optical flow algorithms have a corresponding utility class which will evaluate the algorithm 
+in $(LINK3 https://en.wikipedia.org/wiki/Pyramid_(image_processing)#Gaussian_pyramid, pyramid), coarse-to-fine fashion.
+
+Copyright: Copyright Relja Ljubobratovic 2016.
+
+Authors: Relja Ljubobratovic
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+*/
+module dcv.tracking.opticalflow.pyramidflow;
 
 import dcv.core.utils : emptySlice;
 import dcv.core.image;
 import dcv.imgproc.imgmanip : warp, resize;
 import dcv.tracking.opticalflow.base;
 
+/**
+Sparse pyramidal optical flow utility class.
+*/
 class SparsePyramidFlow : SparseOpticalFlow {
 
     private SparseOpticalFlow flowAlgorithm;
@@ -104,6 +120,9 @@ class SparsePyramidFlow : SparseOpticalFlow {
     }
 }
 
+/**
+Dense pyramidal optical flow utility class.
+*/
 class DensePyramidFlow : DenseOpticalFlow {
 
     private DenseOpticalFlow flowAlgorithm;

@@ -1,5 +1,14 @@
-module dcv.tracking.opticalflow.hornschunck;
+/**
+Module contains $(LINK3 https://en.wikipedia.org/wiki/Horn%E2%80%93Schunck_method, Horn-Schunck) optical flow algorithm implementation.
 
+Copyright: Copyright Relja Ljubobratovic 2016.
+
+Authors: Relja Ljubobratovic
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+*/
+
+module dcv.tracking.opticalflow.hornschunck;
 
 import std.experimental.ndslice;
 
@@ -7,18 +16,29 @@ import dcv.core.image;
 import dcv.tracking.opticalflow.base;
 import dcv.core.utils : emptySlice;
 
+
 public import dcv.tracking.opticalflow.base : DenseFlow;
 
-
+/**
+Horn-Schunck algorithm properties.
+*/
 struct HornSchunckProperties {
+    /// How many iterations is algorithm evaluated to estimate the flow values.
     size_t iterationCount = 100;
+    /// Smoothing weight parameter for the flow field.
     float alpha = 20;
+    /// Size of the gaussian kernel used to blur the image as pre-process step before the algorithm.
     size_t gaussKernelSize = 5;
+    /// Sigma value of gaussian kernel used to blur the image.
     float gaussSigma = 2;
-    float tol = 1.0e-06; // iteration stopping criterion.
+    /// iteration stopping criterion.
+    float tol = 1.0e-06; 
 }
 
 
+/**
+Horn-Schunck algorithm implementation.
+*/
 class HornSchunckFlow : DenseOpticalFlow {
 
     private {
@@ -27,9 +47,24 @@ class HornSchunckFlow : DenseOpticalFlow {
         HornSchunckProperties props;
     }
 
+    /**
+    Initialize the algorithm with given set of properties.
+    */
     this(HornSchunckProperties props = HornSchunckProperties()) { this.props = props; }
     ~this() {}
 
+    /**
+    Evaluate Horn-Schunck dense optical flow method between two consecutive frames.
+
+    params:
+    f1 = First image, i.e. previous frame in the video.
+    f2 = Second image of same size and type as $(D f1), i.e. current frame in the video.
+    prealloc = Optional pre-allocated flow buffer. If provided, has to be of same size as input images are, and with 2 channels (u, v).
+    usePrevious = Should the previous flow be used. If true $(D prealloc) is treated as previous flow, and has to satisfy size requirements.
+    
+    returns:
+    Calculated flow field.
+    */
     override DenseFlow evaluate(inout Image f1, inout Image f2, DenseFlow prealloc = emptySlice!(3, float), bool usePrevious = false) 
     in {
         assert(!f1.empty && !f2.empty &&

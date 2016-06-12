@@ -1,15 +1,23 @@
-﻿module dcv.imgproc.convolution;
+﻿/**
+Module introduces $(LINK3 https://en.wikipedia.org/wiki/Kernel_(image_processing)#Convolution, image convolution) function.
 
-/**
- * Module introduces array convolution functions.
- * 
- * v0.1 norm:
- * conv (done)
- * separable_conv
- * 
- * v0.1+ plans:
- * 1d_conv_simd
- */
+Copyright: Copyright Relja Ljubobratovic 2016.
+
+Authors: Relja Ljubobratovic
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+*/ 
+
+module dcv.imgproc.convolution;
+
+/*
+v0.1 norm:
+conv (done)
+separable_conv
+
+v0.1+ plans:
+1d_conv_simd
+*/
 import dcv.core.memory;
 import dcv.core.utils;
 
@@ -27,27 +35,31 @@ import std.math : abs, floor;
 
 
 /**
- * Perform convolution to given range, using given kernel.
- * Convolution is supported for 1, 2, and 3D slices.
- * 
- * params:
- * range = Input range slice (1D, 2D, and 3D slice supported)
- * kernel = Convolution kernel slice. For 1D range, 1D kernel is expected. 
- * For 2D range, 2D kernele is expected. For 3D range, 2D or 3D kernel is expected - 
- * if 2D kernel is given, each item in kernel matrix is applied to each value in 
- * corresponding 2D coordinate in the range.
- * prealloc = Pre-allocated array where convolution result can be stored. Default 
- * value is emptySlice, where resulting array will be newly allocated. Also if
- * prealloc is not of same shape as input range, resulting array will be newly allocated. 
- * mask = Masking range. Convolution will skip each element where mask is 0. Default value
- * is empty slice, which tells that convolution will be performed on the whole range.
- */
-Slice!(N, V*) conv(alias bc = neumann, V, K, size_t N, size_t NK)(Slice!(N, V*) range, Slice!(NK, K*) kernel, 
-    Slice!(N, V*) prealloc = emptySlice!(N, V),
-    Slice!(NK, V*) mask = emptySlice!(NK, V))
+Perform convolution to given range, using given kernel.
+Convolution is supported for 1, 2, and 3D slices.
+
+params:
+bc = (Template parameter) Boundary Condition function used while indexing the image matrix.
+range = Input range slice (1D, 2D, and 3D slice supported)
+kernel = Convolution kernel slice. For 1D range, 1D kernel is expected. 
+For 2D range, 2D kernele is expected. For 3D range, 2D or 3D kernel is expected - 
+if 2D kernel is given, each item in kernel matrix is applied to each value in 
+corresponding 2D coordinate in the range.
+prealloc = Pre-allocated array where convolution result can be stored. Default 
+value is emptySlice, where resulting array will be newly allocated. Also if
+prealloc is not of same shape as input range, resulting array will be newly allocated. 
+mask = Masking range. Convolution will skip each element where mask is 0. Default value
+is empty slice, which tells that convolution will be performed on the whole range.
+
+return:
+Slice of resulting image after convolution.
+*/
+Slice!(N, InputType*) conv(alias bc = neumann, InputType, KernelType, size_t N, size_t NK)(Slice!(N, InputType*) range, Slice!(NK, KernelType*) kernel, 
+    Slice!(N, InputType*) prealloc = emptySlice!(N, InputType),
+    Slice!(NK, InputType*) mask = emptySlice!(NK, InputType))
 {
     static assert(isBoundaryCondition!bc, "Invalid boundary condition test function.");
-    static assert(isAssignable!(V, K), "Uncompatible types for range and kernel");
+    static assert(isAssignable!(InputType, KernelType), "Uncompatible types for range and kernel");
 
     if (!mask.empty && !mask.shape[].equal(range.shape[])) {
         import std.conv : to;
@@ -98,11 +110,11 @@ unittest {
 private:
 
 // TODO: implement SIMD
-Slice!(1, V*) conv1Impl(alias bc, V, K)(Slice!(1, V*) range, Slice!(1, K*) kernel, 
-    Slice!(1, V*) prealloc, Slice!(1, V*) mask) {
+Slice!(1, InputType*) conv1Impl(alias bc, InputType, KernelType)(Slice!(1, InputType*) range, Slice!(1, KernelType*) kernel, 
+    Slice!(1, InputType*) prealloc, Slice!(1, InputType*) mask) {
 
     if (prealloc.empty || prealloc.shape != range.shape)
-        prealloc = uninitializedArray!(V[])(cast(ulong)range.length).sliced(range.shape);
+        prealloc = uninitializedArray!(InputType[])(cast(ulong)range.length).sliced(range.shape);
 
     enforce(&range[0] != &prealloc[0], 
         "Preallocated has to contain different data from that of a input range.");
@@ -119,7 +131,7 @@ Slice!(1, V*) conv1Impl(alias bc, V, K)(Slice!(1, V*) range, Slice!(1, K*) kerne
     foreach(i; iota(rl).parallel) {
         if (useMask && !mask[i])
             continue;
-        V v = 0;
+        InputType v = 0;
         for(int j = -kh; j < ke+1; ++j) {
             v += bc(range, i+j)*kernel[j+kh];
         }
@@ -129,11 +141,11 @@ Slice!(1, V*) conv1Impl(alias bc, V, K)(Slice!(1, V*) range, Slice!(1, K*) kerne
     return prealloc;
 }
 
-Slice!(2, V*) conv2Impl(alias bc, V, K)(Slice!(2, V*) range, Slice!(2, K*) kernel, 
-    Slice!(2, V*) prealloc, Slice!(2, V*) mask) {
+Slice!(2, InputType*) conv2Impl(alias bc, InputType, KernelType)(Slice!(2, InputType*) range, Slice!(2, KernelType*) kernel, 
+    Slice!(2, InputType*) prealloc, Slice!(2, InputType*) mask) {
 
     if (prealloc.empty || prealloc.shape != range.shape)
-        prealloc = uninitializedArray!(V[])(cast(ulong)range.shape.reduce!"a*b").sliced(range.shape);
+        prealloc = uninitializedArray!(InputType[])(cast(ulong)range.shape.reduce!"a*b").sliced(range.shape);
 
     enforce(&range[0, 0] != &prealloc[0, 0], 
         "Preallocated has to contain different data from that of a input range.");
@@ -155,7 +167,7 @@ Slice!(2, V*) conv2Impl(alias bc, V, K)(Slice!(2, V*) range, Slice!(2, K*) kerne
         foreach(j; iota(rc)) {
             if (useMask && !mask[i, j])
                 continue;
-            V v = 0;
+            InputType v = 0;
             for(int ii = -krh; ii < krh+1; ++ii) {
                 for(int jj = -kch; jj < kch+1; ++jj) {
                     v += bc(range, i+ii, j+jj)*kernel[ii+krh, jj+kch];
@@ -168,11 +180,11 @@ Slice!(2, V*) conv2Impl(alias bc, V, K)(Slice!(2, V*) range, Slice!(2, K*) kerne
     return prealloc;
 }
 
-Slice!(3, V*) conv3Impl(alias bc, V, K, size_t NK)(Slice!(3, V*) range, Slice!(NK, K*) kernel, 
-    Slice!(3, V*) prealloc, Slice!(NK, V*) mask)
+Slice!(3, InputType*) conv3Impl(alias bc, InputType, KernelType, size_t NK)(Slice!(3, InputType*) range, Slice!(NK, KernelType*) kernel, 
+    Slice!(3, InputType*) prealloc, Slice!(NK, InputType*) mask)
 {
     if (prealloc.empty || prealloc.shape != range.shape)
-        prealloc = uninitializedArray!(V[])(cast(ulong)range.shape.reduce!"a*b").sliced(range.shape);
+        prealloc = uninitializedArray!(InputType[])(cast(ulong)range.shape.reduce!"a*b").sliced(range.shape);
 
     enforce(&range[0, 0, 0] != &prealloc[0, 0, 0], 
         "Preallocated has to contain different data from that of a input range.");

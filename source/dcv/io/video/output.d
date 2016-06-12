@@ -1,4 +1,14 @@
-﻿module dcv.io.video.output;
+﻿/**
+Module implements utilities for video output.
+
+Copyright: Copyright Relja Ljubobratovic 2016.
+
+Authors: Relja Ljubobratovic
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+*/
+
+module dcv.io.video.output;
 
 debug {
     import std.stdio;

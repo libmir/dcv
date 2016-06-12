@@ -1,23 +1,24 @@
-﻿module dcv.io.video.common;
+﻿/**
+Module implements common utilities for video I/O
 
-/**
- * Module for video I/O
- * 
- * Wraps the ffmpeg library to perform video streaming.
- * 
- * TODO: Document!
- */
+Copyright: Copyright Relja Ljubobratovic 2016.
 
-private import std.stdio : writeln;
-private import std.exception : Exception, enforce;
+Authors: Relja Ljubobratovic
 
-private import ffmpeg.libavcodec.avcodec;
-private import ffmpeg.libavformat.avformat;
-private import ffmpeg.libavutil.avutil;
-private import ffmpeg.libavutil.opt;
-private import ffmpeg.libswscale.swscale;
-private import ffmpeg.libavdevice.avdevice;
-private import ffmpeg.libavfilter.avfilter;
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+*/
+module dcv.io.video.common;
+
+import std.stdio : writeln;
+import std.exception : Exception, enforce;
+
+import ffmpeg.libavcodec.avcodec;
+import ffmpeg.libavformat.avformat;
+import ffmpeg.libavutil.avutil;
+import ffmpeg.libavutil.opt;
+import ffmpeg.libswscale.swscale;
+import ffmpeg.libavdevice.avdevice;
+import ffmpeg.libavfilter.avfilter;
 
 public import dcv.io.image;
 

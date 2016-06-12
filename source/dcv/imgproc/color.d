@@ -1,20 +1,38 @@
-﻿module dcv.imgproc.color;
+﻿
+/**
+Module contains color format convertion operations.
 
+Copyright: Copyright Relja Ljubobratovic 2016.
+
+Authors: Relja Ljubobratovic
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+
+$(BLACK $(BIG Module provides following conversions:))
+$(TABLE
+    $(TR $(TD $(LINK2 #rgb2gray,RGB to gray)))
+    $(TR $(TD $(LINK2 #gray2rgb,gray to RGB)))
+    $(TR $(TD $(LINK2 #hsv2rgb,HSV to RGB)))
+    $(TR $(TD $(LINK2 #rgb2hsv,RGB to HSV)))
+    $(TR $(TD $(LINK2 #yuv2rgb,YUV to RGB)))
+    $(TR $(TD $(LINK2 #rgb2yuv,RGB to YUV)))
+)
+
+*/ 
+module dcv.imgproc.color;
 /*
- * Color format convertion module.
- * 
- * TODO: redesign functions - one function to iterate, separated format convertions as template alias. 
- * Consider grouping color convertion routines into one function.
- * 
- * v0.1 norm:
- * rgb2gray vice versa (done)
- * hsv2rgb -||-
- * hls2rgb -||-
- * lab2rgb -||-
- * luv2rgb -||-
- * luv2rgb -||-
- * bayer2rgb -||-
- */
+TODO: redesign functions - one function to iterate, separated format convertions as template alias. 
+Consider grouping color convertion routines into one function.
+
+v0.1 norm:
+rgb2gray vice versa (done)
+hsv2rgb -||-
+hls2rgb -||-
+lab2rgb -||-
+luv2rgb -||-
+luv2rgb -||-
+bayer2rgb -||-
+*/
 
 import std.experimental.ndslice;
 

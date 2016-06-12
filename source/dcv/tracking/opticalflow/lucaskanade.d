@@ -1,3 +1,13 @@
+/**
+Module contains $(LINK3 https://en.wikipedia.org/wiki/Lucas%E2%80%93Kanade_method, Lucas-Kanade) optical flow algorithm implementation.
+
+Copyright: Copyright Relja Ljubobratovic 2016.
+
+Authors: Relja Ljubobratovic
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+*/
+
 module dcv.tracking.opticalflow.lucaskanade;
 
 import std.math : PI, floor;
@@ -9,6 +19,9 @@ import dcv.tracking.opticalflow.base;
 
 public import dcv.imgproc.interpolate;
 
+/**
+Lucas-Kanade optical flow method implementation.
+*/
 class LucasKanadeFlow : SparseOpticalFlow {
 
     public {

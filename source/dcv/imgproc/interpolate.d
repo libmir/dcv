@@ -1,7 +1,16 @@
-﻿module dcv.imgproc.interpolate;
+﻿/**
+Value interpolation module.
 
+Copyright: Copyright Relja Ljubobratovic 2016.
+
+Authors: Relja Ljubobratovic
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+*/
+
+module dcv.imgproc.interpolate;
 /**
- * Value interpolation module.
+ 
  * 
  * v0.1 norm:
  * nn

@@ -1,12 +1,15 @@
-﻿module dcv.core.algorithm;
+﻿/**
+Module implements various algorithms used often in computer vision.
 
-/**
- * Module implements various algorithms used often in
- * computer vision.
- * 
- * v0.1 norm:
- * ???
- */ 
+Copyright: Copyright Relja Ljubobratovic 2016.
+
+Authors: Relja Ljubobratovic
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+*/ 
+
+module dcv.core.algorithm;
+
 import std.experimental.ndslice;
 import std.range;
 import std.traits : isNumeric,  isAssignable;
@@ -18,7 +21,10 @@ enum NormType {
     L2 // eucledian norm
 }
 
-/// Find minimum(default) or maximum value in the range.
+/**
+ Find minimum(default) or maximum value in the range.
+
+*/
 private ElementType!Range findMinMax(string comparator, Range)(Range range) pure nothrow
 if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
     ElementType!Range v = range.front;
@@ -26,18 +32,17 @@ if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
     return v;
 }
 
-/// ditto
 ElementType!Range findMin(Range)(Range range) pure nothrow
 if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
     return range.findMinMax!"<";
 }
 
-/// ditto
 ElementType!Range findMax(Range)(Range range) pure nothrow
 if (isForwardRange!Range && isNumeric!(ElementType!Range)) {
     return range.findMinMax!">";
 }
 
+/// Find maximal and minimal value in the array.
 unittest {
     auto arr = [1, 2, 3];
     assert(arr.findMin == 1);

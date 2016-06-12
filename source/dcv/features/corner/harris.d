@@ -1,26 +1,60 @@
+
+/**
+Module implements $(LINK3 https://en.wikipedia.org/wiki/Corner_detection#The_Harris_.26_Stephens_.2F_Plessey_.2F_Shi.E2.80.93Tomasi_corner_detection_algorithms, Harris and Shi-Tomasi) corner detectors.
+
+Copyright: Copyright Relja Ljubobratovic 2016.
+
+Authors: Relja Ljubobratovic
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+*/ 
 module dcv.features.corner.harris;
 
-private import std.experimental.ndslice;
+import std.experimental.ndslice;
 
-private import dcv.core.utils : emptySlice;
-private import dcv.imgproc.filter : calcPartialDerivatives;
+import dcv.core.utils : emptySlice;
+import dcv.imgproc.filter : calcPartialDerivatives;
 
 
 /**
- * Harris corner detector.
+Calculate per-pixel corner impuls response using Harris corner detector.
+
+params:
+image = Input image slice.
+winSize = Window (square) size used in corner detection.
+k = Sensitivity parameter defined in the algorithm.
+gauss = Gauss sigma value used as window weighting parameter.
+prealloc = Optional pre-allocated buffer for return response image.
+
+return:
+Response matrix the same size of the input image, where each pixel represents
+corner response value - the bigger the value, more probably it represents the
+actual corner in the image.
  */
-Slice!(2, O*) harrisCorners(T, O = T)(Slice!(2, T*) image, in uint winSize = 3,
-        in float k = .64, in float gauss = .84, Slice!(2, O*) prealloc = emptySlice!(2, O)) {
+Slice!(2, OutputType*) harrisCorners(InputType, OutputType = InputType)(Slice!(2, InputType*) image, in uint winSize = 3,
+        in float k = 0.64f, in float gauss = 0.84f, Slice!(2, OutputType*) prealloc = emptySlice!(2, OutputType)) {
+
     HarrisDetector det;
     det.k = k;
     return calcCorners(image, winSize, gauss, prealloc, det);
 }
 
 /**
- * Shi-Tomasi good features to track corner detector.
+Calculate per-pixel corner impuls response using Shi-Tomasi corner detector.
+
+params:
+image = Input image slice.
+winSize = Window (square) size used in corner detection.
+gauss = Gauss sigma value used as window weighting parameter.
+prealloc = Optional pre-allocated buffer for return response image.
+
+return:
+Response matrix the same size of the input image, where each pixel represents
+corner response value - the bigger the value, more probably it represents the
+actual corner in the image.
  */
-Slice!(2, O*) shiTomasiCorners(T, O = T)(Slice!(2, T*) image,
-        in uint winSize = 3, in float gauss = .84, Slice!(2, O*) prealloc = emptySlice!(2, O)) {
+Slice!(2, OutputType*) shiTomasiCorners(InputType, OutputType = InputType)(Slice!(2, InputType*) image,
+        in uint winSize = 3, in float gauss = 0.84f, Slice!(2, OutputType*) prealloc = emptySlice!(2, OutputType)) {
     ShiTomasiDetector det;
     return calcCorners(image, winSize, gauss, prealloc, det);
 }
@@ -81,8 +115,8 @@ struct ShiTomasiDetector {
     }
 }
 
-Slice!(2, O*) calcCorners(Detector, T, O)(Slice!(2, T*) image, uint winSize,
-        float gaussSigma, Slice!(2, O*) prealloc, Detector detector) {
+Slice!(2, OutputType*) calcCorners(Detector, InputType, OutputType)(Slice!(2, InputType*) image, uint winSize,
+        float gaussSigma, Slice!(2, OutputType*) prealloc, Detector detector) {
 
     import std.math : exp, PI;
     import std.array : uninitializedArray;
@@ -93,14 +127,14 @@ Slice!(2, O*) calcCorners(Detector, T, O)(Slice!(2, T*) image, uint winSize,
     assert(!image.empty);
 
     if (!prealloc.shape[].equal(image.shape[])) {
-        prealloc = uninitializedArray!(O[])(image.shape[].reduce!"a*b").sliced(image.shape);
+        prealloc = uninitializedArray!(OutputType[])(image.shape[].reduce!"a*b").sliced(image.shape);
     }
-    prealloc[] = cast(O)0;
+    prealloc[] = cast(OutputType)0;
 
     auto rows = image.length!0;
     auto cols = image.length!1;
 
-    Slice!(2, T*) fx, fy;
+    Slice!(2, InputType*) fx, fy;
     calcPartialDerivatives(image, fx, fy);
 
     auto winSqr = winSize ^^ 2;
@@ -132,7 +166,7 @@ Slice!(2, O*) calcCorners(Detector, T, O)(Slice!(2, T*) image, uint winSize,
             r3 = (r3 / winSqr) * 0.5;
             R = detector(r1, r2, r3);
             if (R > 0)
-                prealloc[i, j] = cast(O) R;
+                prealloc[i, j] = cast(OutputType) R;
         }
     }
     return prealloc;
