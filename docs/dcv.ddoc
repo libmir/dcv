@@ -39,47 +39,6 @@ D_KEYWORD    = $(BLUE $0)
 D_PSYMBOL    = $(U $0)
 D_PARAM      = $(I $0)
 
-DDOC = 
-<html>
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="chrome=1">
-        <title>DCV - $(TITLE)</title>
-        <link rel="stylesheet" href="stylesheets/styles.css">
-        <link rel="stylesheet" href="stylesheets/github-light.css">
-        <meta name="viewport" content="width=device-width">
-        <script src="javascripts/jquery.js"></script>
-        <script src="javascripts/ddocs.js"></script>
-        <!--[if lt IE 9]>
-            <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-        <![endif]-->
-    </head>
-    <body>
-        <div class="wrapper">
-            <div class="roundedbox" id="sourcetreebox">
-                <h2>Content</h2>
-                <ul id="sourcetree"></ul>
-            </div>
-            <section class="roundedbox" id="projectbox">
-                <div id="dcvtitle">
-                    <p id="dcvtitledesc">Computer Vision Library for D Programming Language</p>
-                    <h1>DCV</h1>
-                </div>
-                <ul id="menu">
-                    <li ><a href="https://ljubobratovicrelja.github.io/dcv"><strong>Home</strong></a></li>
-                    <li ><a href="https://ljubobratovicrelja.github.io/dcv"><strong>Examples</strong></a></li>
-                    <li ><a href="https://ljubobratovicrelja.github.io/dcv"><strong>Documentation</strong></a></li>
-                    <li ><a href="https://github.com/ljubobratovicrelja/dcv"><strong>GitHub</strong></a></li>
-                </ul>
-                <div id="pagemain">
-                       <h1>$(TITLE)</h1>
-                       $(BODY)
-                </div>
-                <footer>
-                   <hr>$(COPYRIGHT)
-                </footer>
-            </section>
-        </div>
-        <script src="javascripts/scale.fix.js"></script>
-    </body>
-</html>
+DDOC =     <h1>$(TITLE)</h1>
+           $(BODY)
+           <hr>$(COPYRIGHT)
