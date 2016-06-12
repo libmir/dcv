@@ -1,27 +1,61 @@
 <h1>dcv.imgproc.filter</h1>
-           <br><br>
-<dl><dt><big><a name="gaussian"></a>pure Slice!(2, V*) <u>gaussian</u>(V = real)(real <i>sigma</i>, size_t <i>width</i>, size_t <i>height</i>);
-</big></dt>
-<dd>Instantiate 2D <u>gaussian</u> kernel.<br><br>
-
-</dd>
-<dt><big><a name="laplacian"></a>pure nothrow Slice!(2, T*) <u>laplacian</u>(T = real)(real <i>a</i> = 0.00000) if (isNumeric!T);
-</big></dt>
-<dd>Create negative <u>laplacian</u> 3x3 kernel matrix.
+           Module introduces image filtering functions and utilities.
 <br><br>
-Creates <u>laplacian</u> kernel matrix using
+<b>Authors:</b><br>
+Relja Ljubobratovic
+
+<br><br>
+<b>License:</b><br>
+<a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.
 <br><br>
 
- I - image
- Laplacian(I) =
-              [<i>a</i>/4,    (1-<i>a</i>)/4,   <i>a</i>/4]
-    4/(<i>a</i>+1) * |(1-<i>a</i>)/4   -1   (1-<i>a</i>)/4|
-              [<i>a</i>/4,    (1-<i>a</i>)/4,   <i>a</i>/4]<br><br>
+<table><tr>Module contains:</tr>
+    <tr>            <td><big>Filter kernel generators:</big></td>
+            <td><a href="#gaussian">gaussian</a></td>
+            <td><a href="#laplacian">laplacian</a></td>
+            <td><a href="#laplacianOfGaussian">laplacianOfGaussian</a></td>
+            <td><a href="#sobel">sobel</a></td>
+            <td><a href="#scharr">scharr</a></td>
+            <td><a href="#prewitt">prewitt</a></td>
+    </tr>
+    <tr>            <td><big>Image processing functions:  </big></td>
+            <td><a href="#filterNonMaximum">filterNonMaximum</a></td>
+            <td><a href="#calcPartialDerivatives">calcPartialDerivatives</a></td>
+            <td><a href="#calcGradients">calcGradients</a></td>
+            <td><a href="#nonMaximaSupression">nonMaximaSupression</a></td>
+            <td><a href="#canny">canny</a></td>
+    </tr>
+</table><br><br>
+
+<dl><dt><big><a name="gaussian"></a>pure Slice!(2, V*) <u id="gaussian">gaussian</u>(V = real)(real <i>sigma</i>, size_t <i>width</i>, size_t <i>height</i>);
+</big></dt>
+<dd>Instantiate 2D <u id="gaussian">gaussian</u> kernel.<br><br>
 
 </dd>
-<dt><big><a name="laplacianOfGaussian"></a>Slice!(2, T*) <u>laplacianOfGaussian</u>(T = real)(real <i>sigma</i>, size_t <i>width</i>, size_t <i>height</i>);
+<dt><big><a name="laplacian"></a>pure nothrow Slice!(2, T*) <u id="laplacian">laplacian</u>(T = real)(real <i>a</i> = 0.00000) if (isNumeric!T);
 </big></dt>
-<dd>Create laplacian of gaussian (LoG) filter kernel.
+<dd>Create negative <u id="laplacian">laplacian</u> 3x3 kernel matrix.
+<br><br>
+Creates <u id="laplacian">laplacian</u> kernel matrix using
+<br><br>
+
+<pre class="d_code">I - image
+Laplacian(I) =
+             [<i>a</i>/4,    (1-<i>a</i>)/4,   <i>a</i>/4]
+   4/(<i>a</i>+1) * |(1-<i>a</i>)/4   -1   (1-<i>a</i>)/4|
+             [<i>a</i>/4,    (1-<i>a</i>)/4,   <i>a</i>/4]
+</pre><br><br>
+<b>Examples:</b><br>
+<pre class="d_code">
+<font color=blue>import</font> std.algorithm.comparison : equal;
+<font color=blue>auto</font> l4 = <u id="laplacian">laplacian</u>(); <font color=green>// laplacian!real(0);
+</font><font color=blue>assert</font>(equal(l4.byElement, [0, 1, 0, 1, -4, 1, 0, 1, 0]));
+</pre>
+<br><br>
+</dd>
+<dt><big><a name="laplacianOfGaussian"></a>Slice!(2, T*) <u id="laplacianOfGaussian">laplacianOfGaussian</u>(T = real)(real <i>sigma</i>, size_t <i>width</i>, size_t <i>height</i>);
+</big></dt>
+<dd>Create laplacian of gaussian <a target="_blank" href="http://homepages.inf.ed.ac.uk/rbf/HIPR2/log.htm">(LoG)</a> filter kernel.
 <br><br>
 <b>Params:</b><br>
 <table><tr><td>real <i>sigma</i></td>
@@ -31,47 +65,53 @@ Creates <u>laplacian</u> kernel matrix using
 <tr><td>size_t <i>height</i></td>
 <td><i>height</i> of the kernel matrix</td></tr>
 </table><br>
-
+<b>Examples:</b><br>
+<pre class="d_code">
+<font color=blue>import</font> std.algorithm.comparison : equal;
+<font color=blue>import</font> std.math : approxEqual;
+<font color=blue>auto</font> log = <u id="laplacianOfGaussian">laplacianOfGaussian</u>!<font color=blue>float</font>(0.84f, 3, 3);
+<font color=blue>auto</font> expected = [
+    0.147722, -0.00865228, 0.147722, 
+    -0.00865228, -0.556277, -0.00865228, 
+    0.147722, -0.00865228, 0.147722].sliced(3, 3);
+<font color=blue>assert</font>(log.byElement.array.equal!approxEqual(expected.byElement.array));
+</pre>
+<br><br>
 </dd>
-<dt><big><a name="EdgeKernel"></a>enum <u>EdgeKernel</u>: int;
+<dt><big><a name="EdgeKernel"></a>enum <u id="EdgeKernel">EdgeKernel</u>: int;
 </big></dt>
 <dd>Convolution kernel type for edge detection.<br><br>
 
 </dd>
-<dt><big><a name="sobel"></a>pure nothrow @trusted Slice!(2, T*) <u>sobel</u>(T = real)(GradientDirection <i>direction</i>);
+<dt><big><a name="sobel"></a>pure nothrow @trusted Slice!(2, T*) <u id="sobel">sobel</u>(T = real)(GradientDirection <i>direction</i>);
 </big></dt>
 <dd>Create a Sobel edge kernel.<br><br>
 
 </dd>
-<dt><big><a name="scharr"></a>pure nothrow @trusted Slice!(2, T*) <u>scharr</u>(T = real)(GradientDirection <i>direction</i>);
+<dt><big><a name="scharr"></a>pure nothrow @trusted Slice!(2, T*) <u id="scharr">scharr</u>(T = real)(GradientDirection <i>direction</i>);
 </big></dt>
 <dd>Create a Scharr edge kernel.<br><br>
 
 </dd>
-<dt><big><a name="prewitt"></a>pure nothrow @trusted Slice!(2, T*) <u>prewitt</u>(T = real)(GradientDirection <i>direction</i>);
+<dt><big><a name="prewitt"></a>pure nothrow @trusted Slice!(2, T*) <u id="prewitt">prewitt</u>(T = real)(GradientDirection <i>direction</i>);
 </big></dt>
 <dd>Create a Prewitt edge kernel.<br><br>
 
 </dd>
-<dt><big><a name="edgeKernel"></a>pure nothrow @trusted Slice!(2, T*) <u>edgeKernel</u>(T)(EdgeKernel <i>kernelType</i>, GradientDirection <i>direction</i>);
+<dt><big><a name="edgeKernel"></a>pure nothrow @trusted Slice!(2, T*) <u id="edgeKernel">edgeKernel</u>(T)(EdgeKernel <i>kernelType</i>, GradientDirection <i>direction</i>);
 </big></dt>
 <dd>Create a kernel of given type.<br><br>
 
 </dd>
-<dt><big><a name="filterNonMaximum"></a>Slice!(2, T*) <u>filterNonMaximum</u>(T)(Slice!(2, T*) <i>slice</i>, size_t <i>filterSize</i> = 10);
+<dt><big><a name="filterNonMaximum"></a>Slice!(2, T*) <u id="filterNonMaximum">filterNonMaximum</u>(T)(Slice!(2, T*) <i>slice</i>, size_t <i>filterSize</i> = 10);
 </big></dt>
 <dd>Perform non-maxima filtering of the image.
 <br><br>
 <b>note:</b><br>
-proxy function, not a proper API!
-
-<br><br>
-<b>TODO:</b><br>
-Implement non-maxima supression for edge detection (canny), and
- make the interface of the function fit both needs.<br><br>
+proxy function, not a proper API!<br><br>
 
 </dd>
-<dt><big><a name="calcPartialDerivatives"></a>void <u>calcPartialDerivatives</u>(T, V = T)(Slice!(2, T*) <i>slice</i>, ref Slice!(2, V*) <i>fx</i>, ref Slice!(2, V*) <i>fy</i>) if (isFloatingPoint!V);
+<dt><big><a name="calcPartialDerivatives"></a>void <u id="calcPartialDerivatives">calcPartialDerivatives</u>(T, V = T)(Slice!(2, T*) <i>slice</i>, ref Slice!(2, V*) <i>fx</i>, ref Slice!(2, V*) <i>fy</i>) if (isFloatingPoint!V);
 </big></dt>
 <dd>Calculate partial derivatives of an <i>slice</i>.
 <br><br>
@@ -79,7 +119,7 @@ Partial derivatives are calculated by convolving an <i>slice</i> with
  [-1, 1] kernel, horizontally and vertically.<br><br>
 
 </dd>
-<dt><big><a name="calcGradients"></a>void <u>calcGradients</u>(T, V = T)(Slice!(2, T*) <i>slice</i>, ref Slice!(2, V*) <i>mag</i>, ref Slice!(2, V*) <i>orient</i>, EdgeKernel <i>edgeKernelType</i> = EdgeKernel.SIMPLE) if (isFloatingPoint!V);
+<dt><big><a name="calcGradients"></a>void <u id="calcGradients">calcGradients</u>(T, V = T)(Slice!(2, T*) <i>slice</i>, ref Slice!(2, V*) <i>mag</i>, ref Slice!(2, V*) <i>orient</i>, EdgeKernel <i>edgeKernelType</i> = EdgeKernel.SIMPLE) if (isFloatingPoint!V);
 </big></dt>
 <dd>Calculate gradient magnitude and orientation of an image <i>slice</i>.
 <br><br>
@@ -98,7 +138,7 @@ Partial derivatives are calculated by convolving an <i>slice</i> with
 </table><br>
 
 </dd>
-<dt><big><a name="nonMaximaSupression"></a>Slice!(2, V*) <u>nonMaximaSupression</u>(T, V = T)(Slice!(2, T*) <i>mag</i>, Slice!(2, T*) <i>orient</i>, Slice!(2, V*) <i>prealloc</i> = emptySlice!(2, V));
+<dt><big><a name="nonMaximaSupression"></a>Slice!(2, V*) <u id="nonMaximaSupression">nonMaximaSupression</u>(T, V = T)(Slice!(2, T*) <i>mag</i>, Slice!(2, T*) <i>orient</i>, Slice!(2, V*) <i>prealloc</i> = emptySlice!(2, V));
 </big></dt>
 <dd>Edge detection impuls non-maxima supression.
 <br><br>
@@ -118,9 +158,9 @@ Filtering used in canny edge detection algorithm - suppresses all
 dcv.imgproc.filter.calcGradients, dcv.imgproc.convolution<br><br>
 
 </dd>
-<dt><big><a name="canny"></a>Slice!(2, V*) <u>canny</u>(V, T)(Slice!(2, T*) <i>slice</i>, T <i>lowThresh</i>, T <i>upThresh</i>, EdgeKernel <i>edgeKernelType</i> = EdgeKernel.SOBEL, Slice!(2, V*) <i>prealloc</i> = emptySlice!(2, V));
+<dt><big><a name="canny"></a>Slice!(2, V*) <u id="canny">canny</u>(V, T)(Slice!(2, T*) <i>slice</i>, T <i>lowThresh</i>, T <i>upThresh</i>, EdgeKernel <i>edgeKernelType</i> = EdgeKernel.SOBEL, Slice!(2, V*) <i>prealloc</i> = emptySlice!(2, V));
 </big></dt>
-<dd>Perform <u>canny</u> filtering on an image to expose edges.
+<dd>Perform <u id="canny">canny</u> filtering on an image to expose edges.
 <br><br>
 <b>Params:</b><br>
 <table><tr><td>Slice!(2, T*) <i>slice</i></td>
@@ -136,14 +176,16 @@ dcv.imgproc.filter.calcGradients, dcv.imgproc.convolution<br><br>
 </table><br>
 
 </dd>
-<dt><big><a name="canny.2"></a>Slice!(2, V*) <u>canny</u>(V, T)(Slice!(2, T*) <i>slice</i>, T <i>thresh</i>, EdgeKernel <i>edgeKernelType</i> = EdgeKernel.SOBEL, Slice!(2, V*) <i>prealloc</i> = emptySlice!(2, V));
+<dt><big><a name="canny.2"></a>Slice!(2, V*) <u id="canny">canny</u>(V, T)(Slice!(2, T*) <i>slice</i>, T <i>thresh</i>, EdgeKernel <i>edgeKernelType</i> = EdgeKernel.SOBEL, Slice!(2, V*) <i>prealloc</i> = emptySlice!(2, V));
 </big></dt>
-<dd>Perform <u>canny</u> filtering on an image to expose edges.
+<dd>Perform <u id="canny">canny</u> filtering on an image to expose edges.
 <br><br>
-Convenience function to call <u>canny</u> with same lower and upper threshold values,
+Convenience function to call <u id="canny">canny</u> with same lower and upper threshold values,
  similar to dcv.imgproc.threshold.threshold.<br><br>
 
 </dd>
 </dl>
 
-           <hr>
+           <hr>Copyright Relja Ljubobratovic 2016.
+
+

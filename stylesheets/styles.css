@@ -152,43 +152,6 @@ img {
     max-width:100%;
 }
 
-header {
-    width:25%;
-    height: 100%;
-    float:left;
-}
-
-header ul {
-    width:100%;
-    padding:0;
-    border-radius:16px;
-    border:1px solid #e0e0e0;
-    background: #f4f4f4;
-}
-
-header li {
-    height:23px;
-    list-style-type: none;
-    margin: 0 10px 0 0;
-}
-
-header ul a {
-    line-height:1;
-    font-size:13px;
-    color:#999;
-    display:block;
-    padding-left:10px;
-    padding-top:6px;
-    text-align: left;
-}
-
-header ul a:hover {
-    color:#999;
-}
-
-header ul a:active {
-    background-color:#f0f0f0;
-}
 
 .roundedbox {
     background: #f4f4f4;
@@ -199,8 +162,8 @@ header ul a:active {
 #sourcetreebox {
     width:270px;
     float:left;
-    position:fixed;
     min-height:500px;
+    height:90%;
 }
 
 #sourcetreebox h2 {
@@ -210,6 +173,12 @@ header ul a:active {
 
 #sourcetreebox a {
     color:rgb(100, 100, 100);
+}
+
+#projectbox {
+    width: 88%;
+    float:left;
+    margin-left:30px;
 }
 
 .roundedbox {
@@ -225,18 +194,16 @@ header ul a:active {
     height:25px;
 }
 
-#projectbox {
-    width: 88%;
-    margin-left: 20px;
-    overflow: auto;
-    display: inline-block;
-}
-
 #dcvtitle h1 {
     font-size: 80px;
     float: left;
     margin: 0;
     padding: 5px;
+}
+
+#dcvtitledesc{
+    font-style:italic;
+    font-family:serif;
 }
 
 #menu {
@@ -273,8 +240,9 @@ header ul a:active {
 }
 
 #pagemain h1 {
-    font-size: 46px;
-    color: black;
+    font-size: 35px;
+    color: gray;
+    text-decoration:underline;
 }
 
 #pagemain a {
@@ -282,20 +250,23 @@ header ul a:active {
     text-decoration: underline;
 }
 
+#pagemain dd {
+    margin: 15px;
+    padding: 15px;
+    background-color:white;
+    border-radius: 8px;
+}
+
 #pagemain dt {
-    background-color: rgb(200, 200, 220);
+    background-color: rgb(224, 224, 224);
     padding : 8px;
     border-radius: 5px;
-    border-left: 3px solid rgb(140, 140, 140);
+    border-left: 3px solid rgb(204, 204, 204);
 }
 
 strong {
     color:#222;
     font-weight:700;
-}
-
-section {
-    float:right;
 }
 
 small {

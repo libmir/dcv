@@ -1,18 +1,26 @@
 <h1>dcv.core.image</h1>
-           <br><br>
-<dl><dt><big><a name="ImageFormat"></a>enum <u>ImageFormat</u>: int;
+           Module implements Image utility class, and basic API for <u id="image">image</u> manipulation.
+<br><br>
+<b>Authors:</b><br>
+Relja Ljubobratovic
+
+<br><br>
+<b>License:</b><br>
+<a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.<br><br>
+
+<dl><dt><big><a name="ImageFormat"></a>enum <u id="ImageFormat">ImageFormat</u>: int;
 </big></dt>
 <dd>Image (pixel) format.<br><br>
 
 </dd>
-<dt><big><a name="BitDepth"></a>enum <u>BitDepth</u>: ulong;
+<dt><big><a name="BitDepth"></a>enum <u id="BitDepth">BitDepth</u>: ulong;
 </big></dt>
 <dd>Bit depth of a pixel in an image.<br><br>
 
 </dd>
-<dt><big><a name="Image"></a>class <u>Image</u>;
+<dt><big><a name="Image"></a>class <u id="Image">Image</u>;
 </big></dt>
-<dd><u>Image</u> abstraction type.<br><br>
+<dd><u id="Image">Image</u> abstraction type.<br><br>
 
 <dl><dt><big><a name="Image.this"></a>pure nothrow @safe this();
 </big></dt>
@@ -54,59 +62,59 @@ Creates an empty image structure.<br><br>
 </table><br>
 
 </dd>
-<dt><big><a name="Image.format"></a>const pure @property @safe auto <u>format</u>();
+<dt><big><a name="Image.format"></a>const pure @property @safe auto <u id="format">format</u>();
 </big></dt>
-<dd>Get <u>format</u> of an image.<br><br>
+<dd>Get <u id="format">format</u> of an image.<br><br>
 
 </dd>
-<dt><big><a name="Image.width"></a>const pure @property @safe auto <u>width</u>();
+<dt><big><a name="Image.width"></a>const pure @property @safe auto <u id="width">width</u>();
 </big></dt>
 <dd>Get height of an image.<br><br>
 
 </dd>
-<dt><big><a name="Image.height"></a>const pure @property @safe auto <u>height</u>();
+<dt><big><a name="Image.height"></a>const pure @property @safe auto <u id="height">height</u>();
 </big></dt>
-<dd>Get <u>height</u> of an image.<br><br>
+<dd>Get <u id="height">height</u> of an image.<br><br>
 
 </dd>
-<dt><big><a name="Image.depth"></a>const pure @property @safe auto <u>depth</u>();
+<dt><big><a name="Image.depth"></a>const pure @property @safe auto <u id="depth">depth</u>();
 </big></dt>
-<dd>Get bit <u>depth</u> of the image.<br><br>
+<dd>Get bit <u id="depth">depth</u> of the image.<br><br>
 
 </dd>
-<dt><big><a name="Image.empty"></a>const pure @property @safe auto <u>empty</u>();
+<dt><big><a name="Image.empty"></a>const pure @property @safe auto <u id="empty">empty</u>();
 </big></dt>
-<dd>Check if image is <u>empty</u> (there's no data present).<br><br>
+<dd>Check if image is <u id="empty">empty</u> (there's no data present).<br><br>
 
 </dd>
-<dt><big><a name="Image.channels"></a>const pure @property @safe auto <u>channels</u>();
+<dt><big><a name="Image.channels"></a>const pure @property @safe auto <u id="channels">channels</u>();
 </big></dt>
 <dd>Channel count of the image.<br><br>
 
 </dd>
-<dt><big><a name="Image.pixelSize"></a>const pure @property @safe auto <u>pixelSize</u>();
+<dt><big><a name="Image.pixelSize"></a>const pure @property @safe auto <u id="pixelSize">pixelSize</u>();
 </big></dt>
 <dd>Number of bytes contained in one pixel of the image.<br><br>
 
 </dd>
-<dt><big><a name="Image.byteSize"></a>const pure @property @safe auto <u>byteSize</u>();
+<dt><big><a name="Image.byteSize"></a>const pure @property @safe auto <u id="byteSize">byteSize</u>();
 </big></dt>
 <dd>Number of bytes contained in the image.<br><br>
 
 </dd>
-<dt><big><a name="Image.rowStride"></a>const pure @property @safe auto <u>rowStride</u>();
+<dt><big><a name="Image.rowStride"></a>const pure @property @safe auto <u id="rowStride">rowStride</u>();
 </big></dt>
 <dd>Number of bytes contained in one row of the image.<br><br>
 
 </dd>
-<dt><big><a name="Image.size"></a>const pure @property @safe size_t[3] <u>size</u>();
+<dt><big><a name="Image.size"></a>const pure @property @safe size_t[3] <u id="size">size</u>();
 </big></dt>
 <dd>Size of the image.
 <br><br>
 Returns an array of 3 sizes: [width, height, channels]<br><br>
 
 </dd>
-<dt><big><a name="Image.isOfType"></a>const pure nothrow @safe bool <u>isOfType</u>(T)();
+<dt><big><a name="Image.isOfType"></a>const pure nothrow @safe bool <u id="isOfType">isOfType</u>(T)();
 </big></dt>
 <dd>Check if this images data corresponds to given value type.
 <br><br>
@@ -122,7 +130,7 @@ Given value type is checked against the image data bit depth.
 </table><br>
 
 </dd>
-<dt><big><a name="Image.asType"></a>inout auto <u>asType</u>(T)();
+<dt><big><a name="Image.asType"></a>inout auto <u id="asType">asType</u>(T)();
 </big></dt>
 <dd>Convert image data type to given type.
 <br><br>
@@ -140,33 +148,35 @@ Copy of this image with casted data to given type. If given type is same as
  current data of this image, deep copy is returned.<br><br>
 
 </dd>
-<dt><big><a name="Image.data"></a>inout pure auto <u>data</u>(T = ubyte)();
+<dt><big><a name="Image.data"></a>inout pure auto <u id="data">data</u>(T = ubyte)();
 </big></dt>
-<dd>Get <u>data</u> array from this image.
+<dd>Get <u id="data">data</u> array from this image.
 <br><br>
-Cast <u>data</u> array to corresponding dynamic array type,
+Cast <u id="data">data</u> array to corresponding dynamic array type,
  and return it.
- 8-bit <u>data</u> is considered ubyte, 16-bit ushort, and 32-bit float.
+ 8-bit <u id="data">data</u> is considered ubyte, 16-bit ushort, and 32-bit float.
 
 <br><br>
 <b>Params:</b><br>
 <table><tr><td>T</td>
-<td>(template parameter) value type (default ubyte) to which <u>data</u> array is casted to.</td></tr>
+<td>(template parameter) value type (default ubyte) to which <u id="data">data</u> array is casted to.</td></tr>
 </table><br>
 
 </dd>
 </dl>
 </dd>
-<dt><big><a name="asImage"></a>Image <u>asImage</u>(size_t N, T)(Slice!(N, T*) <i>slice</i>, ImageFormat <i>format</i>);
+<dt><big><a name="asImage"></a>Image <u id="asImage">asImage</u>(size_t N, T)(Slice!(N, T*) <i>slice</i>, ImageFormat <i>format</i>);
 </big></dt>
 <dd>Convert a ndslice object to an Image, with defined image <i>format</i>.<br><br>
 
 </dd>
-<dt><big><a name="asImage.2"></a>Image <u>asImage</u>(size_t N, T)(Slice!(N, T*) <i>slice</i>);
+<dt><big><a name="asImage.2"></a>Image <u id="asImage">asImage</u>(size_t N, T)(Slice!(N, T*) <i>slice</i>);
 </big></dt>
 <dd>Convert ndslice object into an image, with default format setup, regarding to <i>slice</i> dimension.<br><br>
 
 </dd>
 </dl>
 
-           <hr>
+           <hr>Copyright Relja Ljubobratovic 2016.
+
+

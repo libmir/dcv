@@ -1,20 +1,38 @@
 <h1>dcv.imgproc.color</h1>
-           <br><br>
-<dl><dt><big><a name="Rgb2GrayConvertion"></a>enum <u>Rgb2GrayConvertion</u>: int;
+           Module contains <u id="color">color</u> format convertion operations.
+<br><br>
+<b>Authors:</b><br>
+Relja Ljubobratovic
+
+<br><br>
+<b>License:</b><br>
+<a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.
+<br><br>
+
+<font color=black><big>Module provides following conversions:</big></font>
+<table>    <tr><td><a href="#rgb2gray">RGB to gray</a></td></tr>
+    <tr><td><a href="#gray2rgb">gray to RGB</a></td></tr>
+    <tr><td><a href="#hsv2rgb">HSV to RGB</a></td></tr>
+    <tr><td><a href="#rgb2hsv">RGB to HSV</a></td></tr>
+    <tr><td><a href="#yuv2rgb">YUV to RGB</a></td></tr>
+    <tr><td><a href="#rgb2yuv">RGB to YUV</a></td></tr>
+</table><br><br>
+
+<dl><dt><big><a name="Rgb2GrayConvertion"></a>enum <u id="Rgb2GrayConvertion">Rgb2GrayConvertion</u>: int;
 </big></dt>
 <dd>RGB to Grayscale convertion strategy.<br><br>
 
-<dl><dt><big><a name="Rgb2GrayConvertion.MEAN"></a><u>MEAN</u></big></dt>
+<dl><dt><big><a name="Rgb2GrayConvertion.MEAN"></a><u id="MEAN">MEAN</u></big></dt>
 <dd>Mean the RGB values and assign to gray.<br><br>
 
 </dd>
-<dt><big><a name="Rgb2GrayConvertion.LUMINANCE_PRESERVE"></a><u>LUMINANCE_PRESERVE</u></big></dt>
+<dt><big><a name="Rgb2GrayConvertion.LUMINANCE_PRESERVE"></a><u id="LUMINANCE_PRESERVE">LUMINANCE_PRESERVE</u></big></dt>
 <dd>Use luminance preservation (0.2126R + 0.715G + 0.0722B).<br><br>
 
 </dd>
 </dl>
 </dd>
-<dt><big><a name="rgb2gray"></a>pure nothrow Slice!(2, V*) <u>rgb2gray</u>(V)(Slice!(3, V*) <i>range</i>, Slice!(2, V*) <i>prealloc</i> = emptySlice!(2, V), Rgb2GrayConvertion <i>conv</i> = Rgb2GrayConvertion.LUMINANCE_PRESERVE);
+<dt><big><a name="rgb2gray"></a>pure nothrow Slice!(2, V*) <u id="rgb2gray">rgb2gray</u>(V)(Slice!(3, V*) <i>range</i>, Slice!(2, V*) <i>prealloc</i> = emptySlice!(2, V), Rgb2GrayConvertion <i>conv</i> = Rgb2GrayConvertion.LUMINANCE_PRESERVE);
 </big></dt>
 <dd>Convert RGB image to grayscale.
 <br><br>
@@ -34,7 +52,7 @@
 Returns grayscale version of the given RGB image, of the same size.<br><br>
 
 </dd>
-<dt><big><a name="bgr2gray"></a>pure nothrow Slice!(2, V*) <u>bgr2gray</u>(V)(Slice!(3, V*) <i>range</i>, Slice!(2, V*) <i>prealloc</i> = emptySlice!(2, V), Rgb2GrayConvertion <i>conv</i> = Rgb2GrayConvertion.LUMINANCE_PRESERVE);
+<dt><big><a name="bgr2gray"></a>pure nothrow Slice!(2, V*) <u id="bgr2gray">bgr2gray</u>(V)(Slice!(3, V*) <i>range</i>, Slice!(2, V*) <i>prealloc</i> = emptySlice!(2, V), Rgb2GrayConvertion <i>conv</i> = Rgb2GrayConvertion.LUMINANCE_PRESERVE);
 </big></dt>
 <dd>Convert BGR image to grayscale.
 <br><br>
@@ -58,7 +76,7 @@ Same as rgb2gray, but follows swapped channels if luminance preservation
 Returns grayscale version of the given BGR image, of the same size.<br><br>
 
 </dd>
-<dt><big><a name="gray2rgb"></a>pure nothrow Slice!(3, V*) <u>gray2rgb</u>(V)(Slice!(2, V*) <i>range</i>, Slice!(3, V*) <i>prealloc</i> = emptySlice!(3, V));
+<dt><big><a name="gray2rgb"></a>pure nothrow Slice!(3, V*) <u id="gray2rgb">gray2rgb</u>(V)(Slice!(2, V*) <i>range</i>, Slice!(3, V*) <i>prealloc</i> = emptySlice!(3, V));
 </big></dt>
 <dd>Convert gray image to RGB.
 <br><br>
@@ -79,7 +97,7 @@ Uses grayscale value and assigns it's value
 Returns RGB version of the given grayscale image.<br><br>
 
 </dd>
-<dt><big><a name="rgb2hsv"></a>Slice!(3, R*) <u>rgb2hsv</u>(R, V)(Slice!(3, V*) <i>range</i>, Slice!(3, R*) <i>prealloc</i> = emptySlice!(3, R)) if (isNumeric!R &amp;&amp; isNumeric!V);
+<dt><big><a name="rgb2hsv"></a>Slice!(3, R*) <u id="rgb2hsv">rgb2hsv</u>(R, V)(Slice!(3, V*) <i>range</i>, Slice!(3, R*) <i>prealloc</i> = emptySlice!(3, R)) if (isNumeric!R &amp;&amp; isNumeric!V);
 </big></dt>
 <dd>Convert RGB image to HSV color format.
 <br><br>
@@ -106,7 +124,7 @@ If HSV is represented as floating point, H is
 Returns HSV verion of the given RGB image.<br><br>
 
 </dd>
-<dt><big><a name="hsv2rgb"></a>Slice!(3, R*) <u>hsv2rgb</u>(R, V)(Slice!(3, V*) <i>range</i>, Slice!(3, R*) <i>prealloc</i> = emptySlice!(3, R)) if (isNumeric!R &amp;&amp; isNumeric!V);
+<dt><big><a name="hsv2rgb"></a>Slice!(3, R*) <u id="hsv2rgb">hsv2rgb</u>(R, V)(Slice!(3, V*) <i>range</i>, Slice!(3, R*) <i>prealloc</i> = emptySlice!(3, R)) if (isNumeric!R &amp;&amp; isNumeric!V);
 </big></dt>
 <dd>Convert HSV image to RGB color format.
 <br><br>
@@ -132,7 +150,7 @@ HSV is represented in floating point, where
 Returns HSV verion of the given RGB image.<br><br>
 
 </dd>
-<dt><big><a name="rgb2yuv"></a>Slice!(3, V*) <u>rgb2yuv</u>(V)(Slice!(3, V*) <i>range</i>, Slice!(3, V*) <i>prealloc</i> = emptySlice!(3, V));
+<dt><big><a name="rgb2yuv"></a>Slice!(3, V*) <u id="rgb2yuv">rgb2yuv</u>(V)(Slice!(3, V*) <i>range</i>, Slice!(3, V*) <i>prealloc</i> = emptySlice!(3, V));
 </big></dt>
 <dd>Convert RGB image format to YUV.
 <br><br>
@@ -141,7 +159,7 @@ YUV images in dcv are organized in the same buffer plane
  YUV444 format).<br><br>
 
 </dd>
-<dt><big><a name="yuv2rgb"></a>Slice!(3, V*) <u>yuv2rgb</u>(V)(Slice!(3, V*) <i>range</i>, Slice!(3, V*) <i>prealloc</i> = emptySlice!(3, V));
+<dt><big><a name="yuv2rgb"></a>Slice!(3, V*) <u id="yuv2rgb">yuv2rgb</u>(V)(Slice!(3, V*) <i>range</i>, Slice!(3, V*) <i>prealloc</i> = emptySlice!(3, V));
 </big></dt>
 <dd>Convert YUV image to RGB.
 <br><br>
@@ -155,4 +173,6 @@ Separate inupt and output type as in rgb2hsv etc.<br><br>
 </dd>
 </dl>
 
-           <hr>
+           <hr>Copyright Relja Ljubobratovic 2016.
+
+

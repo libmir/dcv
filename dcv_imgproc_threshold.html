@@ -1,57 +1,63 @@
 <h1>dcv.imgproc.threshold</h1>
-           <br><br>
-<dl><dt><big><a name="threshold"></a>Slice!(N, V*) <u>threshold</u>(V, T, size_t N)(Slice!(N, T*) <i>slice</i>, T <i>lowThresh</i>, T <i>highThresh</i>, Slice!(N, V*) <i>prealloc</i> = emptySlice!(N, V));
+           Image thresholding module.
+<br><br>
+<b>Authors:</b><br>
+Relja Ljubobratovic
+
+<br><br>
+<b>License:</b><br>
+<a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.<br><br>
+
+<dl><dt><big><a name="threshold"></a>Slice!(N, OutputType*) <u id="threshold">threshold</u>(OutputType, InputType, size_t N)(Slice!(N, InputType*) <i>slice</i>, InputType <i>lowThresh</i>, InputType <i>highThresh</i>, Slice!(N, OutputType*) <i>prealloc</i> = emptySlice!(N, OutputType));
 </big></dt>
-<dd>Clip <i>slice</i> values by a given <u>threshold</u> value.
+<dd>Clip <i>slice</i> values by a given <u id="threshold">threshold</u> value.
 <br><br>
-<b>TODO:</b><br>
-consider leaving upper value, and not setting it to 1.
-<br><br>
-
- If any <i>slice</i> element has value in range between lower and
- upper <u>threshold</u> value, its output value is set to upper
- clipping value, otherwise to 0. If output value type is
- a floating point, upper clipping value is 1.0, otherwise
- its the maximal value for that type (e.g. for ubyte its 255,
- for float and double its 1.0).
+If any <i>slice</i> element has value in range between lower and
+upper <u id="threshold">threshold</u> value, its output value is set to upper
+clipping value, otherwise to 0. If output value type is
+a floating point, upper clipping value is 1.0, otherwise
+its the maximal value for that type (e.g. for ubyte its 255,
+for float and double its 1.0).
 <br><br>
 
- If lower <u>threshold</u> bound is of the same value as higher, then
- values are clipped from given value to 0.
+If lower <u id="threshold">threshold</u> bound is of the same value as higher, then
+values are clipped from given value to 0.
 <br><br>
 
- Thresholding is supported for 1D, 2D and 3D slices.
+Thresholding is supported for 1D, 2D and 3D slices.
 
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Slice!(N, T*) <i>slice</i></td>
+<table><tr><td>Slice!(N, InputType*) <i>slice</i></td>
 <td>Input <i>slice</i>.</td></tr>
-<tr><td>T <i>lowThresh</i></td>
-<td>Lower <u>threshold</u> value.</td></tr>
-<tr><td>T <i>highThresh</i></td>
-<td>Higher <u>threshold</u> value.</td></tr>
-<tr><td>Slice!(N, V*) <i>prealloc</i></td>
+<tr><td>InputType <i>lowThresh</i></td>
+<td>Lower <u id="threshold">threshold</u> value.</td></tr>
+<tr><td>InputType <i>highThresh</i></td>
+<td>Higher <u id="threshold">threshold</u> value.</td></tr>
+<tr><td>Slice!(N, OutputType*) <i>prealloc</i></td>
 <td>Optional pre-allocated <i>slice</i> buffer for output.</td></tr>
 </table><br>
 
 </dd>
-<dt><big><a name="threshold.2"></a>Slice!(N, V*) <u>threshold</u>(V, T, size_t N)(Slice!(N, T*) <i>slice</i>, T <i>thresh</i>, Slice!(N, V*) <i>prealloc</i> = emptySlice!(N, V));
+<dt><big><a name="threshold.2"></a>Slice!(N, OutputType*) <u id="threshold">threshold</u>(OutputType, InputType, size_t N)(Slice!(N, InputType*) <i>slice</i>, InputType <i>thresh</i>, Slice!(N, OutputType*) <i>prealloc</i> = emptySlice!(N, OutputType));
 </big></dt>
 <dd>Convenience function for thresholding, where lower and upper bound values are the same.
 <br><br>
-Calls <u>threshold</u>(<i>slice</i>, <i>thresh</i>, <i>thresh</i>, <i>prealloc</i>)
+Calls <u id="threshold">threshold</u>(<i>slice</i>, <i>thresh</i>, <i>thresh</i>, <i>prealloc</i>)
 
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Slice!(N, T*) <i>slice</i></td>
+<table><tr><td>Slice!(N, InputType*) <i>slice</i></td>
 <td>Input <i>slice</i>.</td></tr>
-<tr><td>T <i>thresh</i></td>
+<tr><td>InputType <i>thresh</i></td>
 <td>Threshold value - any value lower than this will be set to 0, and higher to 1.</td></tr>
-<tr><td>Slice!(N, V*) <i>prealloc</i></td>
+<tr><td>Slice!(N, OutputType*) <i>prealloc</i></td>
 <td>Optional pre-allocated <i>slice</i> buffer for output.</td></tr>
 </table><br>
 
 </dd>
 </dl>
 
-           <hr>
+           <hr>Copyright Relja Ljubobratovic 2016.
+
+

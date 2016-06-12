@@ -1,4 +1,75 @@
 <h1>dcv.tracking.opticalflow.hornschunck</h1>
-           <br><br>
+           Module contains <a target="_blank" href="https://en.wikipedia.org/wiki/Horn%E2%80%93Schunck_method">Horn-Schunck</a> optical flow algorithm implementation.
+<br><br>
+<b>Authors:</b><br>
+Relja Ljubobratovic
 
-           <hr>
+<br><br>
+<b>License:</b><br>
+<a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.<br><br>
+
+<dl><dt><big><a name="HornSchunckProperties"></a>struct <u id="HornSchunckProperties">HornSchunckProperties</u>;
+</big></dt>
+<dd>Horn-Schunck algorithm properties.<br><br>
+
+<dl><dt><big><a name="HornSchunckProperties.iterationCount"></a>size_t <u id="iterationCount">iterationCount</u>;
+</big></dt>
+<dd>How many iterations is algorithm evaluated to estimate the flow values.<br><br>
+
+</dd>
+<dt><big><a name="HornSchunckProperties.alpha"></a>float <u id="alpha">alpha</u>;
+</big></dt>
+<dd>Smoothing weight parameter for the flow field.<br><br>
+
+</dd>
+<dt><big><a name="HornSchunckProperties.gaussKernelSize"></a>size_t <u id="gaussKernelSize">gaussKernelSize</u>;
+</big></dt>
+<dd>Size of the gaussian kernel used to blur the image as pre-process step before the algorithm.<br><br>
+
+</dd>
+<dt><big><a name="HornSchunckProperties.gaussSigma"></a>float <u id="gaussSigma">gaussSigma</u>;
+</big></dt>
+<dd>Sigma value of gaussian kernel used to blur the image.<br><br>
+
+</dd>
+<dt><big><a name="HornSchunckProperties.tol"></a>float <u id="tol">tol</u>;
+</big></dt>
+<dd>iteration stopping criterion.<br><br>
+
+</dd>
+</dl>
+</dd>
+<dt><big><a name="HornSchunckFlow"></a>class <u id="HornSchunckFlow">HornSchunckFlow</u>: <u id="dcv.tracking.opticalflow.base.DenseOpticalFlow">dcv.tracking.opticalflow.base.DenseOpticalFlow</u>;
+</big></dt>
+<dd>Horn-Schunck algorithm implementation.<br><br>
+
+<dl><dt><big><a name="HornSchunckFlow.this"></a>this(HornSchunckProperties <i>props</i> = HornSchunckProperties());
+</big></dt>
+<dd>Initialize the algorithm with given set of properties.<br><br>
+
+</dd>
+<dt><big><a name="HornSchunckFlow.evaluate"></a>DenseFlow <u id="evaluate">evaluate</u>(inout Image <i>f1</i>, inout Image <i>f2</i>, DenseFlow <i>prealloc</i> = emptySlice!(3, float), bool <i>usePrevious</i> = false);
+</big></dt>
+<dd>Evaluate Horn-Schunck dense optical flow method between two consecutive frames.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Image <i>f1</i></td>
+<td>First image, i.e. previous frame in the video.</td></tr>
+<tr><td>Image <i>f2</i></td>
+<td>Second image of same size and type as , i.e. current frame in the video.</td></tr>
+<tr><td>DenseFlow <i>prealloc</i></td>
+<td>Optional pre-allocated flow buffer. If provided, has to be of same size as input images are, and with 2 channels (u, v).</td></tr>
+<tr><td>bool <i>usePrevious</i></td>
+<td>Should the previous flow be used. If <b>true</b>  is treated as previous flow, and has to satisfy size requirements.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Calculated flow field.<br><br>
+
+</dd>
+</dl>
+</dd>
+</dl>
+
+           <hr>Copyright Relja Ljubobratovic 2016.
+
+

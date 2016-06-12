@@ -1,16 +1,24 @@
 <h1>dcv.core.utils</h1>
-           <br><br>
-<dl><dt><big><a name="isSlice"></a>enum bool <u>isSlice</u>(T);
+           Module for various utilities used throughout the library.
+<br><br>
+<b>Authors:</b><br>
+Relja Ljubobratovic
+
+<br><br>
+<b>License:</b><br>
+<a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.<br><br>
+
+<dl><dt><big><a name="isSlice"></a>enum bool <u id="isSlice">isSlice</u>(T);
 </big></dt>
 <dd>Check if an type is a Slice.<br><br>
 
 </dd>
-<dt><big><a name="emptySlice"></a>pure nothrow @safe Slice!(N, V*) <u>emptySlice</u>(size_t N, V)();
+<dt><big><a name="emptySlice"></a>pure nothrow @safe Slice!(N, V*) <u id="emptySlice">emptySlice</u>(size_t N, V)();
 </big></dt>
 <dd>Convenience method to return an empty slice - used mainly as default argument in functions in library.<br><br>
 
 </dd>
-<dt><big><a name="asType"></a>Slice!(N, O*) <u>asType</u>(O, V, size_t N)(Slice!(N, V*) <i>inslice</i>);
+<dt><big><a name="asType"></a>Slice!(N, O*) <u id="asType">asType</u>(O, V, size_t N)(Slice!(N, V*) <i>inslice</i>);
 </big></dt>
 <dd>Take another typed Slice. Type conversion for the Slice object.
 <br><br>
@@ -23,7 +31,7 @@ Return a slice with newly allocated data of type O, with same
  shape as input slice.<br><br>
 
 </dd>
-<dt><big><a name="clip"></a>pure nothrow @safe T <u>clip</u>(T, V)(V <i>v</i>) if (isNumeric!V &amp;&amp; isNumeric!T);
+<dt><big><a name="clip"></a>pure nothrow @safe T <u id="clip">clip</u>(T, V)(V <i>v</i>) if (isNumeric!V &amp;&amp; isNumeric!T);
 </big></dt>
 <dd>Clip value by it's value range.
 <br><br>
@@ -35,7 +43,7 @@ Return a slice with newly allocated data of type O, with same
 Clipped value of the output type.<br><br>
 
 </dd>
-<dt><big><a name="merge"></a>pure auto <u>merge</u>(Slices...)(Slices <i>slices</i>) if (Slices.length &gt; 0 &amp;&amp; isSlice!(Slices[0]) &amp;&amp; allSameType!Slices);
+<dt><big><a name="merge"></a>pure auto <u id="merge">merge</u>(Slices...)(Slices <i>slices</i>) if (Slices.length &gt; 0 &amp;&amp; isSlice!(Slices[0]) &amp;&amp; allSameType!Slices);
 </big></dt>
 <dd>Merge multiple <i>slices</i> into one.
 <br><br>
@@ -60,4 +68,6 @@ For input of n Slice!(N, T*) objects, outputs Slice!(N+1, T*) object, where
 </dd>
 </dl>
 
-           <hr>
+           <hr>Copyright Relja Ljubobratovic 2016.
+
+

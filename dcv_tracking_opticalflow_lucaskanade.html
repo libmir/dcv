@@ -1,4 +1,46 @@
 <h1>dcv.tracking.opticalflow.lucaskanade</h1>
-           <br><br>
+           Module contains <a target="_blank" href="https://en.wikipedia.org/wiki/Lucas%E2%80%93Kanade_method">Lucas-Kanade</a> optical flow algorithm implementation.
+<br><br>
+<b>Authors:</b><br>
+Relja Ljubobratovic
 
-           <hr>
+<br><br>
+<b>License:</b><br>
+<a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.<br><br>
+
+<dl><dt><big><a name="LucasKanadeFlow"></a>class <u id="LucasKanadeFlow">LucasKanadeFlow</u>: <u id="dcv.tracking.opticalflow.base.SparseOpticalFlow">dcv.tracking.opticalflow.base.SparseOpticalFlow</u>;
+</big></dt>
+<dd>Lucas-Kanade optical flow method implementation.<br><br>
+
+<dl><dt><big><a name="LucasKanadeFlow.evaluate"></a>float[2][] <u id="evaluate">evaluate</u>(inout Image <i>f1</i>, inout Image <i>f2</i>, in float[2][] <i>points</i>, in float[2][] <i>searchRegions</i>, float[2][] <i>flow</i> = null, bool <i>usePrevious</i> = false);
+</big></dt>
+<dd>Lucas-Kanade optical <i>flow</i> algorithm implementation.
+<br><br>
+<b>see:</b><br>
+dcv.features.corner
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Image <i>f1</i></td>
+<td>First frame image.</td></tr>
+<tr><td>Image <i>f2</i></td>
+<td>Second frame image.</td></tr>
+<tr><td>float[2][] <i>points</i></td>
+<td><i>points</i> which are tracked.</td></tr>
+<tr><td>float[2][] <i>searchRegions</i></td>
+<td>search region width and height for each point.</td></tr>
+<tr><td>float[2][] <i>flow</i></td>
+<td>displacement values preallocated array.</td></tr>
+<tr><td>bool <i>usePrevious</i></td>
+<td>if algorithm should continue iterating by
+ using presented values in the <i>flow</i> array, set this to <b>true</b>.</td></tr>
+</table><br>
+
+</dd>
+</dl>
+</dd>
+</dl>
+
+           <hr>Copyright Relja Ljubobratovic 2016.
+
+

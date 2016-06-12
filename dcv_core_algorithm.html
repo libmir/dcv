@@ -1,26 +1,30 @@
 <h1>dcv.core.algorithm</h1>
-           <br><br>
-<dl><dt><big><a name="findMin"></a>pure nothrow ElementType!Range <u>findMin</u>(Range)(Range <i>range</i>) if (isForwardRange!Range &amp;&amp; isNumeric!(ElementType!Range));
-<br><a name="findMax"></a>pure nothrow ElementType!Range <u>findMax</u>(Range)(Range <i>range</i>) if (isForwardRange!Range &amp;&amp; isNumeric!(ElementType!Range));
+           Module implements various algorithms used often in computer vision.
+<br><br>
+<b>Authors:</b><br>
+Relja Ljubobratovic
+
+<br><br>
+<b>License:</b><br>
+<a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.<br><br>
+
+<dl><dt><big><a name="norm"></a>real <u id="norm">norm</u>(Range)(Range <i>range</i>, in NormType <i>normType</i>) if (isForwardRange!Range &amp;&amp; isNumeric!(ElementType!Range) &amp;&amp; isAssignable!(real, ElementType!Range));
 </big></dt>
-<dd>ditto<br><br>
+<dd>Find <u id="norm">norm</u> of <i>range</i>.<br><br>
 
 </dd>
-<dt><big><a name="norm"></a>real <u>norm</u>(Range)(Range <i>range</i>, in NormType <i>normType</i>) if (isForwardRange!Range &amp;&amp; isNumeric!(ElementType!Range) &amp;&amp; isAssignable!(real, ElementType!Range));
-</big></dt>
-<dd>Find <u>norm</u> of <i>range</i>.<br><br>
-
-</dd>
-<dt><big><a name="normalize"></a>auto <u>normalize</u>(Range)(Range <i>range</i>, NormType <i>normType</i> = NormType.L2) if (isForwardRange!Range &amp;&amp; isAssignable!(real, ElementType!Range));
+<dt><big><a name="normalize"></a>auto <u id="normalize">normalize</u>(Range)(Range <i>range</i>, NormType <i>normType</i> = NormType.L2) if (isForwardRange!Range &amp;&amp; isAssignable!(real, ElementType!Range));
 </big></dt>
 <dd>Normalize <i>range</i> using automatically calculated norm of given type.<br><br>
 
 </dd>
-<dt><big><a name="scaled"></a>pure nothrow @safe auto <u>scaled</u>(Scalar, Range)(Range <i>range</i>, Scalar <i>alpha</i> = 1, Scalar <i>beta</i> = 0) if (isForwardRange!Range &amp;&amp; isNumeric!(ElementType!Range) &amp;&amp; isNumeric!Scalar &amp;&amp; isAssignable!(ElementType!Range, Scalar));
+<dt><big><a name="scaled"></a>pure nothrow @safe auto <u id="scaled">scaled</u>(Scalar, Range)(Range <i>range</i>, Scalar <i>alpha</i> = 1, Scalar <i>beta</i> = 0) if (isForwardRange!Range &amp;&amp; isNumeric!(ElementType!Range) &amp;&amp; isNumeric!Scalar &amp;&amp; isAssignable!(ElementType!Range, Scalar));
 </big></dt>
 <dd>Scale <i>range</i> values (outrange = <i>alpha</i>*inrange + <i>beta</i>)<br><br>
 
 </dd>
 </dl>
 
-           <hr>
+           <hr>Copyright Relja Ljubobratovic 2016.
+
+

@@ -1,11 +1,19 @@
 <h1>dcv.io.image</h1>
-           <br><br>
-<dl><dt><big><a name="ReadParams"></a>struct <u>ReadParams</u>;
+           Module for <u id="image">image</u> I/O.
+<br><br>
+<b>Authors:</b><br>
+Relja Ljubobratovic
+
+<br><br>
+<b>License:</b><br>
+<a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.<br><br>
+
+<dl><dt><big><a name="ReadParams"></a>struct <u id="ReadParams">ReadParams</u>;
 </big></dt>
 <dd>Image reading parameter package type.<br><br>
 
 </dd>
-<dt><big><a name="imread"></a>Image <u>imread</u>(in string <i>path</i>, ReadParams <i>params</i> = ReadParams(ImageFormat.IF_UNASSIGNED, BitDepth.BD_UNASSIGNED));
+<dt><big><a name="imread"></a>Image <u id="imread">imread</u>(in string <i>path</i>, ReadParams <i>params</i> = ReadParams(ImageFormat.IF_UNASSIGNED, BitDepth.BD_UNASSIGNED));
 </big></dt>
 <dd>Read image from the file system.
 <br><br>
@@ -14,9 +22,9 @@
 <td>File system <i>path</i> to the image.</td></tr>
 <tr><td>ReadParams <i>params</i></td>
 <td>Reading parameters - desired format and depth of the image that's read.
- Default parameters include no convertion, but loading image orignal data depth and
- color format. To load original depth or format, set to UNASSIGNED (ImageFormat.IF_UNASSIGNED,
- BitDepth.BD_UNASSIGNED).</td></tr>
+Default parameters include no convertion, but loading image orignal data depth and
+color format. To load original depth or format, set to UNASSIGNED (ImageFormat.IF_UNASSIGNED,
+BitDepth.BD_UNASSIGNED).</td></tr>
 </table><br>
 <b>return:</b><br>
 Image read from the filesystem.
@@ -26,7 +34,7 @@ Image read from the filesystem.
 Exception and ImageIOException from imageformats library.<br><br>
 
 </dd>
-<dt><big><a name="imwrite"></a>bool <u>imwrite</u>(in string <i>path</i>, ulong <i>width</i>, ulong <i>height</i>, ImageFormat <i>format</i>, BitDepth <i>depth</i>, ubyte[] <i>data</i>);
+<dt><big><a name="imwrite"></a>bool <u id="imwrite">imwrite</u>(in string <i>path</i>, ulong <i>width</i>, ulong <i>height</i>, ImageFormat <i>format</i>, BitDepth <i>depth</i>, ubyte[] <i>data</i>);
 </big></dt>
 <dd>Write image to the given <i>path</i> on the filesystem.
 <br><br>
@@ -48,9 +56,9 @@ Exception and ImageIOException from imageformats library.<br><br>
 Status of the writing as bool.<br><br>
 
 </dd>
-<dt><big><a name="imwrite.2"></a>bool <u>imwrite</u>(in Image <i>image</i>, in string <i>path</i>);
+<dt><big><a name="imwrite.2"></a>bool <u id="imwrite">imwrite</u>(in Image <i>image</i>, in string <i>path</i>);
 </big></dt>
-<dd>Convenience wrapper for <u>imwrite</u> with Image.
+<dd>Convenience wrapper for <u id="imwrite">imwrite</u> with Image.
 <br><br>
 <b>Params:</b><br>
 <table><tr><td>Image <i>image</i></td>
@@ -62,9 +70,9 @@ Status of the writing as bool.<br><br>
 Status of the writing as bool.<br><br>
 
 </dd>
-<dt><big><a name="imwrite.3"></a>bool <u>imwrite</u>(size_t dims, T)(Slice!(dims, T*) <i>slice</i>, ImageFormat <i>format</i>, in string <i>path</i>);
+<dt><big><a name="imwrite.3"></a>bool <u id="imwrite">imwrite</u>(size_t dims, T)(Slice!(dims, T*) <i>slice</i>, ImageFormat <i>format</i>, in string <i>path</i>);
 </big></dt>
-<dd>Convenience wrapper for <u>imwrite</u> with Slice type.
+<dd>Convenience wrapper for <u id="imwrite">imwrite</u> with Slice type.
 <br><br>
 <b>Params:</b><br>
 <table><tr><td>Slice!(dims, T*) <i>slice</i></td>
@@ -78,4 +86,6 @@ Status of the writing as bool.<br><br>
 </dd>
 </dl>
 
-           <hr>
+           <hr>Copyright Relja Ljubobratovic 2016.
+
+
