@@ -1,0 +1,65 @@
+<div ><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">module</span> dcv.example.convolution;
+
+<span style="color: #008000">/** </span>
+<span style="color: #008000"> * Spatial image filtering example using dcv library.</span>
+<span style="color: #008000"> */</span>
+
+<span style="color: #0000ff">import</span> std.experimental.ndslice;
+<span style="color: #0000ff">import</span> std.stdio : writeln;
+<span style="color: #0000ff">import</span> std.datetime : StopWatch;
+<span style="color: #0000ff">import</span> std.math : fabs;
+<span style="color: #0000ff">import</span> std.array : array;
+<span style="color: #0000ff">import</span> std.algorithm.iteration : map;
+
+<span style="color: #0000ff">import</span> dcv.core : Image, asType, ranged, ImageFormat;
+<span style="color: #0000ff">import</span> dcv.io : imread, imwrite;
+<span style="color: #0000ff">import</span> dcv.imgproc;
+
+
+<span style="color: #2b91af">int</span> main(string[] args) {
+
+    string impath = (args.length &lt; 2) ? <span style="color: #a31515">&quot;../data/lena.png&quot;</span> : args[1];
+
+    Image img = imread(impath); <span style="color: #008000">// read an image from filesystem.</span>
+
+    <span style="color: #0000ff">if</span> (img.empty) { <span style="color: #008000">// check if image is properly read.</span>
+        writeln(<span style="color: #a31515">&quot;Cannot read image at: &quot;</span> ~ impath);
+        <span style="color: #0000ff">return</span> 1;
+    }
+
+    Slice!(3, <span style="color: #2b91af">float</span>*) imslice = img
+        .asType!<span style="color: #2b91af">float</span> <span style="color: #008000">// convert Image data type from ubyte to float</span>
+            .sliced!<span style="color: #2b91af">float</span>; <span style="color: #008000">// slice image data - calls img.data!float.sliced(img.height, img.width, img.channels)</span>
+
+    <span style="color: #0000ff">auto</span> gray = imslice.rgb2gray; <span style="color: #008000">// convert rgb image to grayscale</span>
+
+    <span style="color: #0000ff">auto</span> gaussianKernel = gaussian!<span style="color: #2b91af">float</span>(2, 5, 5); <span style="color: #008000">// create gaussian convolution kernel (sigma, kernel width and height)</span>
+    <span style="color: #0000ff">auto</span> sobelXKernel = sobel!<span style="color: #2b91af">real</span>(GradientDirection.DIR_X); <span style="color: #008000">// sobel operator for horizontal (X) gradients</span>
+    <span style="color: #0000ff">auto</span> laplacianKernel = laplacian!<span style="color: #2b91af">double</span>; <span style="color: #008000">// laplacian kernel, similar to matlabs fspecial(&#39;laplacian&#39;, alpha)</span>
+    <span style="color: #0000ff">auto</span> logKernel = laplacianOfGaussian(1, 5, 5); <span style="color: #008000">// laplacian of gaussian, similar to matlabs fspecial(&#39;log&#39;, alpha, width, height)</span>
+
+    <span style="color: #008000">// perform convolution for each kernel</span>
+    <span style="color: #0000ff">auto</span> blur = imslice.conv(gaussianKernel);
+    <span style="color: #0000ff">auto</span> xgrads = gray.conv(sobelXKernel);
+    <span style="color: #0000ff">auto</span> laplaceEdges = gray.conv(laplacianKernel);
+    <span style="color: #0000ff">auto</span> logEdges = gray.conv(logKernel);
+
+    <span style="color: #008000">// calculate canny edges</span>
+    <span style="color: #0000ff">auto</span> cannyEdges = gray.canny!<span style="color: #2b91af">ubyte</span>(75);
+    <span style="color: #008000">// scale values from 0 to 255 to preview gradient direction and magnitude</span>
+    xgrads = xgrads.byElement.ranged(0, 255).array.sliced(xgrads.shape);
+
+    <span style="color: #008000">// Take absolute values and range them from 0 to 255, to preview edges</span>
+    laplaceEdges = laplaceEdges.byElement.map!(a =&gt; fabs(a)).ranged(0, 255).array.sliced(laplaceEdges.shape);
+    logEdges = logEdges.byElement.map!(a =&gt; fabs(a)).ranged(0, 255).array.sliced(logEdges.shape);
+
+    <span style="color: #008000">// write resulting images on the filesystem.</span>
+    blur.asType!<span style="color: #2b91af">ubyte</span>.imwrite(ImageFormat.IF_RGB, <span style="color: #a31515">&quot;./result/outblur.png&quot;</span>);
+    xgrads.asType!<span style="color: #2b91af">ubyte</span>.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;./result/sobel.png&quot;</span>);
+    laplaceEdges.asType!<span style="color: #2b91af">ubyte</span>.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;./result/laplace.png&quot;</span>);
+    logEdges.asType!<span style="color: #2b91af">ubyte</span>.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;./result/log.png&quot;</span>);
+    cannyEdges.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;./result/cannyedges.png&quot;</span>);
+
+    <span style="color: #0000ff">return</span> 0;
+}
+</pre></div>

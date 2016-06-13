@@ -23,57 +23,81 @@ var docs = [
     "dcv_tracking_opticalflow_pyramidflow.html"
     ];
 
-    var examples = [
+var examples = [
+    "example_filter.html",
+    "example_features.html"
+];
 
-    ];
+var DESKTOP_UI = 0;
+var PHONE_UI = 1;
+var DESKTOP_MIN_WIDTH = 1200;
+var CONTENT_SYMB_UP = 'Content ▲';
+var CONTENT_SYMB_DOWN = 'Content ▼';
 
-    var animationSpeed = 200;
+var PROJECT_BOX_WIDTH = "88%"
+var PROJECT_BOX_WIDTH_PHONE = "60%";
+var PROJECT_BOX_WIDTH_SHRUNK = "65%";
 
-    function replaceAll(str, find, replace) {
-        return str.replace(new RegExp(find, 'g'), replace);
-    }
+var animationSpeed = 200;
+var currentUI = DESKTOP_UI; 
+
+function replaceAll(str, find, replace) {
+    return str.replace(new RegExp(find, 'g'), replace);
+}
 
 function hideContent() {
-    $("#projectbox").animate(
-            {width: '88%'}, 
-            {duration: animationSpeed, queue:false}
-            );
+    if (currentUI == DESKTOP_UI) {
+        $("#projectbox").animate(
+                {width: PROJECT_BOX_WIDTH}, 
+                {duration: animationSpeed, queue:false}
+                );
+    }
     $("#sourcetreebox").hide(animationSpeed);
 
 }
 
 function showContent() {
-    $("#projectbox").animate(
-            {width: '69%'}, 
-            {duration: animationSpeed, queue:false}
-            );
+    if (currentUI == DESKTOP_UI) {
+        $("#projectbox").animate(
+                {width: PROJECT_BOX_WIDTH_SHRUNK}, 
+                {duration: animationSpeed, queue:false}
+                );
+    }
     $("#sourcetreebox").show(animationSpeed);
+    $("#content").text(CONTENT_SYMB_DOWN);
+}
+
+function toggleContent() {
+    $("#sourcetree").children('li').toggle(animationSpeed);
+    if ($("#content").text() == CONTENT_SYMB_UP) {
+        $("#content").text(CONTENT_SYMB_DOWN);
+    } else {
+        $("#content").text(CONTENT_SYMB_UP);
+    }
 }
 
 function setupHome() {
-    $("#projectbox").animate({width: '88%'}, {duration:animationSpeed, queue:false});
+    $("#projectbox").animate({width: PROJECT_BOX_WIDTH}, {duration:animationSpeed, queue:false});
     $("#sourcetreebox").hide(animationSpeed, function() {
         window.location.href = "index.html";
     });
 }
 
-
-function setupDocumentation() {
-
+function setupContent(content) {
     var sourcetree = document.getElementById("sourcetree");
     sourcetree.innerHTML = '';
 
-    if (docs.length == 0) {
+    if (content.length == 0) {
         hideContent();
         return;
     } 
 
-    docs.forEach(function(item, index) {
+    content.forEach(function(item, index) {
         var lis = "";
         var itemtokens = item.split("/");
         var itempretty = itemtokens[itemtokens.length-1].replace(".html", "");
         itempretty = replaceAll(itempretty, "_", ".");
-        lis += "<a href=\"#\">";
+        lis += "<a href=\"#pagemain\">";
         lis += itempretty;
         lis += "</a>\n";
 
@@ -95,26 +119,75 @@ function setupDocumentation() {
     showContent();
 }
 
+function setupDocumentation() {
+    setupContent(docs);
+}
+
 function setupExamples() {
+    setupContent(examples);
+}
 
-    var sourcetree = document.getElementById("sourcetree");
-    sourcetree.innerHTML = '';
+function setupPhoneUI() {
+    animationSpeed = 0;
+    $("#sourcetree").children('li').slideUp(animationSpeed);
+    $(".roundedbox").css("border-radius", "0px");
+    $("#sourcetreebox").css("width", $("#projectbox").css("width"));
+    $("#sourcetreebox").css('min-height', '0');
+    $('#return-to-top').hide();
+    hideContent();
+}
 
-    var li = document.createElement("li");
-    li.innerHTML = "Sorry, no examples at this moment.";
-    sourcetree.appendChild(li);
+function setupDesktopUI() {
+    animationSpeed = 200;
+    $(".roundedbox").css("border-radius", "16px");
+    $("#sourcetreebox").css("width", "270px");
+    $("#sourcetreebox").css('min-height', '500px');
+    $("#projectbox").css("width", PROJECT_BOX_WIDTH);
 
-    showContent();
+    hideContent();
+}
+
+function evalSize() {
+    screenWidth = window.innerWidth;
+    if (screenWidth < DESKTOP_MIN_WIDTH) {
+        setupPhoneUI();
+        currentUI = PHONE_UI;
+    } else {
+        setupDesktopUI();
+        currentUI = DESKTOP_UI;
+    }
 }
 
 
 $(document).ready(function(e) {
 
+
+    // setup content toggle
+    $("#content").click(toggleContent);
+
+    // always hide the source tree box on startup
     $("#sourcetreebox").hide();
 
     document.getElementById("homelink").onclick = setupHome;
     document.getElementById("doclink").onclick = setupDocumentation;
     document.getElementById("exampleslink").onclick = setupExamples;
+    window.onresize = evalSize;
 
+    // setup return-to-top behaviour
+    $(window).scroll(function() {
+        if ($(this).scrollTop() >= 50) {
+            $('#return-to-top').fadeIn(animationSpeed);
+        } else {
+            $('#return-to-top').fadeOut(animationSpeed);
+        }
+    });
+
+    $('#return-to-top').click(function() {
+        $('body,html').animate({
+            scrollTop : 0
+        }, animationSpeed*2);
+    });
+
+    evalSize();
 });
 

@@ -152,18 +152,22 @@ img {
     max-width:100%;
 }
 
+.wrapper {
+    overflow:hidden;
+    display:inline;
+}
 
 .roundedbox {
     background: #f4f4f4;
     border:1px solid #e0e0e0;
     border-radius: 16px;
+    padding: 15px;
+    margin: 10px;
 }
 
 #sourcetreebox {
     width:270px;
     float:left;
-    min-height:500px;
-    height:90%;
 }
 
 #sourcetreebox h2 {
@@ -177,12 +181,8 @@ img {
 
 #projectbox {
     width: 88%;
+    min-width: 600px;
     float:left;
-    margin-left:30px;
-}
-
-.roundedbox {
-    padding: 15px;
 }
 
 #menu {
@@ -250,6 +250,10 @@ img {
     text-decoration: underline;
 }
 
+#pagemain.d_code {
+    font-family:Monospace;
+}
+
 #pagemain dd {
     margin: 15px;
     padding: 15px;
@@ -262,6 +266,10 @@ img {
     padding : 8px;
     border-radius: 5px;
     border-left: 3px solid rgb(204, 204, 204);
+}
+
+#pagemain code, pre {
+    font-family:Monospace;
 }
 
 strong {
@@ -309,6 +317,10 @@ footer {
         right:50px;
         top:52px;
     }
+
+    #pagemain dt {
+        font-size:13px;
+    }
 }
 
 @media print, screen and (max-width: 720px) {
@@ -327,6 +339,8 @@ footer {
     pre, code {
         word-wrap:normal;
     }
+
+
 }
 
 @media print, screen and (max-width: 480px) {
@@ -343,3 +357,50 @@ footer {
     }
 }
 
+#return-to-top {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgb(0, 0, 0);
+    background: rgba(0, 0, 0, 0.7);
+    width: 50px;
+    height: 50px;
+    display: block;
+    text-decoration: none;
+    -webkit-border-radius: 35px;
+    -moz-border-radius: 35px;
+    border-radius: 35px;
+    display: none;
+    -webkit-transition: all 0.3s linear;
+    -moz-transition: all 0.3s ease;
+    -ms-transition: all 0.3s ease;
+    -o-transition: all 0.3s ease;
+    transition: all 0.3s ease;
+}
+
+#return-to-top i {
+    color: #fff;
+    margin: 0;
+    position: relative;
+    left: 16px;
+    top: 13px;
+    font-size: 19px;
+    -webkit-transition: all 0.3s ease;
+    -moz-transition: all 0.3s ease;
+    -ms-transition: all 0.3s ease;
+    -o-transition: all 0.3s ease;
+    transition: all 0.3s ease;
+}
+
+#return-to-top:hover {
+    background: rgba(0, 0, 0, 0.9);
+}
+
+#return-to-top:hover i {
+    color: #fff;
+    top: 5px;
+}
+
+#return-to-top:focus {
+    outline: 0;
+}

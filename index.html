@@ -6,9 +6,10 @@
 
         <link rel="stylesheet" href="stylesheets/styles.css"/>
         <link rel="stylesheet" href="stylesheets/github-light.css"/>
+        <link rel="stylesheet"href="http://netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css">
         <meta name="viewport" content="width=device-width"/>
         <script src="javascripts/jquery.js"></script>
-        <script src="javascripts/ddocs.js"></script>
+        <script charset='utf-8' src="javascripts/ddocs.js"></script>
         <!--[if lt IE 9]>
             <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
         <![endif]-->
@@ -16,7 +17,7 @@
     <body>
         <div class="wrapper">
             <div class="roundedbox" id="sourcetreebox">
-                <h2>Content</h2>
+                <h2 style="cursor:pointer;"><a id="content">Content &#x25bc</a></h2>
                 <ul id="sourcetree"></ul>
             </div>
             <section class="roundedbox" id="projectbox">
@@ -46,6 +47,6 @@
                 </div>
             </section>
         </div>
-        <script src="javascripts/scale.fix.js"></script>
+        <a href="javascript:" id="return-to-top"><i class="icon-chevron-up"></i></a>
     </body>
 </html>
