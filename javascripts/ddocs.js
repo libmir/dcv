@@ -160,11 +160,9 @@ function setupDesktopUI() {
 function evalSize() {
     screenWidth = window.innerWidth;
     if (screenWidth < DESKTOP_MIN_WIDTH && currentUI != PHONE_UI) {
-        alert("PHONE_UI");
         setupPhoneUI();
         currentUI = PHONE_UI;
     } else if (screenWidth >= DESKTOP_MIN_WIDTH && currentUI != DESKTOP_UI) {
-        alert("DESKTOP_UI");
         setupDesktopUI();
         currentUI = DESKTOP_UI;
     }
