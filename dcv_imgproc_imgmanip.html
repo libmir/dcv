@@ -9,15 +9,15 @@ Relja Ljubobratovic
 <a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.
 <br><br>
 
-<table><tr>Module contains:</tr>
-    <tr>            <td><a href="#resize">resize</a></td>
-            <td><a href="#scale">scale</a></td>
-            <td><a href="#transformAffine">transformAffine</a></td>
-            <td><a href="#transformPerspective">transformPerspective</a></td>
-            <td><a href="#warp">warp</a></td>
-            <td><a href="#remap">remap</a></td>
-    </tr>
-</table><br><br>
+<dl>Module contains:
+    <dd>            <a href="#resize">resize</a>
+            <a href="#scale">scale</a>
+            <a href="#transformAffine">transformAffine</a>
+            <a href="#transformPerspective">transformPerspective</a>
+            <a href="#warp">warp</a>
+            <a href="#remap">remap</a>
+    </dd>
+</dl><br><br>
 
 <dl><dt><big><a name="resize"></a>Slice!(N, V*) <u id="resize">resize</u>(alias interp = linear, V, size_t N, Size...)(Slice!(N, V*) <i>slice</i>, Size <i>newsize</i>) if (allSameType!Size &amp;&amp; allSatisfy!(isIntegral, Size) &amp;&amp; isInterpolationFunc!interp);
 </big></dt>

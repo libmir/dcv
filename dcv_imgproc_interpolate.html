@@ -8,9 +8,33 @@ Relja Ljubobratovic
 <b>License:</b><br>
 <a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.<br><br>
 
-<dl><dt><big><a name="linear"></a>pure auto <u id="linear">linear</u>(T, size_t N, Position...)(Slice!(N, T*) <i>range</i>, Position <i>pos</i>) if (isNumeric!T &amp;&amp; isScalarType!T &amp;&amp; allSameType!Position &amp;&amp; allSatisfy!(isNumeric, Position));
+<dl><dt><big><a name="isInterpolationFunc"></a>bool <u id="isInterpolationFunc">isInterpolationFunc</u>(alias F)();
 </big></dt>
-<dd>Linear interpolation.<br><br>
+<dd>Test if given function is proper form for interpolation.<br><br>
+
+</dd>
+<dt><big><a name="isInterpolationFunc1D"></a>bool <u id="isInterpolationFunc1D">isInterpolationFunc1D</u>(alias F)();
+</big></dt>
+<dd>Test for 1D (vector) interpolation function.<br><br>
+
+</dd>
+<dt><big><a name="isInterpolationFunc2D"></a>bool <u id="isInterpolationFunc2D">isInterpolationFunc2D</u>(alias F)();
+</big></dt>
+<dd>Test for 2D (matrix) interpolation function.<br><br>
+
+</dd>
+<dt><big><a name="linear"></a>pure T <u id="linear">linear</u>(T, size_t N, Position...)(Slice!(N, T*) <i>slice</i>, Position <i>pos</i>) if (isNumeric!T &amp;&amp; isScalarType!T &amp;&amp; allSameType!Position &amp;&amp; allSatisfy!(isNumeric, Position));
+</big></dt>
+<dd>Linear interpolation.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Slice!(N, T*) <i>slice</i></td>
+<td>Input <i>slice</i> which values are interpolated.</td></tr>
+<tr><td>Position <i>pos</i></td>
+<td>Position on which <i>slice</i> values are interpolated.</td></tr>
+</table><br>
+<b>return:</b><br>
+Interpolated resulting value.<br><br>
 
 </dd>
 </dl>

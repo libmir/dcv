@@ -1,6 +1,22 @@
 <h1>dcv.core.image</h1>
            Module implements Image utility class, and basic API for <u id="image">image</u> manipulation.
 <br><br>
+Image class encapsulates <u id="image">image</u> properties with minimal functionality. It is primarily designed to be used as I/O unit.
+For any <u id="image">image</u> processing needs, <u id="image">image</u> data can be sliced to std.experimental.ndslice.slice.Slice.
+
+<br><br>
+<b>Example:</b><br>
+<pre class="d_code">Image <u id="image">image</u> = <font color=blue>new</font> Image(32, 32, ImageFormat.IF_MONO, BitDepth.BD_32);
+
+Slice!(3, <font color=blue>float</font>*) slice = <u id="image">image</u>.sliced!<font color=blue>float</font>; <font color=green>// slice image data, considering the data is of float type.
+</font>
+<font color=blue>assert</font>(<u id="image">image</u>.height == slice.length!0 &amp;&amp; <u id="image">image</u>.width == slice.length!1);
+<font color=blue>assert</font>(<u id="image">image</u>.channels == 1);
+
+<u id="image">image</u> = slice.asImage(ImageFormat.IF_MONO); <font color=green>// create the image back from sliced data.
+</font></pre>
+
+<br><br>
 <b>Authors:</b><br>
 Relja Ljubobratovic
 
@@ -12,24 +28,67 @@ Relja Ljubobratovic
 </big></dt>
 <dd>Image (pixel) format.<br><br>
 
+<dl><dt><big><a name="ImageFormat.IF_UNASSIGNED"></a><u id="IF_UNASSIGNED">IF_UNASSIGNED</u></big></dt>
+<dd>Not assigned format.<br><br>
+
+</dd>
+<dt><big><a name="ImageFormat.IF_MONO"></a><u id="IF_MONO">IF_MONO</u></big></dt>
+<dd>Mono, single channel format.<br><br>
+
+</dd>
+<dt><big><a name="ImageFormat.IF_MONO_ALPHA"></a><u id="IF_MONO_ALPHA">IF_MONO_ALPHA</u></big></dt>
+<dd>Mono with alpha channel.<br><br>
+
+</dd>
+<dt><big><a name="ImageFormat.IF_RGB"></a><u id="IF_RGB">IF_RGB</u></big></dt>
+<dd>RGB format.<br><br>
+
+</dd>
+<dt><big><a name="ImageFormat.IF_BGR"></a><u id="IF_BGR">IF_BGR</u></big></dt>
+<dd>BGR format.<br><br>
+
+</dd>
+<dt><big><a name="ImageFormat.IF_YUV"></a><u id="IF_YUV">IF_YUV</u></big></dt>
+<dd>YUV (YCbCr) format.<br><br>
+
+</dd>
+<dt><big><a name="ImageFormat.IF_RGB_ALPHA"></a><u id="IF_RGB_ALPHA">IF_RGB_ALPHA</u></big></dt>
+<dd>RGB format with alpha.<br><br>
+
+</dd>
+<dt><big><a name="ImageFormat.IF_BGR_ALPHA"></a><u id="IF_BGR_ALPHA">IF_BGR_ALPHA</u></big></dt>
+<dd>BGR format with alpha.<br><br>
+
+</dd>
+</dl>
 </dd>
 <dt><big><a name="BitDepth"></a>enum <u id="BitDepth">BitDepth</u>: ulong;
 </big></dt>
 <dd>Bit depth of a pixel in an image.<br><br>
 
+<dl><dt><big><a name="BitDepth.BD_UNASSIGNED"></a><u id="BD_UNASSIGNED">BD_UNASSIGNED</u></big></dt>
+<dd>Not assigned depth info.<br><br>
+
+</dd>
+<dt><big><a name="BitDepth.BD_8"></a><u id="BD_8">BD_8</u></big></dt>
+<dd>8-bit (ubyte) depth type.<br><br>
+
+</dd>
+<dt><big><a name="BitDepth.BD_16"></a><u id="BD_16">BD_16</u></big></dt>
+<dd>16-bit (ushort) depth type.<br><br>
+
+</dd>
+<dt><big><a name="BitDepth.BD_32"></a><u id="BD_32">BD_32</u></big></dt>
+<dd>32-bit (float) depth type.<br><br>
+
+</dd>
+</dl>
 </dd>
 <dt><big><a name="Image"></a>class <u id="Image">Image</u>;
 </big></dt>
 <dd><u id="Image">Image</u> abstraction type.<br><br>
 
-<dl><dt><big><a name="Image.this"></a>pure nothrow @safe this();
-</big></dt>
-<dd>Default constructor for image.
-<br><br>
-Creates an empty image structure.<br><br>
-
-</dd>
-<dt><big><a name="Image.this.2"></a>pure this(in Image <i>copy</i>, bool <i>deepCopy</i> = false);
+<dl><dt><big><a name="Image.this"></a>pure this(in Image <i>copy</i>, bool <i>deepCopy</i> = false);
 </big></dt>
 <dd>Copy constructor.
 <br><br>
@@ -42,7 +101,7 @@ Creates an empty image structure.<br><br>
 </table><br>
 
 </dd>
-<dt><big><a name="Image.this.3"></a>pure nothrow @safe this(size_t <i>width</i>, size_t <i>height</i>, ImageFormat <i>format</i> = ImageFormat.IF_RGB, BitDepth <i>depth</i> = BitDepth.BD_8, ubyte[] <i>data</i> = null);
+<dt><big><a name="Image.this.2"></a>pure nothrow @safe this(size_t <i>width</i>, size_t <i>height</i>, ImageFormat <i>format</i> = ImageFormat.IF_RGB, BitDepth <i>depth</i> = BitDepth.BD_8, ubyte[] <i>data</i> = null);
 </big></dt>
 <dd>Construct an image by given size, <i>format</i> and bit <i>depth</i> information.
 <br><br>

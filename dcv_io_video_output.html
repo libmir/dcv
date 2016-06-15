@@ -1,6 +1,36 @@
 <h1>dcv.io.video.output</h1>
            Module implements utilities for video <u id="output">output</u>.
 <br><br>
+Video <u id="output">output</u> streaming is performed using OutputStream utility by following example:
+<br><br>
+
+<pre class="d_code">
+Image []frames; <font color=green>// initialized elsewhere
+</font>
+OutputStream outputStream = <font color=blue>new</font> OutputStream;  <font color=green>// define the output video outputStream.
+</font>
+OutputDefinition props;
+
+props.width = width;
+props.height = height;
+props.imageFormat = ImageFormat.IF_RGB;
+props.bitRate = 90_000;
+props.codecId = CodecID.H263;
+
+outputStream.open(filePath, props);
+
+<font color=blue>if</font> (!outputStream.isOpen) {
+    exit(-1);
+}
+
+<font color=blue>foreach</font>(frame; frames) {
+    outputStream.writeFrame(frame);
+}
+
+outputStream.close();
+</pre>
+
+<br><br>
 <b>Authors:</b><br>
 Relja Ljubobratovic
 
@@ -8,6 +38,106 @@ Relja Ljubobratovic
 <b>License:</b><br>
 <a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.<br><br>
 
+<dl><dt><big><a name="OutputDefinition"></a>struct <u id="OutputDefinition">OutputDefinition</u>;
+</big></dt>
+<dd>Output stream definition properties.<br><br>
+
+<dl><dt><big><a name="OutputDefinition.width"></a>size_t <u id="width">width</u>;
+</big></dt>
+<dd>Width of the output video frame.<br><br>
+
+</dd>
+<dt><big><a name="OutputDefinition.height"></a>size_t <u id="height">height</u>;
+</big></dt>
+<dd>Height of the output video frame.<br><br>
+
+</dd>
+<dt><big><a name="OutputDefinition.bitRate"></a>size_t <u id="bitRate">bitRate</u>;
+</big></dt>
+<dd>Bit rate of the output video stream.<br><br>
+
+</dd>
+<dt><big><a name="OutputDefinition.frameRate"></a>size_t <u id="frameRate">frameRate</u>;
+</big></dt>
+<dd>Frame rate of the output video stream.<br><br>
+
+</dd>
+<dt><big><a name="OutputDefinition.imageFormat"></a>ImageFormat <u id="imageFormat">imageFormat</u>;
+</big></dt>
+<dd>Image format for video frame.<br><br>
+
+</dd>
+<dt><big><a name="OutputDefinition.codecId"></a>CodecID <u id="codecId">codecId</u>;
+</big></dt>
+<dd>Video codec for output video stream.<br><br>
+
+</dd>
+</dl>
+</dd>
+<dt><big><a name="OutputStream"></a>class <u id="OutputStream">OutputStream</u>;
+</big></dt>
+<dd>Video stream utility used to output video content to file system.<br><br>
+
+<dl><dt><big><a name="OutputStream.this"></a>this();
+</big></dt>
+<dd>Default initialization.<br><br>
+
+</dd>
+<dt><big><a name="OutputStream.isOpen"></a>const @property auto <u id="isOpen">isOpen</u>();
+</big></dt>
+<dd>Check if stream is open.<br><br>
+
+</dd>
+<dt><big><a name="OutputStream.open"></a>bool <u id="open">open</u>(in string <i>filepath</i>, in OutputDefinition <i>props</i> = OutputDefinition());
+</big></dt>
+<dd>Open the video stream.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>path</td>
+<td>Path to the stream.</td></tr>
+<tr><td>type</td>
+<td>Stream type.</td></tr>
+</table><br>
+
+</dd>
+<dt><big><a name="OutputStream.close"></a>void <u id="close">close</u>();
+</big></dt>
+<dd>Close the output stream.<br><br>
+
+</dd>
+<dt><big><a name="OutputStream.writeFrame"></a>bool <u id="writeFrame">writeFrame</u>(Image <i>image</i>);
+</big></dt>
+<dd>Write given <i>image</i> as new frame of the <i>image</i>.<br><br>
+
+</dd>
+<dt><big><a name="OutputStream.width"></a>const @property auto <u id="width">width</u>();
+</big></dt>
+<dd>Width of the frame image.<br><br>
+
+</dd>
+<dt><big><a name="OutputStream.height"></a>const @property auto <u id="height">height</u>();
+</big></dt>
+<dd>Height of the frame image.<br><br>
+
+</dd>
+<dt><big><a name="OutputStream.frameCount"></a>const @property auto <u id="frameCount">frameCount</u>();
+</big></dt>
+<dd>Current frame count of the output stream.<br><br>
+
+</dd>
+<dt><big><a name="OutputStream.frameRate"></a>const @property auto <u id="frameRate">frameRate</u>();
+</big></dt>
+<dd>Frame rate of the stream.<br><br>
+
+</dd>
+<dt><big><a name="OutputStream.codec"></a>const @property auto <u id="codec">codec</u>();
+</big></dt>
+<dd>Codec of the stream.<br><br>
+
+</dd>
+</dl>
+</dd>
+</dl>
 
            <hr>Copyright Relja Ljubobratovic 2016.
 

@@ -392,13 +392,12 @@ footer {
     transition: all 0.3s ease;
 }
 
-#return-to-top:hover {
-    background: rgba(0, 0, 0, 0.9);
+#return-to-top:hover i {
+    top: 5px;
 }
 
-#return-to-top:hover i {
-    color: #fff;
-    top: 5px;
+#return-to-top {
+    outline: 0;
 }
 
 #return-to-top:focus {

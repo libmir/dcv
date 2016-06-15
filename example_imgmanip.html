@@ -1,0 +1,172 @@
+<h1 id="image-manipulation-example">Image manipulation example</h1>
+<p>This example should demonstrate how to apply various image (spatial) transformations.</p>
+<h2 id="modules-used">Modules used</h2>
+<ul>
+<li>dcv.core;</li>
+<li>dcv.imgproc.imgmanip;</li>
+<li>dcv.io;</li>
+</ul>
+<h2 id="resize">Resize</h2>
+<p>Array resize is done by using dcv.imgproc.imgmanip.resize method. Value interpolation in the resize operation is defined by the first template parameter which is by default linear (dcv.imgproc.interpolation.linear). Custom interpolation method can be defined in the 3rd party code, by following rules established in existing interpolation functions. Such custom interpolation method can be used in any transformation function as:</p>
+<div><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">auto</span> resizedArray = array.resize!customInterpolation(newsize)
+<span style="color: #008000">//or...</span>
+<span style="color: #0000ff">auto</span> scaledArray = array.scale!customInterpolation(scaleValue)
+</pre></div>
+<p>Example so far only demonstrates how to resize an ND array.</p>
+<h3 id="d-resize">1D Resize</h3>
+<p>Resize method supports 1D (vector) interpolated resizing. As shown in the example code:</p>
+<div><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">auto</span> array_1d = [0., 1.].sliced(2);
+array_1d.resize(9).writeln
+</pre></div>
+<p>… prints out:</p>
+<pre><code>[0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1]</code></pre>
+<h3 id="d-resize-1">2D Resize</h3>
+<p>… Or the matrix resize, for the following code:</p>
+<div ><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">auto</span> array_2d = [1., 2., 3., 4.].sliced(2, 2);
+<span style="color: #0000ff">auto</span> res_2d = array_2d.resize(9, 9);
+<span style="color: #0000ff">foreach</span>(row; res_2d) row.writeln;
+</pre></div>
+<p>… outputs on the console:</p>
+<pre><code>[1, 1.125, 1.25, 1.375, 1.5, 1.625, 1.75, 1.875, 2]
+[1.25, 1.375, 1.5, 1.625, 1.75, 1.875, 2, 2.125, 2.25]
+[1.5, 1.625, 1.75, 1.875, 2, 2.125, 2.25, 2.375, 2.5]
+[1.75, 1.875, 2, 2.125, 2.25, 2.375, 2.5, 2.625, 2.75]
+[2, 2.125, 2.25, 2.375, 2.5, 2.625, 2.75, 2.875, 3]
+[2.25, 2.375, 2.5, 2.625, 2.75, 2.875, 3, 3.125, 3.25]
+[2.5, 2.625, 2.75, 2.875, 3, 3.125, 3.25, 3.375, 3.5]
+[2.75, 2.875, 3, 3.125, 3.25, 3.375, 3.5, 3.625, 3.75]
+[3, 3.125, 3.25, 3.375, 3.5, 3.625, 3.75, 3.875, 4]</code></pre>
+<h3 id="d-resize">3D Resize</h3>
+<p>3D resize is defined as would be on the multi-channel image - values of each channel are interpolated individualy as in 2D resize:</p>
+<div><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">auto</span> array_3d = [1., 2.,  3., 4.,  5., 6.,  7., 8.].sliced(2, 2, 2);
+
+<span style="color: #0000ff">auto</span> res_3d = array_3d.resize(9, 9); <span style="color: #008000">// notice the 2D new size (9, 9)</span>
+<span style="color: #0000ff">foreach</span>(row; res_3d) row.writeln;
+</pre></div>
+<p>… prints out:</p>
+<pre><code>[[1, 2], [1.25, 2.25], [1.5, 2.5], [1.75, 2.75], [2, 3], [2.25, 3.25], [2.5, 3.5], [2.75, 3.75], [3, 4]]
+[[1.5, 2.5], [1.75, 2.75], [2, 3], [2.25, 3.25], [2.5, 3.5], [2.75, 3.75], [3, 4], [3.25, 4.25], [3.5, 4.5]]
+[[2, 3], [2.25, 3.25], [2.5, 3.5], [2.75, 3.75], [3, 4], [3.25, 4.25], [3.5, 4.5], [3.75, 4.75], [4, 5]]
+[[2.5, 3.5], [2.75, 3.75], [3, 4], [3.25, 4.25], [3.5, 4.5], [3.75, 4.75], [4, 5], [4.25, 5.25], [4.5, 5.5]]
+[[3, 4], [3.25, 4.25], [3.5, 4.5], [3.75, 4.75], [4, 5], [4.25, 5.25], [4.5, 5.5], [4.75, 5.75], [5, 6]]
+[[3.5, 4.5], [3.75, 4.75], [4, 5], [4.25, 5.25], [4.5, 5.5], [4.75, 5.75], [5, 6], [5.25, 6.25], [5.5, 6.5]]
+[[4, 5], [4.25, 5.25], [4.5, 5.5], [4.75, 5.75], [5, 6], [5.25, 6.25], [5.5, 6.5], [5.75, 6.75], [6, 7]]
+[[4.5, 5.5], [4.75, 5.75], [5, 6], [5.25, 6.25], [5.5, 6.5], [5.75, 6.75], [6, 7], [6.25, 7.25], [6.5, 7.5]]
+[[5, 6], [5.25, 6.25], [5.5, 6.5], [5.75, 6.75], [6, 7], [6.25, 7.25], [6.5, 7.5], [6.75, 7.75], [7, 8]]</code></pre>
+<h3 id="image-resize">Image Resize</h3>
+<p>As shown in the <strong>3D resize</strong> example, multi-channel (RGB) images can be resized as:</p>
+<div><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">auto</span> image = [255, 0, 0,  0, 255, 0,  0, 0, 255,  255, 255, 255].sliced(2, 2, 3).asType!<span style="color: #2b91af">ubyte</span>;
+<span style="color: #0000ff">auto</span> resizedImage = image.resize(300, 300);
+resizedImage.imwrite(<span style="color: #a31515">&quot;./result/resizedImage.png&quot;</span>);
+</pre></div>
+<p>Output image:</p>
+<div class="figure">
+<img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/imgmanip/result/resizedImage.png?raw=true" alt="alt tag" />
+</div>
+<h3 id="image-scale">Image Scale</h3>
+<p>Similar to resize, images can be scaled. Image scaling calls resize internally with scaled image size by given value.</p>
+<div ><pre style="margin: 0; line-height: 125%"><span style="color: #008000">// scale image:</span>
+<span style="color: #0000ff">auto</span> scaledImage = resizedImage.scale(2., 2.);
+scaledImage.imwrite(<span style="color: #a31515">&quot;./result/scaledImage.png&quot;</span>);
+</pre></div>
+<p>Output image:</p>
+<div class="figure">
+<img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/imgmanip/result/scaledImage.png?raw=true" alt="alt tag" />
+</div>
+<h2 id="image-transform">Image Transform</h2>
+<p>Affine and Perspective transformation over images can be performed by using dcv.imgproc.imgmanip.transformAffine, and transformPerspective functions.</p>
+<p>Functions take the slice of an image as first argument, which can be 2D, and 3D. Second argument is a 3x3 transformation matrix, which can be defined as Slice object, or as build in 2D array in floating point type. Third argument is the output image size. And as in resize, first template argument is an alias to interpolation function, which is by default linear.</p>
+<h3 id="code">Code</h3>
+<div ><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">import</span> std.math : sin, cos, PI;
+
+image = imread(<span style="color: #a31515">&quot;../data/lena.png&quot;</span>).sliced!<span style="color: #2b91af">ubyte</span>;
+
+<span style="color: #2b91af">double</span> ang = PI / 4.; <span style="color: #008000">// rotation angle</span>
+<span style="color: #2b91af">double</span> t_x = 30.; <span style="color: #008000">// x offset</span>
+<span style="color: #2b91af">double</span> t_y = -100.; <span style="color: #008000">// y offset</span>
+size_t [2] outSize = [image.length!1 * 2, image.length!0 * 2]; <span style="color: #008000">// output size: [width*2, height*2]</span>
+
+<span style="color: #008000">// transform image:</span>
+<span style="color: #0000ff">auto</span> transformedImage = image.transformAffine([
+        [cos(ang), -sin(ang), t_x],
+        [sin(ang), cos(ang), t_y],
+        [0., 0., 1.]
+    ], outSize); 
+
+transformedImage.imwrite(<span style="color: #a31515">&quot;./result/transformedImage.png&quot;</span>);
+</pre></div>
+<p>Output image:</p>
+<div class="figure">
+<img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/imgmanip/result/transformedImage.png?raw=true" alt="alt tag" />
+</div>
+
+<br><br><span><big>Complete code:</big></span>
+<div><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">module</span> dcv.example.imgmanip;
+
+<span style="color: #008000">/** </span>
+<span style="color: #008000"> * Image manipulation example using dcv library.</span>
+<span style="color: #008000"> */</span>
+
+<span style="color: #0000ff">import</span> std.stdio;
+<span style="color: #0000ff">import</span> std.experimental.ndslice;
+
+<span style="color: #0000ff">import</span> dcv.core;
+<span style="color: #0000ff">import</span> dcv.imgproc.imgmanip;
+<span style="color: #0000ff">import</span> dcv.io;
+
+<span style="color: #2b91af">void</span> main()
+{
+	<span style="color: #0000ff">auto</span> array_1d = [0., 1.].sliced(2);
+
+	<span style="color: #008000">// resize 1D array:</span>
+	writeln(<span style="color: #a31515">&quot;1D:&quot;</span>);
+	array_1d.resize(9).writeln; <span style="color: #008000">// so, same as calling array_1d.resize!linear(9)</span>
+	writeln();
+	
+	<span style="color: #0000ff">auto</span> array_2d = [1., 2., 3., 4.].sliced(2, 2);
+
+	<span style="color: #008000">// resize 2D array:</span>
+	writeln(<span style="color: #a31515">&quot;2D:&quot;</span>);
+	<span style="color: #0000ff">auto</span> res_2d = array_2d.resize(9, 9);
+	<span style="color: #0000ff">foreach</span>(row; res_2d)
+		row.writeln;
+	writeln();
+
+	<span style="color: #0000ff">auto</span> array_3d = [1., 2.,  3., 4., 
+	5., 6.,  7., 8.].sliced(2, 2, 2);
+
+	<span style="color: #008000">// resize 3D array:</span>
+	writeln(<span style="color: #a31515">&quot;3D:&quot;</span>);
+	<span style="color: #0000ff">auto</span> res_3d = array_3d.resize(9, 9);
+	<span style="color: #0000ff">foreach</span>(row; res_3d)
+		row.writeln;
+	writeln();
+
+	<span style="color: #008000">// resize image:</span>
+	<span style="color: #0000ff">auto</span> image = [255, 0, 0,  0, 255, 0,  0, 0, 255,  255, 255, 255].sliced(2, 2, 3).asType!<span style="color: #2b91af">ubyte</span>;
+	<span style="color: #0000ff">auto</span> resizedImage = image.resize(300, 300);
+	resizedImage.imwrite(ImageFormat.IF_RGB, <span style="color: #a31515">&quot;./result/resizedImage.png&quot;</span>);
+
+	<span style="color: #008000">// scale image:</span>
+	<span style="color: #0000ff">auto</span> scaledImage = resizedImage.scale(2., 2.);
+	scaledImage.imwrite(ImageFormat.IF_RGB, <span style="color: #a31515">&quot;./result/scaledImage.png&quot;</span>);
+
+	<span style="color: #0000ff">import</span> std.math : sin, cos, PI;
+
+	image = imread(<span style="color: #a31515">&quot;../data/lena.png&quot;</span>).sliced!<span style="color: #2b91af">ubyte</span>;
+
+	<span style="color: #2b91af">double</span> ang = PI / 4.; <span style="color: #008000">// rotation angle</span>
+	<span style="color: #2b91af">double</span> t_x = 30.; <span style="color: #008000">// x offset</span>
+	<span style="color: #2b91af">double</span> t_y = -100.; <span style="color: #008000">// y offset</span>
+	size_t [2] outSize = [image.length!1 * 2, image.length!0 * 2]; <span style="color: #008000">// output size: [width*2, height*2]</span>
+
+	<span style="color: #008000">// transform image:</span>
+	<span style="color: #0000ff">auto</span> transformedImage = image.transformAffine([
+			[cos(ang), -sin(ang), t_x],
+			[sin(ang), cos(ang), t_y],
+			[0., 0., 1.]
+		], outSize); 
+
+	transformedImage.imwrite(ImageFormat.IF_RGB, <span style="color: #a31515">&quot;./result/transformedImage.png&quot;</span>);
+}
+</pre></div>

@@ -1,0 +1,36 @@
+<h1>dcv.features.detector</h1>
+           Module introduces the API that defines Feature Detector utilities in the dcv library.
+<br><br>
+<b>Authors:</b><br>
+Relja Ljubobratovic
+
+<br><br>
+<b>License:</b><br>
+<a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.<br><br>
+
+<dl><dt><big><a name="Detector"></a>interface <u id="Detector">Detector</u>;
+</big></dt>
+<dd>Feature detector interface.
+<br><br>
+Each feature detector algorithm
+implements this interface.<br><br>
+
+<dl><dt><big><a name="Detector.detect"></a>abstract const Feature[] <u id="detect">detect</u>(in Image <i>image</i>, size_t <i>count</i>);
+</big></dt>
+<dd>Detector features in the <i>image</i>.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Image <i>image</i></td>
+<td>Image in which features are looked for.</td></tr>
+<tr><td>size_t <i>count</i></td>
+<td>How many features are to be extracted from given <i>image</i>.</td></tr>
+</table><br>
+
+</dd>
+</dl>
+</dd>
+</dl>
+
+           <hr>Copyright Relja Ljubobratovic 2016.
+
+

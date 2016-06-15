@@ -1,6 +1,35 @@
 <h1>dcv.imgproc.convolution</h1>
            Module introduces <a target="_blank" href="https://en.wikipedia.org/wiki/Kernel_(image_processing)#Convolution">image <u id="convolution">convolution</u></a> function.
 <br><br>
+Following example loads famous image of Lena Söderberg and performs gaussian blurring by convolving the image with gaussian kernel.
+<br><br>
+
+<pre class="d_code"><font color=blue>import</font> dcv.io.image : imread, ReadParams;
+<font color=blue>import</font> dcv.core.image : Image, asType;
+<font color=blue>import</font> dcv.imgproc.<u id="convolution">convolution</u> : conv;
+
+Image lenaImage = imread(<font color=red>"../data/lena.png"</font>, ReadParams(ImageFormat.IF_MONO, BitDepth.BD_8));
+<font color=blue>auto</font> slice = lenaImage.sliced!<font color=blue>ubyte</font>;
+</pre>
+<br><br>
+
+... this loads the following image:<br>
+<img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/lena.png?raw=true"/>
+<br><br>
+
+<pre class="d_code">blurred = slice
+             .asType!<font color=blue>float</font> <font color=green>// convert ubyte data to float.
+</font>             .conv(gaussian!<font color=blue>float</font>(0.84f, 5, 5)); <font color=green>// convolve image with gaussian kernel
+</font>
+</pre>
+<br><br>
+
+... which give the resulting image:<br>
+<img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/filter/result/outblur.png?raw=true"/>
+<br><br>
+
+
+<br><br>
 <b>Authors:</b><br>
 Relja Ljubobratovic
 

@@ -1,6 +1,17 @@
 <h1>dcv.core.algorithm</h1>
            Module implements various algorithms used often in computer vision.
 <br><br>
+<dl>Module contains:
+    <dd>            <a href="#findMin">findMin</a>
+            <a href="#findMax">findMax</a>
+            <a href="#norm">norm</a>
+            <a href="#normalize">normalize</a>
+            <a href="#scaled">scaled</a>
+            <a href="#ranged">ranged</a>
+    </dd>
+</dl>
+
+<br><br>
 <b>Authors:</b><br>
 Relja Ljubobratovic
 
@@ -8,20 +19,146 @@ Relja Ljubobratovic
 <b>License:</b><br>
 <a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.<br><br>
 
-<dl><dt><big><a name="norm"></a>real <u id="norm">norm</u>(Range)(Range <i>range</i>, in NormType <i>normType</i>) if (isForwardRange!Range &amp;&amp; isNumeric!(ElementType!Range) &amp;&amp; isAssignable!(real, ElementType!Range));
+<dl><dt><big><a name="NormType"></a>enum <u id="NormType">NormType</u>: int;
 </big></dt>
-<dd>Find <u id="norm">norm</u> of <i>range</i>.<br><br>
+<dd>Type of matrix and vector norms.<br><br>
+
+<dl><dt><big><a name="NormType.INF"></a><u id="INF">INF</u></big></dt>
+<dd>Infinite norm, max(x)<br><br>
+
+</dd>
+<dt><big><a name="NormType.L1"></a><u id="L1">L1</u></big></dt>
+<dd>1-norm, sum(abs(x))<br><br>
+
+</dd>
+<dt><big><a name="NormType.L2"></a><u id="L2">L2</u></big></dt>
+<dd>Eucledian norm, sqrt(sum(x^^2))<br><br>
+
+</dd>
+</dl>
+</dd>
+<dt><big><a name="findMin"></a>pure nothrow ElementType!Range <u id="findMin">findMin</u>(Range)(Range <i>range</i>) if (isForwardRange!Range &amp;&amp; isNumeric!(ElementType!Range));
+</big></dt>
+<dd>Find minimum value in the forward <i>range</i>.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Range <i>range</i></td>
+<td>Forward <i>range</i> in which minimum value is looked for.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Minimum value of all elements in given <i>range</i>.<br><br>
+<b>Examples:</b><br>
+Find minimal value in the array.
+<pre class="d_code">
+<font color=blue>auto</font> arr = [1, 2, 3];
+<font color=blue>assert</font>(arr.<u id="findMin">findMin</u> == 1);
+</pre>
+<br><br>
+</dd>
+<dt><big><a name="findMax"></a>pure nothrow ElementType!Range <u id="findMax">findMax</u>(Range)(Range <i>range</i>) if (isForwardRange!Range &amp;&amp; isNumeric!(ElementType!Range));
+</big></dt>
+<dd>Find maximum value in the forward <i>range</i>.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Range <i>range</i></td>
+<td>Forward <i>range</i> in which maximum value is looked for.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Maximum value of all elements in given <i>range</i>.<br><br>
+<b>Examples:</b><br>
+Find maximal value in the array.
+<pre class="d_code">
+<font color=blue>auto</font> arr = [1, 2, 3];
+<font color=blue>assert</font>(arr.<u id="findMax">findMax</u> == 3);
+</pre>
+<br><br>
+</dd>
+<dt><big><a name="norm"></a>real <u id="norm">norm</u>(Range)(Range <i>range</i>, in NormType <i>normType</i>) if (isForwardRange!Range &amp;&amp; isNumeric!(ElementType!Range) &amp;&amp; isAssignable!(real, ElementType!Range));
+</big></dt>
+<dd>Calculate value of various <u id="norm">norm</u> types for vectors and matrices.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Range <i>range</i></td>
+<td>Forward <i>range</i> that represents vector or matrix of which the <u id="norm">norm</u> is calculated.</td></tr>
+<tr><td>NormType <i>normType</i></td>
+<td>requested type of <u id="norm">norm</u>.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Calculated <u id="norm">norm</u> value as real.<br><br>
 
 </dd>
 <dt><big><a name="normalize"></a>auto <u id="normalize">normalize</u>(Range)(Range <i>range</i>, NormType <i>normType</i> = NormType.L2) if (isForwardRange!Range &amp;&amp; isAssignable!(real, ElementType!Range));
 </big></dt>
-<dd>Normalize <i>range</i> using automatically calculated norm of given type.<br><br>
+<dd>Normalize <i>range</i> using given norm type.
+<br><br>
+Performs lazy normalization by utilizing std.algorithm.iteration.map.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Range <i>range</i></td>
+<td>Forward <i>range</i> that represent vector or matrix which is normalized.</td></tr>
+<tr><td>NormType <i>normType</i></td>
+<td>requested norm type for normalization.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Returns the map result <i>range</i> that evaluates normalization lazily.<br><br>
 
 </dd>
 <dt><big><a name="scaled"></a>pure nothrow @safe auto <u id="scaled">scaled</u>(Scalar, Range)(Range <i>range</i>, Scalar <i>alpha</i> = 1, Scalar <i>beta</i> = 0) if (isForwardRange!Range &amp;&amp; isNumeric!(ElementType!Range) &amp;&amp; isNumeric!Scalar &amp;&amp; isAssignable!(ElementType!Range, Scalar));
 </big></dt>
-<dd>Scale <i>range</i> values (outrange = <i>alpha</i>*inrange + <i>beta</i>)<br><br>
+<dd>Scale <i>range</i> values by shift and multiplication.
+<br><br>
+Performs value scaling by multiplication and shifting by following equation:
+<pre class="d_code"><i>out</i> = <i><i>alpha</i></i>*<i><i>range</i></i> + <i><i>beta</i></i></pre>
+<br><br>
 
+Performs lazy scale of the values by utilizing std.algorithm.iteration.map.
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Range <i>range</i></td>
+<td>Forward <i>range</i> in which values are being <u id="scaled">scaled</u>.</td></tr>
+<tr><td>Scalar <i>alpha</i></td>
+<td>Multiplier value.</td></tr>
+<tr><td>Scalar <i>beta</i></td>
+<td>Shift value.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Returns the map result <i>range</i> that evaluates value scaling lazily.<br><br>
+<b>Examples:</b><br>
+<pre class="d_code">
+<font color=blue>auto</font> arr = [0.0, 0.5, 1.0];
+arr = arr.<u id="scaled">scaled</u>(10.0, 2.0).array;
+<font color=blue>assert</font>(arr[0] == 2.0);
+<font color=blue>assert</font>(arr[1] == 7.0);
+<font color=blue>assert</font>(arr[2] == 12.0);
+</pre>
+<br><br>
+</dd>
+<dt><big><a name="ranged"></a>auto <u id="ranged">ranged</u>(Scalar, Range)(Range <i>range</i>, Scalar <i>min</i> = 0, Scalar <i>max</i> = 1) if (isForwardRange!Range &amp;&amp; isNumeric!(ElementType!Range) &amp;&amp; isNumeric!Scalar &amp;&amp; isAssignable!(ElementType!Range, Scalar));
+</big></dt>
+<dd>Scale <i>range</i> values to fit a given value <i>range</i>.
+<br><br>
+Performs lazy scale of the values by utilizing std.algorithm.iteration.map.
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Range <i>range</i></td>
+<td>Forward <i>range</i> in which values are being scaled.</td></tr>
+<tr><td>Scalar <i>min</i></td>
+<td>Minimal <i>range</i> value.</td></tr>
+<tr><td>Scalar <i>max</i></td>
+<td>Maximal <i>range</i> value.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Returns the map result <i>range</i> that evaluates value scaling lazily.<br><br>
+<b>Examples:</b><br>
+<pre class="d_code">
+<font color=blue>auto</font> arr = [0.0, 0.5, 1.0].<u id="ranged">ranged</u>(0, 10).array;
+<font color=blue>assert</font>(arr[0] == 0.);
+<font color=blue>assert</font>(arr[1] == 5.);
+<font color=blue>assert</font>(arr[2] == 10.);
+</pre>
+<br><br>
 </dd>
 </dl>
 

@@ -4,7 +4,10 @@ var docs = [
     "dcv_core_image.html", 
     "dcv_core_memory.html", 
     "dcv_core_utils.html", 
+    "dcv_features_corner_fast_package.html", 
     "dcv_features_corner_harris.html", 
+    "dcv_features_corner_package.html", 
+    "dcv_features_detector_package.html", 
     "dcv_features_utils.html", 
     "dcv_imgproc_color.html", 
     "dcv_imgproc_convolution.html", 
@@ -13,6 +16,7 @@ var docs = [
     "dcv_imgproc_interpolate.html", 
     "dcv_imgproc_threshold.html", 
     "dcv_io_image.html", 
+    "dcv_io_package.html", 
     "dcv_io_video_common.html", 
     "dcv_io_video_input.html", 
     "dcv_io_video_output.html", 
@@ -20,12 +24,18 @@ var docs = [
     "dcv_plot_opticalflow.html", 
     "dcv_tracking_opticalflow_hornschunck.html", 
     "dcv_tracking_opticalflow_lucaskanade.html", 
-    "dcv_tracking_opticalflow_pyramidflow.html"
+    "dcv_tracking_opticalflow_pyramidflow.html", 
+    "dcv_tracking_opticalflow_package.html", 
+    "dcv_tracking_opticalflow_base.html", 
     ];
 
 var examples = [
     "example_filter.html",
-    "example_features.html"
+    "example_features.html",
+    "example_video.html",
+    "example_tracking_hornschunck.html",
+    "example_tracking_lucaskanade.html",
+    "example_imgmanip.html"
 ];
 
 var DESKTOP_UI = 0;
@@ -97,7 +107,8 @@ function setupContent(content) {
         var itemtokens = item.split("/");
         var itempretty = itemtokens[itemtokens.length-1].replace(".html", "");
         itempretty = replaceAll(itempretty, "_", ".");
-        lis += "<a href=\"#pagemain\">";
+        itempretty = replaceAll(itempretty, ".package", "");
+        lis += "<a href=\"#\">";
         lis += itempretty;
         lis += "</a>\n";
 

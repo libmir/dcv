@@ -1,0 +1,216 @@
+
+<h1 id="kanade-lucas-tomasi-tracking-example">Kanade-Lucas-Tomasi Tracking Example</h1>
+<p>This example demonstrates usage of Pyramidal Lucas-Kanade Optical Flow algorithm implementation in dcv.</p>
+<h2 id="modules-used">Modules used</h2>
+<ul>
+<li>dcv.core</li>
+<li>dcv.io</li>
+<li>dcv.imgproc.filter : filterNonMaximum</li>
+<li>dcv.imgproc.color : gray2rgb</li>
+<li>dcv.features.corner.harris : shiTomasiCorners</li>
+<li>dcv.features.utils : extractCorners</li>
+<li>dcv.tracking.opticalflow : LucasKanadeFlow, SparsePyramidFlow</li>
+</ul>
+<h2 id="example-description">Example description</h2>
+<p>In this example, <a href="https://en.wikipedia.org/wiki/Kanade%E2%80%93Lucas%E2%80%93Tomasi_feature_tracker">Kanade-Lucas-Tomasi</a> tracker is implemented to demonstrate feature tracking with <a href="https://en.wikipedia.org/wiki/Lucas%E2%80%93Kanade_method">Lucas-Kanade</a> optical flow method. Similar to Horn-Schunck method, Lucas-Kanade is used to estimate field displacement of two adjacent frames in the video, only here the displacement is estimated locally, around a distinct feature point in the frame.</p>
+<p>For detailed info, please take a look into the example’s source code.</p>
+
+<span><big>Complete code:</big></span>
+
+<div><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">module</span> dcv.example.opticalflow;
+
+<span style="color: #008000">/** </span>
+<span style="color: #008000"> * Kanade-Lucas-Tomasi tracking example, in dcv.</span>
+<span style="color: #008000"> */</span>
+
+<span style="color: #0000ff">import</span> std.stdio;
+<span style="color: #0000ff">import</span> std.conv : to;
+<span style="color: #0000ff">import</span> std.algorithm : copy, map, each;
+<span style="color: #0000ff">import</span> std.range : lockstep;
+<span style="color: #0000ff">import</span> std.array : array;
+<span style="color: #0000ff">import</span> std.experimental.ndslice;
+
+<span style="color: #0000ff">import</span> dcv.core;
+<span style="color: #0000ff">import</span> dcv.io;
+<span style="color: #0000ff">import</span> dcv.imgproc.filter : filterNonMaximum;
+<span style="color: #0000ff">import</span> dcv.imgproc.color : gray2rgb;
+<span style="color: #0000ff">import</span> dcv.features.corner.harris : shiTomasiCorners;
+<span style="color: #0000ff">import</span> dcv.features.utils : extractCorners;
+<span style="color: #0000ff">import</span> dcv.tracking.opticalflow : LucasKanadeFlow, SparsePyramidFlow;
+
+<span style="color: #2b91af">void</span> printHelp() {
+    writeln(<span style="color: #a31515">`</span>
+<span style="color: #a31515">DCV Lucas-Kanade Sparse Optical Flow Example.</span>
+<span style="color: #a31515">Run example program without arguments. This mode configures the flow algorithm by </span>
+<span style="color: #a31515">using default parameter set, and for video the dcv/examples/data/centaur_1.mpg file is loaded.</span>
+<span style="color: #a31515">If multiple parameters are given, then parameters are considered to be:</span>
+<span style="color: #a31515">1 - video stream mode (-f for file, -l for webcam or live mode);</span>
+<span style="color: #a31515">2 - video stream name (for file mode it is the path to the file, for webcam it is the name of the stream, e.g. /dev/video0);</span>
+<span style="color: #a31515">3 - tracking kernel width (default 15);</span>
+<span style="color: #a31515">4 - number of corners to be detected and tracked (default 20);</span>
+<span style="color: #a31515">5 - number of frames through which features will be tracked (default 100);</span>
+<span style="color: #a31515">6 - number of pyramid levels through which the flow algorithm will be evaluated (default 3);</span>
+<span style="color: #a31515">7 - number of iterations for each flow evaluation (default 10);</span>
+<span style="color: #a31515">8 - minimal eigenvalue of the corner response during the tracking - if the corner eigenvalue is smaller than given after the tracking, </span>
+<span style="color: #a31515">    the feature is no longer considered to be valid, and is discarded from further tracking.</span>
+<span style="color: #a31515">Example:</span>
+<span style="color: #a31515">./klt -f ../../data/centaur_1.mpg 19 10 100 3 30 1000.0`</span>);
+}
+
+<span style="color: #2b91af">int</span> main(string[] args) {
+
+    <span style="color: #0000ff">if</span> (args.length == 2 &amp;&amp; args[1] == <span style="color: #a31515">&quot;-h&quot;</span>) {
+        printHelp();
+        <span style="color: #0000ff">return</span> 0;
+    }
+
+    <span style="color: #008000">// open video stream</span>
+    InputStream stream = <span style="color: #0000ff">new</span> InputStream;
+
+    InputStreamType streamType;
+    string streamName;
+
+    <span style="color: #0000ff">if</span> (args.length == 1) {
+        streamName = <span style="color: #a31515">&quot;../../data/centaur_1.mpg&quot;</span>;
+        streamType = InputStreamType.FILE;
+    } <span style="color: #0000ff">else</span> {
+        <span style="color: #0000ff">if</span> (args.length &lt; 3) {
+            writeln(<span style="color: #a31515">&quot;Invalid argument setup - at least video format and stream name is needed.&quot;</span> ~
+                <span style="color: #a31515">&quot;\nCall program with -h to show detailed info.&quot;</span>);
+            <span style="color: #0000ff">return</span> 1;
+        }
+
+        <span style="color: #0000ff">switch</span> (args[1]) {
+            <span style="color: #0000ff">case</span> <span style="color: #a31515">&quot;-f&quot;</span>:
+                streamType = InputStreamType.FILE;
+                <span style="color: #0000ff">break</span>;
+            <span style="color: #0000ff">case</span> <span style="color: #a31515">&quot;-l&quot;</span>:
+                streamType = InputStreamType.LIVE;
+                <span style="color: #0000ff">break</span>;
+            <span style="color: #0000ff">default</span>:
+                writeln(<span style="color: #a31515">&quot;Invalid video stream type: use -f for file and -l for webcam live stream&quot;</span>);
+                <span style="color: #0000ff">return</span> 1;
+        }
+
+        streamName = args[2];
+    }
+
+    stream.open(streamName, streamType);
+
+    <span style="color: #0000ff">if</span> (!stream.isOpen) {
+        writeln(<span style="color: #a31515">&quot;Cannot open stream named: &quot;</span>, streamName, <span style="color: #a31515">&quot;, typed as: &quot;</span>, streamType);
+        <span style="color: #0000ff">return</span> 1;
+    }
+
+    Image prevFrame, thisFrame; <span style="color: #008000">// image frames, for tracking</span>
+
+    <span style="color: #0000ff">auto</span> cornerW = args.length &gt;= 4 ? args[3].to!<span style="color: #2b91af">float</span> : 15.0f; <span style="color: #008000">// size of the tracking kernel</span>
+    <span style="color: #0000ff">auto</span> cornerCount = args.length &gt;= 5 ? args[4].to!<span style="color: #2b91af">uint</span> : 20; <span style="color: #008000">// numer of corners tracked</span>
+    <span style="color: #0000ff">auto</span> frames = args.length &gt;= 6 ? args[5].to!<span style="color: #2b91af">uint</span> : 100; <span style="color: #008000">// maximum frame count to be tracked</span>
+    <span style="color: #0000ff">auto</span> pyrLevels = args.length &gt;= 7 ? args[6].to!<span style="color: #2b91af">uint</span> : 3; <span style="color: #008000">// number of levels in the optical flow pyramid</span>
+    <span style="color: #0000ff">auto</span> iterCount = args.length &gt;= 8 ? args[7].to!<span style="color: #2b91af">uint</span> : 10; <span style="color: #008000">// number of levels in the optical flow pyramid</span>
+    <span style="color: #0000ff">auto</span> eigLim = args.length &gt;= 9 ? args[8].to!<span style="color: #2b91af">float</span>: 1000.0f; <span style="color: #008000">// corner eigenvalue limit, after which the feature is invalid.</span>
+
+    <span style="color: #0000ff">auto</span> frame = 0; <span style="color: #008000">// frame counter</span>
+
+    <span style="color: #008000">// initialize and setup the optical flow algorithm</span>
+    LucasKanadeFlow lkFlow = <span style="color: #0000ff">new</span> LucasKanadeFlow;
+    SparsePyramidFlow spFlow = <span style="color: #0000ff">new</span> SparsePyramidFlow(lkFlow, pyrLevels);
+
+    lkFlow.sigma = 0.80f;
+    lkFlow.iterationCount = iterCount;
+
+    <span style="color: #008000">// read first frame and use it to detect initial corners for tracking</span>
+    stream.readFrame(prevFrame);
+
+    <span style="color: #008000">// take the y channel and form an image</span>
+    prevFrame = prevFrame.sliced[0..$, 0..$, 0].asImage(ImageFormat.IF_MONO);
+
+    <span style="color: #0000ff">auto</span> h = prevFrame.height;
+    <span style="color: #0000ff">auto</span> w = prevFrame.width;
+
+    <span style="color: #008000">// detect corners to track</span>
+    writeln(<span style="color: #a31515">&quot;Search features...&quot;</span>);
+    <span style="color: #0000ff">auto</span> f1f = prevFrame.sliced.reshape(h, w).asType!<span style="color: #2b91af">float</span>;
+    <span style="color: #0000ff">auto</span> corners = f1f.shiTomasiCorners(<span style="color: #0000ff">cast</span>(<span style="color: #2b91af">uint</span>)cornerW)
+                        .filterNonMaximum
+                        .extractCorners(cornerCount)
+                        .map!(v =&gt; <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">float</span>[2])[<span style="color: #0000ff">cast</span>(<span style="color: #2b91af">float</span>) v[0], <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">float</span>) v[1]])
+                        .array;
+
+    <span style="color: #0000ff">auto</span> reg = <span style="color: #0000ff">new</span> <span style="color: #2b91af">float</span>[2][corners.length].map!(v =&gt; <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">float</span>[2])[cornerW, cornerW]).array;
+
+    <span style="color: #0000ff">while</span> (stream.readFrame(thisFrame)) {
+        writeln(<span style="color: #a31515">&quot;Tracking frame no. &quot;</span> ~ frame.to!string ~ <span style="color: #a31515">&quot;...&quot;</span>);
+
+        <span style="color: #008000">// take the y channel, and form an image of it.</span>
+        thisFrame = thisFrame.sliced[0 .. $, 0 .. $, 0].asImage(ImageFormat.IF_MONO);
+
+        <span style="color: #008000">// if corner count has dropped below 50% of original count, try to detect new points.</span>
+        <span style="color: #0000ff">if</span> (corners.length &lt; (cornerCount / 2)) {
+            writeln(<span style="color: #a31515">&quot;Search features again...&quot;</span>);
+            <span style="color: #0000ff">auto</span> c = shiTomasiCorners(prevFrame.sliced.reshape(h, w)
+                .asType!<span style="color: #2b91af">float</span>, <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">uint</span>) cornerW).filterNonMaximum.extractCorners(
+                cornerCount);
+
+            <span style="color: #0000ff">foreach</span> (v; c)
+                corners ~= [<span style="color: #0000ff">cast</span>(<span style="color: #2b91af">float</span>) v[0], <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">float</span>) v[1]];
+        }
+
+        <span style="color: #008000">// evaluate the optical flow</span>
+        <span style="color: #0000ff">auto</span> flow = spFlow.evaluate(prevFrame, thisFrame, corners, reg);
+
+        <span style="color: #008000">// discard faulty tracked corners</span>
+        <span style="color: #0000ff">auto</span> fback = corners;
+        corners.length = 0;
+        <span style="color: #0000ff">foreach</span> (id, e; lkFlow.cornerResponse) {
+            <span style="color: #0000ff">import</span> std.math : isNaN;
+            <span style="color: #0000ff">import</span> std.algorithm : remove;
+
+            <span style="color: #0000ff">if</span> (!isNaN(e) &amp;&amp; e &gt; eigLim) {
+                corners ~= fback[id];
+            }
+            <span style="color: #0000ff">else</span> {
+                writeln(<span style="color: #a31515">&quot;Removing corner no. &quot;</span>, id, <span style="color: #a31515">&quot; with score: &quot;</span>, e);
+            }
+        }
+
+        <span style="color: #0000ff">foreach</span> (<span style="color: #0000ff">ref</span> c, f; lockstep(corners, flow)) {
+            c[0] = c[0] + f[1];
+            c[1] = c[1] + f[0];
+        }
+
+        <span style="color: #008000">// draw tracked corners and write the image</span>
+        <span style="color: #0000ff">auto</span> f2c = thisFrame.sliced.reshape(h, w).gray2rgb.asType!<span style="color: #2b91af">float</span>;
+        f2c.drawCorners(corners, 3, <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">ubyte</span>[])[255, 0, 0]);
+
+        f2c.asType!<span style="color: #2b91af">ubyte</span>.imwrite(ImageFormat.IF_RGB, <span style="color: #a31515">&quot;./result/image_&quot;</span> ~ frame.to!string ~ <span style="color: #a31515">&quot;.png&quot;</span>);
+
+        <span style="color: #0000ff">if</span> (++frame &gt;= frames)
+            <span style="color: #0000ff">break</span>;
+
+        <span style="color: #008000">// take this frame as next one&#39;s previous</span>
+        prevFrame = thisFrame;
+    }
+
+    <span style="color: #0000ff">return</span> 0;
+}
+
+<span style="color: #2b91af">void</span> drawCorners(T, Color)(Slice!(3, T*) image, <span style="color: #2b91af">float</span>[2][] corners, <span style="color: #2b91af">float</span> cornerSize, Color color) {
+    <span style="color: #0000ff">import</span> std.algorithm.iteration : each;
+    
+    <span style="color: #0000ff">auto</span> ch = <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">long</span>)(cornerSize / 2);
+    <span style="color: #0000ff">foreach</span> (corner; corners) {
+        <span style="color: #0000ff">auto</span> c0 = <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">long</span>) corner[0];
+        <span style="color: #0000ff">auto</span> c1 = <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">long</span>) corner[1];
+        <span style="color: #0000ff">if</span> (c0 - ch &lt; 0 || c0 + ch &gt;= image.length!0 - 1 || c1 - ch &lt; 0
+            || c1 + ch &gt;= image.length!1 - 1)
+            <span style="color: #0000ff">continue</span>;
+        <span style="color: #0000ff">auto</span> window = image[c0 - ch .. c0 + ch, c1 - ch .. c1 + ch, 0..$];
+        <span style="color: #0000ff">foreach</span> (pix; window.pack!1.byElement) {
+            pix[] = color[];
+        }
+    }
+}
+</pre></div>
+

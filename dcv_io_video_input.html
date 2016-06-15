@@ -1,6 +1,23 @@
 <h1>dcv.io.video.input</h1>
            Module implements utilities for video <u id="input">input</u>.
 <br><br>
+Input video streaming is performed with InputStream utility by following example:
+<pre class="d_code">InputStream stream = <font color=blue>new</font> InputStream;
+
+stream.open(pathToVideoFile, InputStreamType.FILE);
+
+<font color=blue>if</font> (!stream.isOpen) {
+    exit(-1);
+}
+
+Image frame;
+
+<font color=blue>while</font>(stream.readFrame(frame)) {
+    <font color=green>// do something with frame...
+</font>}
+</pre>
+
+<br><br>
 <b>Authors:</b><br>
 Relja Ljubobratovic
 
@@ -8,13 +25,84 @@ Relja Ljubobratovic
 <b>License:</b><br>
 <a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.<br><br>
 
-<dl><dt><big><a name="InputStream"></a>class <u id="InputStream">InputStream</u>;
+<dl><dt><big><a name="InputStreamType"></a>enum <u id="InputStreamType">InputStreamType</u>: int;
 </big></dt>
-<dd>Video streaming utility.
-<br><br>
-Perform FILE/output video streaming. Wraps FFmpeg library.<br><br>
+<dd>Input streaming type - file or webcam (live)<br><br>
 
-<dl><dt><big><a name="InputStream.open"></a>bool <u id="open">open</u>(in string <i>path</i>, InputStreamType <i>type</i> = InputStreamType.FILE);
+<dl><dt><big><a name="InputStreamType.INVALID"></a><u id="INVALID">INVALID</u></big></dt>
+<dd>Invalid stream, as non-assigned.<br><br>
+
+</dd>
+<dt><big><a name="InputStreamType.FILE"></a><u id="FILE">FILE</u></big></dt>
+<dd>File video stream.<br><br>
+
+</dd>
+<dt><big><a name="InputStreamType.LIVE"></a><u id="LIVE">LIVE</u></big></dt>
+<dd>Live video stream.<br><br>
+
+</dd>
+</dl>
+</dd>
+<dt><big><a name="SeekFrameException"></a>class <u id="SeekFrameException">SeekFrameException</u>: <u id="object.Exception">object.Exception</u>;
+</big></dt>
+<dd>Exception thrown when seeking a frame fails.<br><br>
+
+</dd>
+<dt><big><a name="SeekTimeException"></a>class <u id="SeekTimeException">SeekTimeException</u>: <u id="object.Exception">object.Exception</u>;
+</big></dt>
+<dd>Exception thrown when seeking a time fails.<br><br>
+
+</dd>
+<dt><big><a name="InputStream"></a>class <u id="InputStream">InputStream</u>;
+</big></dt>
+<dd>Video streaming utility.<br><br>
+
+<dl><dt><big><a name="InputStream.isOpen"></a>const @property auto <u id="isOpen">isOpen</u>();
+</big></dt>
+<dd>Check if stream is open.<br><br>
+
+</dd>
+<dt><big><a name="InputStream.isFileStream"></a>const @property auto <u id="isFileStream">isFileStream</u>();
+</big></dt>
+<dd>Check if this stream is the file stream.<br><br>
+
+</dd>
+<dt><big><a name="InputStream.isLiveStream"></a>const @property auto <u id="isLiveStream">isLiveStream</u>();
+</big></dt>
+<dd>Check if this stream is the live stream.<br><br>
+
+</dd>
+<dt><big><a name="InputStream.width"></a>const @property auto <u id="width">width</u>();
+</big></dt>
+<dd>Get <u id="width">width</u> of the video frame.<br><br>
+
+</dd>
+<dt><big><a name="InputStream.height"></a>const @property auto <u id="height">height</u>();
+</big></dt>
+<dd>Get <u id="height">height</u> of the video frame.<br><br>
+
+</dd>
+<dt><big><a name="InputStream.frameSize"></a>const @property auto <u id="frameSize">frameSize</u>();
+</big></dt>
+<dd>Get size of frame in bytes.<br><br>
+
+</dd>
+<dt><big><a name="InputStream.frameCount"></a>const @property auto <u id="frameCount">frameCount</u>();
+</big></dt>
+<dd>Get number of frames in video.<br><br>
+
+</dd>
+<dt><big><a name="InputStream.streamIndex"></a>const @property auto <u id="streamIndex">streamIndex</u>();
+</big></dt>
+<dd>Get the index of the stream - most commonly is 0, where audio stream is 1.<br><br>
+
+</dd>
+<dt><big><a name="InputStream.frameRate"></a>const @property auto <u id="frameRate">frameRate</u>();
+</big></dt>
+<dd>Get frame rate of the stream.<br><br>
+
+</dd>
+<dt><big><a name="InputStream.open"></a>bool <u id="open">open</u>(in string <i>path</i>, InputStreamType <i>type</i> = InputStreamType.FILE);
 </big></dt>
 <dd>Open the video stream.
 <br><br>
@@ -23,6 +111,37 @@ Perform FILE/output video streaming. Wraps FFmpeg library.<br><br>
 <td>Path to the stream.</td></tr>
 <tr><td>InputStreamType <i>type</i></td>
 <td>Stream <i>type</i>.</td></tr>
+</table><br>
+<b>return:</b><br>
+Stream opening status - <b>true</b> if succeeds, <b>false</b> otherwise.
+
+<br><br>
+<b>Throws:</b><br>
+StreamNotOpenException<br><br>
+
+</dd>
+<dt><big><a name="InputStream.close"></a>void <u id="close">close</u>();
+</big></dt>
+<dd>Close the video stream.<br><br>
+
+</dd>
+<dt><big><a name="InputStream.seekFrame"></a>void <u id="seekFrame">seekFrame</u>(size_t <i>frame</i>);
+</big></dt>
+<dd>Seek the video timeline to given <i>frame</i> index.<br><br>
+
+</dd>
+<dt><big><a name="InputStream.seekTime"></a>void <u id="seekTime">seekTime</u>(double <i>time</i>);
+</big></dt>
+<dd>Seek the video timeline to given <i>time</i>.<br><br>
+
+</dd>
+<dt><big><a name="InputStream.readFrame"></a>bool <u id="readFrame">readFrame</u>(ref Image <i>image</i>);
+</big></dt>
+<dd>Read the next framw.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Image <i>image</i></td>
+<td>Image where next video frame will be stored.</td></tr>
 </table><br>
 
 </dd>

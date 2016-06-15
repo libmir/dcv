@@ -1,0 +1,96 @@
+<h1>dcv.features.corner.fast</h1>
+           Module implements FAST<sup>[1]</sup> corner detector algorithm.
+<br><br>
+Features from accelerated segment test (FAST) algorithm
+discovered and developed by Edward Rosten and Tom Drummond.
+<br><br>
+
+This package wraps machine generated C code, adopted
+to D, which is located originally on <a target="_blank" href="https://github.com/edrosten/fast-C-src">Edward Rosten's github</a>.
+
+<br><br>
+<b>Authors:</b><br>
+Edward Rosten, Relja Ljubobratovic
+
+<br><br>
+<b>License:</b><br>
+<a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.
+<br><br>
+
+1. Edward Rosten, Tom Drummond (2005). "Fusing points and lines for high performance tracking", IEEE International Conference on Computer Vision 2: 1508–1511.<br><br>
+
+<dl><dt><big><a name="FASTDetector"></a>class <u id="FASTDetector">FASTDetector</u>: <u id="dcv.features.detector.Detector">dcv.features.detector.Detector</u>;
+</big></dt>
+<dd>FAST corner detector utility.<br><br>
+
+<dl><dt><big><a name="FASTDetector.PERFORM_NON_MAX_SUPRESSION"></a>static immutable int <u id="PERFORM_NON_MAX_SUPRESSION">PERFORM_NON_MAX_SUPRESSION</u>;
+</big></dt>
+<dd>Should the non-maximum suppression be performed with the detection.<br><br>
+
+</dd>
+<dt><big><a name="FASTDetector.SORT_OUT_FEATURES_BY_SCORE"></a>static immutable int <u id="SORT_OUT_FEATURES_BY_SCORE">SORT_OUT_FEATURES_BY_SCORE</u>;
+</big></dt>
+<dd>Should the features be sorted by score at the output.<br><br>
+
+</dd>
+<dt><big><a name="FASTDetector.Type"></a>enum <u id="Type">Type</u>: int;
+</big></dt>
+<dd>Pixel neighborhood type, described in the paper.<br><br>
+
+</dd>
+<dt><big><a name="FASTDetector.this"></a>pure nothrow @safe this(uint <i>threshold</i> = 100, Type <i>type</i> = Type.FAST_9, int <i>flags</i> = 0);
+</big></dt>
+<dd>Default constructor.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>uint <i>threshold</i></td>
+<td>Threshold on pixel intensity difference between central and border pixels.</td></tr>
+<tr><td>Type <i>type</i></td>
+<td>Pixel neighborhood <i>type</i>.</td></tr>
+<tr><td>int <i>flags</i></td>
+<td>Flag value where <i>PERFORM_NON_MAX_SUPRESSION</i> and/or <i>SORT_OUT_FEATURES_BY_SCORE</i> <i>flags</i> can be passed.</td></tr>
+</table><br>
+
+</dd>
+<dt><big><a name="FASTDetector.threshold"></a>const @property auto <u id="threshold">threshold</u>();
+</big></dt>
+<dd>Threshold for corner detection.<br><br>
+
+</dd>
+<dt><big><a name="FASTDetector.threshold.2"></a>@property auto <u id="threshold">threshold</u>(uint <i>value</i>);
+</big></dt>
+<dd>Threshold <i>value</i> setter.<br><br>
+
+</dd>
+<dt><big><a name="FASTDetector.type"></a>const @property auto <u id="type">type</u>();
+<br>@property auto <u id="type">type</u>(Type <u id="type">type</u>);
+</big></dt>
+<dd>Type of the detector.<br><br>
+
+</dd>
+<dt><big><a name="FASTDetector.flags"></a>const @property auto <u id="flags">flags</u>();
+</big></dt>
+<dd>Algorithm <u id="flags">flags</u>.<br><br>
+
+</dd>
+<dt><big><a name="FASTDetector.detect"></a>const Feature[] <u id="detect">detect</u>(in Image <i>image</i>, size_t <i>count</i> = 0);
+</big></dt>
+<dd>Detect features for given <i>image</i>.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Image <i>image</i></td>
+<td>Input <i>image</i> where corners are to be found. Only 8-bit mono <i>image</i> is supported as this time.</td></tr>
+<tr><td>size_t <i>count</i></td>
+<td>How many corners are to be found.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Array of found feature points.<br><br>
+
+</dd>
+</dl>
+</dd>
+</dl>
+
+           <hr>Copyright (c) 2006, 2008 Edward Rosten, Relja Ljubobratovic 2016
+
+
