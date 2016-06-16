@@ -24,6 +24,7 @@ RPAREN     = )
 BACKTICK   = `
 DOLLAR     = $
 DEPRECATED = $0
+IMAGE      = <img src="$0"/>
 
 RED    = <font color=red>$0</font>
 BLUE   = <font color=blue>$0</font>
