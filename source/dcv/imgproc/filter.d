@@ -7,23 +7,23 @@ Authors: Relja Ljubobratovic
 
 License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
 
-$(TABLE $(TR Module contains:)
-    $(TR 
-            $(TD $(BIG Filter kernel generators:))
-            $(TD $(LINK2 #gaussian, gaussian))
-            $(TD $(LINK2 #laplacian,laplacian))
-            $(TD $(LINK2 #laplacianOfGaussian,laplacianOfGaussian))
-            $(TD $(LINK2 #sobel, sobel)) 
-            $(TD $(LINK2 #scharr,scharr))
-            $(TD $(LINK2 #prewitt,prewitt))
+$(DL Module contains:
+    $(DD 
+            $(BIG Filter kernel generators: )
+            $(LINK2 #gaussian, gaussian)
+            $(LINK2 #laplacian,laplacian)
+            $(LINK2 #laplacianOfGaussian,laplacianOfGaussian)
+            $(LINK2 #sobel, sobel)
+            $(LINK2 #scharr,scharr)
+            $(LINK2 #prewitt,prewitt)
     )
-    $(TR 
-            $(TD $(BIG Image processing functions:  ))
-            $(TD $(LINK2 #filterNonMaximum, filterNonMaximum))
-            $(TD $(LINK2 #calcPartialDerivatives,calcPartialDerivatives))
-            $(TD $(LINK2 #calcGradients,calcGradients)) 
-            $(TD $(LINK2 #nonMaximaSupression,nonMaximaSupression))
-            $(TD $(LINK2 #canny,canny))
+    $(DD 
+            $(BIG Image processing functions: )
+            $(LINK2 #filterNonMaximum, filterNonMaximum)
+            $(LINK2 #calcPartialDerivatives,calcPartialDerivatives)
+            $(LINK2 #calcGradients,calcGradients)
+            $(LINK2 #nonMaximaSupression,nonMaximaSupression)
+            $(LINK2 #canny,canny)
     )
 )
 

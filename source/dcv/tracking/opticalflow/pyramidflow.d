@@ -5,6 +5,14 @@ Pyramidal optical flow evaluation in $(BIG DCV) is designed to be a wrapper to a
 $(LINK2 #DensePyramidFlow, dense) optical flow algorithms have a corresponding utility class which will evaluate the algorithm 
 in $(LINK3 https://en.wikipedia.org/wiki/Pyramid_(image_processing)#Gaussian_pyramid, pyramid), coarse-to-fine fashion.
 
+----
+// Evaluate Horn-Schunck method in pyramid.
+HornSchunckFlow hsFlow = new HornSchunckFlow(props);
+DensePyramidFlow densePyramid = new DensePyramidFlow(hsFlow, pyramidLevels); 
+
+auto flow = densePyramid.evaluate(current, next);
+----
+
 Copyright: Copyright Relja Ljubobratovic 2016.
 
 Authors: Relja Ljubobratovic

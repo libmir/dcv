@@ -23,33 +23,38 @@ import ffmpeg.libavfilter.avfilter;
 public import dcv.io.image;
 
 
+/**
+Exception related to streaming operations.
+*/
 class StreamException : Exception {
     @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null) {
         super(msg, file, line, next);
     }
 }
 
+/**
+Exception thrown on failed video stream opening.
+*/
 class StreamNotOpenException : StreamException {
     @safe pure nothrow this(string file = __FILE__, size_t line = __LINE__, Throwable next = null) {
         super("Stream is not opened.", file, line, next);
     }
 }
 
-class OpenException : StreamException {
-    @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null) {
-        super(msg, file, line, next);
-    }
+/**
+Video codec identifiers.
+*/
+enum CodecID {
+    NONE = 0, /// No codec.
+    RAW = AVCodecID.AV_CODEC_ID_RAWVIDEO, /// Raw video.
+    MPEG1VIDEO = AVCodecID.AV_CODEC_ID_MPEG1VIDEO, /// MPEG 1 codec.
+    MPEG2VIDEO = AVCodecID.AV_CODEC_ID_MPEG2VIDEO, /// MPEG 2 codec.
+    MPEG4 = AVCodecID.AV_CODEC_ID_MPEG4, /// MPEG 4 codec.
+    H263 = AVCodecID.AV_CODEC_ID_H263, /// h263 codec.
+    H264 = AVCodecID.AV_CODEC_ID_H264 /// h264 codec.
 }
 
-enum CodecID {
-    NONE = 0,
-    RAW = AVCodecID.AV_CODEC_ID_RAWVIDEO,
-    MPEG1VIDEO = AVCodecID.AV_CODEC_ID_MPEG1VIDEO,
-    MPEG2VIDEO = AVCodecID.AV_CODEC_ID_MPEG2VIDEO,
-    MPEG4 = AVCodecID.AV_CODEC_ID_MPEG4,
-    H263 = AVCodecID.AV_CODEC_ID_H263,
-    H264 = AVCodecID.AV_CODEC_ID_H264
-}
+package:
 
 string getCodecString(CodecID codec) {
     switch(codec) {

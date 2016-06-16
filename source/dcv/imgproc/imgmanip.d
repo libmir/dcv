@@ -7,14 +7,14 @@ Authors: Relja Ljubobratovic
 
 License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
 
-$(TABLE $(TR Module contains:)
-    $(TR 
-            $(TD $(LINK2 #resize, resize))
-            $(TD $(LINK2 #scale, scale))
-            $(TD $(LINK2 #transformAffine,transformAffine))
-            $(TD $(LINK2 #transformPerspective,transformPerspective))
-            $(TD $(LINK2 #warp,warp))
-            $(TD $(LINK2 #remap,remap))
+$(DL Module contains:
+    $(DD 
+            $(LINK2 #resize, resize)
+            $(LINK2 #scale, scale)
+            $(LINK2 #transformAffine,transformAffine)
+            $(LINK2 #transformPerspective,transformPerspective)
+            $(LINK2 #warp,warp)
+            $(LINK2 #remap,remap)
     )
 )
 */ 

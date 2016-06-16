@@ -1,6 +1,23 @@
 ﻿/**
 Module implements utilities for video input.
 
+Input video streaming is performed with InputStream utility by following example:
+----
+InputStream stream = new InputStream;
+
+stream.open(pathToVideoFile, InputStreamType.FILE);
+
+if (!stream.isOpen) {
+    exit(-1);
+}
+
+Image frame;
+
+while(stream.readFrame(frame)) {
+    // do something with frame...
+}
+----
+
 Copyright: Copyright Relja Ljubobratovic 2016.
 
 Authors: Relja Ljubobratovic
@@ -30,12 +47,18 @@ public import dcv.io.video.common;
 public import dcv.io.image;
 
 
+/**
+Input streaming type - file or webcam (live)
+*/
 enum InputStreamType {
-    INVALID,
-    FILE,
-    LIVE
+    INVALID, /// Invalid stream, as non-assigned.
+    FILE, /// File video stream.
+    LIVE /// Live video stream.
 }
 
+/**
+Exception thrown when seeking a frame fails.
+*/
 class SeekFrameException : Exception {
     @safe this(size_t frame, string file = __FILE__, size_t line = __LINE__, Throwable next = null) {
         import std.conv : to;
@@ -43,6 +66,9 @@ class SeekFrameException : Exception {
     }
 }
 
+/**
+Exception thrown when seeking a time fails.
+*/
 class SeekTimeException : Exception {
     @safe this(double time, string file = __FILE__, size_t line = __LINE__, Throwable next = null) {
         import std.conv : to;
@@ -50,19 +76,10 @@ class SeekTimeException : Exception {
     }
 }
 
-class ReadFrameException : Exception {
-    @safe this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null) {
-        import std.conv : to;
-        super(msg, file, line, next);
-    }
-}
-
 
 /**
- * Video streaming utility.
- * 
- * Perform FILE/output video streaming. Wraps FFmpeg library.
- */
+Video streaming utility.
+*/
 class InputStream {
 private:
     AVFormatContext* formatContext = null;
@@ -71,21 +88,27 @@ private:
 
 public:
     this() { AVStarter AV_STARTER_INSTANCE = AVStarter.instance(); }
-
     ~this() { close(); }
 
     @property const {
         private auto checkStream() { if (stream is null) throw new StreamNotOpenException; }
 
-        //! Check if stream is open.
+        /// Check if stream is open.
         auto isOpen() { return formatContext !is null; }
+        /// Check if this stream is the file stream.
         auto isFileStream() { return (type == InputStreamType.FILE); }
+        /// Check if this stream is the live stream.
         auto isLiveStream() { return (type == InputStreamType.LIVE); }
 
+        /// Get width of the video frame.
         auto width() { checkStream(); return stream.codec.width; }
+        /// Get height of the video frame.
         auto height() { checkStream(); return stream.codec.height; }
 
+        /// Get size of frame in bytes.
         auto frameSize() { return avpicture_get_size(pixelFormat, cast(int) width, cast(int) height); }
+
+        /// Get number of frames in video.
         auto frameCount() {	
             checkStream(); 
             long fc = stream.nb_frames;
@@ -94,7 +117,10 @@ public:
             }
             return fc;
         }
+
+        /// Get the index of the stream - most commonly is 0, where audio stream is 1.
         auto streamIndex() { checkStream(); return stream.index; }
+        /// Get frame rate of the stream.
         auto frameRate() { 
             checkStream(); 
             double fps = stream.r_frame_rate.q2d;
@@ -122,12 +148,18 @@ public:
     }
 
     /**
-     * Open the video stream.
-     * 
-     * params:
-     * path = Path to the stream. 
-     * type = Stream type. 
-     */
+    Open the video stream.
+    
+    params:
+    path = Path to the stream. 
+    type = Stream type. 
+
+    return:
+    Stream opening status - true if succeeds, false otherwise.
+    
+    throws:
+    StreamNotOpenException
+    */
     bool open(in string path, InputStreamType type = InputStreamType.FILE) {
         enforce(type != InputStreamType.INVALID, "Input stream type cannot be defined as invalid.");
 
@@ -152,13 +184,14 @@ public:
                 static assert(0, "Not supported platform");
             }
             if (fmt is null) {
-                throw new OpenException("Cannot find correspoding file live format for the platform");
+                throw new StreamNotOpenException("Cannot find corresponding file live format for the platform");
             }
         } 
 
         return openInputStreamImpl(fmt, path);
     }
 
+    /// Close the video stream.
     void close() {
         if (formatContext) {
             if (stream && stream.codec) {
@@ -170,6 +203,7 @@ public:
         }
     }
 
+    /// Seek the video timeline to given frame index.
     void seekFrame(size_t frame) {
         enforce(isFileStream, "Only input file streams can be seeked.");
 
@@ -189,6 +223,7 @@ public:
         }
     }
 
+    /// Seek the video timeline to given time.
     void seekTime(double time) {
         enforce(isFileStream, "Only input file streams can be seeked.");
 
@@ -202,6 +237,12 @@ public:
         }
     }
 
+    /**
+    Read the next framw.
+
+    params:
+    image = Image where next video frame will be stored.
+    */
     bool readFrame(ref Image image) {
         if (isOpen) {
             return readFrameImpl(image);

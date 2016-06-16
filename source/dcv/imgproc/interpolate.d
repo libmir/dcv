@@ -21,21 +21,31 @@ module dcv.imgproc.interpolate;
  * lanczos?
  */
 
-private	import std.range : isRandomAccessRange, ElementType;
-private import std.traits : isNumeric, isScalarType, isIntegral, allSameType, allSatisfy, ReturnType;
-private import std.exception;
+import std.range : isRandomAccessRange, ElementType;
+import std.traits : isNumeric, isScalarType, isIntegral, allSameType, allSatisfy, ReturnType, isFloatingPoint;
+import std.exception;
 
-private import std.experimental.ndslice;
+import std.experimental.ndslice;
 
+
+/**
+Test if given function is proper form for interpolation.
+*/
 static bool isInterpolationFunc(alias F)() {
     auto s = [0., 1.].sliced(2);
     return (__traits(compiles, F(s, 0))); // TODO: check the return type?
 }
 
+/**
+Test for 1D (vector) interpolation function.
+*/
 static bool isInterpolationFunc1D(alias F)() {
     return isInterpolationFunc!F;
 }
 
+/**
+Test for 2D (matrix) interpolation function.
+*/
 static bool isInterpolationFunc2D(alias F)() {
     auto s = [0, 1, 2, 3].sliced(2, 2);
     return (__traits(compiles, F(s, 3, 3)));
@@ -48,9 +58,16 @@ unittest {
 }
 
 /**
- * Linear interpolation.
- */
-auto linear(T, size_t N, Position...)(Slice!(N, T*) range, Position pos) pure 
+Linear interpolation.
+
+params:
+slice = Input slice which values are interpolated.
+pos = Position on which slice values are interpolated.
+
+return:
+Interpolated resulting value.
+*/
+T linear(T, size_t N, Position...)(Slice!(N, T*) slice, Position pos) pure 
     if (isNumeric!T && 
         isScalarType!T && 
         allSameType!Position && 
@@ -60,9 +77,9 @@ auto linear(T, size_t N, Position...)(Slice!(N, T*) range, Position pos) pure
     static assert(N == pos.length, "Interpolation indexing has to be of same dimension as the input slice.");
 
     static if (pos.length == 1) {
-        return linearImpl_1(range, pos[0]);
+        return linearImpl_1(slice, pos[0]);
     } else static if (pos.length == 2) {
-        return linearImpl_2(range, pos[0], pos[1]);
+        return linearImpl_2(slice, pos[0], pos[1]);
     } else {
         static assert(0, "Unsupported slice dimension for linear interpolation.");
     }
