@@ -11,7 +11,7 @@ import std.parallelism;
 import std.process;
 
 immutable ignoreList = [
-    "base.d", "package.d", "fast_9.d", "fast_10.d", "fast_11.d", "fast_12.d", "nonmax.d"
+    "fast_9.d", "fast_10.d", "fast_11.d", "fast_12.d", "nonmax.d"
 ];
 
 immutable includes = [
@@ -75,7 +75,7 @@ void main(string[] args)
     Module[] modules = collectModules(dcvPath);
 
     string [] jsdirs;
-    foreach (mod; modules.parallel)
+    foreach (mod; modules)
     {
         string d = compileDoc(docPath, dcvPath, mod);
         if (d != "")
