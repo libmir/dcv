@@ -27,7 +27,7 @@ var docs = [
     "dcv_tracking_opticalflow_pyramidflow.html", 
     "dcv_tracking_opticalflow_package.html", 
     "dcv_tracking_opticalflow_base.html", 
-    ];
+];
 
 var examples = [
     "example_filter.html",
@@ -50,6 +50,7 @@ var PROJECT_BOX_WIDTH_SHRUNK = "65%";
 
 var animationSpeed = 200;
 var currentUI = DESKTOP_UI; 
+var currentLocation = ""
 
 function replaceAll(str, find, replace) {
     return str.replace(new RegExp(find, 'g'), replace);
@@ -93,6 +94,19 @@ function setupHome() {
     });
 }
 
+function loadHTML(path) {
+    if (path == "" || path == undefined) 
+        return;
+    var html = "";
+    $.ajax({
+        url : path,
+        dataType : 'text',
+        success: function(result) {
+            document.getElementById("pagemain").innerHTML = result;
+        }
+    });
+}
+
 function setupContent(content) {
     var sourcetree = document.getElementById("sourcetree");
     sourcetree.innerHTML = '';
@@ -108,7 +122,7 @@ function setupContent(content) {
         var itempretty = itemtokens[itemtokens.length-1].replace(".html", "");
         itempretty = replaceAll(itempretty, "_", ".");
         itempretty = replaceAll(itempretty, ".package", "");
-        lis += "<a href=\"#\">";
+        lis += "<a href=\"javascript:;\">";
         lis += itempretty;
         lis += "</a>\n";
 
@@ -116,6 +130,7 @@ function setupContent(content) {
         var li = document.createElement("li");
         li.innerHTML = lis;
         var htmlLoadFunc = function() {
+            /*
             var html = $.ajax({
                 url : item,
                 dataType : 'text',
@@ -123,6 +138,9 @@ function setupContent(content) {
                     document.getElementById("pagemain").innerHTML = result;
                 }
             });
+            */
+            //loadHTML(item);
+            setLocationQueryString(item);
         };
         li.onclick = htmlLoadFunc;
         sourcetree.appendChild(li);
@@ -168,9 +186,42 @@ function evalSize() {
     }
 }
 
+function reloadQueryLocation() {
+    var loc = getLocationFromQueryString();
+    if (currentLocation == loc)
+        return;
+
+    currentLocation = loc;
+    loadHTML(loc);
+}
+
+function loadQueryLocation() {
+    loadHTML(getLocationFromQueryString());
+}
+
+function setLocationQueryString(location) {
+
+    currentLocation = location;
+    newLocation = "?loc=" + location;
+
+    var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?loc=' + location;
+    window.history.pushState({path:newurl},'',newurl);
+
+    loadQueryLocation();
+}
+
+function getLocationFromQueryString() {
+    tokens = window.location.href.split("?");
+    str = "";
+    if (tokens.length >=2 )
+        str = tokens[1];
+    else
+        return;
+
+    return str.split("=")[1];
+}
 
 $(document).ready(function(e) {
-
 
     // setup content toggle
     $("#content").click(toggleContent);
@@ -199,5 +250,11 @@ $(document).ready(function(e) {
     });
 
     evalSize();
+
+    $(window).on('popstate', function(event) {
+        location.reload();
+    });
+
+    reloadQueryLocation();
 });
 
