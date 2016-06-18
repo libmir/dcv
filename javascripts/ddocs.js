@@ -262,6 +262,7 @@ function setupExamples() {
 }
 
 function setupPhoneUI() {
+
     animationSpeed = 0;
 
     document.getElementById('sourcetreeboxphone').appendChild(document.getElementById('sourcetreebox'));
@@ -277,14 +278,18 @@ function setupPhoneUI() {
     $(".roundedbox").css("margin-left", "0px");
 
     $("#sourcetreebox").css('min-height', '0');
-    $("#sourcetreebox").css('width', '98%');
+    $("#sourcetreebox").css('width', '95%');
     $("#sourcetreebox").css('padding-left', '10px');
+
+    $("#sourcetreebox").css('border', '1px solid rgb(230, 230, 230)');
+    $("#sourcetreebox").css('border-radius', '8px');
 
     $('#return-to-top').hide();
     hideContent();
 }
 
 function setupDesktopUI() {
+
     animationSpeed = 200;
 
     document.getElementById('sourcetreeboxdesktop').appendChild(document.getElementById('sourcetreebox'));
@@ -298,7 +303,6 @@ function setupDesktopUI() {
     $("#sourcetreebox").css("width", "270px");
     $("#sourcetreebox").css('min-height', '500px');
     $("#projectbox").css("width", PROJECT_BOX_WIDTH);
-
     hideContent();
 }
 
