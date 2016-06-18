@@ -8,15 +8,37 @@ import std.experimental.ndslice;
 import std.stdio : writeln;
 import std.datetime : StopWatch;
 import std.math : fabs;
+import std.typecons : tuple;
 
 import dcv.core : Image, asType, ranged, ImageFormat;
 import dcv.io : imread, imwrite;
 import dcv.imgproc;
+import dcv.features.rht;
 
+void plotLine(T, Line, Color)(Slice!(3, T*) img, Line line, Color color)
+{
+	int height = cast(int)img.length!0;
+	int width = cast(int)img.length!1;
+	if(line.m == double.infinity){
+		auto x = line.b;
+		if(x >= 0 && x < width)
+			foreach(y; 0..height) {
+				img[cast(int)y, cast(int)x, 0..3] = color;
+			}
+	}
+	else {
+		foreach(x; 0..1000) {
+			auto y = line.m*x + line.b;
+			if(x >= 0 && x < width && y >= 0 && y < height) {
+				img[cast(int)y, cast(int)x, 0..3] = color;
+			}
+		}
+	}
+}
 
 int main(string[] args) {
 
-	string impath = (args.length < 2) ? "../data/lena.png" : args[1];
+	string impath = (args.length < 2) ? "../data/img.jpg" : args[1];
 
 	Image img = imread(impath); // read an image from filesystem.
 
@@ -31,19 +53,21 @@ int main(string[] args) {
 
 	auto gray = imslice.rgb2gray; // convert rgb image to grayscale
 
-	auto gaussianKernel = gaussian!float(2, 5, 5); // create gaussian convolution kernel (sigma, kernel width and height)
-	auto sobelKernel = sobel!real(GradientDirection.DIAG); // sobel operator for horizontal (X) gradients
-	
-	// perform convolution for each kernel
-	StopWatch s;
+	auto gaussianKernel = gaussian!float(2, 3, 3); // create gaussian convolution kernel (sigma, kernel width and height)
 
+	auto blur = gray.conv(gaussianKernel);
+	auto canny = blur.canny!ubyte(80, 220);
+
+	auto lines = RhtLines().epouchs(50).iterations(250);
+	StopWatch s;
 	s.start;
-	auto blur = imslice.conv(gaussianKernel);
-	auto grads = gray.conv(sobelKernel);
-	
+	foreach(line; lines(canny)) {
+		plotLine(imslice, line, [1.0, 1.0, 1.0]);
+	}
+	writeln("RHT took ", s.peek.msecs, "ms");
 	// write resulting images on the filesystem.
 	blur.asType!ubyte.imwrite(ImageFormat.IF_RGB, "./result/outblur.png");
-	grads.asType!ubyte.imwrite(ImageFormat.IF_MONO, "./result/sobel.png");
+	canny.asType!ubyte.imwrite(ImageFormat.IF_MONO, "./result/canny.png");
 	
 	return 0;
 }
