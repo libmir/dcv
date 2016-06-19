@@ -38,7 +38,7 @@ void plotLine(T, Line, Color)(Slice!(3, T*) img, Line line, Color color)
 
 int main(string[] args) {
 
-	string impath = (args.length < 2) ? "../data/img.jpg" : args[1];
+	string impath = (args.length < 2) ? "../data/img.png" : args[1];
 
 	Image img = imread(impath); // read an image from filesystem.
 
@@ -56,18 +56,19 @@ int main(string[] args) {
 	auto gaussianKernel = gaussian!float(2, 3, 3); // create gaussian convolution kernel (sigma, kernel width and height)
 
 	auto blur = gray.conv(gaussianKernel);
-	auto canny = blur.canny!ubyte(80, 220);
+	auto canny = blur.canny!ubyte(80);
 
-	auto lines = RhtLines().epouchs(50).iterations(250);
+	auto lines = RhtLines().epouchs(50).iterations(250).minCurve(10);
 	StopWatch s;
 	s.start;
 	foreach(line; lines(canny)) {
+		writeln(line);
 		plotLine(imslice, line, [1.0, 1.0, 1.0]);
 	}
 	writeln("RHT took ", s.peek.msecs, "ms");
 	// write resulting images on the filesystem.
 	blur.asType!ubyte.imwrite(ImageFormat.IF_RGB, "./result/outblur.png");
 	canny.asType!ubyte.imwrite(ImageFormat.IF_MONO, "./result/canny.png");
-	
+	imslice.asType!ubyte.imwrite(ImageFormat.IF_RGB, "./result/rht.png");
 	return 0;
 }

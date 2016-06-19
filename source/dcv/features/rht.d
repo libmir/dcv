@@ -81,17 +81,19 @@ mixin template BaseRht() {
 
     static struct RhtRange(T, P) {
         private:
+            import std.random;
             This _rht;                      // RHT struct with key primitives and parameters
             Slice!(2, T*) _image;           // image with edge points
             Tuple!(Curve, int)[Key] _accum; // accumulator, parametrized on Key/Curve tuples
             const(P)[] _points;             // extracted edge points
             int _epouch;                    // current epouch of iteration
             Curve _current;                 // current detected curve
-
+            Xorshift rng;
             this(This rht, Slice!(2, T*) image, const(P)[] points) {
                 _rht = rht;
                 _image = image;
                 _points = points;
+                rng = Xorshift(unpredictableSeed);
             }
 
             void accumulate(Curve curve) {
@@ -140,8 +142,8 @@ mixin template BaseRht() {
             }
 
             void popFront(){
-                import std.algorithm, std.random, std.range;
-                auto rng = Xorshift(unpredictableSeed);
+                import std.algorithm, std.range;
+                
                 foreach (e; _epouch.._rht._epouchs) {
                     _accum.clear();
                     Curve best;
@@ -149,20 +151,25 @@ mixin template BaseRht() {
                         if (_points.length < _rht.sampleSize)
                             break;
                         // TODO: avoid heap allocation
-                        auto sample = randomSample(_points, _rht.sampleSize, rng).array;
+                        auto sample = randomSample(_points, _rht.sampleSize, &rng).array;
                         auto curve = _rht.fitCurve(_image, sample);
                         if (!isInvalidCurve(curve))
                             accumulate(curve);
                     }
                     best = bestCurve();
+                    import std.stdio;
+                    writeln(best);
                     if (isInvalidCurve(best)) continue;
                     auto newPoints = _points.filter!(x => !_rht.onCurve(best, x)).array;
+                    writeln("NP ", newPoints.length, " vs ", _points.length);
                     if (_points.length - newPoints.length > _rht._minCurve)
                     {
+                        writeln("***");
                         _points = newPoints; // remove fitted curve from the set of points
                         _current = best;
+                        writeln(_current);
                         _epouch = e + 1; // skip current epouch
-                        break; // stop prematurely
+                        return; // stop prematurely
                     }
                 }
                 // spinned through all of epouchs - no more curves to detect
@@ -207,7 +214,7 @@ struct RhtLines {
         import std.math;
         int x = p.x, y = p.y;
         double m = curve.m, b = curve.b;
-        if ( m == double.infinity && fabs(y - b) < _curveTol)
+        if ( m == double.infinity && fabs(x - b) < _curveTol)
             return true;
         else if (fabs(x*m+b - y) < _curveTol)
             return true;
