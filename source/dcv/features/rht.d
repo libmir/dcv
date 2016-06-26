@@ -226,9 +226,9 @@ struct RhtCircles {
     alias Key = Tuple!(int, int, int);
     alias Curve = Tuple!(double, "x", double, "y", double, "r");
     enum sampleSize = 3;
-    double _centerTol = 2.0;  // tolerance of center location (pixels)
-    double _radiusTol = 2.0;  // tolerance of radius approfixmation (pixels)
-    double _curveTol = 0.05;  // tolerance of on-curve check (proportional to radius)
+    double _centerTol = 5.0;  // tolerance of center location (pixels)
+    double _radiusTol = 5.0;  // tolerance of radius approfixmation (pixels)
+    double _curveTol = 8;  // tolerance of on-curve check (proportional to radius)
     mixin BaseRht;
 
     // does coarsening to the multiple of tolerance
@@ -237,7 +237,7 @@ struct RhtCircles {
     }
 
     auto fitCurve(Range, Sample)(Slice!(2, Range) image, Sample sample) {
-        import std.math : sqrt;
+        import std.math : sqrt, pow;
         double x1 = sample[0].x, y1 = sample[0].y;
         double x2 = sample[1].x, y2 = sample[1].y;
         double x3 = sample[2].x, y3 = sample[2].y;
@@ -254,7 +254,7 @@ struct RhtCircles {
         double x0  = curve.x, y0 = curve.y, R = curve.r;
         x -= x0;
         y -= y0;
-        if(fabs(x*x/(R*R) + y*y/(R*R) - 1.0) < _curveTol)
+        if(fabs(x*x + y*y - R*R) < _curveTol*_curveTol)
             return true;
         return false;
     }
