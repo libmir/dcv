@@ -69,7 +69,7 @@ int main(string[] args) {
 	auto blur = gray.conv(gaussianKernel);
 	auto canny = blur.canny!ubyte(80);
 
-	auto lines = RhtLines().epouchs(50).iterations(250).minCurve(20);
+	auto lines = RhtLines().epouchs(50).iterations(250).minCurve(25);
 	StopWatch s;
 	s.start;
 	auto linesRange = lines(canny);
@@ -77,15 +77,19 @@ int main(string[] args) {
 		writeln(line);
 		plotLine(imslice, line, [1.0, 1.0, 1.0]);
 	}
+	s.stop;
 	writeln("RHT lines took ", s.peek.msecs, "ms");
-	writeln("Points:", linesRange.points.length);
+	writeln("Points left after lines:", linesRange.points.length);
 	auto circles = RhtCircles()
-		.epouchs(25).iterations(10000).minCurve(16);
-	foreach(circle; circles(canny, linesRange.points)) {
+		.epouchs(5).iterations(2000).minCurve(16);
+	s.reset;
+	s.start;
+	foreach(circle; circles(canny, linesRange.points[])) {
 		writeln(circle);
 		plotCircle(imslice, circle, [1.0, 1.0, 1.0]);
 	}
-	plotCircle(imslice, RhtCircles.Curve(100, 100, 25.0), [1.0, 0.0, 0.0]);
+	s.stop;
+	writeln("RHT circles took ", s.peek.msecs, "ms");
 	// write resulting images on the filesystem.
 	blur.asType!ubyte.imwrite(ImageFormat.IF_RGB, "./result/outblur.png");
 	canny.asType!ubyte.imwrite(ImageFormat.IF_MONO, "./result/canny.png");

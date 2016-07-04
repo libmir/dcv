@@ -1,8 +1,9 @@
 # Image filtering example
 
 
-This example should demonstrate how to apply basic spatial filtering methods to images, using dcv.
-Should also provide insight to basic setup for any image processing, such as image i/o, image convertion to Slice object etc.
+This example should demonstrate how to use Randomized Hough Transform to detect
+shapes in images. 
+Should showcases a few basics such as image i/o, conversion to Slice object etc.
 
 
 ## Modules used
@@ -10,13 +11,15 @@ Should also provide insight to basic setup for any image processing, such as ima
 * dcv.core.utils
 * dcv.io
 * dcv.imgproc
+* dcv.features.rht
 
 ## Source Image
 
-As source image in this example, Lena image is used (Lena Söderberg). Source data is loaded with next chunk of code:
+As source image in this example is a bunch of geometic shapes (img.png).
+Source data is loaded with next chunk of code:
 
 ```d
-string impath = (args.length < 2) ? "../data/lena.png" : args[1];
+string impath = (args.length < 2) ? "../data/img.png" : args[1];
 
 Image img = imread(impath); // read an image from filesystem.
 
@@ -30,21 +33,12 @@ Slice!(3, float*) imslice = img
 	.sliced!float; // slice image data - calls img.data!float.sliced(img.height, img.width, img.channels)
 ```
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/lena.png)
-
-
-## Filter Kernel Creation
-
-In this example spatial filtering is done with image convolution by using gaussian, sobel,
-laplacian and LoG(laplacian of gaussian) operators. These operators can be created by using 
-functions present in ```dcv.imgproc.filter``` module. Each function takes a template argument
-as matrix (Slice) type, which is by default ```real```.
+![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/img.png)
 
 
 ## Gaussian Blurring
 
-Classic gaussian kernel is created using ```dcv.imgproc.filter.gaussian``` function. By convolving an image
-with created kernel, we can perform image blurring.
+Classic gaussian kernel is created using ```dcv.imgproc.filter.gaussian``` function. By convolving an image with created kernel, we filter out potential noise in the image.
 
 ### Code
 
@@ -58,77 +52,57 @@ auto blur = imslice.conv(gaussianKernel);
 
 ### Result
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/filter/result/outblur.png)
+![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/rht/result/outblur.png)
 
 
 ## Edge Detection
 
-In this example, few well known operators are used for spatial edge extraction - sobel, laplacian and laplacian of gaussian.
-Operators are created with:
+In this example, we apply classic Canny filter to detect edges:
 
 ```d
-auto sobelXKernel = sobel!real(GradientDirection.DIR_X); // sobel operator for horizontal (X) gradients
-auto laplacianKernel = laplacian!double; // laplacian kernel, similar to matlabs fspecial('laplacian', alpha)
-auto logKernel = laplacianOfGaussian(1, 5, 5); // laplacian of gaussian, similar to matlabs fspecial('log', alpha, width, height)
+auto canny = blur.canny!ubyte(80);
 ```
 
-### Sobel
+### Result
 
-Gradient direction for sobel operator can be defined with input argument:
+![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/rht/result/canny.png)
+
+## Randomized Hough Transform (RHT)
+
+### RHT for lines
+
+Next step is to setup RHT context with key parameters that affect fundamental  properties such as time vs accuracy trade-off. The most important are `epouchs` - number of attempts to detect a shape, and `iterations` - number of steps in each attempt. Small number of iterations leads to poor accuracy, too high a number wastes a lot of CPU cycles. Since not every attempt is successul (being randomized method) the number of epouchs is advised to be 2-4 times larger than the number of expected shapes. `minCurve` parameter allows to filter out degenerate shapes with too few pixels, here we require at least 25 pixels in a shape:
 
 ```d
-// GradientDirection.DIR_X:
-	-1, 0, 1,
-	-2, 0, 2,
-	-1, 0, 1
-
-// GradientDirection.DIR_Y:
-	-1, -2, -1,
-	0, 0, 0,
-	1, 2, 1
-
-// GradientDirection.DIAG:
-	-2, -1, 0,
-	-1, 0, 1,
-	0, 1, 2
-
-// GradientDirection.DIAG_INV:
-	0, -1, -2,
-	1, 0, -1,
-	2, 1, 0
+auto lines = RhtLines().epouchs(50).iterations(250).minCurve(25);
 ```
-#### Result
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/filter/result/sobel.png)
+Apply method and iterate the lazily computating shapes:
+```d
+foreach(line; linesRange) {
+	writeln(line);
+	plotLine(imslice, line, [1.0, 1.0, 1.0]);
+}
+``` 
+It is therefore easy to compute just enough of epouchs to get the first few likely shapes. 
 
-### Laplacian
+### RHT for circles
 
-Laplacian kernel function creates negative 3x3 laplacian kernel defined as:
+Simillar setup is performed for RHT context for circles, using familliar key parameters.
 
 ```d
-              | a/4,    (1-a)/4,   a/4 |
-    4/(a+1) * | (1-a)/4   -1   (1-a)/4 |
-              | a/4,    (1-a)/4,   a/4 |
+auto circles = RhtCircles().epouchs(5).iterations(2000).minCurve(16);
 ```
 
-... so for the alpha value of 0 (which is the default value), we get:
+One twist is application of circle RHT, this time around we use it only on points left off after filtering out lines. This is especially useful filtering technique in pictures where circles is a minory compared to simple lines. Accessing filtered points has other use cases such as reconstructing the scene with some shapes removed.
 
 ```d
-0  1  0
-1 -4  1
-0  1  0
+foreach(circle; circles(canny, linesRange.points[])) {
+	writeln(circle);
+	plotCircle(imslice, circle, [1.0, 1.0, 1.0]);
+}
 ```
 
-#### Result
+### Result
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/filter/result/laplace.png)
-
-### Laplacian Of Gaussian
-
-LoG operator function creates an kernel by [LoG formula](http://homepages.inf.ed.ac.uk/rbf/HIPR2/log.htm),
-and normalize it so it's sum is 0.
-
-#### Result
-
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/filter/result/log.png)
-
+![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/rht/result/rht.png)
