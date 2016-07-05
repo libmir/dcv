@@ -1,4 +1,4 @@
-# DCV 
+# ![DCV](http://ljubobratovicrelja.github.io/dcv/images/dcv_logo.png)
 
 [![Build Status](https://travis-ci.org/ljubobratovicrelja/dcv.svg?branch=master)](https://travis-ci.org/ljubobratovicrelja/dcv) [![codecov.io](https://codecov.io/github/ljubobratovicrelja/dcv/coverage.svg?branch=master)](https://codecov.io/github/ljubobratovicrelja/dcv?branch=master) [![Join the chat at https://gitter.im/ljubobratovicrelja/dcv](https://badges.gitter.im/ljubobratovicrelja/dcv.svg)](https://gitter.im/ljubobratovicrelja/dcv?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
@@ -38,29 +38,22 @@ This is the checklist on v0.1.0 completion. More elaborated development status m
      - [x] Harris
      - [x] Shi-Tomasi
      - [x] FAST
-   - [ ] A-KAZE
    - [x] RHT (Randomized Hough Transform)
  - [ ] imgproc
    - [x] color
    - [x] convolution
-   - [x] filter
+   - [ ] filter
    - [x] imgmanip
    - [x] interpolate
-   - [ ] threshold
  - [x] io
    - [x] video
    - [x] image
- - [ ] multiview
-   - [ ] common
-   - [ ] calibration
-   - [ ] stereo reconstruction
  - [ ] plot
- - [ ] tracking
+   - [ ] figure
+ - [x] tracking
    - [x] opticalflow
      - [x] hornschunck
      - [x] lucaskanade
-   - [ ] blockmatching
-     - [ ] stereo blockmatching
 
 ## License
 Library is licensed under Boost Software License - Version 1.0. Some modules in the library contain code that is licensed under some other terms. If a module in the library states different license terms in it's header, then the Boost Software License does not apply to that module.
