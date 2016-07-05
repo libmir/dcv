@@ -1,0 +1,12 @@
+{
+	"name": "rht",
+	"description": "Randomized HOugh transform example for DCV library.",
+	"copyright": "Copyright © 2016, Dmitry Olshansky",
+	"authors": ["Dmitry Olshansky"],
+	"dependencies": {
+		"dcv": {
+			"version": "~master",
+			"path": "../../"
+		}
+	}
+}
