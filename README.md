@@ -39,7 +39,7 @@ This is the checklist on v0.1.0 completion. More elaborated development status m
      - [x] Shi-Tomasi
      - [x] FAST
    - [ ] A-KAZE
-   - [ ] RHT (Randomized Hough Transform)
+   - [x] RHT (Randomized Hough Transform)
  - [ ] imgproc
    - [x] color
    - [x] convolution
