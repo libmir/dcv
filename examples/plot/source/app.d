@@ -5,7 +5,6 @@ module dcv.example.plot;
  */
 
 import std.stdio;
-import std.string : toStringz;
 
 import dcv.core;
 import dcv.io;
