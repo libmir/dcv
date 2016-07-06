@@ -18,17 +18,18 @@ import dcv.plot.figure;
 
 void main(string [] args) {
 
-    Image image = imread("/home/relja/Pictures/cv/lena.png");
-    immutable winStr = "My Window";
+    Image image = imread("../data/lena.png");
+
+    immutable winStr = "Blurred Lena";
 
     image
         .sliced
         .asType!float
         .conv(gaussian!float(1.0f, 5, 5))
         .imshow(winStr)
-        .setCursorCallback( (Figure figure, double x, double y) 
+        .setCursorCallback( (Figure figure, double x, double y)
         {
-            writeln("Mouse move to: ", [x, y]);
+            writeln("Mouse moved to: ", [x, y]);
         })
         .setMouseCallback( (Figure figure, int button, int scancode, int mods)
         {
@@ -37,9 +38,7 @@ void main(string [] args) {
 
     int c = waitKey();
 
-    writeln(c);
-
-    imdestroy(winStr);
-
+    if (c)
+        writeln("Character input: ", cast(char)c);
 }
 
