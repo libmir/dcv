@@ -11,166 +11,15 @@ import dcv.core.utils : asType;
 import dcv.plot.bindings;
 
 
-// initialize glfw and global callbacks
-static this()
-{
-    import std.stdio;
-
-    if (!glfwInit())
-    {
-        throw new Exception("Invalid glfwInit call");
-    }
-
-    setCharCallback((uint key) { _lastKey = key; });
-}
-
-// Consts
-immutable KEY_UNKNOWN = -1;
-
-immutable KEY_SPACE = 32;
-immutable KEY_APOSTROPHE = 39; /* ' */
-immutable KEY_COMMA = 44; /* , */
-immutable KEY_MINUS = 45; /* - */
-immutable KEY_PERIOD = 46; /* . */
-immutable KEY_SLASH = 47; /* / */
-immutable KEY_0 = 48;
-immutable KEY_1 = 49;
-immutable KEY_2 = 50;
-immutable KEY_3 = 51;
-immutable KEY_4 = 52;
-immutable KEY_5 = 53;
-immutable KEY_6 = 54;
-immutable KEY_7 = 55;
-immutable KEY_8 = 56;
-immutable KEY_9 = 57;
-immutable KEY_SEMICOLON = 59; /* ; */
-immutable KEY_EQUAL = 61; /* = */
-immutable KEY_A = 65;
-immutable KEY_B = 66;
-immutable KEY_C = 67;
-immutable KEY_D = 68;
-immutable KEY_E = 69;
-immutable KEY_F = 70;
-immutable KEY_G = 71;
-immutable KEY_H = 72;
-immutable KEY_I = 73;
-immutable KEY_J = 74;
-immutable KEY_K = 75;
-immutable KEY_L = 76;
-immutable KEY_M = 77;
-immutable KEY_N = 78;
-immutable KEY_O = 79;
-immutable KEY_P = 80;
-immutable KEY_Q = 81;
-immutable KEY_R = 82;
-immutable KEY_S = 83;
-immutable KEY_T = 84;
-immutable KEY_U = 85;
-immutable KEY_V = 86;
-immutable KEY_W = 87;
-immutable KEY_X = 88;
-immutable KEY_Y = 89;
-immutable KEY_Z = 90;
-immutable KEY_LEFT_BRACKET = 91; /* [ */
-immutable KEY_BACKSLASH = 92; /* \ */
-immutable KEY_RIGHT_BRACKET = 93; /* ] */
-immutable KEY_GRAVE_ACCENT = 96; /* ` */
-immutable KEY_WORLD_1 = 161; /* non-US #1 */
-immutable KEY_WORLD_2 = 162; /* non-US #2 */
-
-immutable KEY_ESCAPE = 256;
-immutable KEY_ENTER = 257;
-immutable KEY_TAB = 258;
-immutable KEY_BACKSPACE = 259;
-immutable KEY_INSERT = 260;
-immutable KEY_DELETE = 261;
-immutable KEY_RIGHT = 262;
-immutable KEY_LEFT = 263;
-immutable KEY_DOWN = 264;
-immutable KEY_UP = 265;
-immutable KEY_PAGE_UP = 266;
-immutable KEY_PAGE_DOWN = 267;
-immutable KEY_HOME = 268;
-immutable KEY_END = 269;
-immutable KEY_CAPS_LOCK = 280;
-immutable KEY_SCROLL_LOCK = 281;
-immutable KEY_NUM_LOCK = 282;
-immutable KEY_PRINT_SCREEN = 283;
-immutable KEY_PAUSE = 284;
-immutable KEY_F1 = 290;
-immutable KEY_F2 = 291;
-immutable KEY_F3 = 292;
-immutable KEY_F4 = 293;
-immutable KEY_F5 = 294;
-immutable KEY_F6 = 295;
-immutable KEY_F7 = 296;
-immutable KEY_F8 = 297;
-immutable KEY_F9 = 298;
-immutable KEY_F10 = 299;
-immutable KEY_F11 = 300;
-immutable KEY_F12 = 301;
-immutable KEY_F13 = 302;
-immutable KEY_F14 = 303;
-immutable KEY_F15 = 304;
-immutable KEY_F16 = 305;
-immutable KEY_F17 = 306;
-immutable KEY_F18 = 307;
-immutable KEY_F19 = 308;
-immutable KEY_F20 = 309;
-immutable KEY_F21 = 310;
-immutable KEY_F22 = 311;
-immutable KEY_F23 = 312;
-immutable KEY_F24 = 313;
-immutable KEY_F25 = 314;
-immutable KEY_KP_0 = 320;
-immutable KEY_KP_1 = 321;
-immutable KEY_KP_2 = 322;
-immutable KEY_KP_3 = 323;
-immutable KEY_KP_4 = 324;
-immutable KEY_KP_5 = 325;
-immutable KEY_KP_6 = 326;
-immutable KEY_KP_7 = 327;
-immutable KEY_KP_8 = 328;
-immutable KEY_KP_9 = 329;
-immutable KEY_KP_DECIMAL = 330;
-immutable KEY_KP_DIVIDE = 331;
-immutable KEY_KP_MULTIPLY = 332;
-immutable KEY_KP_SUBTRACT = 333;
-immutable KEY_KP_ADD = 334;
-immutable KEY_KP_ENTER = 335;
-immutable KEY_KP_EQUAL = 336;
-immutable KEY_LEFT_SHIFT = 340;
-immutable KEY_LEFT_CONTROL = 341;
-immutable KEY_LEFT_ALT = 342;
-immutable KEY_LEFT_SUPER = 343;
-immutable KEY_RIGHT_SHIFT = 344;
-immutable KEY_RIGHT_CONTROL = 345;
-immutable KEY_RIGHT_ALT = 346;
-immutable KEY_RIGHT_SUPER = 347;
-immutable KEY_MENU = 348;
-immutable KEY_LAST = KEY_MENU;
-
-immutable MOD_SHIFT = 0x0001;
-immutable MOD_CONTROL = 0x0002;
-immutable MOD_ALT = 0x0004;
-immutable MOD_SUPER = 0x0008;
-
-immutable MOUSE_BUTTON_1 = 0;
-immutable MOUSE_BUTTON_2 = 1;
-immutable MOUSE_BUTTON_3 = 2;
-immutable MOUSE_BUTTON_4 = 3;
-immutable MOUSE_BUTTON_5 = 4;
-immutable MOUSE_BUTTON_6 = 5;
-immutable MOUSE_BUTTON_7 = 6;
-immutable MOUSE_BUTTON_8 = 7;
-immutable MOUSE_BUTTON_LAST = MOUSE_BUTTON_8;
-immutable MOUSE_BUTTON_LEFT = MOUSE_BUTTON_1;
-immutable MOUSE_BUTTON_RIGHT = MOUSE_BUTTON_2;
-immutable MOUSE_BUTTON_MIDDLE = MOUSE_BUTTON_3;
-
-
 /**
-Create figure.
+Create a plotting figure.
+
+Params:
+    title = Title of the window. If none given (default), window is named by "Figure id".
+
+Returns:
+    If figure with given title exists already, that figure is returned, 
+    otherwise new figure is created and returned.
 */
 Figure figure(string title = "")
 {
@@ -200,20 +49,28 @@ Figure figure(string title = "")
     return f;
 }
 
-Figure figure(Image image, string title = "")
+/**
+Show an image to screen.
+
+Params:
+    image = Image that is to be shown on the screen.
+    title = Title of the window. If none given (default), window is named by "Figure id".
+
+If figure with given title exists, than the image content is updated with the given image.
+
+Returns:
+    If figure with given title exists already, that figure is returned, 
+    otherwise new figure is created and returned.
+*/
+Figure imshow(Image image, string title = "")
 {
     auto f = figure(title);
     f.draw(image);
-    return f;
-}
-
-Figure imshow(Image image, string title = "")
-{
-    auto f = figure(image, title);
     f.show();
     return f;
 }
 
+/// ditto
 Figure imshow(size_t N, T)(Slice!(N, T*) slice, string title = "")
 {
     auto f = figure(title);
@@ -222,6 +79,7 @@ Figure imshow(size_t N, T)(Slice!(N, T*) slice, string title = "")
     return f;
 }
 
+/// ditto
 Figure imshow(size_t N, T)(Slice!(N, T*) slice,
         ImageFormat format, string title = "")
 {
@@ -232,6 +90,16 @@ Figure imshow(size_t N, T)(Slice!(N, T*) slice,
     return f;
 }
 
+/**
+Run the event loop for each present figure, and wait for key and/or given time.
+
+Params:
+    unit = Unit in which time count is given. Same as core.time.Duration unit parameters.
+    count = Numer of unit ticks to wait for event loop to finish. If left at zero (default), runs indefinitelly.
+
+Returns:
+    Ascii value as int of keyboard press, or 0 if timer runs out.
+*/
 int waitKey(string unit = "msecs")(ulong count = 0)
 {
     import std.datetime : StopWatch;
@@ -276,6 +144,12 @@ int waitKey(string unit = "msecs")(ulong count = 0)
     return 0;
 }
 
+/**
+Destroy figure.
+
+Params:
+    title = Title of the window to be destroyed. If left as empty string, destroys all windows.
+*/
 void imdestroy(string title = "") {
     if (title == "") {
         foreach(f; _figures)
@@ -298,26 +172,37 @@ void imdestroy(string title = "") {
     }
 }
 
+/// Key press callback function.
 alias KeyPressCallback = void delegate(int key, int scancode, int action, int mods);
+/// Character callback function.
 alias CharCallback = void delegate(uint key);
 
+/**
+Assign key press callback function.
+*/
 void setKeyPressCallback(KeyPressCallback clbck)
 {
     _keyPressCallback = clbck;
 }
 
+/**
+Assign character input callback function.
+*/
 void setCharCallback(CharCallback clbck)
 {
     _charCallback = clbck;
 }
+
 /**
 Plotting figure type.
 */
 class Figure
 {
-
+    /// Mouse button callback function.
     alias MouseCallback = void delegate(Figure figure, int button, int action, int mods);
+    /// Cursor movement callback function.
     alias CursorCallback = void delegate(Figure figure, double xpos, double ypos);
+    /// Figure closing callback function.
     alias CloseCallback = void delegate(Figure figure);
 
     private
@@ -379,6 +264,7 @@ class Figure
         }
     }
 
+    /// Assign mouse callback function.
     Figure setMouseCallback(MouseCallback clbck)
     {
         _mouseCallback = clbck;
@@ -564,13 +450,123 @@ class Figure
     }
 }
 
+// Constants ////////////////////////////
+
+immutable KEY_UNKNOWN = -1;
+immutable KEY_SPACE = 32;
+immutable KEY_APOSTROPHE = 39; /* ' */
+immutable KEY_COMMA = 44; /* , */
+immutable KEY_MINUS = 45; /* - */
+immutable KEY_PERIOD = 46; /* . */
+immutable KEY_SLASH = 47; /* / */
+immutable KEY_SEMICOLON = 59; /* ; */
+immutable KEY_EQUAL = 61; /* = */
+immutable KEY_LEFT_BRACKET = 91; /* [ */
+immutable KEY_BACKSLASH = 92; /* \ */
+immutable KEY_RIGHT_BRACKET = 93; /* ] */
+immutable KEY_GRAVE_ACCENT = 96; /* ` */
+immutable KEY_ESCAPE = 256;
+immutable KEY_ENTER = 257;
+immutable KEY_TAB = 258;
+immutable KEY_BACKSPACE = 259;
+immutable KEY_INSERT = 260;
+immutable KEY_DELETE = 261;
+immutable KEY_RIGHT = 262;
+immutable KEY_LEFT = 263;
+immutable KEY_DOWN = 264;
+immutable KEY_UP = 265;
+immutable KEY_PAGE_UP = 266;
+immutable KEY_PAGE_DOWN = 267;
+immutable KEY_HOME = 268;
+immutable KEY_END = 269;
+immutable KEY_CAPS_LOCK = 280;
+immutable KEY_SCROLL_LOCK = 281;
+immutable KEY_NUM_LOCK = 282;
+immutable KEY_PRINT_SCREEN = 283;
+immutable KEY_PAUSE = 284;
+immutable KEY_F1 = 290;
+immutable KEY_F2 = 291;
+immutable KEY_F3 = 292;
+immutable KEY_F4 = 293;
+immutable KEY_F5 = 294;
+immutable KEY_F6 = 295;
+immutable KEY_F7 = 296;
+immutable KEY_F8 = 297;
+immutable KEY_F9 = 298;
+immutable KEY_F10 = 299;
+immutable KEY_F11 = 300;
+immutable KEY_F12 = 301;
+immutable KEY_F13 = 302;
+immutable KEY_F14 = 303;
+immutable KEY_F15 = 304;
+immutable KEY_F16 = 305;
+immutable KEY_F17 = 306;
+immutable KEY_F18 = 307;
+immutable KEY_F19 = 308;
+immutable KEY_F20 = 309;
+immutable KEY_F21 = 310;
+immutable KEY_F22 = 311;
+immutable KEY_F23 = 312;
+immutable KEY_F24 = 313;
+immutable KEY_F25 = 314;
+immutable KEY_KP_0 = 320;
+immutable KEY_KP_1 = 321;
+immutable KEY_KP_2 = 322;
+immutable KEY_KP_3 = 323;
+immutable KEY_KP_4 = 324;
+immutable KEY_KP_5 = 325;
+immutable KEY_KP_6 = 326;
+immutable KEY_KP_7 = 327;
+immutable KEY_KP_8 = 328;
+immutable KEY_KP_9 = 329;
+immutable KEY_KP_DECIMAL = 330;
+immutable KEY_KP_DIVIDE = 331;
+immutable KEY_KP_MULTIPLY = 332;
+immutable KEY_KP_SUBTRACT = 333;
+immutable KEY_KP_ADD = 334;
+immutable KEY_KP_ENTER = 335;
+immutable KEY_KP_EQUAL = 336;
+immutable KEY_LEFT_SHIFT = 340;
+immutable KEY_LEFT_CONTROL = 341;
+immutable KEY_LEFT_ALT = 342;
+immutable KEY_LEFT_SUPER = 343;
+immutable KEY_RIGHT_SHIFT = 344;
+immutable KEY_RIGHT_CONTROL = 345;
+immutable KEY_RIGHT_ALT = 346;
+immutable KEY_RIGHT_SUPER = 347;
+immutable KEY_MENU = 348;
+immutable KEY_LAST = KEY_MENU;
+
+immutable MOD_SHIFT = 0x0001;
+immutable MOD_CONTROL = 0x0002;
+immutable MOD_ALT = 0x0004;
+immutable MOD_SUPER = 0x0008;
+
+immutable MOUSE_BUTTON_1 = 0;
+immutable MOUSE_BUTTON_2 = 1;
+immutable MOUSE_BUTTON_3 = 2;
+immutable MOUSE_BUTTON_4 = 3;
+
 private:
 
-Figure[] _figures;
-int _lastKey = -1;
+// initialize glfw and global callbacks
+static this()
+{
+    import std.stdio;
 
-KeyPressCallback _keyPressCallback;
-CharCallback _charCallback;
+    if (!glfwInit())
+    {
+        throw new Exception("Invalid glfwInit call");
+    }
+
+    setCharCallback((uint key) { _lastKey = key; });
+}
+
+Figure[] _figures; // book-keeping of each runnning figure.
+int _lastKey = -1; // last hit key
+
+KeyPressCallback _keyPressCallback; // global key press callback
+CharCallback _charCallback; // global char callback
 
 void keyCallbackWrapper(int mods, int action, int scancode, int key, GLFWwindow* window)
 {
