@@ -16,16 +16,35 @@ import core.thread;
 
 import dcv.plot.figure;
 
+auto assignTextureSize(int _width, int _height)
+{
+    int w = 2;
+    int h = 2;
+
+    while(w < _width) {
+        w  = w^^2;
+        writeln(w);
+    }
+    while(h < _height) {
+        h = h^^2;
+    }
+    return [w, h];
+}
+
 void main(string [] args) {
 
-    Image image = imread("../data/lena.png");
+    string path = (args.length == 2) ? args[1] : "../data/lena.png";
 
-    immutable winStr = "Blurred Lena";
+    Image image = imread(path);
+
+    if (image is null) {
+        writeln("Failed reading image at path: ", path);
+        return;
+    }
+
+    immutable winStr = "DCV image";
 
     image
-        .sliced
-        .asType!float
-        .conv(gaussian!float(1.0f, 5, 5))
         .imshow(winStr)
         .setCursorCallback( (Figure figure, double x, double y)
         {

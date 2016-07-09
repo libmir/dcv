@@ -18,8 +18,10 @@ import dcv.imgproc.color : gray2rgb;
 import dcv.features.corner.harris : shiTomasiCorners;
 import dcv.features.utils : extractCorners;
 import dcv.tracking.opticalflow : LucasKanadeFlow, SparsePyramidFlow;
+import dcv.plot.figure;
 
-void printHelp() {
+void printHelp()
+{
     writeln(`
 DCV Lucas-Kanade Sparse Optical Flow Example.
 
@@ -42,9 +44,10 @@ Example:
 ./klt -f ../../data/centaur_1.mpg 19 10 100 3 30 1000.0`);
 }
 
-int main(string[] args) {
-
-    if (args.length == 2 && args[1] == "-h") {
+int main(string[] args)
+{
+    if (args.length == 2 && args[1] == "-h")
+    {
         printHelp();
         return 0;
     }
@@ -55,26 +58,31 @@ int main(string[] args) {
     InputStreamType streamType;
     string streamName;
 
-    if (args.length == 1) {
+    if (args.length == 1)
+    {
         streamName = "../../data/centaur_1.mpg";
         streamType = InputStreamType.FILE;
-    } else {
-        if (args.length < 3) {
-            writeln("Invalid argument setup - at least video format and stream name is needed." ~
-                "\nCall program with -h to show detailed info.");
+    }
+    else
+    {
+        if (args.length < 3)
+        {
+            writeln("Invalid argument setup - at least video format and stream name is needed."
+                    ~ "\nCall program with -h to show detailed info.");
             return 1;
         }
 
-        switch (args[1]) {
-            case "-f":
-                streamType = InputStreamType.FILE;
-                break;
-            case "-l":
-                streamType = InputStreamType.LIVE;
-                break;
-            default:
-                writeln("Invalid video stream type: use -f for file and -l for webcam live stream");
-                return 1;
+        switch (args[1])
+        {
+        case "-f":
+            streamType = InputStreamType.FILE;
+            break;
+        case "-l":
+            streamType = InputStreamType.LIVE;
+            break;
+        default:
+            writeln("Invalid video stream type: use -f for file and -l for webcam live stream");
+            return 1;
         }
 
         streamName = args[2];
@@ -82,7 +90,8 @@ int main(string[] args) {
 
     stream.open(streamName, streamType);
 
-    if (!stream.isOpen) {
+    if (!stream.isOpen)
+    {
         writeln("Cannot open stream named: ", streamName, ", typed as: ", streamType);
         return 1;
     }
@@ -94,7 +103,7 @@ int main(string[] args) {
     auto frames = args.length >= 6 ? args[5].to!uint : 100; // maximum frame count to be tracked
     auto pyrLevels = args.length >= 7 ? args[6].to!uint : 3; // number of levels in the optical flow pyramid
     auto iterCount = args.length >= 8 ? args[7].to!uint : 10; // number of levels in the optical flow pyramid
-    auto eigLim = args.length >= 9 ? args[8].to!float: 1000.0f; // corner eigenvalue limit, after which the feature is invalid.
+    auto eigLim = args.length >= 9 ? args[8].to!float : 1000.0f; // corner eigenvalue limit, after which the feature is invalid.
 
     auto frame = 0; // frame counter
 
@@ -109,7 +118,7 @@ int main(string[] args) {
     stream.readFrame(prevFrame);
 
     // take the y channel and form an image
-    prevFrame = prevFrame.sliced[0..$, 0..$, 0].asImage(ImageFormat.IF_MONO);
+    prevFrame = prevFrame.sliced[0 .. $, 0 .. $, 0].asImage(ImageFormat.IF_MONO);
 
     auto h = prevFrame.height;
     auto w = prevFrame.width;
@@ -117,26 +126,25 @@ int main(string[] args) {
     // detect corners to track
     writeln("Search features...");
     auto f1f = prevFrame.sliced.reshape(h, w).asType!float;
-    auto corners = f1f.shiTomasiCorners(cast(uint)cornerW)
-                        .filterNonMaximum
-                        .extractCorners(cornerCount)
-                        .map!(v => cast(float[2])[cast(float) v[0], cast(float) v[1]])
-                        .array;
+    auto corners = f1f.shiTomasiCorners(cast(uint) cornerW)
+        .filterNonMaximum.extractCorners(cornerCount)
+        .map!(v => cast(float[2])[cast(float) v[0], cast(float) v[1]]).array;
 
     auto reg = new float[2][corners.length].map!(v => cast(float[2])[cornerW, cornerW]).array;
 
-    while (stream.readFrame(thisFrame)) {
+    while (stream.readFrame(thisFrame))
+    {
         writeln("Tracking frame no. " ~ frame.to!string ~ "...");
 
         // take the y channel, and form an image of it.
         thisFrame = thisFrame.sliced[0 .. $, 0 .. $, 0].asImage(ImageFormat.IF_MONO);
 
         // if corner count has dropped below 50% of original count, try to detect new points.
-        if (corners.length < (cornerCount / 2)) {
+        if (corners.length < (cornerCount / 2))
+        {
             writeln("Search features again...");
             auto c = shiTomasiCorners(prevFrame.sliced.reshape(h, w)
-                .asType!float, cast(uint) cornerW).filterNonMaximum.extractCorners(
-                cornerCount);
+                    .asType!float, cast(uint) cornerW).filterNonMaximum.extractCorners(cornerCount);
 
             foreach (v; c)
                 corners ~= [cast(float) v[0], cast(float) v[1]];
@@ -148,19 +156,23 @@ int main(string[] args) {
         // discard faulty tracked corners
         auto fback = corners;
         corners.length = 0;
-        foreach (id, e; lkFlow.cornerResponse) {
+        foreach (id, e; lkFlow.cornerResponse)
+        {
             import std.math : isNaN;
             import std.algorithm : remove;
 
-            if (!isNaN(e) && e > eigLim) {
+            if (!isNaN(e) && e > eigLim)
+            {
                 corners ~= fback[id];
             }
-            else {
+            else
+            {
                 writeln("Removing corner no. ", id, " with score: ", e);
             }
         }
 
-        foreach (ref c, f; lockstep(corners, flow)) {
+        foreach (ref c, f; lockstep(corners, flow))
+        {
             c[0] = c[0] + f[1];
             c[1] = c[1] + f[0];
         }
@@ -169,7 +181,10 @@ int main(string[] args) {
         auto f2c = thisFrame.sliced.reshape(h, w).gray2rgb.asType!float;
         f2c.drawCorners(corners, 3, cast(ubyte[])[255, 0, 0]);
 
-        f2c.asType!ubyte.imwrite(ImageFormat.IF_RGB, "./result/image_" ~ frame.to!string ~ ".png");
+        f2c.imshow("KLT");
+
+        if (waitKey(10) == KEY_ESCAPE)
+            break;
 
         if (++frame >= frames)
             break;
@@ -181,18 +196,21 @@ int main(string[] args) {
     return 0;
 }
 
-void drawCorners(T, Color)(Slice!(3, T*) image, float[2][] corners, float cornerSize, Color color) {
+void drawCorners(T, Color)(Slice!(3, T*) image, float[2][] corners, float cornerSize, Color color)
+{
     import std.algorithm.iteration : each;
-    
+
     auto ch = cast(long)(cornerSize / 2);
-    foreach (corner; corners) {
+    foreach (corner; corners)
+    {
         auto c0 = cast(long) corner[0];
         auto c1 = cast(long) corner[1];
         if (c0 - ch < 0 || c0 + ch >= image.length!0 - 1 || c1 - ch < 0
-            || c1 + ch >= image.length!1 - 1)
+                || c1 + ch >= image.length!1 - 1)
             continue;
-        auto window = image[c0 - ch .. c0 + ch, c1 - ch .. c1 + ch, 0..$];
-        foreach (pix; window.pack!1.byElement) {
+        auto window = image[c0 - ch .. c0 + ch, c1 - ch .. c1 + ch, 0 .. $];
+        foreach (pix; window.pack!1.byElement)
+        {
             pix[] = color[];
         }
     }

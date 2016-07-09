@@ -1,10 +1,8 @@
 {
 	"name": "video",
-	"description": "A minimal D application.",
-	"copyright": "Copyright © 2016, relja",
-	"authors": ["relja"],
-	"importPaths": ["/usr/local/include/d/gtkd-3"],
-	"lflags": ["-L/usr/local/lib", "-lgtkd-3", "-lgtkdgl-3", "-lgtkdsv-3", "-ldl"],
+	"description": "Video streaming example for DCV library.",
+	"copyright": "Copyright © 2016, Relja Ljubobratovic",
+	"authors": ["Relja Ljubobratovic"],
 	"dependencies": {
 		"dcv": {
 			"version": "~master",

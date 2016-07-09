@@ -5,4 +5,4 @@ __dummy.html
 *.obj
 /filter
 *.selections.json
-plot/
+/plot
