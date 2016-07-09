@@ -1,6 +1,5 @@
 module dcv.plot.bindings.gl;
 
-
 alias uint GLenum;
 alias ubyte GLboolean;
 alias uint GLbitfield;
@@ -628,26 +627,37 @@ extern (C)
     void glVertex2f(GLfloat x, GLfloat y);
     void glVertex3f(GLfloat x, GLfloat y, GLfloat z);
     void glColor3f(GLfloat red, GLfloat green, GLfloat blue);
-    void glTexCoord2f( GLfloat s, GLfloat t );
-    void glEnable( GLenum cap );
-    void glDisable( GLenum cap );
-    void glTexEnvf( GLenum target, GLenum pname, GLfloat param );
-    void glGenTextures( GLsizei n, GLuint *textures );
-    void glDeleteTextures( GLsizei n, const GLuint *textures);
-    void glBindTexture( GLenum target, GLuint texture );
+    void glTexCoord2f(GLfloat s, GLfloat t);
+    void glEnable(GLenum cap);
+    void glDisable(GLenum cap);
+    void glTexEnvf(GLenum target, GLenum pname, GLfloat param);
+    void glGenTextures(GLsizei n, GLuint* textures);
+    void glDeleteTextures(GLsizei n, const GLuint* textures);
+    void glBindTexture(GLenum target, GLuint texture);
     void glFlush();
-    void glShadeModel( GLenum mode );
-    void glPixelStorei( GLenum pname, GLint param );
-    void glTexParameteri( GLenum target, GLenum pname, GLint param );
-    void glTexImage2D( GLenum target, GLint level,
-            GLint internalFormat,
-            GLsizei width, GLsizei height,
-            GLint border, GLenum format, GLenum type,
-            const GLvoid *pixels );
-    void glTexSubImage2D( GLenum target, GLint level,
-            GLint xoffset, GLint yoffset,
-            GLsizei width, GLsizei height,
-            GLenum format, GLenum type,
-            const GLvoid *pixels );
+    void glShadeModel(GLenum mode);
+    void glPixelStorei(GLenum pname, GLint param);
+    void glTexParameteri(GLenum target, GLenum pname, GLint param);
+    void glTexImage2D(GLenum target, GLint level, GLint internalFormat, GLsizei width,
+            GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* pixels);
+    void glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+            GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* pixels);
     void glGenerateMipmap(GLenum);
+    void glOrtho(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top,
+            GLdouble near_val, GLdouble far_val);
+    void glViewport(GLint x, GLint y, GLsizei width, GLsizei height);
+    void glFrustum(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top,
+            GLdouble near_val, GLdouble far_val);
+    void glPushMatrix();
+    void glPopMatrix();
+    void glLoadIdentity();
+    void glMatrixMode(GLenum mode);
+
+    void glTranslatef(GLfloat x, GLfloat y, GLfloat z);
+    void glScalef(GLfloat x, GLfloat y, GLfloat z);
+    void glDrawPixels(GLsizei width, GLsizei height, GLenum format,
+            GLenum type, const GLvoid* pixels);
+    void glPixelZoom( GLfloat xfactor, GLfloat yfactor );
+    void glRasterPos2f( GLfloat x, GLfloat y );
+    void glRasterPos3f( GLfloat x, GLfloat y, GLfloat z );
 }

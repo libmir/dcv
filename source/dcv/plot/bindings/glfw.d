@@ -254,6 +254,7 @@ alias GLFWwindowclosefun = void function(GLFWwindow* window);
 alias GLFWmousebuttonfun = void function(int mods, int action, int button, GLFWwindow*);
 alias GLFWcursorposfun = void function(double ypos, double xpos, GLFWwindow*);
 alias GLFWwindowposfun = void function(int ypos, int xpos, GLFWwindow*);
+alias GLFWwindowsizefun = void function(int height, int width, GLFWwindow *window);
 
 extern (C)
 {
@@ -278,6 +279,9 @@ extern (C)
     void glfwGetWindowPos(GLFWwindow* window, int* xpos, int* ypos);
     void glfwSetInputMode(GLFWwindow* window, int mode, int value);
     int glfwGetInputMode(GLFWwindow* window, int mode);
+    void glfwGetWindowSize(GLFWwindow* window, int* width, int* height);
+    void glfwSetWindowSize(GLFWwindow* window, int width, int height);
+    void glfwWindowHint(int target, int hint);
 
     GLFWcharfun glfwSetCharCallback(GLFWwindow* window, GLFWcharfun cbfun);
     GLFWcharmodsfun glfwSetCharModsCallback(GLFWwindow* window, GLFWcharmodsfun cbfun);
@@ -286,4 +290,5 @@ extern (C)
     GLFWmousebuttonfun glfwSetMouseButtonCallback(GLFWwindow* window, GLFWmousebuttonfun cbfun);
     GLFWcursorposfun glfwSetCursorPosCallback(GLFWwindow* window, GLFWcursorposfun cbfun);
     GLFWwindowposfun glfwSetWindowPosCallback(GLFWwindow* window, GLFWwindowposfun cbfun);
+    GLFWwindowsizefun glfwSetWindowSizeCallback(GLFWwindow* window, GLFWwindowsizefun cbfun);
 }
