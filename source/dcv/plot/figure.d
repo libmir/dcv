@@ -10,7 +10,6 @@ import dcv.core.utils : asType;
 
 import dcv.plot.bindings;
 
-
 /**
 Create a plotting figure.
 
@@ -36,12 +35,12 @@ Figure figure(string title = "")
     }
     if (f is null)
     {
-        f = new Figure(title);
+            f = new Figure(title);
         if (_figures.length != 0)
         {
             auto p = _figures[$ - 1].position;
             // TODO: figure out smarter window cascading.
-            f.setPosition(p[0] + 50, p[1] + 50);
+            f.move(50, 50);
         }
 
         _figures ~= f;
@@ -80,13 +79,11 @@ Figure imshow(size_t N, T)(Slice!(N, T*) slice, string title = "")
 }
 
 /// ditto
-Figure imshow(size_t N, T)(Slice!(N, T*) slice,
-        ImageFormat format, string title = "")
+Figure imshow(size_t N, T)(Slice!(N, T*) slice, ImageFormat format, string title = "")
 {
     auto f = figure(title);
     f.draw(slice, format);
     f.show();
-
     return f;
 }
 
@@ -95,7 +92,7 @@ Run the event loop for each present figure, and wait for key and/or given time.
 
 Params:
     unit = Unit in which time count is given. Same as core.time.Duration unit parameters.
-    count = Numer of unit ticks to wait for event loop to finish. If left at zero (default), runs indefinitelly.
+    count = Number of unit ticks to wait for event loop to finish. If left at zero (default), runs indefinitelly.
 
 Returns:
     Ascii value as int of keyboard press, or 0 if timer runs out.
@@ -107,11 +104,15 @@ int waitKey(string unit = "msecs")(ulong count = 0)
     StopWatch stopwatch;
     stopwatch.start;
 
+    _lastKey = -1;
+    auto hiddenLoopCheck = 0;
+
     while (true)
     {
-
         if (count && count < mixin("stopwatch.peek." ~ unit))
             break;
+
+        glfwPollEvents();
 
         if (_lastKey != -1)
             return _lastKey;
@@ -122,23 +123,38 @@ int waitKey(string unit = "msecs")(ulong count = 0)
         {
             auto glfwWindow = f._glfwWindow;
 
-            if (f.visible == false || glfwWindowShouldClose(glfwWindow))
+            if (f.visible == false)
+            {
+                continue;
+            }
+
+            if (glfwWindowShouldClose(glfwWindow)) 
             {
                 f.hide();
                 continue;
             }
 
             allHidden = false;
-
             f.render();
 
         }
 
-        if (allHidden)
-            break;
+        if (allHidden) 
+        {
+            /*
+            TODO: think this through - its good behavior to end the event loop 
+            when no window is opened, but if image is shown right before the 
+            waitKey call, glfw doesn't actually show the window, so Figure.visible 
+            returns false.
 
-        glfwWaitEvents();
-        glfwPollEvents();
+            To bypass this, count event loop calls where all windows are hidden, 
+            and if counter reaches enough hits (say 100), break the loop.
+
+            This is temporary solution.
+            */
+            if (++hiddenLoopCheck > 100)
+                break;
+        }
     }
 
     return 0;
@@ -150,19 +166,25 @@ Destroy figure.
 Params:
     title = Title of the window to be destroyed. If left as empty string, destroys all windows.
 */
-void imdestroy(string title = "") {
-    if (title == "") {
-        foreach(f; _figures)
+void imdestroy(string title = "")
+{
+    if (title == "")
+    {
+        foreach (f; _figures)
         {
             f.hide();
             destroy(f);
         }
         _figures = [];
-    } else {
+    }
+    else
+    {
         import std.algorithm.mutation : remove;
-        foreach(i, f; _figures)
+
+        foreach (i, f; _figures)
         {
-            if (f.title == title) {
+            if (f.title == title)
+            {
                 f.hide();
                 destroy(f);
                 _figures.remove(i);
@@ -208,7 +230,6 @@ class Figure
     private
     {
         GLFWwindow* _glfwWindow = null;
-        GLuint _glfwTexture = 0;
 
         int _width = 0;
         int _height = 0;
@@ -222,17 +243,10 @@ class Figure
 
     @disable this();
 
-    /// Construct figure window with given title.
-    this(string title)
+    private void setupCallbacks()
     {
-        _title = title;
-        _width = 512;
-        _height = 512;
+        glfwSetInputMode(_glfwWindow, GLFW_STICKY_KEYS, 1);
 
-        setupWindow();
-        setupTexture();
-
-        // setup default callbacks
         glfwSetMouseButtonCallback(_glfwWindow, &mouseCallbackWrapper);
         glfwSetCursorPosCallback(_glfwWindow, &cursorCallbackWrapper);
         glfwSetWindowCloseCallback(_glfwWindow, &closeCallbackWrapper);
@@ -240,6 +254,26 @@ class Figure
         glfwSetKeyCallback(_glfwWindow, &keyCallbackWrapper);
 
         setCloseCallback(&defaultCloseCallback);
+    }
+
+    /// Construct figure window with given title.
+    this(string title, int width = 512, int height = 512)
+    in 
+    {
+        assert(width > 0);
+        assert(height > 0);
+    }
+    body
+    {
+        _title = title;
+        _width = width;
+        _height = height;
+        _data = new ubyte[_width*_height*3];
+
+        setupWindow();
+        fitWindow();
+
+        setupCallbacks();
     }
 
     /// Construct figure window with given title, and fill it with given image.
@@ -251,8 +285,17 @@ class Figure
     }
     body
     {
-        this(title);
+        this(title, cast(int) image.width, cast(int) image.height);
         draw(image);
+    }
+
+    /// Construct figure window with given title, and fill it with given image.
+    this(size_t N, T)(string title, Slice!(N, T*) slice, 
+            ImageFormat format = ImageFormat.IF_UNASSIGNED)
+    if (N == 2 || N == 3)
+    {
+        this(title, cast(int)slice.length!1, cast(int) slice.length!0);
+        draw(slice, format);
     }
 
     ~this()
@@ -260,7 +303,6 @@ class Figure
         if (_glfwWindow !is null)
         {
             glfwDestroyWindow(_glfwWindow);
-            glDeleteTextures(1, &_glfwTexture);
         }
     }
 
@@ -320,18 +362,11 @@ class Figure
             glfwHideWindow(_glfwWindow);
     }
 
-    @property bool visible() inout
+    @property visible() inout
     {
         if (_glfwWindow is null)
             return false;
         return glfwGetWindowAttrib(cast(GLFWwindow*) _glfwWindow, GLFW_VISIBLE) == 1;
-    }
-
-    /// Clear canvas content of this figure.
-    void clear()
-    {
-        _data[] = cast(ubyte) 0;
-        redraw();
     }
 
     @property position() const
@@ -342,15 +377,43 @@ class Figure
         return [x, y];
     }
 
-    void setPosition(int x, int y)
+    @property size() const
+    {
+        int w, h;
+        glfwGetWindowSize(cast(GLFWwindow*) _glfwWindow, &w, &h);
+        return [w, h];
+    }
+
+    /// Clear canvas content of this figure.
+    void clear()
+    {
+        _data[] = cast(ubyte) 0;
+    }
+
+    /// Move figure window to given position on screen.
+    void moveTo(int x, int y)
     {
         glfwSetWindowPos(_glfwWindow, x, y);
     }
 
-    void setPosition(int[] pos)
+    /// ditto
+    void moveTo(int[] pos)
     {
         assert(pos.length == 2);
-        setPosition(pos[0], pos[1]);
+        move(pos[0], pos[1]);
+    }
+
+    /// Offset figure window position by given values.
+    void move(int x, int y)
+    {
+        auto p = this.position;
+        glfwSetWindowPos(_glfwWindow, p[0] + x, p[1] + y);
+    }
+
+    /// ditto
+    void move(int[] offset)
+    {
+        move(offset[0], offset[1]);
     }
 
     /// Draw image onto figure canvas.
@@ -358,12 +421,18 @@ class Figure
     {
         Image showImage = adoptImage(image);
 
-        _width = cast(int) image.width;
-        _height = cast(int) image.height;
+        if (_width != image.width || _height != image.height)
+        {
+            _width = cast(int) image.width;
+            _height = cast(int) image.height;
+            _data = image.data.dup;
+        }
+        else
+        {
+            _data[] = image.data[];
+        }
 
-        _data = showImage.data.dup;
-
-        redraw();
+        fitWindow();
     }
 
     /// Draw slice of image onto figure canvas.
@@ -383,59 +452,38 @@ class Figure
             draw(showSlice.asImage(format));
     }
 
-    void render()
+    private void fitWindow()
+    {
+        glfwSetWindowSize(_glfwWindow, _width, _height);
+    }
+
+    private void render()
     {
         glfwMakeContextCurrent(_glfwWindow);
 
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glDisable(GL_DEPTH_TEST);
 
-        glDisable(GL_LIGHTING);
-        glEnable(GL_TEXTURE_2D);
+        glViewport( 0, 0, width, height );
 
-        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
-        glBindTexture(GL_TEXTURE_2D, _glfwTexture);
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
 
-        immutable size = 1.0f;
+        glOrtho(0, width, 0, height, 0.1, 1);
+        glPixelZoom(1, -1);
+        glRasterPos3f(0, height - 1, -0.3);
 
-        glBegin(GL_QUADS);
-        glTexCoord2f(0.0, 1.0);
-        glVertex2f(-size, -size);
-        glTexCoord2f(0.0, 0.0);
-        glVertex2f(-size, size);
-        glTexCoord2f(1.0, 0.0);
-        glVertex2f(size, size);
-        glTexCoord2f(1.0, 1.0);
-        glVertex2f(size, -size);
-        glEnd();
+        glDrawPixels(_width, _height, GL_RGB, GL_UNSIGNED_BYTE, _data.ptr);
 
         glFlush();
-        glDisable(GL_TEXTURE_2D);
+        glEnable(GL_DEPTH_TEST);
 
         glfwSwapBuffers(_glfwWindow);
     }
 
-    private void redraw()
-    {
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _width, _height, GL_RGB,
-                GL_UNSIGNED_BYTE, _data.ptr);
-    }
-
-    private void setupTexture()
-    {
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glPixelStorei(GL_PACK_ALIGNMENT, 1);
-
-        glGenTextures(1, &_glfwTexture);
-        glBindTexture(GL_TEXTURE_2D, _glfwTexture);
-
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _width, _height, 0, GL_RGB,
-                GL_UNSIGNED_BYTE, _data.ptr);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    }
-
     private void setupWindow()
     {
+        glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
         _glfwWindow = glfwCreateWindow(_width, _height, toStringz(_title), null, null);
         if (!_glfwWindow)
         {
@@ -559,14 +607,29 @@ static this()
         throw new Exception("Invalid glfwInit call");
     }
 
-    setCharCallback((uint key) { _lastKey = key; });
+    setCharCallback((uint key) { 
+        _lastKey = key;
+    });
+
+    setKeyPressCallback( (int key, int scancode, int action, int mods) {
+        /*
+        char callback takes priority with character keyboard inputs,
+        so only override the _lastKey value if its -1, which means there
+        was no char callback previously.
+        */
+        if (_lastKey == -1)
+            _lastKey = key;
+    });
 }
 
-Figure[] _figures; // book-keeping of each runnning figure.
-int _lastKey = -1; // last hit key
+private 
+{
+    Figure[] _figures; // book-keeping of each running figure.
+    int _lastKey = -1; // last hit key
 
-KeyPressCallback _keyPressCallback; // global key press callback
-CharCallback _charCallback; // global char callback
+    KeyPressCallback _keyPressCallback; // global key press callback
+    CharCallback _charCallback; // global char callback
+}
 
 void keyCallbackWrapper(int mods, int action, int scancode, int key, GLFWwindow* window)
 {
@@ -628,7 +691,8 @@ Image adoptImage(Image image)
     switch (showImage.format)
     {
     case ImageFormat.IF_RGB_ALPHA:
-        showImage = showImage.sliced[0 .. $, 0 .. $, 0 .. 2].asImage(ImageFormat.IF_RGB);
+        showImage = showImage.sliced[0 .. $, 0 .. $,
+            0 .. 2].asImage(ImageFormat.IF_RGB);
         break;
     case ImageFormat.IF_BGR:
         foreach (e; showImage.sliced.pack!1.byElement)
