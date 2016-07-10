@@ -1,20 +1,40 @@
-﻿module dcv.imgproc.color;
+﻿
+/**
+Module contains color format convertion operations.
+
+$(DL Module contains:
+    $(DD 
+            $(LINK2 #rgb2gray,rgb2gray)
+            $(LINK2 #gray2rgb,gray2rgb)
+            $(LINK2 #rgb2hsv,rgb2hsv)
+            $(LINK2 #hsv2rgb,hsv2rgb)
+            $(LINK2 #rgb2yuv,rgb2yuv)
+            $(LINK2 #yuv2rgb,yuv2rgb)
+    )
+)
+
+Copyright: Copyright Relja Ljubobratovic 2016.
+
+Authors: Relja Ljubobratovic
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+*/ 
+
+module dcv.imgproc.color;
 
 /*
- * Color format convertion module.
- * 
- * TODO: redesign functions - one function to iterate, separated format convertions as template alias. 
- * Consider grouping color convertion routines into one function.
- * 
- * v0.1 norm:
- * rgb2gray vice versa (done)
- * hsv2rgb -||-
- * hls2rgb -||-
- * lab2rgb -||-
- * luv2rgb -||-
- * luv2rgb -||-
- * bayer2rgb -||-
- */
+TODO: redesign functions - one function to iterate, separated format convertions as template alias. 
+Consider grouping color convertion routines into one function.
+
+v0.1 norm:
+rgb2gray vice versa (done)
+hsv2rgb -||-
+hls2rgb -||-
+lab2rgb -||-
+luv2rgb -||-
+luv2rgb -||-
+bayer2rgb -||-
+*/
 
 import std.experimental.ndslice;
 
@@ -52,7 +72,7 @@ enum Rgb2GrayConvertion {
  * discarded and allocated anew.
  * conv = Convertion strategy - mean, or luminance preservation.
  * 
- * return:
+ * returns:
  * Returns grayscale version of the given RGB image, of the same size.
  */
 Slice!(2, V*) rgb2gray(V)(Slice!(3, V*) range, 
@@ -89,7 +109,7 @@ unittest {
  * discarded and allocated anew.
  * conv = Convertion strategy - mean, or luminance preservation.
  * 
- * return:
+ * returns:
  * Returns grayscale version of the given BGR image, of the same size.
  */
 Slice!(2, V*) bgr2gray(V)(Slice!(3, V*) range, 
@@ -126,7 +146,7 @@ unittest {
  * slice is not of corresponding shape(range.shape[0], range.shape[1], 3), it is 
  * discarded and allocated anew.
  * 
- * return:
+ * returns:
  * Returns RGB version of the given grayscale image.
  */
 Slice!(3, V*) gray2rgb(V)(Slice!(2, V*) range, 
@@ -175,7 +195,7 @@ unittest {
  * slice is not of corresponding shape(range.shape[0], range.shape[1], 3), it is 
  * discarded and allocated anew.
  * 
- * return:
+ * returns:
  * Returns HSV verion of the given RGB image.
  */
 Slice!(3, R*) rgb2hsv(R, V)(Slice!(3, V*) range, 
@@ -256,25 +276,25 @@ unittest {
 }
 
 /**
- * Convert HSV image to RGB color format.
- * 
- * HSV is represented in floating point, where
- * H is 0-360 degrees, S and V is 0.0-1.0. 
- * 
- * Output range values are based on the output type cast - ubyte will
- * range RGB values to be 0-255, ushort 0-65535, and floating types
- * 0.0-1.0. Other types are not supported.
- * 
- * params:
- * range = RGB image version, which gets converted to HVS.
- * prealloc = Pre-allocated range, where HSV image will be copied. Default
- * argument is an empty slice, where new data is allocated and returned. If given 
- * slice is not of corresponding shape(range.shape[0], range.shape[1], 3), it is 
- * discarded and allocated anew.
- * 
- * return:
- * Returns HSV verion of the given RGB image.
- */
+Convert HSV image to RGB color format.
+
+If HSV is represented in floating point, H is 0-360 degrees, S and V is 0.0-1.0. 
+If it's of integral type, S and V values are in 0-100 range.
+
+Output range values are based on the output type cast - ubyte will
+range RGB values to be 0-255, ushort 0-65535, and floating types
+0.0-1.0. Other types are not supported.
+
+params:
+range = RGB image version, which gets converted to HVS.
+prealloc = Pre-allocated range, where HSV image will be copied. Default
+argument is an empty slice, where new data is allocated and returned. If given 
+slice is not of corresponding shape(range.shape[0], range.shape[1], 3), it is 
+discarded and allocated anew.
+
+returns:
+Returns HSV verion of the given RGB image.
+*/
 Slice!(3, R*) hsv2rgb(R, V)(Slice!(3, V*) range, 
     Slice!(3, R*) prealloc = emptySlice!(3, R))
     if (isNumeric!R && isNumeric!V)

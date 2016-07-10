@@ -1,11 +1,13 @@
-﻿module dcv.core.utils;
+﻿/**
+Module for various utilities used throughout the library.
 
-/*
- * Module for various utilities used throughout the library.
- * 
- * v0.1 norm:
- * unknown - each new utility should be implemented on the fly - as it's needed by other modules?
- */
+Copyright: Copyright Relja Ljubobratovic 2016.
+
+Authors: Relja Ljubobratovic
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+*/ 
+module dcv.core.utils;
 
 import std.experimental.ndslice;
 import std.traits;

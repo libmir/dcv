@@ -1,12 +1,28 @@
-﻿module dcv.core.image;
+﻿/**
+Module implements Image utility class, and basic API for image manipulation.
 
+Image class encapsulates image properties with minimal functionality. It is primarily designed to be used as I/O unit.
+For any image processing needs, image data can be sliced to std.experimental.ndslice.slice.Slice. 
 
-/**
- * Module implements Image class.
- * 
- * v0.1 norm:
- * Implemented and tested Image class.
- */
+Example:
+----
+Image image = new Image(32, 32, ImageFormat.IF_MONO, BitDepth.BD_32);
+
+Slice!(3, float*) slice = image.sliced!float; // slice image data, considering the data is of float type.
+
+assert(image.height == slice.length!0 && image.width == slice.length!1);
+assert(image.channels == 1);
+
+image = slice.asImage(ImageFormat.IF_MONO); // create the image back from sliced data.
+----
+
+Copyright: Copyright Relja Ljubobratovic 2016.
+
+Authors: Relja Ljubobratovic
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+*/ 
+module dcv.core.image;
 
 import std.exception : enforce;
 import std.algorithm : reduce;
@@ -16,14 +32,14 @@ public import std.experimental.ndslice;
 
 /// Image (pixel) format.
 enum ImageFormat {
-    IF_UNASSIGNED = 0,
-    IF_MONO,
-    IF_MONO_ALPHA,
-    IF_RGB,
-    IF_BGR,
-    IF_YUV,
-    IF_RGB_ALPHA,
-    IF_BGR_ALPHA
+    IF_UNASSIGNED = 0, /// Not assigned format.
+    IF_MONO, /// Mono, single channel format.
+    IF_MONO_ALPHA, /// Mono with alpha channel.
+    IF_RGB, /// RGB format.
+    IF_BGR, /// BGR format.
+    IF_YUV, /// YUV (YCbCr) format.
+    IF_RGB_ALPHA, /// RGB format with alpha.
+    IF_BGR_ALPHA /// BGR format with alpha.
 }
 
 immutable ulong [] imageFormatChannelCount = [
@@ -39,10 +55,10 @@ immutable ulong [] imageFormatChannelCount = [
 
 /// Bit depth of a pixel in an image.
 enum BitDepth : size_t {
-    BD_UNASSIGNED = 0,
-    BD_8 = 8,
-    BD_16 = 16,
-    BD_32 = 32
+    BD_UNASSIGNED = 0, /// Not assigned depth info.
+    BD_8 = 8, /// 8-bit (ubyte) depth type.
+    BD_16 = 16, /// 16-bit (ushort) depth type.
+    BD_32 = 32 /// 32-bit (float) depth type.
 }
 
 private	pure nothrow @safe auto getDepthFromType(T)() {
@@ -65,40 +81,25 @@ unittest {
 }
 
 /**
- * Image abstraction type.
- */
+Image abstraction type.
+*/
 class Image {
 private:
-    /// Format of an image.
+    // Format of an image.
     ImageFormat _format = ImageFormat.IF_UNASSIGNED;
     // Bit depth of a pixel: (8 - uchar, 16 - ushort, 32 - float)
     BitDepth _depth = BitDepth.BD_UNASSIGNED;
-    /// Width of the image.
+    // Width of the image.
     size_t _width = 0;
-    /// Height of the image.
+    // Height of the image.
     size_t _height = 0;
-    /// Image pixel (data) array.
+    // Image pixel (data) array.
     ubyte[] _data = null;
     
     
 public:
 
-    /**
-     * Default constructor for image.
-     * 
-     * Creates an empty image structure.
-     */
     pure @safe nothrow this() {
-    }
-
-    @safe  pure nothrow unittest {
-        Image image = new Image;
-        assert(image._format == ImageFormat.IF_UNASSIGNED);
-        assert(image._depth == BitDepth.BD_UNASSIGNED);
-        assert(image._width == 0);
-        assert(image._height == 0);
-        assert(image._data == null);
-        assert(image.empty == true);
     }
 
     /**
@@ -406,6 +407,16 @@ version(unittest) {
     immutable format = ImageFormat.IF_MONO;
     immutable depth = BitDepth.BD_8;
     auto data = (width*height).iota.map!(v => cast(ubyte)v).array;
+}
+
+unittest {
+    Image image = new Image;
+    assert(image.format == ImageFormat.IF_UNASSIGNED);
+    assert(image.depth == BitDepth.BD_UNASSIGNED);
+    assert(image.width == 0);
+    assert(image.height == 0);
+    assert(image.data == null);
+    assert(image.empty == true);
 }
 
 // Image.asType!

@@ -1,0 +1,46 @@
+DIV = <div class="$1">$2</div>
+B          = <b>$0</b>
+I          = <i>$0</i>
+U          = <u id="$0">$0</u>
+P          = <p>$0</p>
+DL         = <dl>$0</dl>
+DT         = <dt>$0</dt>
+DD         = <dd>$0</dd>
+TABLE      = <table>$0</table>
+TR         = <tr>$0</tr>
+TH         = <th>$0</th>
+TD         = <td>$0</td>
+OL         = <ol>$0</ol>
+UL         = <ul>$0</ul>
+LI         = <li>$0</li>
+BIG        = <big>$0</big>
+SMALL      = <small>$0</small>
+BR         = <br>
+LINK       = <a href="$0">$0</a>
+LINK2      = <a href="$1">$+</a>
+LINK3      = <a target="_blank" href="$1">$+</a>
+LPAREN     = (
+RPAREN     = )
+BACKTICK   = `
+DOLLAR     = $
+DEPRECATED = $0
+IMAGE      = <img src="$0"/>
+
+RED    = <font color=red>$0</font>
+BLUE   = <font color=blue>$0</font>
+GREEN  = <font color=green>$0</font>
+YELLOW = <font color=yellow>$0</font>
+BLACK  = <font color=black>$0</font>
+WHITE  = <font color=white>$0</font>
+
+D_CODE       = <pre class="d_code">$0</pre>
+D_INLINECODE = <pre style="display:inline;" class="d_inline_code">$0</pre>
+D_COMMENT    = $(GREEN $0)
+D_STRING     = $(RED $0)
+D_KEYWORD    = $(BLUE $0)
+D_PSYMBOL    = $(U $0)
+D_PARAM      = $(I $0)
+
+DDOC =     <h1>$(TITLE)</h1>
+           $(BODY)
+           <hr>$(COPYRIGHT)

@@ -1,13 +1,21 @@
-﻿module dcv.io.image;
+﻿/**
+Module for image I/O.
 
-/**
- * Module for image I/O.
- * 
- * TODO: write wrappers and  use libjpeg, libpng, libtiff, openexr.
- * 
- * v0.1 norm:
- * Implemented and tested Image class.
- */
+Copyright: Copyright Relja Ljubobratovic 2016.
+
+Authors: Relja Ljubobratovic
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+*/
+module dcv.io.image;
+/*
+
+
+TODO: write wrappers and  use libjpeg, libpng, libtiff, openexr.
+
+v0.1 norm:
+Implemented and tested Image class.
+*/
 
 import std.exception : enforce;
 import std.range : array;
@@ -47,21 +55,21 @@ struct ReadParams {
 }
 
 /** 
- * Read image from the file system.
- * 
- * params:
- * path = File system path to the image.
- * params = Reading parameters - desired format and depth of the image that's read. 
- * Default parameters include no convertion, but loading image orignal data depth and 
- * color format. To load original depth or format, set to _UNASSIGNED (ImageFormat.IF_UNASSIGNED,
- * BitDepth.BD_UNASSIGNED).
- * 
- * return:
- * Image read from the filesystem.
- * 
- * throws:
- * Exception and ImageIOException from imageformats library.
- */
+Read image from the file system.
+
+params:
+path = File system path to the image.
+params = Reading parameters - desired format and depth of the image that's read. 
+Default parameters include no convertion, but loading image orignal data depth and 
+color format. To load original depth or format, set to _UNASSIGNED (ImageFormat.IF_UNASSIGNED,
+BitDepth.BD_UNASSIGNED).
+
+return:
+Image read from the filesystem.
+
+throws:
+Exception and ImageIOException from imageformats library.
+*/
 Image imread(in string path,
     ReadParams params = ReadParams(ImageFormat.IF_UNASSIGNED, BitDepth.BD_UNASSIGNED)) {
     return imreadImpl_imageformats(path, params);
@@ -85,19 +93,19 @@ unittest {
 }
 
 /**
- * Write image to the given path on the filesystem.
- * 
- * params:
- * path = Path where the image will be written.
- * width = Width of the image.
- * height = Height of the image.
- * format = Format of the image.
- * depth = Bit depth of the image.
- * data = Image data in unsigned bytes.
- * 
- * return:
- * Status of the writing as bool.
- */
+Write image to the given path on the filesystem.
+
+params:
+path = Path where the image will be written.
+width = Width of the image.
+height = Height of the image.
+format = Format of the image.
+depth = Bit depth of the image.
+data = Image data in unsigned bytes.
+
+return:
+Status of the writing as bool.
+*/
 bool imwrite(in string path, ulong width, ulong height, ImageFormat format, BitDepth depth, ubyte [] data) {
     assert(depth != BitDepth.BD_UNASSIGNED);
     assert(width > 0 && height > 0);
@@ -112,29 +120,29 @@ bool imwrite(in string path, ulong width, ulong height, ImageFormat format, BitD
 }
 
 /**
- * Convenience wrapper for imwrite with Image.
- * 
- * params:
- * image = Image to be written;
- * path = Path where the image will be written.
- * 
- * return:
- * Status of the writing as bool.
- */
+Convenience wrapper for imwrite with Image.
+
+params:
+image = Image to be written;
+path = Path where the image will be written.
+
+return:
+Status of the writing as bool.
+*/
 bool imwrite(in Image image, in string path) {
     return imwrite(path, image.width, image.height, image.format, image.depth, image.data!ubyte);
 }
 
 /**
- * Convenience wrapper for imwrite with Slice type.
- * 
- * params:
- * slice = Slice of the image data;
- * path = Path where the image will be written.
- * 
- * return:
- * Status of the writing as bool.
- */
+Convenience wrapper for imwrite with Slice type.
+
+params:
+slice = Slice of the image data;
+path = Path where the image will be written.
+
+return:
+Status of the writing as bool.
+*/
 bool imwrite(size_t dims, T)(Slice!(dims, T*) slice, ImageFormat format, in string path) {
     static assert(dims >= 2);
 

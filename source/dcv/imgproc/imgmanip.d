@@ -1,17 +1,37 @@
-﻿module dcv.imgproc.imgmanip;
+﻿/**
+Image manipulation module.
 
-/**
- * Image manipulation module.
- * 
- * v0.1 norm:
- * resize (done)
- * scale (done)
- * transform!affine,perspective (done)
- * warp (pixel-wise displacement) (done)
- * remap (pixel-wise image remapping) (done
- * split (split multichannel image to single channels) - discarded since splitting is very easy using Slice.
- * merge (merge multiple channels to one image) (done)
- */
+Copyright: Copyright Relja Ljubobratovic 2016.
+
+Authors: Relja Ljubobratovic
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+
+$(DL Module contains:
+    $(DD 
+            $(LINK2 #resize, resize)
+            $(LINK2 #scale, scale)
+            $(LINK2 #transformAffine,transformAffine)
+            $(LINK2 #transformPerspective,transformPerspective)
+            $(LINK2 #warp,warp)
+            $(LINK2 #remap,remap)
+    )
+)
+*/ 
+
+module dcv.imgproc.imgmanip;
+/*
+
+
+v0.1 norm:
+resize (done)
+scale (done)
+transform!affine,perspective (done)
+warp (pixel-wise displacement) (done)
+remap (pixel-wise image remapping) (done
+split (split multichannel image to single channels) - discarded since splitting is very easy using Slice.
+merge (merge multiple channels to one image) (done)
+*/
 public import dcv.imgproc.interpolate;
 
 import std.exception : enforce;
@@ -87,14 +107,13 @@ unittest {
 }
 
 /**
- * Scale array size using custom interpolation function.
- * 
- * Implemented as convenience function which calls resize 
- * using scaled shape of the input slice as:
- * 
- * ```
- * scaled = resize(input, input.shape*scale)
- * ```
+Scale array size using custom interpolation function.
+
+Implemented as convenience function which calls resize 
+using scaled shape of the input slice as:
+
+$(D_CODE scaled = resize(input, input.shape*scale))
+
  */
 Slice!(N, V*) scale(alias interp = linear, V, size_t N, Scale...)
     (Slice!(N, V*) slice, Scale scale) 
@@ -204,7 +223,6 @@ unittest {
     assert(remapped.shape == image.shape);
 }
 
-/// ditto
 unittest {
     import std.algorithm.iteration : map;
     import std.random : uniform;
@@ -218,7 +236,6 @@ unittest {
     assert(remapped.shape == image.shape);
 }
 
-/// ditto
 unittest {
     import std.algorithm.iteration : map;
     import std.random : uniform;
@@ -360,22 +377,22 @@ unittest {
 }
 
 /**
- * Transform an image by given affine transformation.
- * 
- * params:
- * interp = (template parameter) Interpolation function. Default linear.
- * slice = Slice of an image which is transformed.
- * transform = 2D Transformation matrix (3x3). Its element type must be floating point type,
- * and it can be defined as Slice object, dynamic or static 2D array.
- * outSize = Output image size - if transformation potentially moves parts of image out
- * of input image bounds, output image can be sized differently to maintain information.
- * 
- * note:
- * Given transformation is considered to be an affine transformation. If it is not, result is undefined.
- * 
- * returns:
- * Transformed image.
- */
+Transform an image by given affine transformation.
+
+params:
+interp = (template parameter) Interpolation function. Default linear.
+slice = Slice of an image which is transformed.
+transform = 2D Transformation matrix (3x3). Its element type must be floating point type,
+and it can be defined as Slice object, dynamic or static 2D array.
+outSize = Output image size - if transformation potentially moves parts of image out
+of input image bounds, output image can be sized differently to maintain information.
+
+note:
+Given transformation is considered to be an affine transformation. If it is not, result is undefined.
+
+returns:
+Transformed image.
+*/
 Slice!(N, V*) transformAffine(alias interp = linear, V, TransformMatrix, size_t N) 
     (Slice!(N, V*) slice, inout TransformMatrix transform, size_t[2] outSize = [0, 0])
 {
@@ -387,22 +404,22 @@ Slice!(N, V*) transformAffine(alias interp = linear, V, TransformMatrix, size_t 
 }
 
 /**
- * Transform an image by given perspective transformation.
- * 
- * params:
- * interp = (template parameter) Interpolation function. Default linear.
- * slice = Slice of an image which is transformed.
- * transform = 2D Transformation matrix (3x3). Its element type must be floating point type,
- * and it can be defined as Slice object, dynamic or static 2D array.
- * outSize = Output image size [width, height] - if transformation potentially moves parts of image out
- * of input image bounds, output image can be sized differently to maintain information.
- * 
- * note:
- * Given transformation is considered to be an perspective transformation. If it is not, result is undefined.
- * 
- * returns:
- * Transformed image.
- */
+Transform an image by given perspective transformation.
+
+params:
+interp = (template parameter) Interpolation function. Default linear.
+slice = Slice of an image which is transformed.
+transform = 2D Transformation matrix (3x3). Its element type must be floating point type,
+and it can be defined as Slice object, dynamic or static 2D array.
+outSize = Output image size [width, height] - if transformation potentially moves parts of image out
+of input image bounds, output image can be sized differently to maintain information.
+
+note:
+Given transformation is considered to be an perspective transformation. If it is not, result is undefined.
+
+returns:
+Transformed image.
+*/
 Slice!(N, V*) transformPerspective(alias interp = linear, V, TransformMatrix, size_t N) 
     (Slice!(N, V*) slice, inout TransformMatrix transform, size_t[2] outSize = [0, 0])
 {

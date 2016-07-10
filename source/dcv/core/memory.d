@@ -1,41 +1,38 @@
-﻿module dcv.core.memory;
+﻿/**
+Module introduces memory management utilities to help manage memory for SIMD compatible arrays,
+with or without use of GC.
+
+Copyright: Copyright Relja Ljubobratovic 2016.
+
+Authors: Relja Ljubobratovic
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+*/ 
+module dcv.core.memory;
+
+import core.simd;
+import core.memory;
+import core.cpuid;
+
+import std.experimental.allocator.mallocator : AlignedMallocator, Mallocator;
 
 /**
- * Module introduces memory management utilities to
- * help manage memory for SIMD compatible arrays,
- * with or without use of GC.
- * 
- * TODO: should introduce SIMD vector convertions, from 
- * ordinary pointer to simd vector type, and vise versa.
- * 
- * v0.1 norm:
- * ???
- */
+Allocate array using strict memory alignment.
 
-private import core.simd; // TODO: implement simd stuff?
-private import core.memory;
-private import core.cpuid;
+Uses std.experimental.allocator.mallocator.AlignmedMallocator to 
+allocate memory. 
 
-private import std.experimental.allocator.mallocator : AlignedMallocator, Mallocator;
+params:
+count = Count of elements to be allocated for the array.
+alignment = size in bytes for memory alignment pattern.
 
-/**
- * Allocate array using strict memory alignment.
- * 
- * Uses std.experimental.allocator.mallocator.AlignmedMallocator to 
- * allocate memory. 
- * 
- * params:
- * count = Count of elements to be allocated for the array.
- * alignment = size in bytes for memory alignment pattern.
- * 
- * returns:
- * Dynamic array of type T, with lenght of given count, aligned using
- * given alignment size.
- * 
- * note:
- * Dynamic array is not added to GC, so it has to be destoyed explicitly
- * using alignedFree. If GC is needed, use alignedAllocGC.
- * 
+returns:
+Dynamic array of type T, with lenght of given count, aligned using
+given alignment size.
+
+note:
+Dynamic array is not added to GC, so it has to be destoyed explicitly
+using alignedFree. If GC is needed, use alignedAllocGC.
  */
 @nogc @trusted T[] alignedAlloc(T)(size_t count, uint alignment = 16) {
     auto buff = AlignedMallocator.instance.alignedAllocate(count*T.sizeof, alignment);
@@ -43,55 +40,34 @@ private import std.experimental.allocator.mallocator : AlignedMallocator, Malloc
 }
 
 /**
- * Allocate array using strict memory alignment.
- * 
- * Uses std.experimental.allocator.mallocator.AlignmedMallocator to 
- * reallocate memory. 
- * Forwards to AlignedMallocator.reallocate.
- * 
- * params:
- * ptr = Pointer to a memory where the reallocation is to be performed at.
- * newSize = Size of the reallocated array.
- * 
- * returns:
- * Status of reallocation. Returns AlignedMallocator.reallocate out status.
- */
+Allocate array using strict memory alignment.
+
+Uses std.experimental.allocator.mallocator.AlignmedMallocator to 
+reallocate memory. 
+Forwards to AlignedMallocator.reallocate.
+
+params:
+ptr = Pointer to a memory where the reallocation is to be performed at.
+newSize = Size of the reallocated array.
+
+returns:
+Status of reallocation. Returns AlignedMallocator.reallocate out status.
+*/
 @nogc bool alignedRealloc(ref void [] ptr, size_t newSize) {
     return AlignedMallocator.instance.reallocate(ptr, newSize);
 }
 
 /**
- * Frees memory allocated using alignedAlloc function.
- * 
- * Uses AlignedMallocator.deallocate.
- * 
- * params:
- * ptr = Pointer to memory that is to be freed.
- */
+Frees memory allocated using alignedAlloc function.
+
+Uses AlignedMallocator.deallocate.
+
+params:
+ptr = Pointer to memory that is to be freed.
+*/
 void alignedFree(void [] ptr) @nogc {
     AlignedMallocator.instance.deallocate(ptr);
 }
-
-/**
- * Performs aligned allocation using alignedAlloc function, 
- * but adds allocated range to the GC using GC.addRange.
- *
- @trusted T [] alignedAllocGC(T)(size_t size, size_t alignment = 16) {
- auto arr = alignedAlloc(size, alignment);
- GC.addRange(arr.ptr, size*T.sizeof);
- return arr;
- }
- */
-
-/**
- * Frees memory allocate using alignedAllocGC.
- * Removes given range, and afterwards calls alignedFree.
- *
- @trusted void alignedFreeGC(void [] ptr) {
- GC.removeRange(ptr.ptr);
- AlignedMallocator.instance.deallocate(ptr);
- }
- */
 
 version(skipSIMD) {
     T [] allocArray(T)(size_t length) { return new T[length]; }

@@ -1,4 +1,43 @@
-﻿module dcv.io.video.output;
+﻿/**
+Module implements utilities for video output.
+
+Video output streaming is performed using OutputStream utility by following example:
+
+----
+
+Image []frames; // initialized elsewhere 
+
+OutputStream outputStream = new OutputStream;  // define the output video outputStream.
+
+OutputDefinition props;
+
+props.width = width;
+props.height = height;
+props.imageFormat = ImageFormat.IF_RGB;
+props.bitRate = 90_000;
+props.codecId = CodecID.H263;
+
+outputStream.open(filePath, props);
+
+if (!outputStream.isOpen) {
+    exit(-1);
+}
+
+foreach(frame; frames) {
+    outputStream.writeFrame(frame);
+}
+
+outputStream.close();
+----
+
+Copyright: Copyright Relja Ljubobratovic 2016.
+
+Authors: Relja Ljubobratovic
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+*/
+
+module dcv.io.video.output;
 
 debug {
     import std.stdio;
@@ -21,18 +60,26 @@ import ffmpeg.libavfilter.avfilter;
 public import dcv.io.video.common;
 public import dcv.io.image;
 
+/**
+Output stream definition properties.
+*/
 struct OutputDefinition {
-    size_t width = 0;
-    size_t height = 0;
-    size_t bitRate = 400000;
-    size_t frameRate = 30;
+    size_t width = 0; /// Width of the output video frame.
+    size_t height = 0; /// Height of the output video frame.
+    size_t bitRate = 400000; /// Bit rate of the output video stream.
+    size_t frameRate = 30; /// Frame rate of the output video stream.
+    ImageFormat imageFormat = ImageFormat.IF_RGB; /// Image format for video frame.
+    CodecID codecId = CodecID.NONE; /// Video codec for output video stream.
+
+    // book-keeping parameters for video writing.
     size_t frames = 0;
     size_t pts = 0;
-    ImageFormat imageFormat = ImageFormat.IF_RGB;
-    CodecID codecId = CodecID.NONE;
+
 }
 
-
+/**
+Video stream utility used to output video content to file system.
+*/
 class OutputStream {
 private:
     AVFormatContext *formatContext;
@@ -42,20 +89,21 @@ private:
     OutputDefinition properties;
 
 public:
+    /// Default initialization.
     this() { AVStarter AV_STARTER_INSTANCE = AVStarter.instance(); }
-
+    /// Destructor of the stream - closes the stream.
     ~this() { close(); }
 
-    //! Check if stream is open.
+    /// Check if stream is open.
     @property isOpen() const { return formatContext !is null; }
 
     /**
-     * Open the video stream.
-     * 
-     * params:
-     * path = Path to the stream. 
-     * type = Stream type. 
-     */
+    Open the video stream.
+    
+    params:
+    path = Path to the stream. 
+    type = Stream type. 
+    */
     bool open(in string filepath, in OutputDefinition props = OutputDefinition()) {
         this.properties = props;
         const char* path = toStringz(filepath);
@@ -168,6 +216,7 @@ public:
         return true;
     }
 
+    /// Close the output stream.
     void close() {
         if (formatContext) {
             av_write_trailer(formatContext);
@@ -189,6 +238,7 @@ public:
         }
     }
 
+    /// Write given image as new frame of the image.
     bool writeFrame(Image image) {
         import ffmpeg.libavutil.mathematics;
 
@@ -256,10 +306,15 @@ public:
     }
 
     @property const {
+        /// Width of the frame image.
         auto width() { return properties.width; }
+        /// Height of the frame image.
         auto height() { return properties.height; }
+        /// Current frame count of the output stream.
         auto frameCount() { return properties.frames; }
+        /// Frame rate of the stream.
         auto frameRate() { return properties.frameRate; }
+        /// Codec of the stream.
         auto codec() { return properties.codecId; }
     }
 

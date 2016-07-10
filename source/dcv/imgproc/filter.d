@@ -1,17 +1,45 @@
-﻿module dcv.imgproc.filter;
+﻿/**
+Module introduces image filtering functions and utilities.
 
-/**
- * Module introduces image filtering functions and utilities.
- * 
- * v0.1 norm:
- * gaussian (done)
- * sobel
- * scharr
- * prewitt
- * canny
- */
+Copyright: Copyright Relja Ljubobratovic 2016.
 
-private import std.experimental.ndslice;
+Authors: Relja Ljubobratovic
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+
+$(DL Module contains:
+    $(DD 
+            $(BIG Filter kernel generators: )
+            $(LINK2 #gaussian, gaussian)
+            $(LINK2 #laplacian,laplacian)
+            $(LINK2 #laplacianOfGaussian,laplacianOfGaussian)
+            $(LINK2 #sobel, sobel)
+            $(LINK2 #scharr,scharr)
+            $(LINK2 #prewitt,prewitt)
+    )
+    $(DD 
+            $(BIG Image processing functions: )
+            $(LINK2 #filterNonMaximum, filterNonMaximum)
+            $(LINK2 #calcPartialDerivatives,calcPartialDerivatives)
+            $(LINK2 #calcGradients,calcGradients)
+            $(LINK2 #nonMaximaSupression,nonMaximaSupression)
+            $(LINK2 #canny,canny)
+    )
+)
+
+*/ 
+
+module dcv.imgproc.filter;
+/*
+v0.1 norm:
+gaussian (done)
+sobel
+scharr
+prewitt
+canny
+*/
+
+import std.experimental.ndslice;
 
 import std.traits : allSameType, allSatisfy, isFloatingPoint, isNumeric;
 import std.range : iota, array, lockstep;
@@ -75,17 +103,19 @@ unittest {
 }
 
 /**
- * Create negative laplacian 3x3 kernel matrix.
- * 
- * Creates laplacian kernel matrix using
- * 
- * I - image
- * Laplacian(I) =   
- *              [a/4,    (1-a)/4,   a/4]
- *    4/(a+1) * |(1-a)/4   -1   (1-a)/4|
- *              [a/4,    (1-a)/4,   a/4]
- * 
- */
+Create negative laplacian 3x3 kernel matrix.
+
+Creates laplacian kernel matrix using
+
+$(D_CODE
+I - image
+Laplacian(I) =   
+             [a/4,    (1-a)/4,   a/4]
+   4/(a+1) * |(1-a)/4   -1   (1-a)/4|
+             [a/4,    (1-a)/4,   a/4]
+)
+
+*/
 Slice!(2, T*) laplacian(T = real)(real a = 0.) pure nothrow 
     if (isNumeric!T) 
     in {
@@ -107,6 +137,7 @@ Slice!(2, T*) laplacian(T = real)(real a = 0.) pure nothrow
     return k;
 }
 
+///
 unittest {
     import std.algorithm.comparison : equal;
     auto l4 = laplacian(); // laplacian!real(0);
@@ -115,7 +146,7 @@ unittest {
 
 
 /**
- * Create laplacian of gaussian (LoG) filter kernel.
+ * Create laplacian of gaussian $(LINK3 http://homepages.inf.ed.ac.uk/rbf/HIPR2/log.htm, (LoG)) filter kernel.
  * 
  * params:
  * sigma = gaussian sigma variance value
@@ -152,6 +183,7 @@ Slice!(2, T*) laplacianOfGaussian(T = real)(real sigma, size_t width, size_t hei
     return k;
 }
 
+///
 unittest {
     import std.algorithm.comparison : equal;
     import std.math : approxEqual;
@@ -287,21 +319,13 @@ unittest {
     assert(s.byElement.array.equal(expected.byElement.array));
 }
 
-enum NonMaximumFilter {
-    POINT,
-    LINE
-}
-
 /**
- * Perform non-maxima filtering of the image.
- * 
- * note: 
- * proxy function, not a proper API! 
- * 
- * TODO: Implement non-maxima supression for edge detection (canny), and
- * make the interface of the function fit both needs.
- * 
- */
+Perform non-maxima filtering of the image.
+
+note: 
+proxy function, not a proper API! 
+
+*/
 Slice!(2, T*) filterNonMaximum(T)(Slice!(2, T*) slice, size_t filterSize = 10) {
 
     assert(!slice.empty && filterSize);

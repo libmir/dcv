@@ -1,8 +1,14 @@
-﻿module dcv.plot.opticalflow;
+﻿/**
+Module containts optical flow plotting functions.
 
-/**
- * Module containts optical flow plotting functions.
- */
+Copyright: Copyright Relja Ljubobratovic 2016.
+
+Authors: Relja Ljubobratovic
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+*/
+
+module dcv.plot.opticalflow;
 
 import std.experimental.ndslice;
 
