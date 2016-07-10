@@ -12,7 +12,8 @@ addons:
  apt:
    packages:
     - liblapack-dev
-    - ffmpeg
+    - libgl-dev
+    - libglfw3-dev
 
 before_install:
  - chmod +x ./scripts/ffmpeg_travis_setup.sh
