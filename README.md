@@ -49,7 +49,8 @@ This is the checklist on v0.1.0 completion. More elaborated development status m
    - [x] video
    - [x] image
  - [ ] plot
-   - [ ] figure
+   - [x] figure
+   - [ ] basic shape drawing
  - [x] tracking
    - [x] opticalflow
      - [x] hornschunck
