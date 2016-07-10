@@ -7,18 +7,24 @@ os:
 
 d:
  - dmd-2.070.0
- 
+
 addons:
  apt:
-   packages:
-    - liblapack-dev
-    - libgl-dev
-    - libglfw3-dev
+  sources:
+   - george-edison55-precise-backports # cmake 3.2.3 
+  packages:
+   - liblapack-dev
+   - ffmpeg
+   - cmake
+   - cmake-data
 
 before_install:
- - chmod +x ./scripts/ffmpeg_travis_setup.sh
+ - "export DISPLAY=:99.0"
+ - sh -e /etc/init.d/xvfb start
+ - chmod +x ./scripts/travis_lib_setup.sh
 
-before_script: ./scripts/ffmpeg_travis_setup.sh
+before_script:
+ - ./scripts/travis_lib_setup.sh
 
 script:
  - dub test -b unittest-cov
