@@ -1,58 +1,93 @@
 # Video Reading Example
 
 
-This example should demonstrate how read video files using dcv library.
+This example should demonstrate how to read video streams using dcv library.
 
 
 ## Modules used
 * dcv.core;
 * dcv.imgproc.color;
 * dcv.io;
-
+* dcv.plot.figure;
 
 ## Disclaimer
-Video streaming utilities are still heavily a wip. This is merely a preview of what I think these utilities should look like. I've stopped working on these modules for now, and will continue in time. If anyone has a suggestion how we could make these utilities more effective, you're more than welcome to help me!
 
-
-## Demo Application
-
-In this example, video streaming is demonstrated using the demo application, built using GtkD GUI toolkit. Here is a screen Grab of the Demo Video Player running on my system:
-
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/video/result/screengrab_1.png)
-
+Video streaming utilities are still heavily a wip. This is merely a preview of what 
+these utilities should look like.
 
 ### InputStream usage
 
-Input video streaming utility is located in the dcv.io.video.input module, defined as InputStream class. In the demo application, we've defined a custom gtk.DrawingArea, which is used as a video (frame) canvas. Note that this implementation is simplified for the demonstration purpose - the stream is allocated and opened in our frame canvas. Also, the queue timer for the next frame draw is also installed here. The video stream is opened in the Canvas constructor:
+Input video streaming utility is located in the dcv.io.video.input module, defined as 
+InputStream class. In the demo application, we open the input video stream, read the 
+video frame by frame, and show its content on the screen.
+
+The demo application takes two arguments to run - type of the input stream, and path to it. Type
+can be:
+
+* File (*-f*), for video file on the filesystem.
+* Live (*-l*), for live stream (e.g. open and stream web camera feed)
+
+As for the path, when file type is chosen, it is the path to the video file, and for the live type it is the path of the 
+webcam (its tested only on linux, where this path is the video4linux device, e.g. */dev/video0*).
+
+In the following lines, we create the `InputStream` instance, and try to open the stream at given path.
 
 ```d
-this(in string videoFile) {
-	stream = new InputStream; // initialize the stream
-	stream.open(videoFile, InputStreamType.FILE); // open the file with given path.
+InputStream inStream = new InputStream;
 
-	if (!stream.isOpen) {
-		exit(-1);
-	}
-	// ...
+string path; // path to the video
+InputStreamType type; // type of the stream (file or live)
+
+if (!parseArgs(args, path, type))
+{
+    writeln("Error occurred while parsing arguments.\n\n");
+    printHelp();
+    return;
+}
+
+try
+{
+    // Open the example video
+    inStream.open(path, type);
+}
+catch
+{
+    writeln("Cannot open input video stream");
+    exit(-1);
+}
+
+// Check if video has been opened correctly
+if (!inStream.isOpen)
+{
+    writeln("Cannot open input video stream");
+    exit(-1);
 }
 ```
 
-The ```VideoStreamCanvas.redraw``` method will try to grab next frame of the video, and show it on the canvas. The frame grabbing part is defined in the first part of the method:
+After successfully opening the video stream, frames can be read with the following loop setup:
 
 ```d
-// Reading frame image.
-Image image = null; 
+Image frame; // frame image buffer, where each next frame of the video is stored.
 
-// Create timer, if not already been created. It'll repeat the frame reading operation in correct time.
-if ( timeout is null ) {
-	timeout = new Timeout( 1000 / cast(int)(stream.frameRate ? stream.frameRate : 25), &queueNextFrame, false );
+// read the frame rate, if info is available.
+double fps = inStream.frameRate ? inStream.frameRate : 30.0;
+// calculate frame wait time in miliseconds - if video is live, set to minimal value.
+double waitFrame = (type == InputStreamType.LIVE) ? 1.0 : 1000.0 / fps;
+
+// Read each next frame of the video in the loop.
+while (inStream.readFrame(frame))
+{
+    // Show the image in the screen.
+    frame.imshow(path);
+
+    // If user presses escape key, stop the streaming.
+    if (waitKey(waitFrame) == KEY_ESCAPE)
+        break;
 }
-
-// Read the frame - exit if theres no more frames.
-if (!stream.readFrame(image) || image is null) {
-	exit(0);
-} 
 ```
+
+Some details of implementation have been removed from the example code snippets, for the simplicity's sake. For complete
+code, please take a look in the dcv/examples/video/source/app.d file.
 
 ### More examples
 

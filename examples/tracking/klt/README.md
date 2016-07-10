@@ -19,4 +19,4 @@ This example demonstrates usage of Pyramidal Lucas-Kanade Optical Flow algorithm
  Similar to Horn-Schunck method, Lucas-Kanade is used to estimate field displacement of two adjacent frames in the video, only 
  here the displacement is estimated locally, around a distinct feature point in the frame. 
 
- For detailed info, please take a look into the example's source code (source/app.d).
+ For detailed info, please take a look into the example's source code.
