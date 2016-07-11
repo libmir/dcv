@@ -8,6 +8,7 @@ var docs = [
     "dcv_features_corner_harris.html", 
     "dcv_features_corner_package.html", 
     "dcv_features_detector_package.html", 
+    "dcv_features_rht.html", 
     "dcv_features_utils.html", 
     "dcv_imgproc_color.html", 
     "dcv_imgproc_convolution.html", 
@@ -21,18 +22,20 @@ var docs = [
     "dcv_io_video_input.html", 
     "dcv_io_video_output.html", 
     "dcv_plot_draw.html", 
+    "dcv_plot_figure.html", 
     "dcv_plot_opticalflow.html", 
+    "dcv_tracking_opticalflow_base.html", 
     "dcv_tracking_opticalflow_hornschunck.html", 
     "dcv_tracking_opticalflow_lucaskanade.html", 
-    "dcv_tracking_opticalflow_pyramidflow.html", 
     "dcv_tracking_opticalflow_package.html", 
-    "dcv_tracking_opticalflow_base.html", 
+    "dcv_tracking_opticalflow_pyramidflow.html", 
 ];
 
 
 var examples = [
     "example_filter.html",
-    "example_features.html",
+    "example_features_corners.html",
+    "example_features_rht.html",
     "example_video.html",
     "example_imgmanip.html",
     "example_tracking_hornschunck.html",
@@ -290,7 +293,7 @@ function setupPhoneUI() {
 
 function setupDesktopUI() {
 
-    animationSpeed = 200;
+    animationSpeed = 0;
 
     document.getElementById('sourcetreeboxdesktop').appendChild(document.getElementById('sourcetreebox'));
 
@@ -308,6 +311,7 @@ function setupDesktopUI() {
 
 function evalSize() {
     screenWidth = window.innerWidth;
+
     if (screenWidth < DESKTOP_MIN_WIDTH && currentUI != PHONE_UI) {
         setupPhoneUI();
         currentUI = PHONE_UI;
@@ -363,6 +367,8 @@ $(document).ready(function(e) {
     document.getElementById("homelink").onclick = setupHome;
     document.getElementById("doclink").onclick = setupDocumentation;
     document.getElementById("exampleslink").onclick = setupExamples;
+    document.getElementById("examlesOnHomePage").onclick = setupExamples;
+
     window.onresize = evalSize;
 
     // setup return-to-top behaviour

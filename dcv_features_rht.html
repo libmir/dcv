@@ -1,0 +1,74 @@
+<h1>dcv.features.rht</h1>
+           Module introduces Randomized Hough Transform implementation.
+<br><br>
+<b>Example:</b><br>
+<pre class="d_code">
+<font color=green>// Load an image from filesystem.
+</font>Image image = imread(<font color=red>"/path/to/image.png"</font>);
+
+<font color=green>// Calculate edges by use of canny algorithm
+</font><font color=blue>auto</font> edges = image
+                .sliced
+                .rgb2gray
+                .asType!<font color=blue>float</font>
+                .conv(gaussian!<font color=blue>float</font>(1.0f, 3, 3))
+                .canny!<font color=blue>ubyte</font>(100);
+
+<font color=green>// Setup RHT line extraction context
+</font><font color=blue>auto</font> lines = RhtLines().epouchs(50).iterations(250).minCurve(25);
+
+<font color=green>// Lazily iterate and detect lines in pre-processed image
+</font><font color=blue>foreach</font>(line; lines(canny)) {
+    <font color=green>// do stuff with lines..
+</font>}
+</pre>
+<br><br>
+
+For more elaborated module description visit the <a href="https://ljubobratovicrelja.github.io/dcv/?loc=example_features_rht.html">RHT example</a>.
+
+<br><br>
+<b>Authors:</b><br>
+Dmitry Olshansky
+
+<br><br>
+<b>License:</b><br>
+<a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.<br><br>
+
+<dl><dt><big><a name="BaseRht"></a>template <u id="BaseRht">BaseRht</u>()</big></dt>
+<dd>A template that bootstraps a full Randomized Hough transform implementation.
+    The basic primitives required are as follows.
+<br><br>
+<b>Types:</b><br>
+Curve and Key tuples that define curve parameters and accumulator key for the curve.
+<br><br>
+<b>Functions:</b><br>
+curveKey - accumulator key for a curve, onCurve - test if a point is on curve,
+    fitCurve - fit a curve to a given random access range of points.<br><br>
+
+<dl><dt><big><a name="BaseRht.threshold"></a>ref auto <u id="threshold">threshold</u>(int <u id="threshold">threshold</u>);
+</big></dt>
+<dd>Set <u id="threshold">threshold</u> for a curve to be considered in an accumulator<br><br>
+
+</dd>
+<dt><big><a name="BaseRht.opCall"></a>auto <u id="opCall">opCall</u>(T)(Slice!(2, T*) <i>image</i>);
+</big></dt>
+<dd>Run RHT using non-zero points in <i>image</i> as edge points.<br><br>
+
+</dd>
+<dt><big><a name="BaseRht.opCall.2"></a>auto <u id="opCall">opCall</u>(T, Range)(Slice!(2, T*) <i>image</i>, Range <i>points</i>) if (isInputRange!Range);
+</big></dt>
+<dd>Run RHT using prepopullated array of edge <i>points</i> (that may be filtered beforehand).<br><br>
+
+</dd>
+</dl>
+</dd>
+<dt><big><a name="RhtLines"></a>struct <u id="RhtLines">RhtLines</u>;
+</big></dt>
+<dd>Randomized Hough Transform for lines<br><br>
+
+</dd>
+</dl>
+
+           <hr>Copyright © 2016, Dmitry Olshansky
+
+

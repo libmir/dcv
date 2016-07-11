@@ -1,0 +1,225 @@
+<h1>dcv.plot.figure</h1>
+           Module implements on-screen image plotting utilities.
+<br><br>
+DCV offers simple interface to show an image on screen:
+<br><br>
+
+<pre class="d_code">Image image = imread(<font color=red>"image.png"</font>);
+
+<font color=green>// Simply, show the image
+</font>image.imshow();
+
+<font color=green>// Optionally, show the image on the figure with given title:
+</font>image.imshow(<font color=red>"Some Image"</font>);
+
+<font color=green>// ... or do some processing, then show it in-line
+</font>image
+    .sliced
+    .asType!<font color=blue>float</font>
+    .conv!symmetric(gaussian!<font color=blue>float</font>(1.0f, 3, 3))
+    .imshow;
+
+<font color=green>// ... or instantiate new figure to setup some useful callbacks, than use the
+</font><font color=green>// Figure interface to draw on it's canvas, and show it:
+</font>
+<font color=blue>auto</font> f = <u id="figure">figure</u>(<font color=red>"Figure title"</font>);  <font color=green>// create the figure with given title
+</font>
+<font color=green>// set the mouse move callback
+</font>f.setCursorCallback( (Figure <u id="figure">figure</u>, <font color=blue>double</font> x, <font color=blue>double</font> y)
+{
+    writeln(<font color=red>"Mouse moved to: "</font>, [x, y]);
+})
+
+<font color=green>// set the mouse button click callback
+</font>f.setMouseCallback( (Figure <u id="figure">figure</u>, <font color=blue>int</font> button, <font color=blue>int</font> scancode, <font color=blue>int</font> mods)
+{
+    writeln(<font color=red>"Mouse clicked: "</font>, [button, scancode, mods]);
+});
+
+f.draw(image); <font color=green>// draw an image to the figure's canvas.
+</font>f.show(); <font color=green>// show the figure on screen.
+</font>
+<font color=green>// run the event loop for each previously set up figure, and wait
+</font><font color=green>// for key input, or given time to pass.
+</font>waitKey!<font color=red>"seconds"</font>(10);
+</pre>
+<br><br>
+
+<br><br>
+
+<dl>Module contains:
+    <dd>            <a href="#imshow">imshow</a>
+            <a href="#waitKey">waitKey</a>
+            <a href="#imdestroy">imdestroy</a>
+            <a href="#Figure">Figure</a>
+    </dd>
+</dl>
+
+<br><br>
+<b>Authors:</b><br>
+Relja Ljubobratovic
+
+<br><br>
+<b>License:</b><br>
+<a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.<br><br>
+
+<dl><dt><big><a name="figure"></a>Figure <u id="figure">figure</u>(string <i>title</i> = "");
+</big></dt>
+<dd>Create a plotting <u id="figure">figure</u>.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>string <i>title</i></td>
+<td>Title of the window. If none given (default), window is named by "Figure id".</td></tr>
+</table><br>
+<b>Returns:</b><br>
+If <u id="figure">figure</u> with given <i>title</i> exists already, that <u id="figure">figure</u> is returned,
+    otherwise new <u id="figure">figure</u> is created and returned.<br><br>
+
+</dd>
+<dt><big><a name="imshow"></a>Figure <u id="imshow">imshow</u>(Image <i>image</i>, string <i>title</i> = "");
+<br>Figure <u id="imshow">imshow</u>(size_t N, T)(Slice!(N, T*) <i>slice</i>, string <i>title</i> = "");
+<br>Figure <u id="imshow">imshow</u>(size_t N, T)(Slice!(N, T*) <i>slice</i>, ImageFormat <i>format</i>, string <i>title</i> = "");
+</big></dt>
+<dd>Show an <i>image</i> to screen.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Image <i>image</i></td>
+<td>Image that is to be shown on the screen.</td></tr>
+<tr><td>string <i>title</i></td>
+<td>Title of the window. If none given (default), window is named by "Figure id".
+<br><br>
+
+If figure with given <i>title</i> exists, than the <i>image</i> content is updated with the given <i>image</i>.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+If figure with given <i>title</i> exists already, that figure is returned,
+    otherwise new figure is created and returned.<br><br>
+
+</dd>
+<dt><big><a name="waitKey"></a>int <u id="waitKey">waitKey</u>(string unit = "msecs")(ulong <i>count</i> = 0);
+</big></dt>
+<dd>Run the event loop for each present figure, and wait for key and/or given time.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>unit</td>
+<td>Unit in which time <i>count</i> is given. Same as core.time.Duration unit parameters.</td></tr>
+<tr><td>ulong <i>count</i></td>
+<td>Number of unit ticks to wait for event loop to finish. If left at zero (default), runs indefinitelly.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Ascii value as int of keyboard press, or 0 if timer runs out.<br><br>
+
+</dd>
+<dt><big><a name="imdestroy"></a>void <u id="imdestroy">imdestroy</u>(string <i>title</i> = "");
+</big></dt>
+<dd>Destroy figure.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>string <i>title</i></td>
+<td>Title of the window to be destroyed. If left as empty string, destroys all windows.</td></tr>
+</table><br>
+
+</dd>
+<dt><big><a name="KeyPressCallback"></a>alias <u id="KeyPressCallback">KeyPressCallback</u> = void delegate(int key, int scancode, int action, int mods);
+</big></dt>
+<dd>Key press callback function.<br><br>
+
+</dd>
+<dt><big><a name="CharCallback"></a>alias <u id="CharCallback">CharCallback</u> = void delegate(uint key);
+</big></dt>
+<dd>Character callback function.<br><br>
+
+</dd>
+<dt><big><a name="setKeyPressCallback"></a>void <u id="setKeyPressCallback">setKeyPressCallback</u>(KeyPressCallback <i>clbck</i>);
+</big></dt>
+<dd>Assign key press callback function.<br><br>
+
+</dd>
+<dt><big><a name="setCharCallback"></a>void <u id="setCharCallback">setCharCallback</u>(CharCallback <i>clbck</i>);
+</big></dt>
+<dd>Assign character input callback function.<br><br>
+
+</dd>
+<dt><big><a name="Figure"></a>class <u id="Figure">Figure</u>;
+</big></dt>
+<dd>Plotting figure type.<br><br>
+
+<dl><dt><big><a name="Figure.MouseCallback"></a>alias <u id="MouseCallback">MouseCallback</u> = void delegate(Figure figure, int button, int action, int mods);
+</big></dt>
+<dd>Mouse button callback function.<br><br>
+
+</dd>
+<dt><big><a name="Figure.CursorCallback"></a>alias <u id="CursorCallback">CursorCallback</u> = void delegate(Figure figure, double xpos, double ypos);
+</big></dt>
+<dd>Cursor movement callback function.<br><br>
+
+</dd>
+<dt><big><a name="Figure.CloseCallback"></a>alias <u id="CloseCallback">CloseCallback</u> = void delegate(Figure figure);
+</big></dt>
+<dd>Figure closing callback function.<br><br>
+
+</dd>
+<dt><big><a name="Figure.this"></a>this(string <i>title</i>, int <i>width</i> = 512, int <i>height</i> = 512);
+</big></dt>
+<dd>Construct figure window with given <i>title</i>.<br><br>
+
+</dd>
+<dt><big><a name="Figure.this.2"></a>this(string <i>title</i>, Image <i>image</i>);
+</big></dt>
+<dd>Construct figure window with given <i>title</i>, and fill it with given <i>image</i>.<br><br>
+
+</dd>
+<dt><big><a name="Figure.this.3"></a>this(size_t N, T)(string <i>title</i>, Slice!(N, T*) <i>slice</i>, ImageFormat <i>format</i> = ImageFormat.IF_UNASSIGNED) if (N == 2 || N == 3);
+</big></dt>
+<dd>Construct figure window with given <i>title</i>, and fill it with given image.<br><br>
+
+</dd>
+<dt><big><a name="Figure.setMouseCallback"></a>Figure <u id="setMouseCallback">setMouseCallback</u>(MouseCallback <i>clbck</i>);
+</big></dt>
+<dd>Assign mouse callback function.<br><br>
+
+</dd>
+<dt><big><a name="Figure.show"></a>void <u id="show">show</u>();
+</big></dt>
+<dd>Show the figure window.<br><br>
+
+</dd>
+<dt><big><a name="Figure.hide"></a>void <u id="hide">hide</u>();
+</big></dt>
+<dd>Show the figure window.<br><br>
+
+</dd>
+<dt><big><a name="Figure.clear"></a>void <u id="clear">clear</u>();
+</big></dt>
+<dd>Clear canvas content of this figure.<br><br>
+
+</dd>
+<dt><big><a name="Figure.moveTo"></a>void <u id="moveTo">moveTo</u>(int <i>x</i>, int <i>y</i>);
+<br>void <u id="moveTo">moveTo</u>(int[] <i>pos</i>);
+</big></dt>
+<dd>Move figure window to given position on screen.<br><br>
+
+</dd>
+<dt><big><a name="Figure.move"></a>void <u id="move">move</u>(int <i>x</i>, int <i>y</i>);
+<br>void <u id="move">move</u>(int[] <i>offset</i>);
+</big></dt>
+<dd>Offset figure window position by given values.<br><br>
+
+</dd>
+<dt><big><a name="Figure.draw"></a>void <u id="draw">draw</u>(Image <i>image</i>);
+</big></dt>
+<dd>Draw <i>image</i> onto figure canvas.<br><br>
+
+</dd>
+<dt><big><a name="Figure.draw.2"></a>void <u id="draw">draw</u>(size_t N, T)(Slice!(N, T*) <i>slice</i>, ImageFormat <i>format</i> = ImageFormat.IF_UNASSIGNED);
+</big></dt>
+<dd>Draw <i>slice</i> of image onto figure canvas.<br><br>
+
+</dd>
+</dl>
+</dd>
+</dl>
+
+           <hr>Copyright Relja Ljubobratovic 2016.
+
+

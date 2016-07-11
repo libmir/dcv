@@ -35,17 +35,64 @@
                 </ul>
                 <div id="sourcetreeboxphone"></div>
                 <div id="pagemain">
-                    <h2><a id="library-modules" class="anchor" href="#library-modules" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Library Modules</h2>
+                    <h1>About</h1>
+                    <p>
+                    DCV is an open source computer vision library, written in D programming language, with goal to 
+                    provide tools for solving most common computer vision problems - various image processing 
+                    tasks, feature detection and tracking, camera calibration, stereo etc.
+                    </p>
+
+                    <h2>Focus</h2>
+                    <p>
+                    Focus of the library is to present an easy-to-use interface, that would attract computer 
+                    vision scientists and engineers to prototype their solutions with, but also to provide
+                    fast running code that could be used to make production ready tools and applications.
+                    </p>
+
+                    <h2>API</h2>
+                    <p>
+                    DCV's API heavily utilizes <a href="http://dlang.org/phobos/std_experimental_ndslice.html">std.experimental.ndslice</a>
+                    package, and it's n-dimensional range view structure, 
+                    <a href="http://dlang.org/phobos/std_experimental_ndslice_slice.html#.Slice">Slice</a> for any
+                    form of image manipulation and processing.
+                    But overall shape of the API is adopted from well known computer vision toolkits such as Matlab
+                    Image Processing Toolbox, and OpenCV library, to be easily familiarized with. But it's 
+                    also spiced up with D's syntactic sugar, to support pipelined calls:
+                    </p>
+                    <div><pre style="margin: 0; line-height: 125%"><a href="https://ljubobratovicrelja.github.io/dcv/?loc=dcv_core_image.html">Image</a> image = imread(<span style="color: #a31515">&quot;/path/to/image.png&quot;</span>); <span style="color: #008000">// read an image from filesystem.</span>
+
+<span style="color: #0000ff">auto</span> slice = image.sliced; <span style="color: #008000">// slice image data (calls <a href="http://dlang.org/phobos/std_experimental_ndslice_slice.html#.sliced">std.experimental.ndslice.slice.sliced</a> on image data)</span>
+
+slice
+    .asType!<span style="color: #2b91af">float</span> <span style="color: #008000">// convert slice data to float</span>
+    .<a href="https://ljubobratovicrelja.github.io/dcv/?loc=dcv_imgproc_convolution.html">conv</a>!symmetric(sobel!<span style="color: #2b91af">float</span>(GradientDirection.DIR_X)) <span style="color: #008000">// convolve image with horizontal Sobel kernel.</span>
+    .asType!<span style="color: #2b91af">ubyte</span> <span style="color: #008000">// convert slice values back to unsigned byte</span>
+    .ranged(0, 255).array.sliced(slice.shape) <span style="color: #008000">// scale values to fit the range between the 0 and 255</span>
+    .<a href="https://ljubobratovicrelja.github.io/dcv/?loc=dcv_plot_figure.html">imshow</a>(<span style="color: #a31515">&quot;Sobel derivatives&quot;</span>); <span style="color: #008000">// preview changes on screen.</span>
+
+waitKey();
+</pre></div>
+                    <p>Be sure to check out other <a id="examlesOnHomePage" href="javascript:;"><strong>examples!</strong></a></p>
+                    <h1><a id="library-modules" class="anchor" href="#library-modules" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Library Modules</h1>
                     <ul> <!--hrefs will move to documentation once its readdy-->
-                        <li><a href="https://github.com/ljubobratovicrelja/dcv/tree/master/source/dcv/core" class="libmodules">core</a> - Core structures and algorithms (mainly relying on std.experimental.ndslice);</li>
-                        <li><a href="https://github.com/ljubobratovicrelja/dcv/tree/master/source/dcv/imgproc" class="libmodules">imgproc</a> - Image processing tasks;</li>
-                        <li><a href="https://github.com/ljubobratovicrelja/dcv/tree/master/source/dcv/io" class="libmodules">io</a> - Input/Output support for different image and video formats;</li>
-                        <li><a href="https://github.com/ljubobratovicrelja/dcv/tree/master/source/dcv/plot" class="libmodules">plot</a> - Ploting module, showing images, videos, basic 2D shape drawing etc;</li>
-                        <li><a href="https://github.com/ljubobratovicrelja/dcv/tree/master/source/dcv/tracking" class="libmodules">tracking</a> - video tracking module - optical flow and other related methods;</li>
-                        <li><a href="https://github.com/ljubobratovicrelja/dcv/tree/master/source/dcv/features" class="libmodules">features</a> - Feature detection, description and matching module;</li>
-                        <li><a href="https://github.com/ljubobratovicrelja/dcv/tree/master/source/dcv/multiview" class="libmodules">multiview</a> - Multiview geometry module, camera calibration, stereo, reconstruction etc.</li>
+                        <li><strong>core</strong> - Core structures and algorithms (mainly relying on std.experimental.ndslice);</li>
+                        <li><strong>imgproc</strong> - Image processing tasks;</li>
+                        <li><strong>io</strong> - Input/Output support for different image and video formats;</li>
+                        <li><strong>plot</strong> - Ploting module, showing images, videos, basic 2D shape drawing etc;</li>
+                        <li><strong>tracking</strong> - video tracking module, optical flow and other related methods;</li>
+                        <li><strong>features</strong> - Feature detection, description and matching module;</li>
                     </ul>
-                    <h2><a id="license" class="anchor" href="#license" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>License</h2>
+                    <h1>Development</h1>
+                    <p><a href="https://travis-ci.org/ljubobratovicrelja/dcv"><img src="https://travis-ci.org/ljubobratovicrelja/dcv.svg?branch=master" alt="Build Status" /></a> <a href="https://codecov.io/github/ljubobratovicrelja/dcv?branch=master"><img src="https://codecov.io/github/ljubobratovicrelja/dcv/coverage.svg?branch=master" alt="codecov.io" /></a> <a href="https://gitter.im/ljubobratovicrelja/dcv?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img src="https://badges.gitter.im/ljubobratovicrelja/dcv.svg" alt="Join the chat at https://gitter.im/ljubobratovicrelja/dcv" /></a></p>
+                    <p>Currently, library is in early development (design) stage. 
+                    Each module's header should note the v0.1 norm, which should list 
+                    completion goals, after which the library could be used for most basic computer 
+                    vision tasks. In the v0.1 development state, all algorithms will be naively implemented, 
+                    without too much care for performance or factoring, but with proper API design. 
+                    Goal of v0.1 is to have the overall shape of the library with good coverage, so it can 
+                    be refactored and optimized in future versions.
+                    </p>
+                    <h1><a id="license" class="anchor" href="#license" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>License</h1>
                     <p>Library is licensed under Boost Software License - Version 1.0. Some modules in the library contain code that is licensed under some other terms. If a module in the library states different license terms in it's header, then the Boost Software License does not apply to that module.</p>
                 </div>
             </section>

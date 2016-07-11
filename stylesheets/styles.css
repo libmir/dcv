@@ -257,9 +257,9 @@ img {
 }
 
 #pagemain h1 {
-    font-size: 35px;
-    color: gray;
-    text-decoration:underline;
+    font-size: 28px;
+    color: black;
+    border-bottom: 1px solid rgb(200, 200, 200);
 }
 
 #pagemain a {
@@ -282,7 +282,8 @@ img {
     background-color: rgb(224, 224, 224);
     padding : 8px;
     border-radius: 5px;
-    border-left: 3px solid rgb(204, 204, 204);
+    /*border-left: 3px solid rgb(204, 204, 204);*/
+    border-left: 5px solid rgb(107, 175, 207);
 }
 
 #pagemain code, pre {

@@ -66,6 +66,34 @@ For input of n Slice!(N, T*) objects, outputs Slice!(N+1, T*) object, where
  last dimension size is n.<br><br>
 
 </dd>
+<dt><big><a name="isBoundaryCondition"></a>template <u id="isBoundaryCondition">isBoundaryCondition</u>(alias bc)</big></dt>
+<dd>Check if given function can perform boundary condition test.<br><br>
+
+</dd>
+<dt><big><a name="nobc"></a>ref T <u id="nobc">nobc</u>(size_t N, T, Indices...)(ref Slice!(N, T*) <i>slice</i>, Indices <i>indices</i>) if (allSameType!Indices &amp;&amp; allSatisfy!(isIntegral, Indices));
+</big></dt>
+<dd>No boundary condition test.<br><br>
+
+</dd>
+<dt><big><a name="neumann"></a>ref T <u id="neumann">neumann</u>(size_t N, T, Indices...)(ref Slice!(N, T*) <i>slice</i>, Indices <i>indices</i>) if (allSameType!Indices &amp;&amp; allSatisfy!(isIntegral, Indices));
+</big></dt>
+<dd><a href="https://en.wikipedia.org/wiki/Neumann_boundary_condition">Neumann</a> boundary condition test<br><br>
+
+</dd>
+<dt><big><a name="periodic"></a>ref T <u id="periodic">periodic</u>(size_t N, T, Indices...)(ref Slice!(N, T*) <i>slice</i>, Indices <i>indices</i>) if (allSameType!Indices &amp;&amp; allSatisfy!(isIntegral, Indices));
+</big></dt>
+<dd><a href="https://en.wikipedia.org/wiki/Periodic_boundary_conditions">Periodic</a> boundary condition test<br><br>
+
+</dd>
+<dt><big><a name="symmetric"></a>ref T <u id="symmetric">symmetric</u>(size_t N, T, Indices...)(ref Slice!(N, T*) <i>slice</i>, Indices <i>indices</i>) if (allSameType!Indices &amp;&amp; allSatisfy!(isIntegral, Indices));
+</big></dt>
+<dd>Symmetric boundary condition test<br><br>
+
+</dd>
+<dt><big><a name="BoundaryConditionTest"></a>template <u id="BoundaryConditionTest">BoundaryConditionTest</u>(size_t N, T, Indices...)</big></dt>
+<dd>Alias for generalized boundary condition test function.<br><br>
+
+</dd>
 </dl>
 
            <hr>Copyright Relja Ljubobratovic 2016.
