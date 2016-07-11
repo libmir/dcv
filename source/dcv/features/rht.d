@@ -19,7 +19,7 @@ auto edges = image
 auto lines = RhtLines().epouchs(50).iterations(250).minCurve(25);
 
 // Lazily iterate and detect lines in pre-processed image
-foreach(line; lines(canny)) {
+foreach(line; lines(edges)) {
     // do stuff with lines..
 }
 ----
