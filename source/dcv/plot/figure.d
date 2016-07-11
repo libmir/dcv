@@ -1,3 +1,66 @@
+/**
+Module implements on-screen image plotting utilities.
+
+DCV offers simple interface to show an image on screen:
+
+----
+Image image = imread("image.png");
+
+// Simply, show the image
+image.imshow();
+
+// Optionally, show the image on the figure with given title:
+image.imshow("Some Image");
+
+// ... or do some processing, then show it in-line
+image
+    .sliced
+    .asType!float
+    .conv!symmetric(gaussian!float(1.0f, 3, 3))
+    .imshow;
+
+// ... or instantiate new figure to setup some useful callbacks, than use the 
+// Figure interface to draw on it's canvas, and show it:
+
+auto f = figure("Figure title");  // create the figure with given title
+
+// set the mouse move callback
+f.setCursorCallback( (Figure figure, double x, double y) 
+{
+    writeln("Mouse moved to: ", [x, y]);
+})
+
+// set the mouse button click callback
+f.setMouseCallback( (Figure figure, int button, int scancode, int mods) 
+{
+    writeln("Mouse clicked: ", [button, scancode, mods]);
+});
+
+f.draw(image); // draw an image to the figure's canvas.
+f.show(); // show the figure on screen.
+
+// run the event loop for each previously set up figure, and wait 
+// for key input, or given time to pass.
+waitKey!"seconds"(10); 
+----
+
+
+$(DL Module contains:
+    $(DD 
+            $(LINK2 #imshow,imshow)
+            $(LINK2 #waitKey,waitKey)
+            $(LINK2 #imdestroy,imdestroy)
+            $(LINK2 #Figure,Figure)
+    )
+)
+
+Copyright: Copyright Relja Ljubobratovic 2016.
+
+Authors: Relja Ljubobratovic
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+*/ 
+
 module dcv.plot.figure;
 
 import std.string : toStringz;

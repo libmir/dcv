@@ -1,3 +1,38 @@
+/**
+Module introduces Randomized Hough Transform implementation.
+
+Example:
+----
+
+// Load an image from filesystem.
+Image image = imread("/path/to/image.png");
+
+// Calculate edges by use of canny algorithm
+auto edges = image
+                .sliced
+                .rgb2gray
+                .asType!float
+                .conv(gaussian!float(1.0f, 3, 3))
+                .canny!ubyte(100);
+
+// Setup RHT line extraction context
+auto lines = RhtLines().epouchs(50).iterations(250).minCurve(25);
+
+// Lazily iterate and detect lines in pre-processed image
+foreach(line; lines(canny)) {
+    // do stuff with lines..
+}
+----
+
+For more elaborated module description visit the $(LINK2 https://ljubobratovicrelja.github.io/dcv/?loc=example_features_rht.html,RHT example).
+
+Copyright: Copyright © 2016, Dmitry Olshansky
+
+Authors: Dmitry Olshansky
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+*/ 
+
 module dcv.features.rht;
 
 import std.experimental.ndslice;

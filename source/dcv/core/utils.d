@@ -165,6 +165,7 @@ static if (__VERSION__ >= 2071) { // due to undefined bug in byElement in dmd 2.
     }
 }
 
+/// Check if given function can perform boundary condition test.
 template isBoundaryCondition(alias bc) {
     import std.typetuple;
     alias Indices = TypeTuple!(int, int);
@@ -181,7 +182,7 @@ template isBoundaryCondition(alias bc) {
     }
 }
 
-//! No boundary condition test.
+/// No boundary condition test.
 ref T nobc(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices) 
     if (allSameType!Indices && allSatisfy!(isIntegral, Indices))
 {
@@ -189,7 +190,7 @@ ref T nobc(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices)
     return slice[indices];
 }
 
-//! Neumann's boundary condition test
+/// $(LINK2 https://en.wikipedia.org/wiki/Neumann_boundary_condition, Neumann) boundary condition test
 ref T neumann(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices) 
     if (allSameType!Indices && allSatisfy!(isIntegral, Indices))
 {
@@ -197,7 +198,7 @@ ref T neumann(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices)
     return slice.bcImpl!_neumann(indices);
 }
 
-//! Periodic boundary condition test
+/// $(LINK2 https://en.wikipedia.org/wiki/Periodic_boundary_conditions,Periodic) boundary condition test
 ref T periodic(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices)
     if (allSameType!Indices && allSatisfy!(isIntegral, Indices))
 {
@@ -205,7 +206,7 @@ ref T periodic(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices
     return slice.bcImpl!_periodic(indices);
 }
 
-//! Symmetric boundary condition test
+/// Symmetric boundary condition test
 ref T symmetric(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices)
     if (allSameType!Indices && allSatisfy!(isIntegral, Indices))
 {
@@ -213,6 +214,7 @@ ref T symmetric(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indice
     return slice.bcImpl!_symmetric(indices);
 }
 
+/// Alias for generalized boundary condition test function.
 template BoundaryConditionTest(size_t N, T, Indices...) {
     alias BoundaryConditionTest = ref T function(ref Slice!(N, T*) slice, Indices indices);
 }

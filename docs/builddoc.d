@@ -11,7 +11,7 @@ import std.parallelism;
 import std.process;
 
 immutable ignoreList = [
-    "fast_9.d", "fast_10.d", "fast_11.d", "fast_12.d", "nonmax.d"
+    "fast_9.d", "fast_10.d", "fast_11.d", "fast_12.d", "nonmax.d", "gl.d", "glfw.d"
 ];
 
 immutable includes = [

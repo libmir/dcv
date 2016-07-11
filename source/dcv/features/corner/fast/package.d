@@ -1,10 +1,8 @@
 ﻿/**
-Module implements FAST<sup>[1]</sup> corner detector algorithm.
-
-Features from accelerated segment test (FAST) algorithm
+Module implements FAST<sup>[1]</sup> corner detector algorithm - Features from accelerated segment test (FAST) algorithm
 discovered and developed by Edward Rosten and Tom Drummond.
 
-This package wraps machine generated C code, adopted 
+This package offers D class interface to machine generated C code, adopted
 to D, which is located originally on $(LINK3 https://github.com/edrosten/fast-C-src, Edward Rosten's github).
 
 Copyright: Copyright (c) 2006, 2008 Edward Rosten, Relja Ljubobratovic 2016
@@ -186,6 +184,7 @@ class FASTDetector : Detector {
             features.sort!((a, b) => a.score > b.score);
         }
 
+        // TODO: if not sorted, taking first N features does not make any sense.
         if (count && count < featureCount) {
             import std.range : take;
             import std.array : array;
