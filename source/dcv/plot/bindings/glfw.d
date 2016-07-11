@@ -1,6 +1,5 @@
 module dcv.plot.bindings.glfw;
 
-
 struct GLFWwindow
 {
 }
@@ -8,7 +7,6 @@ struct GLFWwindow
 struct GLFWmonitor
 {
 }
-
 
 /*************************************************************************
  * GLFW API tokens
@@ -24,11 +22,11 @@ immutable GLFW_REPEAT = 2;
 immutable GLFW_KEY_UNKNOWN = -1;
 
 immutable GLFW_KEY_SPACE = 32;
-immutable GLFW_KEY_APOSTROPHE = 39;  /* ' */
-immutable GLFW_KEY_COMMA = 44;  /* , */
-immutable GLFW_KEY_MINUS = 45;  /* - */
-immutable GLFW_KEY_PERIOD = 46;  /* . */
-immutable GLFW_KEY_SLASH = 47;  /* / */
+immutable GLFW_KEY_APOSTROPHE = 39; /* ' */
+immutable GLFW_KEY_COMMA = 44; /* , */
+immutable GLFW_KEY_MINUS = 45; /* - */
+immutable GLFW_KEY_PERIOD = 46; /* . */
+immutable GLFW_KEY_SLASH = 47; /* / */
 immutable GLFW_KEY_0 = 48;
 immutable GLFW_KEY_1 = 49;
 immutable GLFW_KEY_2 = 50;
@@ -39,8 +37,8 @@ immutable GLFW_KEY_6 = 54;
 immutable GLFW_KEY_7 = 55;
 immutable GLFW_KEY_8 = 56;
 immutable GLFW_KEY_9 = 57;
-immutable GLFW_KEY_SEMICOLON = 59;  /* ; */
-immutable GLFW_KEY_EQUAL = 61;  /* = */
+immutable GLFW_KEY_SEMICOLON = 59; /* ; */
+immutable GLFW_KEY_EQUAL = 61; /* = */
 immutable GLFW_KEY_A = 65;
 immutable GLFW_KEY_B = 66;
 immutable GLFW_KEY_C = 67;
@@ -67,10 +65,10 @@ immutable GLFW_KEY_W = 87;
 immutable GLFW_KEY_X = 88;
 immutable GLFW_KEY_Y = 89;
 immutable GLFW_KEY_Z = 90;
-immutable GLFW_KEY_LEFT_BRACKET = 91;  /* [ */
-immutable GLFW_KEY_BACKSLASH = 92;  /* \ */
-immutable GLFW_KEY_RIGHT_BRACKET = 93;  /* ] */
-immutable GLFW_KEY_GRAVE_ACCENT = 96;  /* ` */
+immutable GLFW_KEY_LEFT_BRACKET = 91; /* [ */
+immutable GLFW_KEY_BACKSLASH = 92; /* \ */
+immutable GLFW_KEY_RIGHT_BRACKET = 93; /* ] */
+immutable GLFW_KEY_GRAVE_ACCENT = 96; /* ` */
 immutable GLFW_KEY_WORLD_1 = 161; /* non-US #1 */
 immutable GLFW_KEY_WORLD_2 = 162; /* non-US #2 */
 
@@ -247,14 +245,14 @@ immutable GLFW_DONT_CARE = -1;
  * GLFW API types
  *************************************************************************/
 
-alias GLFWcharfun = void function(uint key, GLFWwindow *window);
+alias GLFWcharfun = void function(uint key, GLFWwindow* window);
 alias GLFWcharmodsfun = void function(int mods, uint key, GLFWwindow*);
 alias GLFWkeyfun = void function(int mods, int action, int scancode, int key, GLFWwindow* window);
 alias GLFWwindowclosefun = void function(GLFWwindow* window);
 alias GLFWmousebuttonfun = void function(int mods, int action, int button, GLFWwindow*);
 alias GLFWcursorposfun = void function(double ypos, double xpos, GLFWwindow*);
 alias GLFWwindowposfun = void function(int ypos, int xpos, GLFWwindow*);
-alias GLFWwindowsizefun = void function(int height, int width, GLFWwindow *window);
+alias GLFWwindowsizefun = void function(int height, int width, GLFWwindow* window);
 
 extern (C)
 {
@@ -262,8 +260,7 @@ extern (C)
      * GLFW functions definitions.
      *************************************************************************/
     int glfwInit();
-    GLFWwindow* glfwCreateWindow(int width, int height, const char* title,
-            GLFWmonitor* monitor, GLFWwindow* share);
+    GLFWwindow* glfwCreateWindow(int width, int height, const char* title, GLFWmonitor* monitor, GLFWwindow* share);
     void glfwShowWindow(GLFWwindow* window);
     void glfwHideWindow(GLFWwindow* window);
     void glfwDestroyWindow(GLFWwindow* window);
@@ -274,7 +271,7 @@ extern (C)
     void glfwWaitEvents();
     int glfwWindowShouldClose(GLFWwindow* window);
     void glfwSetWindowTitle(GLFWwindow* window, const char* title);
-    int glfwGetWindowAttrib(GLFWwindow *window, int attrib);
+    int glfwGetWindowAttrib(GLFWwindow* window, int attrib);
     void glfwSetWindowPos(GLFWwindow* window, int xpos, int ypos);
     void glfwGetWindowPos(GLFWwindow* window, int* xpos, int* ypos);
     void glfwSetInputMode(GLFWwindow* window, int mode, int value);

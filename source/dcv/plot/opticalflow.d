@@ -25,7 +25,8 @@ import std.experimental.ndslice;
  * returns:
  * RGB image of color-coded optical flow.
  */
-Slice!(3, ubyte*) colorCode(Slice!(3, float*) flow, float maxSize = 0) {
+Slice!(3, ubyte*) colorCode(Slice!(3, float*) flow, float maxSize = 0)
+{
     import std.math : sqrt;
     import std.array : array;
     import std.algorithm.iteration : map;
@@ -33,23 +34,24 @@ Slice!(3, ubyte*) colorCode(Slice!(3, float*) flow, float maxSize = 0) {
     import dcv.core.algorithm : ranged;
     import dcv.imgproc.color : hsv2rgb;
 
-    if (maxSize == 0) {
-        maxSize = (cast(float)(flow.length!0)^^2 + 
-            cast(float)(flow.length!1)^^2).sqrt;
+    if (maxSize == 0)
+    {
+        maxSize = (cast(float)(flow.length!0) ^^ 2 + cast(float)(flow.length!1) ^^ 2).sqrt;
         maxSize *= 0.1; // expect max flow displacement to be 10% of the diagonal
     }
 
-    auto hsv = new float[flow.length!0*flow.length!1*3]
-    .sliced(flow.length!0, flow.length!1, 3);
+    auto hsv = new float[flow.length!0 * flow.length!1 * 3].sliced(flow.length!0, flow.length!1, 3);
 
-    foreach(r; 0..flow.length!0) {
-        foreach(c; 0..flow.length!1) {
+    foreach (r; 0 .. flow.length!0)
+    {
+        foreach (c; 0 .. flow.length!1)
+        {
             import std.math : sqrt, atan2, PI;
 
             float fx = flow[r, c, 0];
             float fy = flow[r, c, 1];
 
-            float rad = sqrt(fx*fx + fy*fy);
+            float rad = sqrt(fx * fx + fy * fy);
             float a = atan2(fy, fx) / PI;
 
             auto pix = hsv[r, c];
@@ -60,14 +62,12 @@ Slice!(3, ubyte*) colorCode(Slice!(3, float*) flow, float maxSize = 0) {
     }
 
     // Range saturation values
-    auto rangedS = hsv[0..$, 0..$, 1]
-    .byElement
-        .ranged(0.0f, maxSize) // range values from 0 to maxSize
-            .map!(v => v / maxSize) // normalize values
-            .array
-            .sliced(hsv[0..$, 0..$, 0].shape);
+    auto rangedS = hsv[0 .. $, 0 .. $, 1].byElement.ranged(0.0f,
+            maxSize) // range values from 0 to maxSize
+    .map!(v => v / maxSize) // normalize values
+    .array.sliced(hsv[0 .. $, 0 .. $, 0].shape);
 
-    hsv[0..$, 0..$, 1][] = rangedS[];
+    hsv[0 .. $, 0 .. $, 1][] = rangedS[];
 
     return hsv.hsv2rgb!ubyte;
 }

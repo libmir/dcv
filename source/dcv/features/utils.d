@@ -6,28 +6,28 @@ Copyright: Copyright Relja Ljubobratovic 2016.
 Authors: Relja Ljubobratovic
 
 License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
-*/ 
+*/
 
 module dcv.features.utils;
 
 import std.experimental.ndslice;
 import std.traits : isNumeric;
 
-
 /**
 Feature point.
 */
-struct Feature {
+struct Feature
+{
     /// x coordinate of the feature centroid
-    size_t x; 
+    size_t x;
     /// y coordinate of the feature centroid
-    size_t y; 
+    size_t y;
     /// octave in which the feature is detected.
-    size_t octave; 
+    size_t octave;
     /// width of the feature
-    float width; 
+    float width;
     /// height of the feature
-    float height; 
+    float height;
     /// feature strengh.
     float score;
 }
@@ -48,48 +48,46 @@ return:
 Dynamic array of ulong[2], as in array of 2D points, of corner reponses 
 which fit the given criteria.
 */
-ulong [2][] extractCorners(T)(Slice!(2, T*) cornerResponse, 
-    long count = -1, T threshold = cast(T)0) @trusted pure nothrow
-    if (isNumeric!T)
+ulong[2][] extractCorners(T)(Slice!(2, T*) cornerResponse, long count = -1, T threshold = cast(T)0)@trusted pure nothrow 
+        if (isNumeric!T)
 {
     import std.algorithm : sort, map, min;
     import std.array : array;
     import std.range : take, iota;
 
-    ulong [2] [float] features;
+    ulong[2][float] features;
 
-    if (cornerResponse.empty) {
+    if (cornerResponse.empty)
+    {
         return null;
     }
 
     auto rows = cornerResponse.length!0;
     auto cols = cornerResponse.length!1;
 
-    foreach(r; rows.iota) {
-        foreach(c; cols.iota) {
+    foreach (r; rows.iota)
+    {
+        foreach (c; cols.iota)
+        {
             auto res = cornerResponse[r, c];
             if (res > threshold)
                 features[res] = [r, c];
         }
     }
 
-    return sort!"a > b"(features.keys)
-        .take(count > 0 ? min(count, features.length) : features.length)
-            .map!(a => features[a])
-            .array;
+    return sort!"a > b"(features.keys).take(count > 0 ? min(count, features.length) : features.length)
+        .map!(a => features[a]).array;
 }
 
-unittest {
+unittest
+{
     auto res = Slice!(2, float*).init.extractCorners;
     assert(res is null);
 }
 
-unittest {
-    auto image = [
-        0., 0., 0.,
-        0., 1., 0.,
-        0., 0., 0.
-    ].sliced(3, 3);
+unittest
+{
+    auto image = [0., 0., 0., 0., 1., 0., 0., 0., 0.].sliced(3, 3);
 
     auto res = image.extractCorners;
 
@@ -98,12 +96,9 @@ unittest {
 }
 
 ///
-unittest {
-    auto image = [
-        0., 0.1, 0.,
-        0., 0.3, 0.,
-        0., 0.2, 0.
-    ].sliced(3, 3);
+unittest
+{
+    auto image = [0., 0.1, 0., 0., 0.3, 0., 0., 0.2, 0.].sliced(3, 3);
 
     auto res = image.extractCorners;
 
@@ -113,12 +108,9 @@ unittest {
     assert(res[2] == [0, 1]);
 }
 
-unittest {
-    auto image = [
-        0., 0.1, 0.,
-        0., 0.3, 0.,
-        0., 0.2, 0.
-    ].sliced(3, 3);
+unittest
+{
+    auto image = [0., 0.1, 0., 0., 0.3, 0., 0., 0.2, 0.].sliced(3, 3);
 
     auto res = image.extractCorners(1);
 
@@ -126,12 +118,9 @@ unittest {
     assert(res[0] == [1, 1]);
 }
 
-unittest {
-    auto image = [
-        0., 0.1, 0.,
-        0., 0.3, 0.,
-        0., 0.2, 0.
-    ].sliced(3, 3);
+unittest
+{
+    auto image = [0., 0.1, 0., 0., 0.3, 0., 0., 0.2, 0.].sliced(3, 3);
 
     auto res = image.extractCorners(-1, 0.2);
 

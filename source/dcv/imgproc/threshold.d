@@ -9,12 +9,6 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 */
 module dcv.imgproc.threshold;
 
-/*
-v0.1 norm:
-threshold
-adaptiveThreshold (threshold each pixel using it's neighbourhood as thresholding norm)
-*/
-
 import std.experimental.ndslice;
 
 import dcv.core.utils : emptySlice;
@@ -34,49 +28,67 @@ values are clipped from given value to 0.
 
 Thresholding is supported for 1D, 2D and 3D slices.
 
-params:
-slice = Input slice.
-lowThresh = Lower threshold value.
-highThresh = Higher threshold value.
-prealloc = Optional pre-allocated slice buffer for output.
+Params:
+    slice = Input slice.
+    lowThresh = Lower threshold value.
+    highThresh = Higher threshold value.
+    prealloc = Optional pre-allocated slice buffer for output.
 */
-Slice!(N, OutputType*) threshold(OutputType, InputType, size_t N)
-    (Slice!(N, InputType*) slice, InputType lowThresh, InputType highThresh, Slice!(N, OutputType*) prealloc = emptySlice!(N, OutputType))
-in {
+Slice!(N, OutputType*) threshold(OutputType, InputType, size_t N)(Slice!(N, InputType*) slice,
+        InputType lowThresh, InputType highThresh, Slice!(N, OutputType*) prealloc = emptySlice!(N, OutputType))
+in
+{
 
     //TODO: consider leaving upper value, and not setting it to 1.
     assert(lowThresh <= highThresh);
     assert(!slice.empty);
-} body {
+}
+body
+{
     import std.array : uninitializedArray;
     import std.algorithm.iteration : reduce;
     import std.range : lockstep;
     import std.math : approxEqual;
     import std.traits : isFloatingPoint;
 
-    if (prealloc.shape[] != slice.shape[]) {
+    if (prealloc.shape[] != slice.shape[])
+    {
         prealloc = uninitializedArray!(OutputType[])(slice.shape[].reduce!"a*b").sliced(slice.shape);
     }
 
-    static if (isFloatingPoint!OutputType) {
+    static if (isFloatingPoint!OutputType)
+    {
         OutputType upvalue = 1.0;
-    } else {
+    }
+    else
+    {
         OutputType upvalue = OutputType.max;
     }
 
-    pure nothrow @safe @nogc InputType cmp_l(ref InputType v) { return v <= lowThresh ? 0 : upvalue; }
-    pure nothrow @safe @nogc InputType cmp_lu(ref InputType v) { return v >= lowThresh && v <= highThresh ? upvalue : 0; }
+    pure nothrow @safe @nogc InputType cmp_l(ref InputType v)
+    {
+        return v <= lowThresh ? 0 : upvalue;
+    }
 
-    InputType delegate (ref InputType v) pure nothrow @nogc @safe cmp;
+    pure nothrow @safe @nogc InputType cmp_lu(ref InputType v)
+    {
+        return v >= lowThresh && v <= highThresh ? upvalue : 0;
+    }
 
-    if (lowThresh.approxEqual(highThresh)) {
+    InputType delegate(ref InputType v) pure nothrow @nogc @safe cmp;
+
+    if (lowThresh.approxEqual(highThresh))
+    {
         cmp = &cmp_l;
-    } else {
+    }
+    else
+    {
         cmp = &cmp_lu;
     }
 
-    foreach(ref t, e; lockstep(prealloc.byElement, slice.byElement)) {
-        static if (is(InputType==OutputType)) 
+    foreach (ref t, e; lockstep(prealloc.byElement, slice.byElement))
+    {
+        static if (is(InputType == OutputType))
             t = cmp(e); //(e >= lowThresh && e <= highThresh) ? e : cast(OutputType)0;
         else
             t = cast(OutputType)cmp(e);
@@ -86,19 +98,17 @@ in {
 }
 
 /**
- * Convenience function for thresholding, where lower and upper bound values are the same.
- * 
- * Calls threshold(slice, thresh, thresh, prealloc)
- * 
- * params:
- * slice = Input slice.
- * thresh = Threshold value - any value lower than this will be set to 0, and higher to 1.
- * prealloc = Optional pre-allocated slice buffer for output.
- * 
- */
-Slice!(N, OutputType*) threshold(OutputType, InputType, size_t N)
-    (Slice!(N, InputType*) slice, InputType thresh, Slice!(N, OutputType*) prealloc = emptySlice!(N, OutputType))
+Convenience function for thresholding, where lower and upper bound values are the same.
+
+Calls threshold(slice, thresh, thresh, prealloc)
+
+Params:
+    slice = Input slice.
+    thresh = Threshold value - any value lower than this will be set to 0, and higher to 1.
+    prealloc = Optional pre-allocated slice buffer for output.
+*/
+Slice!(N, OutputType*) threshold(OutputType, InputType, size_t N)(Slice!(N, InputType*) slice,
+        InputType thresh, Slice!(N, OutputType*) prealloc = emptySlice!(N, OutputType))
 {
     return threshold!(OutputType, InputType, N)(slice, thresh, thresh, prealloc);
 }
-

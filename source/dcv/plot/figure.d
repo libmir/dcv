@@ -59,7 +59,7 @@ Copyright: Copyright Relja Ljubobratovic 2016.
 Authors: Relja Ljubobratovic
 
 License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
-*/ 
+*/
 
 module dcv.plot.figure;
 
@@ -98,7 +98,7 @@ Figure figure(string title = "")
     }
     if (f is null)
     {
-            f = new Figure(title);
+        f = new Figure(title);
         if (_figures.length != 0)
         {
             auto p = _figures[$ - 1].position;
@@ -191,7 +191,7 @@ int waitKey(string unit = "msecs")(ulong count = 0)
                 continue;
             }
 
-            if (glfwWindowShouldClose(glfwWindow)) 
+            if (glfwWindowShouldClose(glfwWindow))
             {
                 f.hide();
                 continue;
@@ -202,7 +202,7 @@ int waitKey(string unit = "msecs")(ulong count = 0)
 
         }
 
-        if (allHidden) 
+        if (allHidden)
         {
             /*
             TODO: think this through - its good behavior to end the event loop 
@@ -321,7 +321,7 @@ class Figure
 
     /// Construct figure window with given title.
     this(string title, int width = 512, int height = 512)
-    in 
+    in
     {
         assert(width > 0);
         assert(height > 0);
@@ -331,7 +331,7 @@ class Figure
         _title = title;
         _width = width;
         _height = height;
-        _data = new ubyte[_width*_height*3];
+        _data = new ubyte[_width * _height * 3];
 
         setupWindow();
         fitWindow();
@@ -348,16 +348,15 @@ class Figure
     }
     body
     {
-        this(title, cast(int) image.width, cast(int) image.height);
+        this(title, cast(int)image.width, cast(int)image.height);
         draw(image);
     }
 
     /// Construct figure window with given title, and fill it with given image.
-    this(size_t N, T)(string title, Slice!(N, T*) slice, 
-            ImageFormat format = ImageFormat.IF_UNASSIGNED)
-    if (N == 2 || N == 3)
+    this(size_t N, T)(string title, Slice!(N, T*) slice, ImageFormat format = ImageFormat.IF_UNASSIGNED)
+            if (N == 2 || N == 3)
     {
-        this(title, cast(int)slice.length!1, cast(int) slice.length!0);
+        this(title, cast(int)slice.length!1, cast(int)slice.length!0);
         draw(slice, format);
     }
 
@@ -429,28 +428,28 @@ class Figure
     {
         if (_glfwWindow is null)
             return false;
-        return glfwGetWindowAttrib(cast(GLFWwindow*) _glfwWindow, GLFW_VISIBLE) == 1;
+        return glfwGetWindowAttrib(cast(GLFWwindow*)_glfwWindow, GLFW_VISIBLE) == 1;
     }
 
     @property position() const
     {
         int x;
         int y;
-        glfwGetWindowPos(cast(GLFWwindow*) _glfwWindow, &x, &y);
+        glfwGetWindowPos(cast(GLFWwindow*)_glfwWindow, &x, &y);
         return [x, y];
     }
 
     @property size() const
     {
         int w, h;
-        glfwGetWindowSize(cast(GLFWwindow*) _glfwWindow, &w, &h);
+        glfwGetWindowSize(cast(GLFWwindow*)_glfwWindow, &w, &h);
         return [w, h];
     }
 
     /// Clear canvas content of this figure.
     void clear()
     {
-        _data[] = cast(ubyte) 0;
+        _data[] = cast(ubyte)0;
     }
 
     /// Move figure window to given position on screen.
@@ -486,8 +485,8 @@ class Figure
 
         if (_width != image.width || _height != image.height)
         {
-            _width = cast(int) image.width;
-            _height = cast(int) image.height;
+            _width = cast(int)image.width;
+            _height = cast(int)image.height;
             _data = image.data.dup;
         }
         else
@@ -527,7 +526,7 @@ class Figure
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glDisable(GL_DEPTH_TEST);
 
-        glViewport( 0, 0, width, height );
+        glViewport(0, 0, width, height);
 
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
@@ -670,11 +669,9 @@ static this()
         throw new Exception("Invalid glfwInit call");
     }
 
-    setCharCallback((uint key) { 
-        _lastKey = key;
-    });
+    setCharCallback((uint key) { _lastKey = key; });
 
-    setKeyPressCallback( (int key, int scancode, int action, int mods) {
+    setKeyPressCallback((int key, int scancode, int action, int mods) {
         /*
         char callback takes priority with character keyboard inputs,
         so only override the _lastKey value if its -1, which means there
@@ -685,7 +682,7 @@ static this()
     });
 }
 
-private 
+private
 {
     Figure[] _figures; // book-keeping of each running figure.
     int _lastKey = -1; // last hit key
@@ -754,8 +751,7 @@ Image adoptImage(Image image)
     switch (showImage.format)
     {
     case ImageFormat.IF_RGB_ALPHA:
-        showImage = showImage.sliced[0 .. $, 0 .. $,
-            0 .. 2].asImage(ImageFormat.IF_RGB);
+        showImage = showImage.sliced[0 .. $, 0 .. $, 0 .. 2].asImage(ImageFormat.IF_RGB);
         break;
     case ImageFormat.IF_BGR:
         foreach (e; showImage.sliced.pack!1.byElement)
@@ -778,8 +774,8 @@ Image adoptImage(Image image)
         showImage = showImage.sliced.yuv2rgb!ubyte.asImage(ImageFormat.IF_RGB);
         break;
     case ImageFormat.IF_MONO:
-        showImage = showImage.sliced.reshape(image.height,
-                image.width).gray2rgb!ubyte.asImage(ImageFormat.IF_RGB);
+        showImage = showImage.sliced.reshape(image.height, image.width)
+            .gray2rgb!ubyte.asImage(ImageFormat.IF_RGB);
         break;
     default:
         break;

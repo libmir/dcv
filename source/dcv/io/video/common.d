@@ -22,12 +22,13 @@ import ffmpeg.libavfilter.avfilter;
 
 public import dcv.io.image;
 
-
 /**
 Exception related to streaming operations.
 */
-class StreamException : Exception {
-    @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null) {
+class StreamException : Exception
+{
+    @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    {
         super(msg, file, line, next);
     }
 }
@@ -35,8 +36,10 @@ class StreamException : Exception {
 /**
 Exception thrown on failed video stream opening.
 */
-class StreamNotOpenException : StreamException {
-    @safe pure nothrow this(string file = __FILE__, size_t line = __LINE__, Throwable next = null) {
+class StreamNotOpenException : StreamException
+{
+    @safe pure nothrow this(string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    {
         super("Stream is not opened.", file, line, next);
     }
 }
@@ -44,7 +47,8 @@ class StreamNotOpenException : StreamException {
 /**
 Video codec identifiers.
 */
-enum CodecID {
+enum CodecID
+{
     NONE = 0, /// No codec.
     RAW = AVCodecID.AV_CODEC_ID_RAWVIDEO, /// Raw video.
     MPEG1VIDEO = AVCodecID.AV_CODEC_ID_MPEG1VIDEO, /// MPEG 1 codec.
@@ -56,28 +60,41 @@ enum CodecID {
 
 package:
 
-string getCodecString(CodecID codec) {
-    switch(codec) {
-        case CodecID.NONE: return "";
-        case CodecID.RAW: return "rawvideo";
-        case CodecID.MPEG1VIDEO : return "mpeg1video";
-        case CodecID.MPEG2VIDEO : return "mpeg2video";
-        case CodecID.MPEG4: return "mp4";
-        case CodecID.H263: return "h263";
-        case CodecID.H264: return "h264";
-        default: return "";
+string getCodecString(CodecID codec)
+{
+    switch (codec)
+    {
+    case CodecID.NONE:
+        return "";
+    case CodecID.RAW:
+        return "rawvideo";
+    case CodecID.MPEG1VIDEO:
+        return "mpeg1video";
+    case CodecID.MPEG2VIDEO:
+        return "mpeg2video";
+    case CodecID.MPEG4:
+        return "mp4";
+    case CodecID.H263:
+        return "h263";
+    case CodecID.H264:
+        return "h264";
+    default:
+        return "";
     }
 }
 
-class AVStarter {
+class AVStarter
+{
     private static AVStarter _instance = null;
-    static AVStarter instance() {
+    static AVStarter instance()
+    {
         if (AVStarter._instance is null)
             AVStarter._instance = new AVStarter;
         return AVStarter._instance;
     }
 
-    this() {
+    this()
+    {
         av_register_all();
         avformat_network_init();
         avcodec_register_all();
@@ -93,20 +110,19 @@ immutable IF_MONO_ALPHA_TYPES = [AVPixelFormat.AV_PIX_FMT_GRAY8A];
 immutable IF_YUV_TYPES = [
     AVPixelFormat.AV_PIX_FMT_YUV410P, AVPixelFormat.AV_PIX_FMT_YUV411P,
     AVPixelFormat.AV_PIX_FMT_YUV420P, AVPixelFormat.AV_PIX_FMT_YUV422P,
-    AVPixelFormat.AV_PIX_FMT_YUYV422, AVPixelFormat.AV_PIX_FMT_YUV440P,
-    AVPixelFormat.AV_PIX_FMT_YUV444P
+    AVPixelFormat.AV_PIX_FMT_YUYV422, AVPixelFormat.AV_PIX_FMT_YUV440P, AVPixelFormat.AV_PIX_FMT_YUV444P
 ];
 
 immutable IF_RGB_TYPES = [
-    AVPixelFormat.AV_PIX_FMT_RGB0, AVPixelFormat.AV_PIX_FMT_RGB24,
-    AVPixelFormat.AV_PIX_FMT_RGB4, AVPixelFormat.AV_PIX_FMT_RGB8
+    AVPixelFormat.AV_PIX_FMT_RGB0, AVPixelFormat.AV_PIX_FMT_RGB24, AVPixelFormat.AV_PIX_FMT_RGB4,
+    AVPixelFormat.AV_PIX_FMT_RGB8
 ];
 
 immutable IF_RGB_ALPHA_TYPES = [AVPixelFormat.AV_PIX_FMT_ARGB, AVPixelFormat.AV_PIX_FMT_RGBA];
 
 immutable IF_BGR_TYPES = [
-    AVPixelFormat.AV_PIX_FMT_BGR0, AVPixelFormat.AV_PIX_FMT_BGR24,
-    AVPixelFormat.AV_PIX_FMT_BGR4, AVPixelFormat.AV_PIX_FMT_BGR8
+    AVPixelFormat.AV_PIX_FMT_BGR0, AVPixelFormat.AV_PIX_FMT_BGR24, AVPixelFormat.AV_PIX_FMT_BGR4,
+    AVPixelFormat.AV_PIX_FMT_BGR8
 ];
 
 immutable IF_BGR_ALPHA_TYPES = [AVPixelFormat.AV_PIX_FMT_ABGR, AVPixelFormat.AV_PIX_FMT_BGRA];
@@ -119,134 +135,159 @@ alias IF_BGR_PREFERED = AVPixelFormat.AV_PIX_FMT_BGR24;
 alias IF_BGR_ALPHA_PREFERED = AVPixelFormat.AV_PIX_FMT_BGRA;
 alias IF_YUV_PREFERED = AVPixelFormat.AV_PIX_FMT_YUV444P;
 
-
-AVPixelFormat convertDepricatedPixelFormat(AVPixelFormat pix) {
+AVPixelFormat convertDepricatedPixelFormat(AVPixelFormat pix)
+{
     AVPixelFormat pixFormat = pix;
-    switch (pix) {
-        case AVPixelFormat.AV_PIX_FMT_YUVJ420P:
-            pixFormat = AVPixelFormat.AV_PIX_FMT_YUV420P;
-            break;
-        case AVPixelFormat.AV_PIX_FMT_YUVJ422P:
-            pixFormat = AVPixelFormat.AV_PIX_FMT_YUV422P;
-            break;
-        case AVPixelFormat.AV_PIX_FMT_YUVJ444P:
-            pixFormat = AVPixelFormat.AV_PIX_FMT_YUV444P;
-            break;
-        case AVPixelFormat.AV_PIX_FMT_YUVJ440P:
-            pixFormat = AVPixelFormat.AV_PIX_FMT_YUV440P;
-            break;
-        default:
-            break;
+    switch (pix)
+    {
+    case AVPixelFormat.AV_PIX_FMT_YUVJ420P:
+        pixFormat = AVPixelFormat.AV_PIX_FMT_YUV420P;
+        break;
+    case AVPixelFormat.AV_PIX_FMT_YUVJ422P:
+        pixFormat = AVPixelFormat.AV_PIX_FMT_YUV422P;
+        break;
+    case AVPixelFormat.AV_PIX_FMT_YUVJ444P:
+        pixFormat = AVPixelFormat.AV_PIX_FMT_YUV444P;
+        break;
+    case AVPixelFormat.AV_PIX_FMT_YUVJ440P:
+        pixFormat = AVPixelFormat.AV_PIX_FMT_YUV440P;
+        break;
+    default:
+        break;
     }
     return pixFormat;
 }
 
-ImageFormat AVPixelFormat_to_ImageFormat(AVPixelFormat format) {
+ImageFormat AVPixelFormat_to_ImageFormat(AVPixelFormat format)
+{
     import std.exception : enforce;
     import std.algorithm.searching : find;
 
-    if (IF_YUV_TYPES.find(format)) {
+    if (IF_YUV_TYPES.find(format))
+    {
         return ImageFormat.IF_YUV;
     }
-    else if (IF_RGB_TYPES.find(format)) {
+    else if (IF_RGB_TYPES.find(format))
+    {
         return ImageFormat.IF_RGB;
     }
-    else if (IF_BGR_TYPES.find(format)) {
+    else if (IF_BGR_TYPES.find(format))
+    {
         return ImageFormat.IF_BGR;
     }
-    else if (IF_RGB_ALPHA_TYPES.find(format)) {
+    else if (IF_RGB_ALPHA_TYPES.find(format))
+    {
         return ImageFormat.IF_RGB_ALPHA;
     }
-    else if (IF_BGR_ALPHA_TYPES.find(format)) {
+    else if (IF_BGR_ALPHA_TYPES.find(format))
+    {
         return ImageFormat.IF_BGR_ALPHA;
     }
-    else if (IF_MONO_TYPES.find(format)) {
+    else if (IF_MONO_TYPES.find(format))
+    {
         return ImageFormat.IF_MONO;
     }
-    else if (IF_MONO_ALPHA_TYPES.find(format)) {
+    else if (IF_MONO_ALPHA_TYPES.find(format))
+    {
         return ImageFormat.IF_MONO_ALPHA;
     }
-    else {
+    else
+    {
         enforce(0, "Format type is not supported");
     }
     return ImageFormat.IF_UNASSIGNED;
 }
 
-AVPixelFormat ImageFormat_to_AVPixelFormat(ImageFormat format) {
-    switch(format) {
-        case ImageFormat.IF_MONO:
-            return IF_MONO_PREFERED;
-        case ImageFormat.IF_MONO_ALPHA:
-            return IF_MONO_ALPHA_PREFERED;
-        case ImageFormat.IF_BGR:
-            return IF_BGR_PREFERED;
-        case ImageFormat.IF_BGR_ALPHA:
-            return IF_BGR_ALPHA_PREFERED;
-        case ImageFormat.IF_RGB:
-            return IF_RGB_PREFERED;
-        case ImageFormat.IF_RGB_ALPHA:
-            return IF_RGB_ALPHA_PREFERED;
-        case ImageFormat.IF_YUV:
-            return IF_YUV_PREFERED;
-        default:
-            assert(0);
+AVPixelFormat ImageFormat_to_AVPixelFormat(ImageFormat format)
+{
+    switch (format)
+    {
+    case ImageFormat.IF_MONO:
+        return IF_MONO_PREFERED;
+    case ImageFormat.IF_MONO_ALPHA:
+        return IF_MONO_ALPHA_PREFERED;
+    case ImageFormat.IF_BGR:
+        return IF_BGR_PREFERED;
+    case ImageFormat.IF_BGR_ALPHA:
+        return IF_BGR_ALPHA_PREFERED;
+    case ImageFormat.IF_RGB:
+        return IF_RGB_PREFERED;
+    case ImageFormat.IF_RGB_ALPHA:
+        return IF_RGB_ALPHA_PREFERED;
+    case ImageFormat.IF_YUV:
+        return IF_YUV_PREFERED;
+    default:
+        assert(0);
     }
 }
-void adoptFormat(AVPixelFormat format, AVFrame* frame, ubyte[] data) {
+
+void adoptFormat(AVPixelFormat format, AVFrame* frame, ubyte[] data)
+{
 
     import std.exception : enforce;
     import std.algorithm.searching : find;
 
-    if (IF_YUV_TYPES.find(format)) {
+    if (IF_YUV_TYPES.find(format))
+    {
         adoptYUV(format, frame, data);
     }
-    else if (IF_RGB_TYPES.find(format)) {
+    else if (IF_RGB_TYPES.find(format))
+    {
         throw new Exception("Not implemented");
     }
-    else if (IF_BGR_TYPES.find(format)) {
+    else if (IF_BGR_TYPES.find(format))
+    {
         throw new Exception("Not implemented");
     }
-    else if (IF_RGB_ALPHA_TYPES.find(format)) {
+    else if (IF_RGB_ALPHA_TYPES.find(format))
+    {
         throw new Exception("Not implemented");
     }
-    else if (IF_BGR_ALPHA_TYPES.find(format)) {
+    else if (IF_BGR_ALPHA_TYPES.find(format))
+    {
         throw new Exception("Not implemented");
     }
-    else if (IF_MONO_TYPES.find(format)) {
+    else if (IF_MONO_TYPES.find(format))
+    {
         throw new Exception("Not implemented");
     }
-    else if (IF_MONO_ALPHA_TYPES.find(format)) {
+    else if (IF_MONO_ALPHA_TYPES.find(format))
+    {
         throw new Exception("Not implemented");
     }
-    else {
+    else
+    {
         enforce(0, "Format type is not supported");
     }
 }
 
-void adoptYUV(AVPixelFormat format, AVFrame* frame, ubyte[] data) {
-    switch (format) {
-        case AVPixelFormat.AV_PIX_FMT_YUV410P, AVPixelFormat.AV_PIX_FMT_YUV420P,
+void adoptYUV(AVPixelFormat format, AVFrame* frame, ubyte[] data)
+{
+    switch (format)
+    {
+    case AVPixelFormat.AV_PIX_FMT_YUV410P, AVPixelFormat.AV_PIX_FMT_YUV420P,
             AVPixelFormat.AV_PIX_FMT_YUV440P:
-                adoptYUVGrouped(frame, data);
+            adoptYUVGrouped(frame, data);
         break;
-        case AVPixelFormat.AV_PIX_FMT_YUV411P:
-            adoptYUV411P(frame, data);
-            break;
-        case AVPixelFormat.AV_PIX_FMT_YUV422P:
-            adoptYUV422P(frame, data);
-            break;
-        case AVPixelFormat.AV_PIX_FMT_YUYV422:
-            adoptYUYV422(frame, data);
-            break;
-        case AVPixelFormat.AV_PIX_FMT_YUV444P:
-            adoptYUV444P(frame, data);
-            break;
-        default:
-            assert(0);
+    case AVPixelFormat.AV_PIX_FMT_YUV411P:
+        adoptYUV411P(frame, data);
+        break;
+    case AVPixelFormat.AV_PIX_FMT_YUV422P:
+        adoptYUV422P(frame, data);
+        break;
+    case AVPixelFormat.AV_PIX_FMT_YUYV422:
+        adoptYUYV422(frame, data);
+        break;
+    case AVPixelFormat.AV_PIX_FMT_YUV444P:
+        adoptYUV444P(frame, data);
+        break;
+    default:
+        assert(0);
     }
 }
 
-void adoptYUVGrouped(AVFrame* frame, ubyte[] data) {
+void adoptYUVGrouped(AVFrame* frame, ubyte[] data)
+{
     auto ysize = frame.linesize[0];
     auto usize = frame.linesize[1];
     auto vsize = frame.linesize[2];
@@ -264,8 +305,10 @@ void adoptYUVGrouped(AVFrame* frame, ubyte[] data) {
     auto udata = frame.data[1];
     auto vdata = frame.data[2];
 
-    foreach (r; 0 .. h) {
-        foreach (c; 0 .. w) {
+    foreach (r; 0 .. h)
+    {
+        foreach (c; 0 .. w)
+        {
             auto pixpos = r * w * 3 + c * 3;
             auto ypos = r * w + c;
             auto uvpos = r / 2 * w / 2 + c / 2;
@@ -276,7 +319,8 @@ void adoptYUVGrouped(AVFrame* frame, ubyte[] data) {
     }
 }
 
-void adoptYUV411P(AVFrame* frame, ubyte[] data) {
+void adoptYUV411P(AVFrame* frame, ubyte[] data)
+{
 
     int w = frame.width;
     int h = frame.height;
@@ -286,7 +330,8 @@ void adoptYUV411P(AVFrame* frame, ubyte[] data) {
     auto udata = frame.data[1];
     auto vdata = frame.data[2];
 
-    foreach (i; 0 .. s) {
+    foreach (i; 0 .. s)
+    {
         auto y1 = ydata[i * 4];
         auto y2 = ydata[i * 4 + 1];
         auto y3 = ydata[i * 4 + 2];
@@ -312,7 +357,8 @@ void adoptYUV411P(AVFrame* frame, ubyte[] data) {
     }
 }
 
-void adoptYUV422P(AVFrame* frame, ubyte[] data) {
+void adoptYUV422P(AVFrame* frame, ubyte[] data)
+{
 
     int w = frame.width;
     int h = frame.height;
@@ -322,7 +368,8 @@ void adoptYUV422P(AVFrame* frame, ubyte[] data) {
     auto udata = frame.data[1];
     auto vdata = frame.data[2];
 
-    foreach (i; 0 .. s) {
+    foreach (i; 0 .. s)
+    {
         auto y1 = ydata[i * 2];
         auto y2 = ydata[i * 2 + 1];
         auto u = udata[i];
@@ -338,7 +385,8 @@ void adoptYUV422P(AVFrame* frame, ubyte[] data) {
     }
 }
 
-void adoptYUYV422(AVFrame* frame, ubyte[] data) {
+void adoptYUYV422(AVFrame* frame, ubyte[] data)
+{
 
     int w = frame.width;
     int h = frame.height;
@@ -349,7 +397,8 @@ void adoptYUYV422(AVFrame* frame, ubyte[] data) {
     ulong dataIter = 0;
     ulong yuyvIter = 0;
 
-    foreach (i; 0 .. s) {
+    foreach (i; 0 .. s)
+    {
         auto y1 = yuyvdata[yuyvIter++];
         auto u = yuyvdata[yuyvIter++];
         auto y2 = yuyvdata[yuyvIter++];
@@ -365,8 +414,10 @@ void adoptYUYV422(AVFrame* frame, ubyte[] data) {
     }
 }
 
-void adoptYUV444P(AVFrame* frame, ubyte[] data) {
-    foreach (i; 0 .. frame.width * frame.height) {
+void adoptYUV444P(AVFrame* frame, ubyte[] data)
+{
+    foreach (i; 0 .. frame.width * frame.height)
+    {
         data[i * 3 + 0] = frame.data[0][i];
         data[i * 3 + 1] = frame.data[1][i];
         data[i * 3 + 2] = frame.data[2][i];

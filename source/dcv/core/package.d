@@ -1,4 +1,3 @@
-
 module dcv.core;
 
 /**
@@ -8,7 +7,7 @@ module dcv.core;
  * ???
  */
 
-public import dcv.core.image;
-public import dcv.core.algorithm;
-public import dcv.core.memory;
-public import dcv.core.utils;
+public
+{
+    import dcv.core.image, dcv.core.algorithm, dcv.core.memory, dcv.core.utils;
+}

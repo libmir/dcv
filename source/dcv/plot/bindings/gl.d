@@ -638,16 +638,14 @@ extern (C)
     void glShadeModel(GLenum mode);
     void glPixelStorei(GLenum pname, GLint param);
     void glTexParameteri(GLenum target, GLenum pname, GLint param);
-    void glTexImage2D(GLenum target, GLint level, GLint internalFormat, GLsizei width,
-            GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* pixels);
-    void glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-            GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* pixels);
+    void glTexImage2D(GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height,
+            GLint border, GLenum format, GLenum type, const GLvoid* pixels);
+    void glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width,
+            GLsizei height, GLenum format, GLenum type, const GLvoid* pixels);
     void glGenerateMipmap(GLenum);
-    void glOrtho(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top,
-            GLdouble near_val, GLdouble far_val);
+    void glOrtho(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble near_val, GLdouble far_val);
     void glViewport(GLint x, GLint y, GLsizei width, GLsizei height);
-    void glFrustum(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top,
-            GLdouble near_val, GLdouble far_val);
+    void glFrustum(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble near_val, GLdouble far_val);
     void glPushMatrix();
     void glPopMatrix();
     void glLoadIdentity();
@@ -655,9 +653,8 @@ extern (C)
 
     void glTranslatef(GLfloat x, GLfloat y, GLfloat z);
     void glScalef(GLfloat x, GLfloat y, GLfloat z);
-    void glDrawPixels(GLsizei width, GLsizei height, GLenum format,
-            GLenum type, const GLvoid* pixels);
-    void glPixelZoom( GLfloat xfactor, GLfloat yfactor );
-    void glRasterPos2f( GLfloat x, GLfloat y );
-    void glRasterPos3f( GLfloat x, GLfloat y, GLfloat z );
+    void glDrawPixels(GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* pixels);
+    void glPixelZoom(GLfloat xfactor, GLfloat yfactor);
+    void glRasterPos2f(GLfloat x, GLfloat y);
+    void glRasterPos3f(GLfloat x, GLfloat y, GLfloat z);
 }

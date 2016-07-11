@@ -29,32 +29,39 @@ import dcv.tracking.opticalflow.base;
 /**
 Sparse pyramidal optical flow utility class.
 */
-class SparsePyramidFlow : SparseOpticalFlow {
+class SparsePyramidFlow : SparseOpticalFlow
+{
 
     private SparseOpticalFlow flowAlgorithm;
     private uint levelCount;
 
     this(SparseOpticalFlow flow, uint levels)
-    in {
+    in
+    {
         assert(flow !is null);
         assert(levels > 0);
-    } body {
+    }
+    body
+    {
         flowAlgorithm = flow;
         levelCount = levels;
     }
 
-    override float[2][] evaluate(inout Image f1, inout Image f2,
-            in float[2][] points, in float[2][] searchRegions,
-            float[2][] flow = null, bool usePrevious = false)
-    in {
-        assert(!f1.empty && !f2.empty && f1.size == f2.size && f1.channels == 1
-                && f1.depth == f2.depth && f1.depth == BitDepth.BD_8);
+    override float[2][] evaluate(inout Image f1, inout Image f2, in float[2][] points,
+            in float[2][] searchRegions, float[2][] flow = null, bool usePrevious = false)
+    in
+    {
+        assert(!f1.empty && !f2.empty && f1.size == f2.size && f1.channels == 1 && f1.depth == f2.depth
+                && f1.depth == BitDepth.BD_8);
         assert(points.length == searchRegions.length);
-        if (usePrevious) {
+        if (usePrevious)
+        {
             assert(flow !is null);
             assert(points.length == flow.length);
         }
-    } body {
+    }
+    body
+    {
         import std.algorithm.iteration : each;
         import std.array : uninitializedArray;
         import dcv.core.utils : asType;
@@ -67,15 +74,16 @@ class SparsePyramidFlow : SparseOpticalFlow {
         flowPyramid.length = levelCount;
         flowPyramid[$ - 1] = size.dup;
 
-        foreach_reverse (i; 0 .. (levelCount - 1)) {
+        foreach_reverse (i; 0 .. (levelCount - 1))
+        {
             size[] /= 2;
             if (size[0] < 1 || size[1] < 1)
                 throw new Exception("Pyramid downsampling exceeded minimal image size");
             flowPyramid[i] = size.dup;
         }
 
-        auto flowScale = [cast(float) f1.height / cast(float) flowPyramid[0][0],
-            cast(float) f1.width / cast(float) flowPyramid[0][1]];
+        auto flowScale = [cast(float)f1.height / cast(float)flowPyramid[0][0],
+            cast(float)f1.width / cast(float)flowPyramid[0][1]];
 
         auto lpoints = points.dup;
         auto lsearchRegions = searchRegions.dup;
@@ -83,9 +91,12 @@ class SparsePyramidFlow : SparseOpticalFlow {
         lpoints.each!((ref v) => v = [v[0] / flowScale[0], v[1] / flowScale[1]]);
         lsearchRegions.each!((ref v) => v = [v[0] / flowScale[0], v[1] / flowScale[1]]);
 
-        if (usePrevious) {
+        if (usePrevious)
+        {
             flow.each!((ref v) => v = [v[0] / flowScale[0], v[1] / flowScale[1]]);
-        } else {
+        }
+        else
+        {
             flow = uninitializedArray!(float[2][])(pointCount);
             flow[] = [0.0f, 0.0f];
         }
@@ -100,24 +111,28 @@ class SparsePyramidFlow : SparseOpticalFlow {
         auto f2s = f2.asType!float.sliced!float.reshape(h, w);
 
         // calculate pyramid flow
-        foreach (i; 0 .. levelCount) {
+        foreach (i; 0 .. levelCount)
+        {
 
             auto lh = flowPyramid[i][0];
             auto lw = flowPyramid[i][1];
 
-            if (lh != h || lw != w) {
+            if (lh != h || lw != w)
+            {
                 current = f1s.resize(lh, lw);
                 next = f2s.resize(lh, lw);
             }
-            else {
+            else
+            {
                 current = f1s;
                 next = f2s;
             }
 
-            flowAlgorithm.evaluate(current.asType!ubyte.asImage(f1.format), next.asType!ubyte.asImage(f2.format), 
-                    lpoints, lsearchRegions, flow, true);
+            flowAlgorithm.evaluate(current.asType!ubyte.asImage(f1.format),
+                    next.asType!ubyte.asImage(f2.format), lpoints, lsearchRegions, flow, true);
 
-            if (i < levelCount - 1) {
+            if (i < levelCount - 1)
+            {
                 flow.each!((ref v) => v = [v[0] * 2.0f, v[1] * 2.0f]);
                 lpoints.each!((ref v) => v = [v[0] * 2, v[1] * 2]);
                 lsearchRegions.each!((ref v) => v = [v[0] * 2, v[1] * 2]);
@@ -131,31 +146,37 @@ class SparsePyramidFlow : SparseOpticalFlow {
 /**
 Dense pyramidal optical flow utility class.
 */
-class DensePyramidFlow : DenseOpticalFlow {
+class DensePyramidFlow : DenseOpticalFlow
+{
 
     private DenseOpticalFlow flowAlgorithm;
     private uint levelCount;
 
     this(DenseOpticalFlow flow, uint levels)
-    in {
+    in
+    {
         assert(flow !is null);
         assert(levels > 0);
     }
-    body {
+    body
+    {
         flowAlgorithm = flow;
         levelCount = levels;
     }
 
-    override DenseFlow evaluate(inout Image f1, inout Image f2,
-            DenseFlow prealloc = emptySlice!(3, float), bool usePrevious = false)
-    in {
+    override DenseFlow evaluate(inout Image f1, inout Image f2, DenseFlow prealloc = emptySlice!(3,
+            float), bool usePrevious = false)
+    in
+    {
         assert(prealloc.length!2 == 2);
         assert(!f1.empty && f1.size == f2.size && f1.depth == f2.depth && f1.depth == BitDepth.BD_8);
-        if (usePrevious) {
+        if (usePrevious)
+        {
             assert(prealloc.length!0 == f1.height && prealloc.length!1 == f1.width);
         }
     }
-    body {
+    body
+    {
 
         ulong[2] size = [f1.height, f1.width];
         uint level = 0;
@@ -167,7 +188,8 @@ class DensePyramidFlow : DenseOpticalFlow {
 
         DenseFlow flow;
 
-        foreach_reverse (i; 0 .. (levelCount - 1)) {
+        foreach_reverse (i; 0 .. (levelCount - 1))
+        {
             size[] /= 2;
             if (size[0] < 1 || size[1] < 1)
                 throw new Exception("Pyramid downsampling exceeded minimal image size");
@@ -175,12 +197,13 @@ class DensePyramidFlow : DenseOpticalFlow {
         }
 
         // allocate flow for each pyramid level
-        if (usePrevious) {
+        if (usePrevious)
+        {
             flow = prealloc.resize(flowPyramid[0][0], flowPyramid[0][1]);
         }
-        else {
-            flow = new float[flowPyramid[0][0] * flowPyramid[0][1] * 2].sliced(flowPyramid[0][0],
-                    flowPyramid[0][1], 2);
+        else
+        {
+            flow = new float[flowPyramid[0][0] * flowPyramid[0][1] * 2].sliced(flowPyramid[0][0], flowPyramid[0][1], 2);
             flow[] = 0.0f;
         }
 
@@ -197,21 +220,25 @@ class DensePyramidFlow : DenseOpticalFlow {
         bool firstFlow = usePrevious;
 
         // calculate pyramid flow
-        foreach (i; 0 .. levelCount) {
+        foreach (i; 0 .. levelCount)
+        {
 
             auto lh = flow.length!0;
             auto lw = flow.length!1;
 
-            if (lh != h || lw != w) {
+            if (lh != h || lw != w)
+            {
                 current = f1s.resize(lh, lw);
                 next = f2s.resize(lh, lw);
             }
-            else {
+            else
+            {
                 current = f1s;
                 next = f2s;
             }
 
-            if (!firstFlow) {
+            if (!firstFlow)
+            {
                 // warp the image using previous flow, 
                 // except if this is the first level
                 // or usePrevious is false.
@@ -219,13 +246,13 @@ class DensePyramidFlow : DenseOpticalFlow {
             }
 
             // evaluate the flow algorithm
-            auto lflow = flowAlgorithm.evaluate(current.asImage(f1.format),
-                    next.asImage(f2.format));
+            auto lflow = flowAlgorithm.evaluate(current.asImage(f1.format), next.asImage(f2.format));
 
             // add flow calculated in this iteration to previous one.
             flow[] += lflow;
 
-            if (i < levelCount - 1) {
+            if (i < levelCount - 1)
+            {
                 flow = flow.resize(flowPyramid[i + 1][0], flowPyramid[i + 1][1]);
                 flow[] *= 2.0f;
             }
@@ -239,33 +266,43 @@ class DensePyramidFlow : DenseOpticalFlow {
 }
 
 // TODO: implement functional tests.
-version(unittest) {
+version (unittest)
+{
 
     import std.algorithm.iteration : map;
     import std.range : iota;
     import std.array : array;
     import std.random : uniform;
 
-    private auto createImage() { 
-        return new Image(32, 32, ImageFormat.IF_MONO, BitDepth.BD_8, (32*32).iota.map!(v => cast(ubyte)uniform(0, 255)).array);
+    private auto createImage()
+    {
+        return new Image(32, 32, ImageFormat.IF_MONO, BitDepth.BD_8, (32 * 32)
+                .iota.map!(v => cast(ubyte)uniform(0, 255)).array);
     }
 
-    class DummySparseFlow : SparseOpticalFlow {
+    class DummySparseFlow : SparseOpticalFlow
+    {
         override float[2][] evaluate(inout Image f1, inout Image f2, in float[2][] points,
-            in float[2][] searchRegions,float[2][] prevflow = null,bool usePrevious = false) {
+                in float[2][] searchRegions, float[2][] prevflow = null, bool usePrevious = false)
+        {
             import std.array : uninitializedArray;
+
             return uninitializedArray!(float[2][])(points.length);
         }
     }
 
-    class DummyDenseFlow : DenseOpticalFlow {
-        override DenseFlow evaluate(inout Image f1,inout Image f2,DenseFlow prealloc = emptySlice!(3,float),bool usePrevious = false) {
-            return new float[f1.height*f1.width*2].sliced(f1.height, f1.width, 2);
+    class DummyDenseFlow : DenseOpticalFlow
+    {
+        override DenseFlow evaluate(inout Image f1, inout Image f2, DenseFlow prealloc = emptySlice!(3,
+                float), bool usePrevious = false)
+        {
+            return new float[f1.height * f1.width * 2].sliced(f1.height, f1.width, 2);
         }
     }
 }
 
-unittest {
+unittest
+{
     SparsePyramidFlow flow = new SparsePyramidFlow(new DummySparseFlow, 3);
     auto f1 = createImage();
     auto f2 = createImage();
@@ -275,12 +312,11 @@ unittest {
     assert(f.length == p.length);
 }
 
-unittest {
+unittest
+{
     DensePyramidFlow flow = new DensePyramidFlow(new DummyDenseFlow, 3);
     auto f1 = createImage();
     auto f2 = createImage();
     auto f = flow.evaluate(f1, f2);
-    assert(f.length!0 == f1.height &&
-        f.length!1 == f1.width &&
-        f.length!2 == 2);
+    assert(f.length!0 == f1.height && f.length!1 == f1.width && f.length!2 == 2);
 }

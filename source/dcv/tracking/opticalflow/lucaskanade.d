@@ -22,42 +22,47 @@ public import dcv.imgproc.interpolate;
 /**
 Lucas-Kanade optical flow method implementation.
 */
-class LucasKanadeFlow : SparseOpticalFlow {
+class LucasKanadeFlow : SparseOpticalFlow
+{
 
-    public {
+    public
+    {
         float sigma = 0.84f;
         float[] cornerResponse;
         ulong iterationCount = 10;
     }
 
     /**
-     * Lucas-Kanade optical flow algorithm implementation.
-     * 
-     * see:
-     * dcv.features.corner
-     * 
-     * params:
-     * f1 = First frame image.
-     * f2 = Second frame image.
-     * points = points which are tracked.
-     * searchRegions = search region width and height for each point.
-     * flow = displacement values preallocated array.
-     * usePrevious = if algorithm should continue iterating by 
-     * using presented values in the flow array, set this to true.
-     */
-    override float[2][] evaluate(inout Image f1, inout Image f2,
-            in float[2][] points, in float[2][] searchRegions,
-            float[2][] flow = null, bool usePrevious = false)
-    in {
-        assert(!f1.empty && !f2.empty && f1.size == f2.size && f1.channels == 1
-                && f1.depth == f2.depth && f1.depth == BitDepth.BD_8);
+    Lucas-Kanade optical flow algorithm implementation.
+    
+    Params:
+        f1 = First frame image.
+        f2 = Second frame image.
+        points = points which are tracked.
+        searchRegions = search region width and height for each point.
+        flow = displacement values preallocated array.
+        usePrevious = if algorithm should continue iterating by 
+        using presented values in the flow array, set this to true.
+
+    See:
+        dcv.features.corner
+    
+    */
+    override float[2][] evaluate(inout Image f1, inout Image f2, in float[2][] points,
+            in float[2][] searchRegions, float[2][] flow = null, bool usePrevious = false)
+    in
+    {
+        assert(!f1.empty && !f2.empty && f1.size == f2.size && f1.channels == 1 && f1.depth == f2.depth
+                && f1.depth == BitDepth.BD_8);
         assert(points.length == searchRegions.length);
-        if (usePrevious) {
+        if (usePrevious)
+        {
             assert(flow !is null);
             assert(points.length == flow.length);
         }
     }
-    body {
+    body
+    {
         import dcv.core.algorithm : ranged, ranged;
         import dcv.imgproc.interpolate : linear;
         import dcv.imgproc.filter;
@@ -74,8 +79,9 @@ class LucasKanadeFlow : SparseOpticalFlow {
         const auto cl = cast(int)(cols - 1);
         const auto pointCount = points.length;
 
-        if (!usePrevious) {
-            if (flow.length != pointCount) 
+        if (!usePrevious)
+        {
+            if (flow.length != pointCount)
                 flow = uninitializedArray!(float[2][])(pointCount);
             flow[] = [0.0f, 0.0f];
         }
@@ -94,7 +100,8 @@ class LucasKanadeFlow : SparseOpticalFlow {
 
         cornerResponse.length = pointCount;
 
-        foreach (ref f, ref resp, p, r; lockstep(flow, cornerResponse, points, searchRegions)) {
+        foreach (ref f, ref resp, p, r; lockstep(flow, cornerResponse, points, searchRegions))
+        {
             import std.math : sqrt, exp;
 
             auto rb = cast(int)(p[0] - r[0] / 2.0f);
@@ -107,7 +114,8 @@ class LucasKanadeFlow : SparseOpticalFlow {
             cb = cb < 1 ? 1 : cb;
             ce = ce > cl ? cl : ce;
 
-            if (re - rb <= 0 || ce - cb <= 0) {
+            if (re - rb <= 0 || ce - cb <= 0)
+            {
                 continue;
             }
 
@@ -120,17 +128,21 @@ class LucasKanadeFlow : SparseOpticalFlow {
             b1 = 0.0f;
             b2 = 0.0f;
 
-            const auto rm = floor(cast(float) re - (r[0] / 2.0f));
-            const auto cm = floor(cast(float) ce - (r[1] / 2.0f));
+            const auto rm = floor(cast(float)re - (r[0] / 2.0f));
+            const auto cm = floor(cast(float)ce - (r[1] / 2.0f));
 
-            foreach (iteration; 0 .. iterationCount) {
-                foreach (i; rb .. re) {
-                    foreach (j; cb .. ce) {
+            foreach (iteration; 0 .. iterationCount)
+            {
+                foreach (i; rb .. re)
+                {
+                    foreach (j; cb .. ce)
+                    {
 
-                        const float nx = cast(float) j + f[0];
-                        const float ny = cast(float) i + f[1];
+                        const float nx = cast(float)j + f[0];
+                        const float ny = cast(float)i + f[1];
 
-                        if (nx < 0.0f || nx > cast(float) ce || ny < 0.0f || ny > cast(float) re) {
+                        if (nx < 0.0f || nx > cast(float)ce || ny < 0.0f || ny > cast(float)re)
+                        {
                             continue;
                         }
 
@@ -160,7 +172,8 @@ class LucasKanadeFlow : SparseOpticalFlow {
 
                 auto d = (a1 * a3 - a2 * a2);
 
-                if (d) {
+                if (d)
+                {
                     d = 1.0f / d;
                     f[0] += (a2 * b2 - a3 * b1) * d;
                     f[1] += (a2 * b1 - a1 * b2) * d;
@@ -174,17 +187,22 @@ class LucasKanadeFlow : SparseOpticalFlow {
 }
 
 // TODO: implement functional tests.
-version(unittest) {
+version (unittest)
+{
     import std.algorithm.iteration : map;
     import std.range : iota;
     import std.array : array;
     import std.random : uniform;
-    private auto createImage() { 
-        return new Image(5, 5, ImageFormat.IF_MONO, BitDepth.BD_8, 25.iota.map!(v => cast(ubyte)uniform(0, 255)).array);
+
+    private auto createImage()
+    {
+        return new Image(5, 5, ImageFormat.IF_MONO, BitDepth.BD_8,
+                25.iota.map!(v => cast(ubyte)uniform(0, 255)).array);
     }
 }
 
-unittest {
+unittest
+{
     LucasKanadeFlow flow = new LucasKanadeFlow;
     auto f1 = createImage();
     auto f2 = createImage();
@@ -195,7 +213,8 @@ unittest {
     assert(flow.cornerResponse.length == p.length);
 }
 
-unittest {
+unittest
+{
     LucasKanadeFlow flow = new LucasKanadeFlow;
     auto f1 = createImage();
     auto f2 = createImage();

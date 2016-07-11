@@ -13,10 +13,11 @@ Copyright: Copyright Relja Ljubobratovic 2016.
 Authors: Relja Ljubobratovic
 
 License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
-*/ 
+*/
 module dcv.tracking.opticalflow;
 
-public import dcv.tracking.opticalflow.hornschunck;
-public import dcv.tracking.opticalflow.lucaskanade;
-public import dcv.tracking.opticalflow.pyramidflow;
-
+public
+{
+    import dcv.tracking.opticalflow.hornschunck, dcv.tracking.opticalflow.lucaskanade,
+        dcv.tracking.opticalflow.pyramidflow;
+}

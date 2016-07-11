@@ -9,9 +9,9 @@ module dcv.imgproc;
  * ???
  */
 
-public import dcv.imgproc.color, 
-    dcv.imgproc.convolution,
-    dcv.imgproc.filter, 
-    dcv.imgproc.imgmanip, 
-    dcv.imgproc.interpolate, 
-    dcv.imgproc.threshold;
+public
+{
+    import dcv.imgproc.color, dcv.imgproc.convolution, dcv.imgproc.filter, dcv.imgproc.imgmanip,
+        dcv.imgproc.interpolate, dcv.imgproc.threshold;
+
+}
