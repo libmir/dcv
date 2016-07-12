@@ -379,7 +379,6 @@ footer {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    background: rgb(0, 0, 0);
     background: rgba(0, 0, 0, 0.7);
     width: 50px;
     height: 50px;
@@ -389,11 +388,9 @@ footer {
     -moz-border-radius: 35px;
     border-radius: 35px;
     display: none;
-    -webkit-transition: all 0.3s linear;
-    -moz-transition: all 0.3s ease;
-    -ms-transition: all 0.3s ease;
-    -o-transition: all 0.3s ease;
-    transition: all 0.3s ease;
+    text-align:center;
+    font-size: 25px;
+    color: white;
 }
 
 #return-to-top i {
