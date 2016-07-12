@@ -1,214 +1,228 @@
-
 <h1 id="video-reading-example">Video Reading Example</h1>
-<p>This example should demonstrate how read video files using dcv library.</p>
+<p>This example should demonstrate how to read video streams using dcv library.</p>
 <h2 id="modules-used">Modules used</h2>
 <ul>
 <li>dcv.core</li>
 <li>dcv.imgproc.color</li>
 <li>dcv.io</li>
+<li>dcv.plot.figure</li>
 </ul>
 <h2 id="disclaimer">Disclaimer</h2>
-<p>Video streaming utilities are still heavily a wip. This is merely a preview of what I think these utilities should look like. I’ve stopped working on these modules for now, and will continue in time. If anyone has a suggestion how we could make these utilities more effective, you’re more than welcome to help me!</p>
-<h2 id="demo-application">Demo Application</h2>
-<p>In this example, video streaming is demonstrated using the demo application, built using GtkD GUI toolkit. Here is a screen Grab of the Demo Video Player running on my system:</p>
-<div class="figure">
-<img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/video/result/screengrab_1.png?raw=true" alt="alt tag" />
-</div>
+<p>Video streaming utilities are still heavily a wip. This is merely a preview of what these utilities should look like.</p>
 <h3 id="inputstream-usage">InputStream usage</h3>
-<p>Input video streaming utility is located in the dcv.io.video.input module, defined as InputStream class. In the demo application, we’ve defined a custom gtk.DrawingArea, which is used as a video (frame) canvas. Note that this implementation is simplified for the demonstration purpose - the stream is allocated and opened in our frame canvas. Also, the queue timer for the next frame draw is also installed here. The video stream is opened in the Canvas constructor:</p>
-<div ><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">this</span>(<span style="color: #0000ff">in</span> string videoFile) {
-    stream = <span style="color: #0000ff">new</span> InputStream; <span style="color: #008000">// initialize the stream</span>
-    stream.open(videoFile, InputStreamType.FILE); <span style="color: #008000">// open the file with given path.</span>
+<p>Input video streaming utility is located in the dcv.io.video.input module, defined as InputStream class. In the demo application, we open the input video stream, read the video frame by frame, and show its content on the screen.</p>
+<p>The demo application takes two arguments to run - type of the input stream, and path to it. Type can be:</p>
+<ul>
+<li>File (<em>-f</em>), for video file on the filesystem.</li>
+<li>Live (<em>-l</em>), for live stream (e.g. open and stream web camera feed)</li>
+</ul>
+<p>As for the path, when file type is chosen, it is the path to the video file, and for the live type it is the path of the webcam (its tested only on linux, where this path is the video4linux device, e.g. <em>/dev/video0</em>).</p>
+<p>In the following lines, we create the <code>InputStream</code> instance, and try to open the stream at given path.</p>
+<div><pre style="margin: 0; line-height: 125%">InputStream inStream = <span style="color: #0000ff">new</span> InputStream;
 
-    <span style="color: #0000ff">if</span> (!stream.isOpen) {
-        exit(-1);
-    }
-    <span style="color: #008000">// ...</span>
+string path; <span style="color: #008000">// path to the video</span>
+InputStreamType type; <span style="color: #008000">// type of the stream (file or live)</span>
+
+<span style="color: #0000ff">if</span> (!parseArgs(args, path, type))
+{
+    writeln(<span style="color: #a31515">&quot;Error occurred while parsing arguments.\n\n&quot;</span>);
+    printHelp();
+    <span style="color: #0000ff">return</span>;
+}
+
+<span style="color: #0000ff">try</span>
+{
+    <span style="color: #008000">// Open the example video</span>
+    inStream.open(path, type);
+}
+<span style="color: #0000ff">catch</span>
+{
+    writeln(<span style="color: #a31515">&quot;Cannot open input video stream&quot;</span>);
+    exit(-1);
+}
+
+<span style="color: #008000">// Check if video has been opened correctly</span>
+<span style="color: #0000ff">if</span> (!inStream.isOpen)
+{
+    writeln(<span style="color: #a31515">&quot;Cannot open input video stream&quot;</span>);
+    exit(-1);
 }
 </pre></div>
-<p>The <code>VideoStreamCanvas.redraw</code> method will try to grab next frame of the video, and show it on the canvas. The frame grabbing part is defined in the first part of the method:</p>
-<div ><pre style="margin: 0; line-height: 125%"><span style="color: #008000">// Reading frame image.</span>
-Image image = <span style="color: #0000ff">null</span>; 
+<p>After successfully opening the video stream, frames can be read with the following loop setup:</p>
+<div><pre style="margin: 0; line-height: 125%">Image frame; <span style="color: #008000">// frame image buffer, where each next frame of the video is stored.</span>
 
-<span style="color: #008000">// Create timer, if not already been created. It&#39;ll repeat the frame reading operation in correct time.</span>
-<span style="color: #0000ff">if</span> ( timeout <span style="color: #0000ff">is</span> <span style="color: #0000ff">null</span> ) {
-    timeout = <span style="color: #0000ff">new</span> Timeout( 1000 / <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">int</span>)(stream.frameRate ? stream.frameRate : 25), &amp;queueNextFrame, <span style="color: #0000ff">false</span> );
+<span style="color: #008000">// read the frame rate, if info is available.</span>
+<span style="color: #2b91af">double</span> fps = inStream.frameRate ? inStream.frameRate : 30.0;
+<span style="color: #008000">// calculate frame wait time in miliseconds - if video is live, set to minimal value.</span>
+<span style="color: #2b91af">double</span> waitFrame = (type == InputStreamType.LIVE) ? 1.0 : 1000.0 / fps;
+
+<span style="color: #008000">// Read each next frame of the video in the loop.</span>
+<span style="color: #0000ff">while</span> (inStream.readFrame(frame))
+{
+    <span style="color: #008000">// Show the image in the screen.</span>
+    frame.imshow(path);
+
+    <span style="color: #008000">// If user presses escape key, stop the streaming.</span>
+    <span style="color: #0000ff">if</span> (waitKey(waitFrame) == KEY_ESCAPE)
+        <span style="color: #0000ff">break</span>;
 }
-
-<span style="color: #008000">// Read the frame - exit if theres no more frames.</span>
-<span style="color: #0000ff">if</span> (!stream.readFrame(image) || image <span style="color: #0000ff">is</span> <span style="color: #0000ff">null</span>) {
-    exit(0);
-} 
 </pre></div>
+<p>Some details of implementation have been removed from the example code snippets, for the simplicity’s sake. For complete code, please take a look in the dcv/examples/video/source/app.d file.</p>
 <h3 id="more-examples">More examples</h3>
 <p>For more extensive example, please take a look into a unit test in the dcv.io.video module (source/dcv/io/video.package.d file). This is actually a functional test proving the video streaming utilities work as expected. Please keep in mind that these modules are not done yet, and will surely change in future.</p>
 
 <br><span><big>Complete code:</big></span>
-<div ><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">module</span> dcv.example.video.app;
+<div><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">module</span> dcv.example.video;
 
 <span style="color: #008000">/** </span>
-<span style="color: #008000"> * Video i/o example using dcv library.</span>
+<span style="color: #008000"> * Video streaming example using dcv library.</span>
 <span style="color: #008000"> */</span>
 
-<span style="color: #0000ff">import</span> dcv.example.video.gui;
-
 <span style="color: #0000ff">import</span> std.stdio;
-
-<span style="color: #0000ff">import</span> gtk.Main;
-
-
-<span style="color: #2b91af">void</span> main(string [] args) {
-
-	<span style="color: #008000">// set default video if invalid argument set is given.</span>
-	<span style="color: #0000ff">if</span> (args.length != 2) {
-		args = [args[0], <span style="color: #a31515">&quot;../data/centaur_1.mpg&quot;</span>];
-	}
-
-	Main.init(args);
-
-	VideoPlayer player = <span style="color: #0000ff">new</span> VideoPlayer(args);
-	player.show();
-
-	Main.run();
-}
-</pre></div>
-<br>
-<div ><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">module</span> dcv.example.video.gui;
-
-
-<span style="color: #0000ff">import</span> std.stdio;
-<span style="color: #0000ff">import</span> std.c.stdlib : exit;
-
-<span style="color: #0000ff">import</span> gtk.Widget;
-<span style="color: #0000ff">import</span> gtk.DrawingArea;
-<span style="color: #0000ff">import</span> gtk.MainWindow;
-
-<span style="color: #0000ff">import</span> gdk.Event;
-
-<span style="color: #0000ff">import</span> glib.Timeout;
-
-<span style="color: #0000ff">import</span> cairo.ImageSurface;
-<span style="color: #0000ff">import</span> cairo.Context;
+<span style="color: #0000ff">import</span> std.datetime : StopWatch;
+<span style="color: #0000ff">import</span> core.stdc.stdlib;
 
 <span style="color: #0000ff">import</span> dcv.io.image;
 <span style="color: #0000ff">import</span> dcv.imgproc.color;
 <span style="color: #0000ff">import</span> dcv.core.utils;
 <span style="color: #0000ff">import</span> dcv.io.video;
+<span style="color: #0000ff">import</span> dcv.plot.figure;
 
+<span style="color: #2b91af">void</span> main(string[] args)
+{
+    <span style="color: #0000ff">if</span> (args.length == 2 &amp;&amp; args[1] == <span style="color: #a31515">&quot;-h&quot;</span>)
+    {
+        printHelp();
+        <span style="color: #0000ff">return</span>;
+    }
 
-<span style="color: #008000">/**</span>
-<span style="color: #008000"> * Video stream canvas.</span>
-<span style="color: #008000"> * </span>
-<span style="color: #008000"> * Most basic implementation which demonstrates</span>
-<span style="color: #008000"> * how to open the video stream from video, grab it&#39;s frames</span>
-<span style="color: #008000"> * and show them on the screen using GtkD GUI library.</span>
-<span style="color: #008000"> */</span>
-<span style="color: #0000ff">class</span> VideoStreamCanvas : DrawingArea {
+    <span style="color: #008000">//////////// Open the video stream ////////////////</span>
 
+    InputStream inStream = <span style="color: #0000ff">new</span> InputStream;
 
-	<span style="color: #0000ff">private</span> InputStream stream = <span style="color: #0000ff">null</span>; <span style="color: #008000">// video stream object.</span>
-	<span style="color: #0000ff">private</span> Timeout timeout = <span style="color: #0000ff">null</span>; <span style="color: #008000">// timeout used to queue next frame grab</span>
+    string path; <span style="color: #008000">// path to the video</span>
+    InputStreamType type; <span style="color: #008000">// type of the stream (file or live)</span>
 
+    <span style="color: #0000ff">if</span> (!parseArgs(args, path, type))
+    {
+        writeln(<span style="color: #a31515">&quot;Error occurred while parsing arguments.\n\n&quot;</span>);
+        printHelp();
+        <span style="color: #0000ff">return</span>;
+    }
 
-	<span style="color: #0000ff">this</span>(<span style="color: #0000ff">in</span> string videoFile) {
-		stream = <span style="color: #0000ff">new</span> InputStream; <span style="color: #008000">// initialize the stream</span>
-		stream.open(videoFile, InputStreamType.FILE); <span style="color: #008000">// open the file with given path.</span>
+    <span style="color: #0000ff">try</span>
+    {
+        <span style="color: #008000">// Open the example video</span>
+        inStream.open(path, type);
+    }
+    <span style="color: #0000ff">catch</span>
+    {
+        writeln(<span style="color: #a31515">&quot;Cannot open input video stream&quot;</span>);
+        exit(-1);
+    }
 
-		<span style="color: #0000ff">if</span> (!stream.isOpen) {
-			exit(-1);
-		}
+    <span style="color: #008000">// Check if video has been opened correctly</span>
+    <span style="color: #0000ff">if</span> (!inStream.isOpen)
+    {
+        writeln(<span style="color: #a31515">&quot;Cannot open input video stream&quot;</span>);
+        exit(-1);
+    }
 
-		addOnDraw(&amp;redraw);
-	}
+    <span style="color: #008000">//////////// Read video frames //////////////////</span>
 
-	<span style="color: #2b91af">bool</span> redraw(Scoped!Context cr, Widget widget) {
+    Image frame; <span style="color: #008000">// frame image buffer, where each next frame of the video is stored.</span>
 
-		<span style="color: #008000">// Reading frame image.</span>
-		Image image = <span style="color: #0000ff">null</span>; 
+    <span style="color: #008000">// read the frame rate, if info is available.</span>
+    <span style="color: #2b91af">double</span> fps = inStream.frameRate ? inStream.frameRate : 30.0;
+    <span style="color: #008000">// calculate frame wait time in miliseconds - if video is live, set to minimal value.</span>
+    <span style="color: #2b91af">double</span> waitFrame = (type == InputStreamType.LIVE) ? 1.0 : 1000.0 / fps;
 
-		<span style="color: #008000">// Create timer, if not already been created. It&#39;ll repeat the frame reading operation in correct time.</span>
+    StopWatch s;
+    s.start;
 
-		<span style="color: #0000ff">if</span> ( timeout <span style="color: #0000ff">is</span> <span style="color: #0000ff">null</span> ) {
-			timeout = <span style="color: #0000ff">new</span> Timeout( 1000 / <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">int</span>)(stream.frameRate ? stream.frameRate : 25), &amp;queueNextFrame, <span style="color: #0000ff">false</span> );
-		}
+    <span style="color: #008000">// Read each next frame of the video in the loop.</span>
+    <span style="color: #0000ff">while</span> (inStream.readFrame(frame))
+    {
+        <span style="color: #0000ff">import</span> std.algorithm.comparison : max;
 
-		<span style="color: #008000">// Read the frame - exit if theres no more frames.</span>
+        s.reset;
 
-		<span style="color: #0000ff">if</span> (!stream.readFrame(image) || image <span style="color: #0000ff">is</span> <span style="color: #0000ff">null</span>) {
-			exit(0);
-		} 
+        <span style="color: #008000">// If video frame pixel format is YUV, convert the data to RGB, then show it on screen</span>
+        <span style="color: #0000ff">if</span> (frame.format == ImageFormat.IF_YUV)
+            frame.sliced.yuv2rgb!<span style="color: #2b91af">ubyte</span>.imshow(path);
+        <span style="color: #0000ff">else</span>
+            frame.imshow(path);
 
-		<span style="color: #008000">// If the video is yuv, as the example video actually is, convert it to rgb.</span>
+        <span style="color: #008000">// Compensate fps wait for lost time on color conversion.</span>
+        <span style="color: #2b91af">int</span> wait = max(1, <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">int</span>)waitFrame - <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">int</span>)s.peek.msecs);
 
-		<span style="color: #0000ff">if</span> (image.format == ImageFormat.IF_YUV) {
-			<span style="color: #0000ff">auto</span> rgb = image.sliced.yuv2rgb;
-			image = rgb.asImage(ImageFormat.IF_RGB);
-		}
+        <span style="color: #008000">// If user presses escape key, stop the streaming.</span>
+        <span style="color: #0000ff">if</span> (waitKey(wait) == KEY_ESCAPE)
+            <span style="color: #0000ff">break</span>;
 
-		<span style="color: #008000">// Create ImageSurface object from the frame data</span>
+        <span style="color: #008000">/*</span>
+<span style="color: #008000">        Ask if figure with given name is visible.</span>
 
-		<span style="color: #2b91af">int</span> w = <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">int</span>)image.width;
-		<span style="color: #2b91af">int</span> h = <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">int</span>)image.height;
-		<span style="color: #2b91af">int</span> r = w*3;
+<span style="color: #008000">        Normally, you can close the figure window by pressing the &#39;x&#39; button.</span>
+<span style="color: #008000">        That way, figure closes, and visible property will return false.</span>
+<span style="color: #008000">        So, if user presses the &#39;x&#39; button, normal behavior would be to break the </span>
+<span style="color: #008000">        streaming loop.</span>
+<span style="color: #008000">        */</span>
+        <span style="color: #0000ff">if</span> (!figure(path).visible)
+            <span style="color: #0000ff">break</span>;
+    }
 
-		<span style="color: #0000ff">auto</span> imsurface = ImageSurface.create(CairoFormat.RGB24, w, h);
-		<span style="color: #0000ff">auto</span> imsurfaceData = imsurface.getData();
-		<span style="color: #0000ff">auto</span> imdata = image.data;
-		<span style="color: #2b91af">int</span> rowStride = w*4;
-
-		<span style="color: #0000ff">foreach</span>(row; 0..h) {
-			<span style="color: #0000ff">foreach</span>(col; 0..w) {
-				<span style="color: #0000ff">foreach</span>(channel; 0..3) {
-					imsurfaceData[row*rowStride + col*4 + channel] = imdata[row*w*3 + col*3 + channel];
-				}
-			}
-		}
-
-		<span style="color: #008000">// Draw the ImageSurface object to the screen.</span>
-
-		cr.setSourceSurface(imsurface, 0, 0);
-		cr.paint();
-		queueDrawArea(0, 0, w, h);
-		setSizeRequest(w, h);
-
-		<span style="color: #008000">// Release the image surface memory</span>
-
-		imsurface.destroy();
-
-		<span style="color: #0000ff">return</span> <span style="color: #0000ff">true</span>;
-	}
-
-	<span style="color: #2b91af">bool</span> queueNextFrame() {
-		GtkAllocation area;
-		getAllocation(area);
-		
-		queueDrawArea(area.x, area.y, area.width, area.height);
-		
-		<span style="color: #0000ff">return</span> <span style="color: #0000ff">true</span>;
-	}
 }
 
-<span style="color: #008000">/**</span>
-<span style="color: #008000"> * Video player utility window.</span>
-<span style="color: #008000"> * </span>
-<span style="color: #008000"> */</span>
-<span style="color: #0000ff">class</span> VideoPlayer : MainWindow {
-	VideoStreamCanvas videoCanvas;
-	<span style="color: #0000ff">this</span>(string [] args) { 
-		<span style="color: #0000ff">super</span>(<span style="color: #a31515">&quot;DCV-GtkD Video Player&quot;</span>); 
+<span style="color: #2b91af">void</span> printHelp()
+{
+    writeln(<span style="color: #a31515">`</span>
+<span style="color: #a31515">DCV Video Streaming Example.</span>
 
-		<span style="color: #008000">// Create the canvas, assuming first argument in the program is the video file on the file system.</span>
-		videoCanvas = <span style="color: #0000ff">new</span> VideoStreamCanvas(args[1]);
-		add(videoCanvas);
-		videoCanvas.show();
+<span style="color: #a31515">Run example program without arguments, to load and show the example video file centaur_1.mpg.</span>
 
-		<span style="color: #008000">// Add the exit signal on &#39;q&#39; keypress.</span>
-		addOnKeyPress (<span style="color: #0000ff">delegate</span> <span style="color: #2b91af">bool</span>(Event event, Widget width) {
-				<span style="color: #0000ff">auto</span> v = <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">char</span>)event.key.keyval;
-				<span style="color: #0000ff">if</span> (v == <span style="color: #a31515">&#39;q&#39;</span> || v == <span style="color: #a31515">&#39;Q&#39;</span>)
-					std.c.stdlib.exit(0);
-				<span style="color: #0000ff">return</span> <span style="color: #0000ff">true</span>;
-			});
-	}
+<span style="color: #a31515">If multiple parameters are given, then parameters are considered to be:</span>
+
+<span style="color: #a31515">1 - video stream mode (-f for file, -l for webcam or live mode);</span>
+<span style="color: #a31515">2 - video stream name (for file mode it is the path to the file, for webcam it is the name of the stream, e.g. /dev/video0);</span>
+
+<span style="color: #a31515">Examples:</span>
+<span style="color: #a31515">./video -l /dev/video0</span>
+<span style="color: #a31515">./video -f ../data/centaur_1.mpg</span>
+
+<span style="color: #a31515">Tip:</span>
+<span style="color: #a31515">To run the example program in best performance, compile with one of the following configurations</span>
+<span style="color: #a31515">dub build --compiler=ldc2 --build=release</span>
+<span style="color: #a31515">dub build --compiler=dmd --build=release-nobounds</span>
+<span style="color: #a31515">`</span>);
+}
+
+<span style="color: #2b91af">bool</span> parseArgs(<span style="color: #0000ff">in</span> string[] args, <span style="color: #0000ff">out</span> string path, <span style="color: #0000ff">out</span> InputStreamType type)
+{
+    <span style="color: #0000ff">if</span> (args.length == 1)
+        <span style="color: #0000ff">return</span> <span style="color: #0000ff">true</span>;
+    <span style="color: #0000ff">else</span> <span style="color: #0000ff">if</span> (args.length != 3)
+        <span style="color: #0000ff">return</span> <span style="color: #0000ff">false</span>;
+
+    type = InputStreamType.FILE;
+
+    <span style="color: #0000ff">switch</span> (args[1])
+    {
+    <span style="color: #0000ff">case</span> <span style="color: #a31515">&quot;-file&quot;</span>:
+    <span style="color: #0000ff">case</span> <span style="color: #a31515">&quot;-f&quot;</span>:
+        type = InputStreamType.FILE;
+        <span style="color: #0000ff">break</span>;
+    <span style="color: #0000ff">case</span> <span style="color: #a31515">&quot;-live&quot;</span>:
+    <span style="color: #0000ff">case</span> <span style="color: #a31515">&quot;-l&quot;</span>:
+        type = InputStreamType.LIVE;
+        <span style="color: #0000ff">break</span>;
+    <span style="color: #0000ff">default</span>:
+        writeln(<span style="color: #a31515">&quot;Invalid input type argument: &quot;</span>, args[2]);
+        exit(-1);
+    }
+
+    path = args[2];
+
+    <span style="color: #0000ff">return</span> <span style="color: #0000ff">true</span>;
 }
 </pre></div>
