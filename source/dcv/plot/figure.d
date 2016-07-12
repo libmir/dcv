@@ -483,15 +483,16 @@ class Figure
     {
         Image showImage = adoptImage(image);
 
-        if (_width != image.width || _height != image.height)
+        if (_width != showImage.width || _height != showImage.height)
         {
-            _width = cast(int)image.width;
-            _height = cast(int)image.height;
-            _data = image.data.dup;
+            assert(_data.length == showImage.data.length);
+            _width = cast(int)showImage.width;
+            _height = cast(int)showImage.height;
+            _data = showImage.data.dup;
         }
         else
         {
-            _data[] = image.data[];
+            _data[] = showImage.data[];
         }
 
         fitWindow();
@@ -500,14 +501,12 @@ class Figure
     /// Draw slice of image onto figure canvas.
     void draw(size_t N, T)(Slice!(N, T*) slice, ImageFormat format = ImageFormat.IF_UNASSIGNED)
     {
+        Slice!(N, ubyte*) showSlice;
         static if (is(T == ubyte))
-        {
-            auto showSlice = slice;
-        }
+            showSlice = slice;
         else
-        {
-            auto showSlice = slice.asType!ubyte;
-        }
+            showSlice = slice.asType!ubyte;
+
         if (format == ImageFormat.IF_UNASSIGNED)
             draw(showSlice.asImage());
         else
