@@ -64,11 +64,10 @@
 <span style="color: #0000ff">auto</span> slice = image.sliced; <span style="color: #008000">// slice image data (calls <a href="http://dlang.org/phobos/std_experimental_ndslice_slice.html#.sliced">std.experimental.ndslice.slice.sliced</a> on image data)</span>
 
 slice
-    .asType!<span style="color: #2b91af">float</span> <span style="color: #008000">// convert slice data to float</span>
+    .asType!<span style="color: #2b91af">float</span>[0..$, 0..$, 1] <span style="color: #008000">// convert slice data to float, and take the green channel only.</span>
     .<a href="https://ljubobratovicrelja.github.io/dcv/?loc=dcv_imgproc_convolution.html">conv</a>!symmetric(sobel!<span style="color: #2b91af">float</span>(GradientDirection.DIR_X)) <span style="color: #008000">// convolve image with horizontal Sobel kernel.</span>
-    .asType!<span style="color: #2b91af">ubyte</span> <span style="color: #008000">// convert slice values back to unsigned byte</span>
     .byElement
-    .ranged(0, 255).array.sliced(slice.shape) <span style="color: #008000">// scale values to fit the range between the 0 and 255</span>
+    .ranged(0, 255).array.sliced(slice.shape[0..2]) <span style="color: #008000">// scale values to fit the range between the 0 and 255</span>
     .<a href="https://ljubobratovicrelja.github.io/dcv/?loc=dcv_plot_figure.html">imshow</a>(<span style="color: #a31515">&quot;Sobel derivatives&quot;</span>); <span style="color: #008000">// preview changes on screen.</span>
 
 waitKey();
