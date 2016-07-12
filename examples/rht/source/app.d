@@ -17,15 +17,15 @@ import dcv.features.rht;
 
 void plotLine(T, Line, Color)(Slice!(3, T*) img, Line line, Color color)
 {
-    int height = cast(int) img.length!0;
-    int width = cast(int) img.length!1;
+    int height = cast(int)img.length!0;
+    int width = cast(int)img.length!1;
     if (line.m == double.infinity)
     {
         auto x = line.b;
         if (x >= 0 && x < width)
             foreach (y; 0 .. height)
             {
-                img[cast(int) y, cast(int) x, 0 .. 3] = color;
+                img[cast(int)y, cast(int)x, 0 .. 3] = color;
             }
     }
     else
@@ -35,7 +35,7 @@ void plotLine(T, Line, Color)(Slice!(3, T*) img, Line line, Color color)
             auto y = line.m * x + line.b;
             if (x >= 0 && x < width && y >= 0 && y < height)
             {
-                img[cast(int) y, cast(int) x, 0 .. 3] = color;
+                img[cast(int)y, cast(int)x, 0 .. 3] = color;
             }
         }
     }
@@ -43,13 +43,13 @@ void plotLine(T, Line, Color)(Slice!(3, T*) img, Line line, Color color)
 
 void plotCircle(T, Circle, Color)(Slice!(3, T*) img, Circle circle, Color color)
 {
-    int height = cast(int) img.length!0;
-    int width = cast(int) img.length!1;
+    int height = cast(int)img.length!0;
+    int width = cast(int)img.length!1;
     // quick and dirty circle plot
     foreach (t; 0 .. 360)
     {
-        int x = cast(int) rint(circle.x + circle.r * cos(t * PI / 180));
-        int y = cast(int) rint(circle.y + circle.r * sin(t * PI / 180));
+        int x = cast(int)rint(circle.x + circle.r * cos(t * PI / 180));
+        int y = cast(int)rint(circle.y + circle.r * sin(t * PI / 180));
         if (x >= 0 && x < width && y >= 0 && y < height)
             img[y, x, 0 .. 3] = color;
     }

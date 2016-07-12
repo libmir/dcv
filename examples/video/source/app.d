@@ -14,7 +14,6 @@ import dcv.core.utils;
 import dcv.io.video;
 import dcv.plot.figure;
 
-
 void main(string[] args)
 {
     if (args.length == 2 && args[1] == "-h")
@@ -81,7 +80,7 @@ void main(string[] args)
             frame.imshow(path);
 
         // Compensate fps wait for lost time on color conversion.
-        int wait = max(1, cast(int) waitFrame - cast(int) s.peek.msecs);
+        int wait = max(1, cast(int)waitFrame - cast(int)s.peek.msecs);
 
         // If user presses escape key, stop the streaming.
         if (waitKey(wait) == KEY_ESCAPE)

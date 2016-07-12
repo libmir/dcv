@@ -15,21 +15,20 @@ import dcv.core : Image, asType, ranged, ImageFormat;
 import dcv.io : imread, imwrite;
 import dcv.imgproc;
 
-
-int main(string[] args) {
-
+int main(string[] args)
+{
     string impath = (args.length < 2) ? "../data/lena.png" : args[1];
 
     Image img = imread(impath); // read an image from filesystem.
 
-    if (img.empty) { // check if image is properly read.
+    if (img.empty)
+    { // check if image is properly read.
         writeln("Cannot read image at: " ~ impath);
         return 1;
     }
 
-    Slice!(3, float*) imslice = img
-        .asType!float // convert Image data type from ubyte to float
-            .sliced!float; // slice image data - calls img.data!float.sliced(img.height, img.width, img.channels)
+    Slice!(3, float*) imslice = img.asType!float // convert Image data type from ubyte to float
+    .sliced!float; // slice image data - calls img.data!float.sliced(img.height, img.width, img.channels)
 
     auto gray = imslice.rgb2gray; // convert rgb image to grayscale
 

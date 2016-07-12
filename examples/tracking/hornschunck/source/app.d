@@ -13,13 +13,12 @@ import dcv.core;
 import dcv.io;
 
 import dcv.imgproc.imgmanip : warp;
-import dcv.tracking.opticalflow : HornSchunckFlow, 
-    HornSchunckProperties, DensePyramidFlow;
+import dcv.tracking.opticalflow : HornSchunckFlow, HornSchunckProperties, DensePyramidFlow;
 import dcv.plot.opticalflow : colorCode;
 
-
-void printHelp() {
-    writeln( `
+void printHelp()
+{
+    writeln(`
 DCV Optical DenseFlow example.
 
 If only one parameter is given it is considered to be
@@ -53,9 +52,11 @@ with gaussian filter with sigma value 3.0, sized 5x5.
         `);
 }
 
-void main(string [] args) {
+void main(string[] args)
+{
 
-    if (args.length == 2 && args[1] == "-h") {
+    if (args.length == 2 && args[1] == "-h")
+    {
         printHelp();
         return;
     }
@@ -65,10 +66,13 @@ void main(string [] args) {
 
     string currentPath, nextPath;
 
-    if (args.length == 2) {
+    if (args.length == 2)
+    {
         currentPath = "../../data/optflow/" ~ args[1] ~ "/frame10.png";
         nextPath = "../../data/optflow/" ~ args[1] ~ "/frame11.png";
-    } else {
+    }
+    else
+    {
         currentPath = args.length >= 2 ? args[1] : "../../data/optflow/Army/frame10.png";
         nextPath = args.length >= 3 ? args[2] : "../../data/optflow/Army/frame11.png";
     }
@@ -86,7 +90,7 @@ void main(string [] args) {
     uint pyramidLevels = args.length >= 8 ? args[7].to!int : 3;
 
     HornSchunckFlow hsFlow = new HornSchunckFlow(props);
-    DensePyramidFlow densePyramid = new DensePyramidFlow(hsFlow, pyramidLevels); 
+    DensePyramidFlow densePyramid = new DensePyramidFlow(hsFlow, pyramidLevels);
 
     auto flow = densePyramid.evaluate(current, next);
 

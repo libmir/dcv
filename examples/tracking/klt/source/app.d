@@ -126,9 +126,8 @@ int main(string[] args)
     // detect corners to track
     writeln("Search features...");
     auto f1f = prevFrame.sliced.reshape(h, w).asType!float;
-    auto corners = f1f.shiTomasiCorners(cast(uint) cornerW)
-        .filterNonMaximum.extractCorners(cornerCount)
-        .map!(v => cast(float[2])[cast(float) v[0], cast(float) v[1]]).array;
+    auto corners = f1f.shiTomasiCorners(cast(uint)cornerW)
+        .filterNonMaximum.extractCorners(cornerCount).map!(v => cast(float[2])[cast(float)v[0], cast(float)v[1]]).array;
 
     auto reg = new float[2][corners.length].map!(v => cast(float[2])[cornerW, cornerW]).array;
 
@@ -143,11 +142,11 @@ int main(string[] args)
         if (corners.length < (cornerCount / 2))
         {
             writeln("Search features again...");
-            auto c = shiTomasiCorners(prevFrame.sliced.reshape(h, w)
-                    .asType!float, cast(uint) cornerW).filterNonMaximum.extractCorners(cornerCount);
+            auto c = shiTomasiCorners(prevFrame.sliced.reshape(h, w).asType!float, cast(uint)cornerW)
+                .filterNonMaximum.extractCorners(cornerCount);
 
             foreach (v; c)
-                corners ~= [cast(float) v[0], cast(float) v[1]];
+                corners ~= [cast(float)v[0], cast(float)v[1]];
         }
 
         // evaluate the optical flow
@@ -203,10 +202,9 @@ void drawCorners(T, Color)(Slice!(3, T*) image, float[2][] corners, float corner
     auto ch = cast(long)(cornerSize / 2);
     foreach (corner; corners)
     {
-        auto c0 = cast(long) corner[0];
-        auto c1 = cast(long) corner[1];
-        if (c0 - ch < 0 || c0 + ch >= image.length!0 - 1 || c1 - ch < 0
-                || c1 + ch >= image.length!1 - 1)
+        auto c0 = cast(long)corner[0];
+        auto c1 = cast(long)corner[1];
+        if (c0 - ch < 0 || c0 + ch >= image.length!0 - 1 || c1 - ch < 0 || c1 + ch >= image.length!1 - 1)
             continue;
         auto window = image[c0 - ch .. c0 + ch, c1 - ch .. c1 + ch, 0 .. $];
         foreach (pix; window.pack!1.byElement)
