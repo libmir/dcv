@@ -39,10 +39,10 @@ DensePyramidFlow densePyramid = <span style="color: #0000ff">new</span> DensePyr
 <img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/tracking/hornschunck/result/2_flowColor.png?raw=true" alt="alt tag" />
 </div>
 <p>And lastly we write out these images in following order:</p>
-<div ><pre style="margin: 0; line-height: 125%">current.imwrite(<span style="color: #a31515">&quot;./result/1_current.png?raw=true&quot;</span>);
-flowColor.imwrite(ImageFormat.IF_RGB, <span style="color: #a31515">&quot;./result/2_flowColor.png?raw=true&quot;</span>);
-flowWarp.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;./result/3_flowWarp.png?raw=true&quot;</span>);
-next.imwrite(<span style="color: #a31515">&quot;./result/4_next.png?raw=true&quot;</span>);
+<div ><pre style="margin: 0; line-height: 125%">current.imwrite(<span style="color: #a31515">&quot;./result/1_current.png&quot;</span>);
+flowColor.imwrite(ImageFormat.IF_RGB, <span style="color: #a31515">&quot;./result/2_flowColor.png&quot;</span>);
+flowWarp.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;./result/3_flowWarp.png&quot;</span>);
+next.imwrite(<span style="color: #a31515">&quot;./result/4_next.png&quot;</span>);
 </pre></div>
 <p>Images are written in this order to help you inspect them in ordinary image viewer application. Assuming that files in your directory are sorted by name, you could switch easily between warped image and target (next) image, and see clearly the difference between the original and computed (warped) one.</p>
 <h2 id="example-program">Example Program</h2>
@@ -82,15 +82,15 @@ Currently only 8-bit mono images are supported in the <code>HornSchunckFlow</cod
 <span style="color: #a31515">Note:</span>
 <span style="color: #a31515">This mode will use default parameters (described in the following section).</span>
 <span style="color: #a31515">If multiple parameters are given, then parameters are considered to be:</span>
-<span style="color: #a31515">1 - path to current frame image; [../data/optflow/Army/frame10.png?raw=true]</span>
-<span style="color: #a31515">2 - path to next frame image; [../data/optflow/Army/frame11.png?raw=true]</span>
+<span style="color: #a31515">1 - path to current frame image; [../data/optflow/Army/frame10.png]</span>
+<span style="color: #a31515">2 - path to next frame image; [../data/optflow/Army/frame11.png]</span>
 <span style="color: #a31515">3 - optical flow iteration count; [100]</span>
 <span style="color: #a31515">4 - Horn-Schunck flow smoothness strength parameter; [10.0]</span>
 <span style="color: #a31515">5 - Gaussian image smoothing theta parameter; [1.0]</span>
 <span style="color: #a31515">6 - Gaussian kernel size; [3]</span>
 <span style="color: #a31515">7 - optical flow pyramid level count; [3]</span>
 <span style="color: #a31515">Example:</span>
-<span style="color: #a31515">./hornschunck ../../data/optflow/Evergreen/frame10.png?raw=true ../../data/optflow/Evergreen/frame11.png?raw=true 300 25 3 5 4</span>
+<span style="color: #a31515">./hornschunck ../../data/optflow/Evergreen/frame10.png ../../data/optflow/Evergreen/frame11.png 300 25 3 5 4</span>
 <span style="color: #a31515">... which will compute the optical flow for given two images, </span>
 <span style="color: #a31515">by 300 iteration at each pyramid level, by using value of 25.0 </span>
 <span style="color: #a31515">as smoothness strenght, in 4 pyramid levels. Images are smoothed</span>
@@ -111,11 +111,11 @@ Currently only 8-bit mono images are supported in the <code>HornSchunckFlow</cod
     string currentPath, nextPath;
 
     <span style="color: #0000ff">if</span> (args.length == 2) {
-        currentPath = <span style="color: #a31515">&quot;../../data/optflow/&quot;</span> ~ args[1] ~ <span style="color: #a31515">&quot;/frame10.png?raw=true&quot;</span>;
-        nextPath = <span style="color: #a31515">&quot;../../data/optflow/&quot;</span> ~ args[1] ~ <span style="color: #a31515">&quot;/frame11.png?raw=true&quot;</span>;
+        currentPath = <span style="color: #a31515">&quot;../../data/optflow/&quot;</span> ~ args[1] ~ <span style="color: #a31515">&quot;/frame10.png&quot;</span>;
+        nextPath = <span style="color: #a31515">&quot;../../data/optflow/&quot;</span> ~ args[1] ~ <span style="color: #a31515">&quot;/frame11.png&quot;</span>;
     } <span style="color: #0000ff">else</span> {
-        currentPath = args.length &gt;= 2 ? args[1] : <span style="color: #a31515">&quot;../../data/optflow/Army/frame10.png?raw=true&quot;</span>;
-        nextPath = args.length &gt;= 3 ? args[2] : <span style="color: #a31515">&quot;../../data/optflow/Army/frame11.png?raw=true&quot;</span>;
+        currentPath = args.length &gt;= 2 ? args[1] : <span style="color: #a31515">&quot;../../data/optflow/Army/frame10.png&quot;</span>;
+        nextPath = args.length &gt;= 3 ? args[2] : <span style="color: #a31515">&quot;../../data/optflow/Army/frame11.png&quot;</span>;
     }
 
     <span style="color: #0000ff">auto</span> current = imread(currentPath, rparams);
@@ -138,9 +138,9 @@ Currently only 8-bit mono images are supported in the <code>HornSchunckFlow</cod
     <span style="color: #0000ff">auto</span> flowColor = flow.colorCode;
     <span style="color: #0000ff">auto</span> flowWarp = current.sliced.warp(flow);
 
-    current.imwrite(<span style="color: #a31515">&quot;./result/1_current.png?raw=true&quot;</span>);
-    flowColor.imwrite(ImageFormat.IF_RGB, <span style="color: #a31515">&quot;./result/2_flowColor.png?raw=true&quot;</span>);
-    flowWarp.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;./result/3_flowWarp.png?raw=true&quot;</span>);
+    current.imwrite(<span style="color: #a31515">&quot;./result/1_current.png&quot;</span>);
+    flowColor.imwrite(ImageFormat.IF_RGB, <span style="color: #a31515">&quot;./result/2_flowColor.png&quot;</span>);
+    flowWarp.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;./result/3_flowWarp.png&quot;</span>);
     next.imwrite(<span style="color: #a31515">&quot;./result/4_next.png&quot;</span>);
 }
 </pre></div>

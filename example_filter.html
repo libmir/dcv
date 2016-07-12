@@ -9,7 +9,7 @@
 </ul>
 <h2 id="source-image">Source Image</h2>
 <p>As source image in this example, famous image of Lena Söderberg is used. Source data is loaded with next chunk of code:</p>
-<div ><pre style="margin: 0; line-height: 125%">string impath = (args.length &lt; 2) ? <span style="color: #a31515">&quot;../data/lena.png?raw=true&quot;</span> : args[1];
+<div ><pre style="margin: 0; line-height: 125%">string impath = (args.length &lt; 2) ? <span style="color: #a31515">&quot;../data/lena.png&quot;</span> : args[1];
 
 Image img = imread(impath); <span style="color: #008000">// read an image from filesystem.</span>
 
@@ -118,7 +118,7 @@ Slice!(3, <span style="color: #2b91af">float</span>*) imslice = img
 
 <span style="color: #2b91af">int</span> main(string[] args) {
 
-    string impath = (args.length &lt; 2) ? <span style="color: #a31515">&quot;../data/lena.png?raw=true&quot;</span> : args[1];
+    string impath = (args.length &lt; 2) ? <span style="color: #a31515">&quot;../data/lena.png&quot;</span> : args[1];
 
     Image img = imread(impath); <span style="color: #008000">// read an image from filesystem.</span>
 
@@ -154,11 +154,11 @@ Slice!(3, <span style="color: #2b91af">float</span>*) imslice = img
     logEdges = logEdges.byElement.map!(a =&gt; fabs(a)).ranged(0, 255).array.sliced(logEdges.shape);
 
     <span style="color: #008000">// write resulting images on the filesystem.</span>
-    blur.asType!<span style="color: #2b91af">ubyte</span>.imwrite(ImageFormat.IF_RGB, <span style="color: #a31515">&quot;./result/outblur.png?raw=true&quot;</span>);
-    xgrads.asType!<span style="color: #2b91af">ubyte</span>.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;./result/sobel.png?raw=true&quot;</span>);
-    laplaceEdges.asType!<span style="color: #2b91af">ubyte</span>.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;./result/laplace.png?raw=true&quot;</span>);
-    logEdges.asType!<span style="color: #2b91af">ubyte</span>.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;./result/log.png?raw=true&quot;</span>);
-    cannyEdges.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;./result/cannyedges.png?raw=true&quot;</span>);
+    blur.asType!<span style="color: #2b91af">ubyte</span>.imwrite(ImageFormat.IF_RGB, <span style="color: #a31515">&quot;./result/outblur.png&quot;</span>);
+    xgrads.asType!<span style="color: #2b91af">ubyte</span>.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;./result/sobel.png&quot;</span>);
+    laplaceEdges.asType!<span style="color: #2b91af">ubyte</span>.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;./result/laplace.png&quot;</span>);
+    logEdges.asType!<span style="color: #2b91af">ubyte</span>.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;./result/log.png&quot;</span>);
+    cannyEdges.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;./result/cannyedges.png&quot;</span>);
 
     <span style="color: #0000ff">return</span> 0;
 }
