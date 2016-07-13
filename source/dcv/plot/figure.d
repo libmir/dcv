@@ -485,13 +485,13 @@ class Figure
 
         if (_width != showImage.width || _height != showImage.height)
         {
-            assert(_data.length == showImage.data.length);
             _width = cast(int)showImage.width;
             _height = cast(int)showImage.height;
             _data = showImage.data.dup;
         }
         else
         {
+            assert(_data.length == showImage.data.length);
             _data[] = showImage.data[];
         }
 
@@ -534,6 +534,7 @@ class Figure
         glPixelZoom(1, -1);
         glRasterPos3f(0, height - 1, -0.3);
 
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         glDrawPixels(_width, _height, GL_RGB, GL_UNSIGNED_BYTE, _data.ptr);
 
         glFlush();
