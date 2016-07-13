@@ -509,94 +509,90 @@ in
 body
 {
     import std.array : uninitializedArray;
+    import std.math : PI, abs;
 
     if (prealloc.shape[] != orient.shape[])
     {
         prealloc = uninitializedArray!(V[])(mag.length!0 * mag.length!1).sliced(mag.shape);
     }
 
-    auto compareNeighbours(int[2] p0, int[2] p1, int[2] p2)
+    ulong[2] p0;
+    ulong[2] p1;
+
+    foreach (i; 1 .. mag.length!0 - 1)
     {
-        if (mag[p1[1], p1[0]] <= mag[p0[1], p0[0]] || mag[p1[1], p1[0]] <= mag[p2[1], p2[0]])
+        foreach (j; 1 .. mag.length!1 - 1)
         {
-            prealloc[p1[1], p1[0]] = 0;
-        }
-        else
-        {
-            prealloc[p1[1], p1[0]] = mag[p1[1], p1[0]];
-        }
-    }
+            auto ang = orient[i, j];
+            auto aang = abs(ang);
 
-    int[2] p0;
-    int[2] p1;
-    int[2] p2;
-    double ang;
+            immutable pi = 3.15;
+            immutable pi8 = pi / 8.0;
 
-    for (int i = 1; i < mag.length!0 - 1; ++i)
-    {
-        for (int j = 1; j < mag.length!1 - 1; ++j)
-        {
-            // quantize orientation
-            ang = orient[i, j];
-            int orient_q;
-
-            if (ang >= -3.15 && ang < -1.75)
+            if (aang <= pi && aang > 7.0 * pi8) 
             {
-                orient_q = 0;
-            }
-            else if (ang >= -1.75 && ang < 0)
-            {
-                orient_q = 1;
-            }
-            else if (ang >= 0 && ang < 1.75)
-            {
-                orient_q = 2;
-            }
-            else if (ang >= 1.75 && ang < 3.15)
-            {
-                orient_q = 3;
-            }
-
-            switch (orient_q)
-            {
-            case 0:
                 p0[0] = j - 1;
                 p0[1] = i;
-                p1[0] = j;
+                p1[0] = j + 1;
                 p1[1] = i;
-                p2[0] = j + 1;
-                p2[1] = i;
-                compareNeighbours(p0, p1, p2);
-                break;
-            case 1:
+            }
+            else if (ang >= -7.0 * pi8 && ang < -5.0 * pi8)
+            {
                 p0[0] = j - 1;
                 p0[1] = i - 1;
-                p1[0] = j;
-                p1[1] = i;
-                p2[0] = j + 1;
-                p2[1] = i + 1;
-                compareNeighbours(p0, p1, p2);
-                break;
-            case 2:
+                p1[0] = j + 1;
+                p1[1] = i + 1;
+            }
+            else if (ang <= 7.0 * pi8 && ang > 5.0 * pi8)
+            {
+                p0[0] = j + 1;
+                p0[1] = i - 1;
+                p1[0] = j - 1;
+                p1[1] = i + 1;
+            }
+            else if (ang >= pi8 && ang < 3.0 * pi8)
+            {
+                p0[0] = j - 1;
+                p0[1] = i + 1;
+                p1[0] = j + 1;
+                p1[1] = i - 1;
+            }
+            else if (ang <= -pi8 && ang > -3.0 * pi8)
+            {
+                p0[0] = j + 1;
+                p0[1] = i + 1;
+                p1[0] = j - 1;
+                p1[1] = i - 1;
+            }
+            else if (ang >= -5.0 * pi8 && ang < -3.0 * pi8)
+            {
                 p0[0] = j;
                 p0[1] = i - 1;
                 p1[0] = j;
-                p1[1] = i;
-                p2[0] = j;
-                p2[1] = i + 1;
-                compareNeighbours(p0, p1, p2);
-                break;
-            case 3:
-                p0[0] = j + 1;
-                p0[1] = i - 1;
+                p1[1] = i + 1;
+            }
+            else if (ang <= 5.0 * pi8 && ang > 3.0 * pi8)
+            {
+                p0[0] = j;
+                p0[1] = i + 1;
                 p1[0] = j;
+                p1[1] = i - 1;
+            } 
+            else if (aang >= 0.0 && aang < pi8)
+            {
+                p0[0] = j + 1;
+                p0[1] = i;
+                p1[0] = j - 1;
                 p1[1] = i;
-                p2[0] = j - 1;
-                p2[1] = i + 1;
-                compareNeighbours(p0, p1, p2);
-                break;
-            default:
-                assert(0);
+            }
+
+            if (mag[p1[1], p1[0]] <= mag[p0[1], p0[0]])
+            {
+                prealloc[i, j] = 0;
+            }
+            else
+            {
+                prealloc[i, j] = mag[i, j];
             }
         }
     }
@@ -640,3 +636,4 @@ Slice!(2, V*) canny(V, T)(Slice!(2, T*) slice, T thresh,
 {
     return canny!(V, T)(slice, thresh, thresh, edgeKernelType, prealloc);
 }
+
