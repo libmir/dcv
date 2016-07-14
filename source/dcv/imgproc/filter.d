@@ -38,9 +38,12 @@ import std.range : iota, array, lockstep;
 import std.exception : enforce;
 import std.math : abs, PI, floor, exp, pow;
 import std.algorithm.iteration : map, sum, each;
-import std.algorithm : copy;
+import std.algorithm.mutation : copy;
+import std.array : uninitializedArray;
 
-import dcv.core.utils : emptySlice;
+import dcv.core.algorithm;
+import dcv.core.utils;
+
 
 /**
 Instantiate 2D gaussian kernel.
@@ -637,3 +640,112 @@ Slice!(2, V*) canny(V, T)(Slice!(2, T*) slice, T thresh,
     return canny!(V, T)(slice, thresh, thresh, edgeKernelType, prealloc);
 }
 
+/**
+$(LINK2 https://en.wikipedia.org/wiki/Bilateral_filter,Bilateral) filtering implementation.
+
+Non-linear, edge-preserving and noise-reducing smoothing filtering algorithm.
+
+Params:
+    bc = Boundary condition test used to index the image slice.
+    slice = Slice of the input image.
+    sigma = Smoothing strength parameter.
+    kernelSize = Size of convolution kernel. Must be odd number.
+    prealloc = Optional pre-allocated result image buffer. If not of same shape as input slice, its allocated
+        anew.
+
+Returns:
+    Slice of filtered image.
+*/
+Slice!(N, OutputType*) bilateralFilter(alias bc = neumann, InputType, OutputType = InputType, size_t N)(Slice!(N,
+        InputType*) slice, float sigma, uint kernelSize, Slice!(N,
+        OutputType*) prealloc = emptySlice!(N, OutputType)) if (N == 2)
+in
+{
+    static assert(isBoundaryCondition!bc, "Invalid boundary condition test function.");
+    assert(!slice.empty);
+    assert(kernelSize % 2);
+}
+body
+{
+    import std.algorithm.comparison : max;
+    import std.algorithm.iteration : reduce;
+    import std.math : exp, sqrt;
+    import std.parallelism : parallel;
+
+    if (prealloc.empty || prealloc.shape != slice.shape)
+    {
+        prealloc = uninitializedArray!(OutputType[])(slice.shape.reduce!"a*b").sliced(slice.shape);
+    }
+
+    int ks = cast(int)kernelSize;
+    int ksh = max(1, ks / 2);
+    int rows = cast(int)slice.length!0;
+    int cols = cast(int)slice.length!1;
+
+    foreach (r; iota(rows).parallel)
+    {
+        auto mask = new float[ks * ks].sliced(ks, ks);
+        foreach (c;  0 .. cols )
+        {
+            auto p_val = slice[r, c];
+
+            // generate mask
+            int i = 0;
+            int j;
+            foreach (int kr; r - ksh .. r + ksh + 1)
+            {
+                j = 0;
+                auto rk = (r - kr) ^^ 2;
+                foreach (int kc; c - ksh .. c + ksh + 1)
+                {
+                    auto ck = (c - kc) ^^ 2;
+                    float c_val = exp(-0.5f * ((sqrt(cast(float)(ck + rk)) / sigma) ^^ 2) );
+                    float s_val = exp(-0.5f * ((cast(float)(bc(slice, kr, kc) - p_val) / sigma) ^^ 2));
+                    mask[i, j] = c_val * s_val;
+                    ++j;
+                }
+                ++i;
+            }
+
+            // normalize mask and calculate result value.
+            float mask_sum = mask.byElement.norm(NormType.L1);
+            float res_val = 0.0f;
+
+            i = 0;
+            foreach (kr; r - ksh .. r + ksh + 1)
+            {
+                j = 0;
+                auto rk = (r - kr) ^^ 2;
+                foreach (kc; c - ksh .. c + ksh + 1) 
+                {
+                    res_val += (mask[i, j] / mask_sum) * bc(slice, kr, kc);
+                    ++j;
+                }
+                ++i;
+            }
+
+            prealloc[r, c] = cast(OutputType)res_val;
+        }
+    }
+
+    return prealloc;
+}
+
+/// ditto
+Slice!(N, OutputType*) bilateralFilter(alias bc = neumann, InputType, OutputType = InputType, size_t N)(Slice!(N,
+        InputType*) slice, float sigma, uint kernelSize, Slice!(N,
+        OutputType*) prealloc = emptySlice!(N, OutputType)) if (N == 3)
+{
+    if (prealloc.empty || prealloc.shape != slice.shape)
+    {
+        prealloc = uninitializedArray!(OutputType[])(slice.shape.reduce!"a*b").sliced(slice.shape);
+    }
+
+    foreach(channel; 0 .. slice.length!2)
+    {
+        bilateralFilter!(bc, InputType, OutputType)
+        (slice[0 .. $, 0 .. $, channel], sigma, kernelSize, prealloc[0 .. $, 0 .. $, channel]);
+    }
+
+    return prealloc;
+}
