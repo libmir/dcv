@@ -205,14 +205,6 @@ template isBoundaryCondition(alias bc)
     }
 }
 
-/// No boundary condition test.
-ref T nobc(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices)
-        if (allSameType!Indices && allSatisfy!(isIntegral, Indices))
-{
-    static assert(indices.length == N, "Invalid index dimension");
-    return slice[indices];
-}
-
 /// $(LINK2 https://en.wikipedia.org/wiki/Neumann_boundary_condition, Neumann) boundary condition test
 ref T neumann(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices)
         if (allSameType!Indices && allSatisfy!(isIntegral, Indices))
@@ -248,7 +240,6 @@ unittest
     import std.range : iota;
     import std.array : array;
 
-    assert(isBoundaryCondition!nobc);
     assert(isBoundaryCondition!neumann);
     assert(isBoundaryCondition!periodic);
     assert(isBoundaryCondition!symmetric);
@@ -259,9 +250,6 @@ unittest
      *  6, 7, 8]
      */
     auto s = iota(9).array.sliced(3, 3);
-
-    assert(s.nobc(0, 0) == s[0, 0]);
-    assert(s.nobc(2, 2) == s[2, 2]);
 
     assert(s.neumann(-1, -1) == s[0, 0]);
     assert(s.neumann(0, -1) == s[0, 0]);
