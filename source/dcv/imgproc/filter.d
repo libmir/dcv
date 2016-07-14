@@ -24,6 +24,7 @@ $(DL Module contains:
             $(LINK2 #calcGradients,calcGradients)
             $(LINK2 #nonMaximaSupression,nonMaximaSupression)
             $(LINK2 #canny,canny)
+            $(LINK2 #bilateralFilter,bilateralFilter)
     )
 )
 
