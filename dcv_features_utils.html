@@ -65,11 +65,7 @@ Dynamic array of ulong[2], as in array of 2D points, of corner reponses
 which fit the given criteria.<br><br>
 <b>Examples:</b><br>
 <pre class="d_code">
-<font color=blue>auto</font> image = [
-    0., 0.1, 0.,
-    0., 0.3, 0.,
-    0., 0.2, 0.
-].sliced(3, 3);
+<font color=blue>auto</font> image = [0., 0.1, 0., 0., 0.3, 0., 0., 0.2, 0.].sliced(3, 3);
 
 <font color=blue>auto</font> res = image.<u id="extractCorners">extractCorners</u>;
 

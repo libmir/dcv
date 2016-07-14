@@ -24,15 +24,15 @@ Relja Ljubobratovic
 <dd>Resize array using custom interpolation function.
 <br><br>
 Primarilly implemented as image <u id="resize">resize</u>.
- 1D, 2D and 3D arrays are supported, where 3D array is
- treated as channeled image - each channel is interpolated
- as isolated 2D array (matrix).
+1D, 2D and 3D arrays are supported, where 3D array is
+treated as channeled image - each channel is interpolated
+as isolated 2D array (matrix).
 <br><br>
 
- Interpolation function is given as a template parameter.
- Default interpolation function is linear. Custom interpolation
- function can be implemented in the 3rd party code, by following
- interpolation function rules in dcv.imgproc.interpolation.
+Interpolation function is given as a template parameter.
+Default interpolation function is linear. Custom interpolation
+function can be implemented in the 3rd party code, by following
+interpolation function rules in dcv.imgproc.interpolation.
 
 <br><br>
 <b>Params:</b><br>
@@ -40,8 +40,8 @@ Primarilly implemented as image <u id="resize">resize</u>.
 <td>Slice to an input array.</td></tr>
 <tr><td>Size <i>newsize</i></td>
 <td>tuple that defines new shape. New dimension has to be
- the same as input <i>slice</i> in the 1D and 2D <u id="resize">resize</u>, where in the
- 3D <u id="resize">resize</u> <i>newsize</i> has to be 2D.</td></tr>
+    the same as input <i>slice</i> in the 1D and 2D <u id="resize">resize</u>, where in the
+    3D <u id="resize">resize</u> <i>newsize</i> has to be 2D.</td></tr>
 </table><br>
 <b>TODO:</b><br>
 consider size input as array, and add prealloc<br><br>
@@ -74,7 +74,7 @@ Displace each pixel of an <i>image</i> by given [x, y] values.
 <td>Displacement <i>map</i>, which holds [x, y] displacement for each pixel of an <i>image</i>.</td></tr>
 <tr><td>Slice!(N, T*) <i>prealloc</i></td>
 <td>Pre-allocated memory where resulting warped <i>image</i> is stored, if defined.
- Should be of same shape as input <i>image</i>, or an emptySlice, which implies newly allocated <i>image</i> is used.</td></tr>
+    Should be of same shape as input <i>image</i>, or an emptySlice, which implies newly allocated <i>image</i> is used.</td></tr>
 </table><br>
 <b>Returns:</b><br>
 Warped input <i>image</i> by given <i>map</i>.<br><br>
@@ -85,8 +85,8 @@ Warped input <i>image</i> by given <i>map</i>.<br><br>
 <dd>Pixel-wise remapping of the <i>image</i>.
 <br><br>
 Move each pixel of an <i>image</i> to a given [x, y] location defined by the <i>map</i>.
- Function is similar to dcv.imgproc.imgmanip.warp, except displacement of pixels
- is absolute, rather than relative.
+Function is similar to dcv.imgproc.imgmanip.warp, except displacement of pixels
+is absolute, rather than relative.
 
 <br><br>
 <b>Params:</b><br>
@@ -98,7 +98,7 @@ Move each pixel of an <i>image</i> to a given [x, y] location defined by the <i>
 <td>Target <i>map</i>, which holds [x, y] position for each pixel of an <i>image</i>.</td></tr>
 <tr><td>Slice!(N, T*) <i>prealloc</i></td>
 <td>Pre-allocated memory where resulting remapped <i>image</i> is stored, if defined.
- Should be of same shape as input <i>image</i>, or an emptySlice, which implies newly allocated <i>image</i> is used.</td></tr>
+    Should be of same shape as input <i>image</i>, or an emptySlice, which implies newly allocated <i>image</i> is used.</td></tr>
 </table><br>
 <b>Returns:</b><br>
 Remapped input <i>image</i> by given <i>map</i>.<br><br>
@@ -108,6 +108,7 @@ Test if warp and <u id="remap">remap</u> always returns slice of corresponding f
 <font color=blue>import</font> std.algorithm.iteration : <i>map</i>;
 <font color=blue>import</font> std.random : uniform;
 <font color=blue>import</font> std.array : array;
+
 <font color=blue>auto</font> <i>image</i> = 9.iota.<i>map</i>!(v =&gt; <font color=blue>cast</font>(<font color=blue>float</font>)v).array.sliced(3, 3);
 <font color=blue>auto</font> wmap = 18.iota.<i>map</i>!(v =&gt; <font color=blue>cast</font>(<font color=blue>float</font>)uniform(0.0f, 1.0f)).array.sliced(3, 3, 2);
 
@@ -130,12 +131,12 @@ Test if warp and <u id="remap">remap</u> always returns slice of corresponding f
 <td>Slice of an image which is transformed.</td></tr>
 <tr><td>TransformMatrix <i>transform</i></td>
 <td>2D Transformation matrix (3x3). Its element type must be floating point type,
-and it can be defined as Slice object, dynamic or static 2D array.</td></tr>
+    and it can be defined as Slice object, dynamic or static 2D array.</td></tr>
 <tr><td>size_t[2] <i>outSize</i></td>
 <td>Output image size - if transformation potentially moves parts of image out
-of input image bounds, output image can be sized differently to maintain information.</td></tr>
+    of input image bounds, output image can be sized differently to maintain information.</td></tr>
 </table><br>
-<b>note:</b><br>
+<b>Note:</b><br>
 Given transformation is considered to be an affine transformation. If it is not, result is undefined.
 
 <br><br>
@@ -154,12 +155,12 @@ Transformed image.<br><br>
 <td>Slice of an image which is transformed.</td></tr>
 <tr><td>TransformMatrix <i>transform</i></td>
 <td>2D Transformation matrix (3x3). Its element type must be floating point type,
-and it can be defined as Slice object, dynamic or static 2D array.</td></tr>
+    and it can be defined as Slice object, dynamic or static 2D array.</td></tr>
 <tr><td>size_t[2] <i>outSize</i></td>
 <td>Output image size [width, height] - if transformation potentially moves parts of image out
-of input image bounds, output image can be sized differently to maintain information.</td></tr>
+    of input image bounds, output image can be sized differently to maintain information.</td></tr>
 </table><br>
-<b>note:</b><br>
+<b>Note:</b><br>
 Given transformation is considered to be an perspective transformation. If it is not, result is undefined.
 
 <br><br>

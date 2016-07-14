@@ -26,9 +26,9 @@ Relja Ljubobratovic
 <table><tr><td>Slice!(N, V*) <i>inslice</i></td>
 <td>Input slice, to be converted to the O type.</td></tr>
 </table><br>
-<b>return:</b><br>
+<b>Returns:</b><br>
 Return a slice with newly allocated data of type O, with same
- shape as input slice.<br><br>
+    shape as input slice.<br><br>
 
 </dd>
 <dt><big><a name="clip"></a>pure nothrow @safe T <u id="clip">clip</u>(T, V)(V <i>v</i>) if (isNumeric!V &amp;&amp; isNumeric!T);
@@ -39,7 +39,7 @@ Return a slice with newly allocated data of type O, with same
 <table><tr><td>V <i>v</i></td>
 <td>input value, of the input type</td></tr>
 </table><br>
-<b>return:</b><br>
+<b>Returns:</b><br>
 Clipped value of the output type.<br><br>
 
 </dd>
@@ -68,11 +68,6 @@ For input of n Slice!(N, T*) objects, outputs Slice!(N+1, T*) object, where
 </dd>
 <dt><big><a name="isBoundaryCondition"></a>template <u id="isBoundaryCondition">isBoundaryCondition</u>(alias bc)</big></dt>
 <dd>Check if given function can perform boundary condition test.<br><br>
-
-</dd>
-<dt><big><a name="nobc"></a>ref T <u id="nobc">nobc</u>(size_t N, T, Indices...)(ref Slice!(N, T*) <i>slice</i>, Indices <i>indices</i>) if (allSameType!Indices &amp;&amp; allSatisfy!(isIntegral, Indices));
-</big></dt>
-<dd>No boundary condition test.<br><br>
 
 </dd>
 <dt><big><a name="neumann"></a>ref T <u id="neumann">neumann</u>(size_t N, T, Indices...)(ref Slice!(N, T*) <i>slice</i>, Indices <i>indices</i>) if (allSameType!Indices &amp;&amp; allSatisfy!(isIntegral, Indices));

@@ -24,6 +24,7 @@ Relja Ljubobratovic
             <a href="#calcGradients">calcGradients</a>
             <a href="#nonMaximaSupression">nonMaximaSupression</a>
             <a href="#canny">canny</a>
+            <a href="#bilateralFilter">bilateralFilter</a>
     </dd>
 </dl><br><br>
 
@@ -48,6 +49,7 @@ Laplacian(I) =
 <b>Examples:</b><br>
 <pre class="d_code">
 <font color=blue>import</font> std.algorithm.comparison : equal;
+
 <font color=blue>auto</font> l4 = <u id="laplacian">laplacian</u>(); <font color=green>// laplacian!real(0);
 </font><font color=blue>assert</font>(equal(l4.byElement, [0, 1, 0, 1, -4, 1, 0, 1, 0]));
 </pre>
@@ -69,10 +71,9 @@ Laplacian(I) =
 <pre class="d_code">
 <font color=blue>import</font> std.algorithm.comparison : equal;
 <font color=blue>import</font> std.math : approxEqual;
+
 <font color=blue>auto</font> log = <u id="laplacianOfGaussian">laplacianOfGaussian</u>!<font color=blue>float</font>(0.84f, 3, 3);
-<font color=blue>auto</font> expected = [
-    0.147722, -0.00865228, 0.147722, 
-    -0.00865228, -0.556277, -0.00865228, 
+<font color=blue>auto</font> expected = [0.147722, -0.00865228, 0.147722, -0.00865228, -0.556277, -0.00865228,
     0.147722, -0.00865228, 0.147722].sliced(3, 3);
 <font color=blue>assert</font>(log.byElement.array.equal!approxEqual(expected.byElement.array));
 </pre>
@@ -116,7 +117,7 @@ proxy function, not a proper API!<br><br>
 <dd>Calculate partial derivatives of an <i>slice</i>.
 <br><br>
 Partial derivatives are calculated by convolving an <i>slice</i> with
- [-1, 1] kernel, horizontally and vertically.<br><br>
+[-1, 1] kernel, horizontally and vertically.<br><br>
 
 </dd>
 <dt><big><a name="calcGradients"></a>void <u id="calcGradients">calcGradients</u>(T, V = T)(Slice!(2, T*) <i>slice</i>, ref Slice!(2, V*) <i>mag</i>, ref Slice!(2, V*) <i>orient</i>, EdgeKernel <i>edgeKernelType</i> = EdgeKernel.SIMPLE) if (isFloatingPoint!V);
@@ -132,9 +133,9 @@ Partial derivatives are calculated by convolving an <i>slice</i> with
 <td>Orientation value of gradients in radians.</td></tr>
 <tr><td>EdgeKernel <i>edgeKernelType</i></td>
 <td>Optional convolution kernel type to calculate partial derivatives.
- Default value is EdgeKernel.SIMPLE, which calls calcPartialDerivatives function
- to calculate derivatives. Other options will perform convolution with requested
- kernel type.</td></tr>
+    Default value is EdgeKernel.SIMPLE, which calls calcPartialDerivatives function
+    to calculate derivatives. Other options will perform convolution with requested
+    kernel type.</td></tr>
 </table><br>
 
 </dd>
@@ -143,7 +144,7 @@ Partial derivatives are calculated by convolving an <i>slice</i> with
 <dd>Edge detection impuls non-maxima supression.
 <br><br>
 Filtering used in canny edge detection algorithm - suppresses all
- edge impulses (gradient values along edges normal) except the peek value.
+edge impulses (gradient values along edges normal) except the peek value.
 
 <br><br>
 <b>Params:</b><br>
@@ -181,7 +182,32 @@ dcv.imgproc.filter.calcGradients, dcv.imgproc.convolution<br><br>
 <dd>Perform <u id="canny">canny</u> filtering on an image to expose edges.
 <br><br>
 Convenience function to call <u id="canny">canny</u> with same lower and upper threshold values,
- similar to dcv.imgproc.threshold.threshold.<br><br>
+similar to dcv.imgproc.threshold.threshold.<br><br>
+
+</dd>
+<dt><big><a name="bilateralFilter"></a>Slice!(N, OutputType*) <u id="bilateralFilter">bilateralFilter</u>(alias bc = neumann, InputType, OutputType = InputType, size_t N)(Slice!(N, InputType*) <i>slice</i>, float <i>sigma</i>, uint <i>kernelSize</i>, Slice!(N, OutputType*) <i>prealloc</i> = emptySlice!(N, OutputType)) if (N == 2);
+<br>Slice!(N, OutputType*) <u id="bilateralFilter">bilateralFilter</u>(alias bc = neumann, InputType, OutputType = InputType, size_t N)(Slice!(N, InputType*) <i>slice</i>, float <i>sigma</i>, uint <i>kernelSize</i>, Slice!(N, OutputType*) <i>prealloc</i> = emptySlice!(N, OutputType)) if (N == 3);
+</big></dt>
+<dd><a href="https://en.wikipedia.org/wiki/Bilateral_filter">Bilateral</a> filtering implementation.
+<br><br>
+Non-linear, edge-preserving and noise-reducing smoothing filtering algorithm.
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>bc</td>
+<td>Boundary condition test used to index the image <i>slice</i>.</td></tr>
+<tr><td>Slice!(N, InputType*) <i>slice</i></td>
+<td>Slice of the input image.</td></tr>
+<tr><td>float <i>sigma</i></td>
+<td>Smoothing strength parameter.</td></tr>
+<tr><td>uint <i>kernelSize</i></td>
+<td>Size of convolution kernel. Must be odd number.</td></tr>
+<tr><td>Slice!(N, OutputType*) <i>prealloc</i></td>
+<td>Optional pre-allocated result image buffer. If not of same shape as input <i>slice</i>, its allocated
+        anew.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Slice of filtered image.<br><br>
 
 </dd>
 </dl>

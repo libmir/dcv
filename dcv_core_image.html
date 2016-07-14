@@ -97,7 +97,7 @@ Relja Ljubobratovic
 <td>Input image, which is copied into this image structure.</td></tr>
 <tr><td>bool <i>deepCopy</i></td>
 <td>if <b>false</b> (default) the data array will be referenced
- from <i>copy</i>, esle values will be copied to newly allocated array.</td></tr>
+        from <i>copy</i>, esle values will be copied to newly allocated array.</td></tr>
 </table><br>
 
 </dd>
@@ -116,8 +116,8 @@ Relja Ljubobratovic
 <td>bit <i>depth</i> of a newly created image.</td></tr>
 <tr><td>ubyte[] <i>data</i></td>
 <td>potential <i>data</i> of an image, pre-allocated. If not a <b>null</b>, <i>data</i> array
- has to be of correct size = <i>width</i>*<i>height</i>*channels*<i>depth</i>, where channels are
- defined by the <i>format</i>, and <i>depth</i> is counded in bytes.</td></tr>
+        has to be of correct size = <i>width</i>*<i>height</i>*channels*<i>depth</i>, where channels are
+        defined by the <i>format</i>, and <i>depth</i> is counded in bytes.</td></tr>
 </table><br>
 
 </dd>
@@ -178,9 +178,9 @@ Returns an array of 3 sizes: [width, height, channels]<br><br>
 <dd>Check if this images data corresponds to given value type.
 <br><br>
 Given value type is checked against the image data bit depth.
- Data of 8-bit image is considered to be typed as ubyte array,
- 16-bit as ushort, and 32-bit as float array. Any other type as
- input returns <b>false</b> result.
+    Data of 8-bit image is considered to be typed as ubyte array,
+    16-bit as ushort, and 32-bit as float array. Any other type as
+    input returns <b>false</b> result.
 
 <br><br>
 <b>Params:</b><br>
@@ -194,17 +194,17 @@ Given value type is checked against the image data bit depth.
 <dd>Convert image data type to given type.
 <br><br>
 Creates new image with data typed as given value type.
- If this image's data type is the same as given type, deep
- copy of this image is returned.
+    If this image's data type is the same as given type, deep
+    copy of this image is returned.
 
 <br><br>
 <b>Params:</b><br>
 <table><tr><td>T</td>
 <td>(template parameter) value type to which image's data is converted.</td></tr>
 </table><br>
-<b>return:</b><br>
+<b>Returns:</b><br>
 Copy of this image with casted data to given type. If given type is same as
- current data of this image, deep copy is returned.<br><br>
+        current data of this image, deep copy is returned.<br><br>
 
 </dd>
 <dt><big><a name="Image.data"></a>inout pure auto <u id="data">data</u>(T = ubyte)();
@@ -212,8 +212,8 @@ Copy of this image with casted data to given type. If given type is same as
 <dd>Get <u id="data">data</u> array from this image.
 <br><br>
 Cast <u id="data">data</u> array to corresponding dynamic array type,
- and return it.
- 8-bit <u id="data">data</u> is considered ubyte, 16-bit ushort, and 32-bit float.
+    and return it.
+    8-bit <u id="data">data</u> is considered ubyte, 16-bit ushort, and 32-bit float.
 
 <br><br>
 <b>Params:</b><br>
