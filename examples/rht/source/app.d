@@ -76,9 +76,9 @@ int main(string[] args)
     auto gaussianKernel = gaussian!float(2, 3, 3); // create gaussian convolution kernel (sigma, kernel width and height)
 
     auto blur = gray.conv(gaussianKernel);
-    auto canny = blur.canny!ubyte(80);
+    auto canny = blur.canny!ubyte(150);
 
-    auto lines = RhtLines().epouchs(50).iterations(250).minCurve(25);
+    auto lines = RhtLines().epouchs(35).iterations(500).minCurve(70);
     StopWatch s;
     s.start;
     auto linesRange = lines(canny);
@@ -90,7 +90,7 @@ int main(string[] args)
     s.stop;
     writeln("RHT lines took ", s.peek.msecs, "ms");
     writeln("Points left after lines:", linesRange.points.length);
-    auto circles = RhtCircles().epouchs(5).iterations(2000).minCurve(16);
+    auto circles = RhtCircles().epouchs(15).iterations(2000).minCurve(50);
     s.reset;
     s.start;
     foreach (circle; circles(canny, linesRange.points[]))
