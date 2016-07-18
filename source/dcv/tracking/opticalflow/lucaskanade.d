@@ -69,9 +69,10 @@ class LucasKanadeFlow : SparseOpticalFlow
         import dcv.core.utils : asType;
 
         import std.array : uninitializedArray;
-        import std.range : lockstep;
+        import std.range : lockstep, iota;
         import std.array : array;
         import std.algorithm.iteration : map;
+        import std.parallelism : parallel;
 
         const auto rows = f1.height;
         const auto cols = f1.width;
@@ -91,18 +92,74 @@ class LucasKanadeFlow : SparseOpticalFlow
         float gaussMul = 1.0f / (2.0f * PI * sigma);
         float gaussDel = 2.0f * (sigma ^^ 2);
 
-        auto f1s = f1.asType!float.sliced!float.reshape(f1.height, f1.width);
-        auto f2s = f2.asType!float.sliced!float.reshape(f1.height, f1.width);
+        auto f1s = new float[f1.height*f1.width].sliced(f1.height, f1.width);
+        auto f2s = new float[f1.height*f1.width].sliced(f1.height, f1.width);
 
-        // TODO: implement masks
-        auto fxs = f1s.conv(sobel!float(GradientDirection.DIR_X));
-        auto fys = f1s.conv(sobel!float(GradientDirection.DIR_Y));
+        auto fxs = new float[f1.height*f1.width].sliced(f1.height, f1.width);
+        auto fys = new float[f1.height*f1.width].sliced(f1.height, f1.width);
+
+        auto f1d = f1.data;
+        auto f2d = f2.data;
+
+        foreach(r; iota(f1.height).parallel)
+        {
+            foreach(c; 0 .. f1.width)
+            {
+                auto id = r * f1.width + c;
+                f1s[r, c] = cast(float)f1d[id];
+                f2s[r, c] = cast(float)f2d[id];
+            }
+        }
+
+
+        auto fxmask = new ubyte[f1.height * f1.width].sliced(f1.height, f1.width);
+        auto fymask = new ubyte[f1.height * f1.width].sliced(f1.height, f1.width);
+
+        fxs[] = 0.0f;
+        fys[] = 0.0f;
+
+        fxmask[] = cast(ubyte)0;
+        fymask[] = cast(ubyte)0;
+
+        // Fill-in masks where points are present
+        foreach(p, r; lockstep(points, searchRegions))
+        {
+            auto rb = cast(int)(p[0] - r[0] / 2.0f);
+            auto re = cast(int)(p[0] + r[0] / 2.0f);
+            auto cb = cast(int)(p[1] - r[1] / 2.0f);
+            auto ce = cast(int)(p[1] + r[1] / 2.0f);
+
+            rb = rb < 1 ? 1 : rb;
+            re = re > rl ? rl : re;
+            cb = cb < 1 ? 1 : cb;
+            ce = ce > cl ? cl : ce;
+
+            if (re - rb <= 0 || ce - cb <= 0)
+            {
+                continue;
+            }
+
+            foreach(i; rb .. re)
+            {
+                foreach(j; cb .. ce)
+                {
+                    fxmask[i, j] = cast(ubyte)1;
+                    fymask[i, j] = cast(ubyte)1;
+                }
+            }
+        }
+
+        f1s.conv(sobel!float(GradientDirection.DIR_X), fxs, fxmask);
+        f1s.conv(sobel!float(GradientDirection.DIR_Y), fys, fymask);
 
         cornerResponse.length = pointCount;
 
-        foreach (ref f, ref resp, p, r; lockstep(flow, cornerResponse, points, searchRegions))
+        foreach (ptn; iota(pointCount).parallel)
         {
             import std.math : sqrt, exp;
+
+            auto p = points[ptn];
+            auto r = searchRegions[ptn];
 
             auto rb = cast(int)(p[0] - r[0] / 2.0f);
             auto re = cast(int)(p[0] + r[0] / 2.0f);
@@ -138,8 +195,8 @@ class LucasKanadeFlow : SparseOpticalFlow
                     foreach (j; cb .. ce)
                     {
 
-                        const float nx = cast(float)j + f[0];
-                        const float ny = cast(float)i + f[1];
+                        const float nx = cast(float)j + flow[ptn][0];
+                        const float ny = cast(float)i + flow[ptn][1];
 
                         if (nx < 0.0f || nx > cast(float)ce || ny < 0.0f || ny > cast(float)re)
                         {
@@ -168,15 +225,15 @@ class LucasKanadeFlow : SparseOpticalFlow
                 }
 
                 // TODO: consider resp normalization...
-                resp = ((a1 + a3) - sqrt((a1 - a3) * (a1 - a3) + a2 * a2));
+                cornerResponse[ptn] = ((a1 + a3) - sqrt((a1 - a3) * (a1 - a3) + a2 * a2));
 
                 auto d = (a1 * a3 - a2 * a2);
 
                 if (d)
                 {
                     d = 1.0f / d;
-                    f[0] += (a2 * b2 - a3 * b1) * d;
-                    f[1] += (a2 * b1 - a1 * b2) * d;
+                    flow[ptn][0] += (a2 * b2 - a3 * b1) * d;
+                    flow[ptn][1] += (a2 * b1 - a1 * b2) * d;
                 }
             }
         }
