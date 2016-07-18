@@ -78,9 +78,9 @@ Params:
 Returns:
     Slice of resulting image after convolution.
 */
-Slice!(N, InputType*) conv(alias bc = neumann, InputType, KernelType, size_t N, size_t NK)(Slice!(N,
+Slice!(N, InputType*) conv(alias bc = neumann, InputType, KernelType, MaskType = InputType, size_t N, size_t NK)(Slice!(N,
         InputType*) range, Slice!(NK, KernelType*) kernel, Slice!(N,
-        InputType*) prealloc = emptySlice!(N, InputType), Slice!(NK, InputType*) mask = emptySlice!(NK, InputType))
+        InputType*) prealloc = emptySlice!(N, InputType), Slice!(NK, MaskType*) mask = emptySlice!(NK, MaskType))
 {
     static assert(isBoundaryCondition!bc, "Invalid boundary condition test function.");
     static assert(isAssignable!(InputType, KernelType), "Uncompatible types for range and kernel");
@@ -149,8 +149,8 @@ unittest
 private:
 
 // TODO: implement SIMD
-Slice!(1, InputType*) conv1Impl(alias bc, InputType, KernelType)(Slice!(1, InputType*) range,
-        Slice!(1, KernelType*) kernel, Slice!(1, InputType*) prealloc, Slice!(1, InputType*) mask)
+Slice!(1, InputType*) conv1Impl(alias bc, InputType, KernelType, MaskType)(Slice!(1, InputType*) range,
+        Slice!(1, KernelType*) kernel, Slice!(1, InputType*) prealloc, Slice!(1, MaskType*) mask)
 {
 
     if (prealloc.empty || prealloc.shape != range.shape)
@@ -182,8 +182,8 @@ Slice!(1, InputType*) conv1Impl(alias bc, InputType, KernelType)(Slice!(1, Input
     return prealloc;
 }
 
-Slice!(2, InputType*) conv2Impl(alias bc, InputType, KernelType)(Slice!(2, InputType*) range,
-        Slice!(2, KernelType*) kernel, Slice!(2, InputType*) prealloc, Slice!(2, InputType*) mask)
+Slice!(2, InputType*) conv2Impl(alias bc, InputType, KernelType, MaskType)(Slice!(2, InputType*) range,
+        Slice!(2, KernelType*) kernel, Slice!(2, InputType*) prealloc, Slice!(2, MaskType*) mask)
 {
 
     if (prealloc.empty || prealloc.shape != range.shape)
@@ -225,9 +225,9 @@ Slice!(2, InputType*) conv2Impl(alias bc, InputType, KernelType)(Slice!(2, Input
     return prealloc;
 }
 
-Slice!(3, InputType*) conv3Impl(alias bc, InputType, KernelType, size_t NK)(Slice!(3,
+Slice!(3, InputType*) conv3Impl(alias bc, InputType, KernelType, MaskType, size_t NK)(Slice!(3,
         InputType*) range, Slice!(NK, KernelType*) kernel, Slice!(3, InputType*) prealloc,
-        Slice!(NK, InputType*) mask)
+        Slice!(NK, MaskType*) mask)
 {
     if (prealloc.empty || prealloc.shape != range.shape)
         prealloc = uninitializedArray!(InputType[])(cast(ulong)range.shape.reduce!"a*b").sliced(range.shape);
