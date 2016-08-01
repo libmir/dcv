@@ -25,6 +25,7 @@ $(DL Module contains:
             $(LINK2 #nonMaximaSupression,nonMaximaSupression)
             $(LINK2 #canny,canny)
             $(LINK2 #bilateralFilter,bilateralFilter)
+            $(LINK2 #medianFilter,medianFilter)
     )
 )
 
@@ -39,8 +40,12 @@ import std.range : iota, array, lockstep;
 import std.exception : enforce;
 import std.math : abs, PI, floor, exp, pow;
 import std.algorithm.iteration : map, sum, each;
+import std.algorithm.sorting : topN;
+import std.algorithm.comparison : max;
 import std.algorithm.mutation : copy;
 import std.array : uninitializedArray;
+import std.parallelism : parallel, taskPool;
+
 
 import dcv.core.algorithm;
 import dcv.core.utils;
@@ -750,3 +755,142 @@ Slice!(N, OutputType*) bilateralFilter(alias bc = neumann, InputType, OutputType
 
     return prealloc;
 }
+
+/**
+Median filtering algorithm.
+
+Params:
+    slice = Input image slice.
+    kernelSize = Square size of median kernel.
+    prealloc = Optional pre-allocated return image buffer.
+
+Returns:
+    Returns filtered image of same size as the input. If prealloc parameter is not an empty slice, and is
+    of same size as input slice, return value is assigned to prealloc buffer. If not, newly allocated buffer
+    is used.
+*/
+Slice!(N, O*) medianFilter(alias BoundaryConditionTest = neumann, T, O = T, size_t N)(Slice!(N, T*) slice, ulong kernelSize, 
+        Slice!(N, O*) prealloc = emptySlice!(N, O))
+in
+{
+    import std.traits : isAssignable;
+    static assert(isAssignable!(T, O), "Output slice value type is not assignable to the input value type.");
+    static assert(isBoundaryCondition!BoundaryConditionTest, "Given boundary condition test is not DCV "
+            "valid boundary condition test function.");
+
+    assert(!slice.empty());
+}
+body
+{
+    import std.array : uninitializedArray;
+    import std.algorithm.iteration : reduce;
+
+    if (prealloc.shape != slice.shape)
+        prealloc = uninitializedArray!(O[])(slice.shape.reduce!"a*b").sliced(slice.shape);
+
+    static if (N == 1)
+        medianFilterImpl1!BoundaryConditionTest(slice, prealloc, kernelSize);
+    else static if (N == 2)
+        medianFilterImpl2!BoundaryConditionTest(slice, prealloc, kernelSize);
+    else static if (N == 3)
+        medianFilterImpl3!BoundaryConditionTest(slice, prealloc, kernelSize);
+    else
+        static assert(0, "Invalid slice dimension for median filtering.");
+
+    return prealloc;
+}
+
+unittest
+{
+    import std.algorithm : equal;
+    auto imvalues = [1, 20, 3, 54, 5, 643, 7, 80, 9].sliced(9);
+    assert(imvalues.medianFilter!neumann(3).equal([1, 3, 20, 5, 54, 7, 80, 9, 9]));
+}
+
+unittest
+{
+    import std.algorithm : equal;
+    auto imvalues = [1, 20, 3, 
+                     54, 5, 643, 
+                     7, 80, 9].sliced(3, 3);
+    assert(imvalues.medianFilter!neumann(3).byElement.equal(
+                [5, 5, 5, 
+                7, 9, 9, 
+                7, 9, 9]));
+}
+
+unittest
+{
+    import std.algorithm : equal;
+    auto imvalues = [1, 20, 3,  43, 65, 76,  12, 5, 7,
+                     54, 5, 643,  12, 54, 76,  15, 68, 9,
+                     65, 87, 17,  38, 0, 12,  21, 5, 7].sliced(3, 3, 3);
+    assert(imvalues.medianFilter!neumann(3).byElement.equal(
+                    [12, 20, 76,  12, 20, 9,  12, 54, 9, 
+                    43, 20, 17,  21, 20, 12,  15, 5, 9, 
+                    54, 54, 17,  38, 5, 12,  21, 5, 9]));
+}
+
+private:
+
+void medianFilterImpl1(alias bc, T, O)(Slice!(1, T*) slice, Slice!(1, O*) filtered, ulong kernelSize)
+{
+    import std.algorithm.sorting : topN;
+    import std.algorithm.comparison : max;
+    import std.parallelism;
+
+    int kh = max(1, cast(int)kernelSize / 2);
+    int length = cast(int)slice.length!0;
+
+    auto kernelStorage = taskPool.workerLocalStorage(new T[kernelSize]);
+
+    foreach(i; iota(length).parallel)
+    {
+        auto kernel = kernelStorage.get();
+        ulong ki = 0;
+        foreach(ii; i - kh .. i + kh + 1)
+        {
+            kernel[ki++] = bc(slice, ii);
+        }
+        topN(kernel, kh);
+        filtered[i] = kernel[kh];
+    }
+}
+
+void medianFilterImpl2(alias bc, T, O)(Slice!(2, T*) slice, Slice!(2, O*) filtered, ulong kernelSize)
+{
+    int kh = max(1, cast(int)kernelSize / 2);
+    int n = cast(int)kernelSize^^2;
+    int m = n / 2;
+    int rows = cast(int)slice.length!0;
+    int cols = cast(int)slice.length!1;
+
+    auto kernelStorage = taskPool.workerLocalStorage(new T[kernelSize^^2]);
+
+    foreach(r; iota(rows).parallel)
+    {
+        foreach(c; 0 .. cols)
+        {
+            auto kernel = kernelStorage.get();
+            ulong i = 0;
+            foreach(rr; r - kh .. r + kh + 1)
+            {
+                foreach(cc; c - kh .. c + kh + 1)
+                {
+                    kernel[i++] = bc(slice, rr, cc);
+                }
+            }
+            topN(kernel, m);
+            filtered[r, c] = kernel[m];
+        }
+    }
+}
+
+void medianFilterImpl3(alias bc, T, O)(Slice!(3, T*) slice, Slice!(3, O*) filtered, ulong kernelSize)
+{
+    foreach(channel; 0 .. slice.length!2)
+    {
+        medianFilterImpl2!bc(slice[0 .. $, 0 .. $, channel], filtered[0 .. $, 0 .. $, channel], kernelSize);
+    }
+}
+
