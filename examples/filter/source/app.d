@@ -14,6 +14,7 @@ import std.algorithm.iteration : map;
 import dcv.core : Image, asType, ranged, ImageFormat;
 import dcv.io : imread, imwrite;
 import dcv.imgproc;
+import dcv.plot;
 
 int main(string[] args)
 {
@@ -43,21 +44,55 @@ int main(string[] args)
     auto laplaceEdges = gray.conv(laplacianKernel);
     auto logEdges = gray.conv(logKernel);
 
+
     // calculate canny edges
     auto cannyEdges = gray.canny!ubyte(75);
+
+    // perform bilateral blurring
+    auto bilBlur = imslice.bilateralFilter(10.0f, 5);
+
+    // Add salt and pepper noise at input image green channel
+    auto noisyImage = imslice.byElement.array.sliced(imslice.shape);
+    auto saltNPepperNoise = noisyImage[0 .. $, 0 .. $, 1].saltNPepper(0.15f);
+    // ... and perform median blurring on noisy image
+    auto medBlur = noisyImage.medianFilter(5);
+
     // scale values from 0 to 255 to preview gradient direction and magnitude
     xgrads = xgrads.byElement.ranged(0, 255).array.sliced(xgrads.shape);
-
     // Take absolute values and range them from 0 to 255, to preview edges
     laplaceEdges = laplaceEdges.byElement.map!(a => fabs(a)).ranged(0, 255).array.sliced(laplaceEdges.shape);
     logEdges = logEdges.byElement.map!(a => fabs(a)).ranged(0, 255).array.sliced(logEdges.shape);
 
-    // write resulting images on the filesystem.
-    blur.asType!ubyte.imwrite(ImageFormat.IF_RGB, "./result/outblur.png");
-    xgrads.asType!ubyte.imwrite(ImageFormat.IF_MONO, "./result/sobel.png");
-    laplaceEdges.asType!ubyte.imwrite(ImageFormat.IF_MONO, "./result/laplace.png");
-    logEdges.asType!ubyte.imwrite(ImageFormat.IF_MONO, "./result/log.png");
-    cannyEdges.imwrite(ImageFormat.IF_MONO, "./result/cannyedges.png");
+    // Show images on screen
+    img.imshow("Original");
+    bilBlur.imshow("Bilateral Blurring");
+    noisyImage.imshow("Salt and Pepper noise at green channel for Median");
+    medBlur.imshow("Median Blurring");
+    blur.imshow("Gaussian Blurring");
+    xgrads.imshow("Sobel X");
+    laplaceEdges.imshow("Laplace");
+    logEdges.imshow("Laplacian of Gaussian");
+    cannyEdges.imshow("Canny Edges");
+
+    waitKey();
 
     return 0;
+}
+
+Slice!(2, T*) saltNPepper(T)(Slice!(2, T*) slice, float saturation) 
+{
+    import std.range, std.random;
+
+    ulong pixelCount = slice.length!0*slice.length!1;
+    ulong noisyPixelCount = cast(typeof(pixelCount))(pixelCount * saturation);
+
+    auto noisyPixels = noisyPixelCount.iota.map!(x => uniform(0, pixelCount)).array;
+    auto imdata = slice.reshape(pixelCount);
+
+    foreach(salt, pepper; lockstep(noisyPixels[0 .. $ / 2], noisyPixels[$ / 2 .. $]))
+    {
+        imdata[salt] = cast(T)255;
+        imdata[pepper] = cast(T)0;
+    }
+    return slice;
 }
