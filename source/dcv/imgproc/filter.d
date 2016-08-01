@@ -39,7 +39,7 @@ import std.traits : allSameType, allSatisfy, isFloatingPoint, isNumeric;
 import std.range : iota, array, lockstep;
 import std.exception : enforce;
 import std.math : abs, PI, floor, exp, pow;
-import std.algorithm.iteration : map, sum, each;
+import std.algorithm.iteration : map, sum, each, reduce;
 import std.algorithm.sorting : topN;
 import std.algorithm.comparison : max;
 import std.algorithm.mutation : copy;
