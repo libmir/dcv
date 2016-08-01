@@ -832,8 +832,8 @@ unittest
 Calculate range value histogram.
 
 Params:
-    HistogramType = (template parameter) Histogram type. Valued types are static and dynamic arrays.
-    Most commonly is 32 bit integer static array of size T.max + 1, where T is element type of input range.
+    HistogramType = (template parameter) Histogram type. Can be static or dynamic array, most commonly 
+    of 32 bit integer, of size T.max + 1, where T is element type of input range.
     range = Input forward range, for which histogram is calculated.
 
 Returns:
@@ -891,10 +891,12 @@ void main()
     waitKey();
 }
 ----
-
 Example code will equalize grayscale Lena image, from this:
-$(IMAGE https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/lena.png?raw=true)
+
+$(IMAGE https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/lena_gray.png?raw=true)
+
 ... to this:
+
 $(IMAGE https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/histEqualExample.png?raw=true)
 
 Note:
@@ -902,8 +904,7 @@ Note:
     to perform equalization for V channel, $(LINK2 https://en.wikipedia.org/wiki/Histogram_equalization#Histogram_equalization_of_color_images,to alter the color as less as possible).
 
 Params:
-    Histogram = (template parameter) Histogram type, see calcHistogram function for details.
-    larger integer value type, and T is value type of input image slice.
+    Histogram = (template parameter) Histogram type, see $(LINK2 #calcHistogram,calcHistogram) function for details.
     slice = Input image slice.
     histogram = Histogram values for input image slice.
     prealloc = Optional pre-allocated buffer where equalized image is saved.
