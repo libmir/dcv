@@ -12,3 +12,8 @@ module dcv.plot;
  * v0.1+:
  * text rendering?
  */
+
+public
+{
+    import dcv.plot.figure, dcv.plot.draw, dcv.plot.opticalflow;
+}
