@@ -25,6 +25,7 @@ Relja Ljubobratovic
             <a href="#nonMaximaSupression">nonMaximaSupression</a>
             <a href="#canny">canny</a>
             <a href="#bilateralFilter">bilateralFilter</a>
+            <a href="#medianFilter">medianFilter</a>
     </dd>
 </dl><br><br>
 
@@ -208,6 +209,24 @@ Non-linear, edge-preserving and noise-reducing smoothing filtering algorithm.
 </table><br>
 <b>Returns:</b><br>
 Slice of filtered image.<br><br>
+
+</dd>
+<dt><big><a name="medianFilter"></a>Slice!(N, O*) <u id="medianFilter">medianFilter</u>(alias BoundaryConditionTest = neumann, T, O = T, size_t N)(Slice!(N, T*) <i>slice</i>, ulong <i>kernelSize</i>, Slice!(N, O*) <i>prealloc</i> = emptySlice!(N, O));
+</big></dt>
+<dd>Median filtering algorithm.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Slice!(N, T*) <i>slice</i></td>
+<td>Input image <i>slice</i>.</td></tr>
+<tr><td>ulong <i>kernelSize</i></td>
+<td>Square size of median kernel.</td></tr>
+<tr><td>Slice!(N, O*) <i>prealloc</i></td>
+<td>Optional pre-allocated return image buffer.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Returns filtered image of same size as the input. If <i>prealloc</i> parameter is not an empty <i>slice</i>, and is
+    of same size as input <i>slice</i>, return value is assigned to <i>prealloc</i> buffer. If not, newly allocated buffer
+    is used.<br><br>
 
 </dd>
 </dl>

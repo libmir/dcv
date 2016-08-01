@@ -37,7 +37,7 @@ Relja Ljubobratovic
 <b>License:</b><br>
 <a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.<br><br>
 
-<dl><dt><big><a name="conv"></a>Slice!(N, InputType*) <u id="conv">conv</u>(alias bc = neumann, InputType, KernelType, size_t N, size_t NK)(Slice!(N, InputType*) <i>range</i>, Slice!(NK, KernelType*) <i>kernel</i>, Slice!(N, InputType*) <i>prealloc</i> = emptySlice!(N, InputType), Slice!(NK, InputType*) <i>mask</i> = emptySlice!(NK, InputType));
+<dl><dt><big><a name="conv"></a>Slice!(N, InputType*) <u id="conv">conv</u>(alias bc = neumann, InputType, KernelType, MaskType = InputType, size_t N, size_t NK)(Slice!(N, InputType*) <i>range</i>, Slice!(NK, KernelType*) <i>kernel</i>, Slice!(N, InputType*) <i>prealloc</i> = emptySlice!(N, InputType), Slice!(NK, MaskType*) <i>mask</i> = emptySlice!(NK, MaskType));
 </big></dt>
 <dd>Perform convolution to given <i>range</i>, using given <i>kernel</i>.
 Convolution is supported for 1, 2, and 3D slices.
@@ -56,7 +56,7 @@ Convolution is supported for 1, 2, and 3D slices.
 <td>Pre-allocated array where convolution result can be stored. Default
     value is emptySlice, where resulting array will be newly allocated. Also if
     <i>prealloc</i> is not of same shape as input <i>range</i>, resulting array will be newly allocated.</td></tr>
-<tr><td>Slice!(NK, InputType*) <i>mask</i></td>
+<tr><td>Slice!(NK, MaskType*) <i>mask</i></td>
 <td>Masking <i>range</i>. Convolution will skip each element where <i>mask</i> is 0. Default value
     is empty slice, which tells that convolution will be performed on the whole <i>range</i>.</td></tr>
 </table><br>
