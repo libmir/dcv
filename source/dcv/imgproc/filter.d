@@ -46,10 +46,8 @@ import std.algorithm.mutation : copy;
 import std.array : uninitializedArray;
 import std.parallelism : parallel, taskPool;
 
-
 import dcv.core.algorithm;
 import dcv.core.utils;
-
 
 /**
 Instantiate 2D gaussian kernel.
@@ -57,7 +55,7 @@ Instantiate 2D gaussian kernel.
 Slice!(2, V*) gaussian(V = real)(real sigma, size_t width, size_t height) pure
 {
 
-    static assert(isFloatingPoint!V, "Gaussian kernel can be constructed " "only using floating point types.");
+    static assert(isFloatingPoint!V, "Gaussian kernel can be constructed only using floating point types.");
 
     enforce(width > 2 && height > 2 && sigma > 0, "Invalid kernel values");
 
@@ -538,7 +536,7 @@ body
             immutable pi = 3.15;
             immutable pi8 = pi / 8.0;
 
-            if (aang <= pi && aang > 7.0 * pi8) 
+            if (aang <= pi && aang > 7.0 * pi8)
             {
                 p0[0] = j - 1;
                 p0[1] = i;
@@ -586,7 +584,7 @@ body
                 p0[1] = i + 1;
                 p1[0] = j;
                 p1[1] = i - 1;
-            } 
+            }
             else if (aang >= 0.0 && aang < pi8)
             {
                 p0[0] = j + 1;
@@ -691,7 +689,7 @@ body
     foreach (r; iota(rows).parallel)
     {
         auto mask = new float[ks * ks].sliced(ks, ks);
-        foreach (c;  0 .. cols )
+        foreach (c; 0 .. cols)
         {
             auto p_val = slice[r, c];
 
@@ -705,7 +703,7 @@ body
                 foreach (int kc; c - ksh .. c + ksh + 1)
                 {
                     auto ck = (c - kc) ^^ 2;
-                    float c_val = exp(-0.5f * ((sqrt(cast(float)(ck + rk)) / sigma) ^^ 2) );
+                    float c_val = exp(-0.5f * ((sqrt(cast(float)(ck + rk)) / sigma) ^^ 2));
                     float s_val = exp(-0.5f * ((cast(float)(bc(slice, kr, kc) - p_val) / sigma) ^^ 2));
                     mask[i, j] = c_val * s_val;
                     ++j;
@@ -722,7 +720,7 @@ body
             {
                 j = 0;
                 auto rk = (r - kr) ^^ 2;
-                foreach (kc; c - ksh .. c + ksh + 1) 
+                foreach (kc; c - ksh .. c + ksh + 1)
                 {
                     res_val += (mask[i, j] / mask_sum) * bc(slice, kr, kc);
                     ++j;
@@ -747,10 +745,10 @@ Slice!(N, OutputType*) bilateralFilter(alias bc = neumann, InputType, OutputType
         prealloc = uninitializedArray!(OutputType[])(slice.shape.reduce!"a*b").sliced(slice.shape);
     }
 
-    foreach(channel; 0 .. slice.length!2)
+    foreach (channel; 0 .. slice.length!2)
     {
-        bilateralFilter!(bc, InputType, OutputType)
-        (slice[0 .. $, 0 .. $, channel], sigma, kernelSize, prealloc[0 .. $, 0 .. $, channel]);
+        bilateralFilter!(bc, InputType, OutputType)(slice[0 .. $, 0 .. $, channel], sigma,
+                kernelSize, prealloc[0 .. $, 0 .. $, channel]);
     }
 
     return prealloc;
@@ -769,14 +767,15 @@ Returns:
     of same size as input slice, return value is assigned to prealloc buffer. If not, newly allocated buffer
     is used.
 */
-Slice!(N, O*) medianFilter(alias BoundaryConditionTest = neumann, T, O = T, size_t N)(Slice!(N, T*) slice, ulong kernelSize, 
-        Slice!(N, O*) prealloc = emptySlice!(N, O))
+Slice!(N, O*) medianFilter(alias BoundaryConditionTest = neumann, T, O = T, size_t N)(Slice!(N,
+        T*) slice, ulong kernelSize, Slice!(N, O*) prealloc = emptySlice!(N, O))
 in
 {
     import std.traits : isAssignable;
+
     static assert(isAssignable!(T, O), "Output slice value type is not assignable to the input value type.");
-    static assert(isBoundaryCondition!BoundaryConditionTest, "Given boundary condition test is not DCV "
-            "valid boundary condition test function.");
+    static assert(isBoundaryCondition!BoundaryConditionTest,
+            "Given boundary condition test is not DCV valid boundary condition test function.");
 
     assert(!slice.empty());
 }
@@ -803,6 +802,7 @@ body
 unittest
 {
     import std.algorithm : equal;
+
     auto imvalues = [1, 20, 3, 54, 5, 643, 7, 80, 9].sliced(9);
     assert(imvalues.medianFilter!neumann(3).equal([1, 3, 20, 5, 54, 7, 80, 9, 9]));
 }
@@ -810,25 +810,19 @@ unittest
 unittest
 {
     import std.algorithm : equal;
-    auto imvalues = [1, 20, 3, 
-                     54, 5, 643, 
-                     7, 80, 9].sliced(3, 3);
-    assert(imvalues.medianFilter!neumann(3).byElement.equal(
-                [5, 5, 5, 
-                7, 9, 9, 
-                7, 9, 9]));
+
+    auto imvalues = [1, 20, 3, 54, 5, 643, 7, 80, 9].sliced(3, 3);
+    assert(imvalues.medianFilter!neumann(3).byElement.equal([5, 5, 5, 7, 9, 9, 7, 9, 9]));
 }
 
 unittest
 {
     import std.algorithm : equal;
-    auto imvalues = [1, 20, 3,  43, 65, 76,  12, 5, 7,
-                     54, 5, 643,  12, 54, 76,  15, 68, 9,
-                     65, 87, 17,  38, 0, 12,  21, 5, 7].sliced(3, 3, 3);
-    assert(imvalues.medianFilter!neumann(3).byElement.equal(
-                    [12, 20, 76,  12, 20, 9,  12, 54, 9, 
-                    43, 20, 17,  21, 20, 12,  15, 5, 9, 
-                    54, 54, 17,  38, 5, 12,  21, 5, 9]));
+
+    auto imvalues = [1, 20, 3, 43, 65, 76, 12, 5, 7, 54, 5, 643, 12, 54, 76, 15, 68, 9, 65, 87,
+        17, 38, 0, 12, 21, 5, 7].sliced(3, 3, 3);
+    assert(imvalues.medianFilter!neumann(3).byElement.equal([12, 20, 76, 12, 20, 9, 12, 54, 9, 43,
+            20, 17, 21, 20, 12, 15, 5, 9, 54, 54, 17, 38, 5, 12, 21, 5, 9]));
 }
 
 private:
@@ -844,11 +838,11 @@ void medianFilterImpl1(alias bc, T, O)(Slice!(1, T*) slice, Slice!(1, O*) filter
 
     auto kernelStorage = taskPool.workerLocalStorage(new T[kernelSize]);
 
-    foreach(i; iota(length).parallel)
+    foreach (i; iota(length).parallel)
     {
         auto kernel = kernelStorage.get();
         ulong ki = 0;
-        foreach(ii; i - kh .. i + kh + 1)
+        foreach (ii; i - kh .. i + kh + 1)
         {
             kernel[ki++] = bc(slice, ii);
         }
@@ -860,22 +854,22 @@ void medianFilterImpl1(alias bc, T, O)(Slice!(1, T*) slice, Slice!(1, O*) filter
 void medianFilterImpl2(alias bc, T, O)(Slice!(2, T*) slice, Slice!(2, O*) filtered, ulong kernelSize)
 {
     int kh = max(1, cast(int)kernelSize / 2);
-    int n = cast(int)kernelSize^^2;
+    int n = cast(int)kernelSize ^^ 2;
     int m = n / 2;
     int rows = cast(int)slice.length!0;
     int cols = cast(int)slice.length!1;
 
-    auto kernelStorage = taskPool.workerLocalStorage(new T[kernelSize^^2]);
+    auto kernelStorage = taskPool.workerLocalStorage(new T[kernelSize ^^ 2]);
 
-    foreach(r; iota(rows).parallel)
+    foreach (r; iota(rows).parallel)
     {
-        foreach(c; 0 .. cols)
+        foreach (c; 0 .. cols)
         {
             auto kernel = kernelStorage.get();
             ulong i = 0;
-            foreach(rr; r - kh .. r + kh + 1)
+            foreach (rr; r - kh .. r + kh + 1)
             {
-                foreach(cc; c - kh .. c + kh + 1)
+                foreach (cc; c - kh .. c + kh + 1)
                 {
                     kernel[i++] = bc(slice, rr, cc);
                 }
@@ -888,9 +882,8 @@ void medianFilterImpl2(alias bc, T, O)(Slice!(2, T*) slice, Slice!(2, O*) filter
 
 void medianFilterImpl3(alias bc, T, O)(Slice!(3, T*) slice, Slice!(3, O*) filtered, ulong kernelSize)
 {
-    foreach(channel; 0 .. slice.length!2)
+    foreach (channel; 0 .. slice.length!2)
     {
         medianFilterImpl2!bc(slice[0 .. $, 0 .. $, channel], filtered[0 .. $, 0 .. $, channel], kernelSize);
     }
 }
-
