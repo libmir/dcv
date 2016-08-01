@@ -79,15 +79,32 @@ Slice!(3, <span style="color: #2b91af">float</span>*) imslice = img
 <div class="sourceCode"><pre class="sourceCode d"><code class="sourceCode d"><span class="dv">0</span>  <span class="dv">1</span>  <span class="dv">0</span>
 <span class="dv">1</span> -<span class="dv">4</span>  <span class="dv">1</span>
 <span class="dv">0</span>  <span class="dv">1</span>  <span class="dv">0</span></code></pre></div>
-<h4 id="result">Result</h4>
 <div class="figure">
 <img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/filter/result/laplace.png?raw=true" alt="alt tag" />
 </div>
 <h3 id="laplacian-of-gaussian">Laplacian Of Gaussian</h3>
 <p>LoG operator function creates an kernel by <a href="http://homepages.inf.ed.ac.uk/rbf/HIPR2/log.htm">LoG formula</a>, and normalize it so it’s sum is 0.</p>
-<h4 id="result-1">Result</h4>
 <div class="figure">
 <img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/filter/result/log.png?raw=true" alt="alt tag" />
+</div>
+<br>
+<h3 id="bilateral">Bilateral Filtering</h3>
+<p>Also, bilateral filtering method is presented, to help with edge-preserving blurring. If we apply <code>bilateralFilter</code>
+function from DCV to the input image, we get the following result:</p>
+<div class="figure">
+<img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/filter/result/bilateralBlur.png?raw=true" alt="alt tag" />
+</div>
+<br>
+<h3 id="median">Median Filtering</h3>
+<p>Median filter can also be used as edge-preserving blur, but also as most trivial mechanism to remove signal 
+noise, such as salt and pepper noise. Take following image as example, which has certain amount of salt and pepper noise applied to its green channel:</p>
+<div class="figure">
+<img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/filter/result/noisyImage.png?raw=true" alt="alt tag" />
+</div>
+<br>
+<p>If median blurring is applied to it, with kernel width of 5, we get following result:</p>
+<div class="figure">
+<img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/filter/result/medianFilter.png?raw=true" alt="alt tag" />
 </div>
 <br>
 <h3>Canny Edge Detection</h3>
@@ -99,7 +116,8 @@ Slice!(3, <span style="color: #2b91af">float</span>*) imslice = img
 <img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/filter/result/cannyedges.png?raw=true" alt="alt tag" />
 </div>
 <br><br><span><big>Complete code:</big></span>
-<div ><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">module</span> dcv.example.convolution;
+<div><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">module</span> dcv.example.convolution;
+
 <span style="color: #008000">/** </span>
 <span style="color: #008000"> * Spatial image filtering example using dcv library.</span>
 <span style="color: #008000"> */</span>
@@ -114,22 +132,22 @@ Slice!(3, <span style="color: #2b91af">float</span>*) imslice = img
 <span style="color: #0000ff">import</span> dcv.core : Image, asType, ranged, ImageFormat;
 <span style="color: #0000ff">import</span> dcv.io : imread, imwrite;
 <span style="color: #0000ff">import</span> dcv.imgproc;
+<span style="color: #0000ff">import</span> dcv.plot;
 
-
-<span style="color: #2b91af">int</span> main(string[] args) {
-
+<span style="color: #2b91af">int</span> main(string[] args)
+{
     string impath = (args.length &lt; 2) ? <span style="color: #a31515">&quot;../data/lena.png&quot;</span> : args[1];
 
     Image img = imread(impath); <span style="color: #008000">// read an image from filesystem.</span>
 
-    <span style="color: #0000ff">if</span> (img.empty) { <span style="color: #008000">// check if image is properly read.</span>
+    <span style="color: #0000ff">if</span> (img.empty)
+    { <span style="color: #008000">// check if image is properly read.</span>
         writeln(<span style="color: #a31515">&quot;Cannot read image at: &quot;</span> ~ impath);
         <span style="color: #0000ff">return</span> 1;
     }
 
-    Slice!(3, <span style="color: #2b91af">float</span>*) imslice = img
-        .asType!<span style="color: #2b91af">float</span> <span style="color: #008000">// convert Image data type from ubyte to float</span>
-            .sliced!<span style="color: #2b91af">float</span>; <span style="color: #008000">// slice image data - calls img.data!float.sliced(img.height, img.width, img.channels)</span>
+    Slice!(3, <span style="color: #2b91af">float</span>*) imslice = img.asType!<span style="color: #2b91af">float</span> <span style="color: #008000">// convert Image data type from ubyte to float</span>
+    .sliced!<span style="color: #2b91af">float</span>; <span style="color: #008000">// slice image data - calls img.data!float.sliced(img.height, img.width, img.channels)</span>
 
     <span style="color: #0000ff">auto</span> gray = imslice.rgb2gray; <span style="color: #008000">// convert rgb image to grayscale</span>
 
@@ -144,22 +162,56 @@ Slice!(3, <span style="color: #2b91af">float</span>*) imslice = img
     <span style="color: #0000ff">auto</span> laplaceEdges = gray.conv(laplacianKernel);
     <span style="color: #0000ff">auto</span> logEdges = gray.conv(logKernel);
 
+
     <span style="color: #008000">// calculate canny edges</span>
     <span style="color: #0000ff">auto</span> cannyEdges = gray.canny!<span style="color: #2b91af">ubyte</span>(75);
+
+    <span style="color: #008000">// perform bilateral blurring</span>
+    <span style="color: #0000ff">auto</span> bilBlur = imslice.bilateralFilter(10.0f, 5);
+
+    <span style="color: #008000">// Add salt and pepper noise at input image green channel</span>
+    <span style="color: #0000ff">auto</span> noisyImage = imslice.byElement.array.sliced(imslice.shape);
+    <span style="color: #0000ff">auto</span> saltNPepperNoise = noisyImage[0 .. $, 0 .. $, 1].saltNPepper(0.15f);
+    <span style="color: #008000">// ... and perform median blurring on noisy image</span>
+    <span style="color: #0000ff">auto</span> medBlur = noisyImage.medianFilter(5);
+
     <span style="color: #008000">// scale values from 0 to 255 to preview gradient direction and magnitude</span>
     xgrads = xgrads.byElement.ranged(0, 255).array.sliced(xgrads.shape);
-
     <span style="color: #008000">// Take absolute values and range them from 0 to 255, to preview edges</span>
     laplaceEdges = laplaceEdges.byElement.map!(a =&gt; fabs(a)).ranged(0, 255).array.sliced(laplaceEdges.shape);
     logEdges = logEdges.byElement.map!(a =&gt; fabs(a)).ranged(0, 255).array.sliced(logEdges.shape);
 
-    <span style="color: #008000">// write resulting images on the filesystem.</span>
-    blur.asType!<span style="color: #2b91af">ubyte</span>.imwrite(ImageFormat.IF_RGB, <span style="color: #a31515">&quot;./result/outblur.png&quot;</span>);
-    xgrads.asType!<span style="color: #2b91af">ubyte</span>.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;./result/sobel.png&quot;</span>);
-    laplaceEdges.asType!<span style="color: #2b91af">ubyte</span>.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;./result/laplace.png&quot;</span>);
-    logEdges.asType!<span style="color: #2b91af">ubyte</span>.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;./result/log.png&quot;</span>);
-    cannyEdges.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;./result/cannyedges.png&quot;</span>);
+    <span style="color: #008000">// Show images on screen</span>
+    img.imshow(<span style="color: #a31515">&quot;Original&quot;</span>);
+    bilBlur.imshow(<span style="color: #a31515">&quot;Bilateral Blurring&quot;</span>);
+    noisyImage.imshow(<span style="color: #a31515">&quot;Salt and Pepper noise at green channel for Median&quot;</span>);
+    medBlur.imshow(<span style="color: #a31515">&quot;Median Blurring&quot;</span>);
+    blur.imshow(<span style="color: #a31515">&quot;Gaussian Blurring&quot;</span>);
+    xgrads.imshow(<span style="color: #a31515">&quot;Sobel X&quot;</span>);
+    laplaceEdges.imshow(<span style="color: #a31515">&quot;Laplace&quot;</span>);
+    logEdges.imshow(<span style="color: #a31515">&quot;Laplacian of Gaussian&quot;</span>);
+    cannyEdges.imshow(<span style="color: #a31515">&quot;Canny Edges&quot;</span>);
+
+    waitKey();
 
     <span style="color: #0000ff">return</span> 0;
+}
+
+Slice!(2, T*) saltNPepper(T)(Slice!(2, T*) slice, <span style="color: #2b91af">float</span> saturation) 
+{
+    <span style="color: #0000ff">import</span> std.range, std.random;
+
+    <span style="color: #2b91af">ulong</span> pixelCount = slice.length!0*slice.length!1;
+    <span style="color: #2b91af">ulong</span> noisyPixelCount = <span style="color: #0000ff">cast</span>(<span style="color: #0000ff">typeof</span>(pixelCount))(pixelCount * saturation);
+
+    <span style="color: #0000ff">auto</span> noisyPixels = noisyPixelCount.iota.map!(x =&gt; uniform(0, pixelCount)).array;
+    <span style="color: #0000ff">auto</span> imdata = slice.reshape(pixelCount);
+
+    <span style="color: #0000ff">foreach</span>(salt, pepper; lockstep(noisyPixels[0 .. $ / 2], noisyPixels[$ / 2 .. $]))
+    {
+        imdata[salt] = <span style="color: #0000ff">cast</span>(T)255;
+        imdata[pepper] = <span style="color: #0000ff">cast</span>(T)0;
+    }
+    <span style="color: #0000ff">return</span> slice;
 }
 </pre></div>
