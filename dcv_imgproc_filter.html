@@ -26,6 +26,8 @@ Relja Ljubobratovic
             <a href="#canny">canny</a>
             <a href="#bilateralFilter">bilateralFilter</a>
             <a href="#medianFilter">medianFilter</a>
+            <a href="#calcHistogram">calcHistogram</a>
+            <a href="#histEqual">histEqual</a>
     </dd>
 </dl><br><br>
 
@@ -227,6 +229,49 @@ Slice of filtered image.<br><br>
 Returns filtered image of same size as the input. If <i>prealloc</i> parameter is not an empty <i>slice</i>, and is
     of same size as input <i>slice</i>, return value is assigned to <i>prealloc</i> buffer. If not, newly allocated buffer
     is used.<br><br>
+
+</dd>
+<dt><big><a name="calcHistogram"></a>HistogramType <u id="calcHistogram">calcHistogram</u>(Range, HistogramType = int[(ElementType!Range).max + 1])(Range <i>range</i>) if (isForwardRange!Range &amp;&amp; (isDynamicArray!HistogramType || isStaticArray!HistogramType));
+</big></dt>
+<dd>Calculate <i>range</i> value histogram.
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>HistogramType</td>
+<td>(template parameter) Histogram type. Valued types are static and dynamic arrays.
+    Most commonly is 32 bit integer static array of size T.max + 1, where T is element type of input <i>range</i>.</td></tr>
+<tr><td>Range <i>range</i></td>
+<td>Input forward <i>range</i>, for which histogram is calculated.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Histogram for given forward <i>range</i>.<br><br>
+
+</dd>
+<dt><big><a name="histEqual"></a>Slice!(N, T*) <u id="histEqual">histEqual</u>(T, HistogramType, size_t N)(Slice!(N, T*) <i>slice</i>, HistogramType <i>histogram</i>, Slice!(N, T*) <i>prealloc</i> = emptySlice!(N, T));
+</big></dt>
+<dd>Histogram Equalization.
+<br><br>
+Equalize <i>histogram</i> of given image <i>slice</i>. Slice can be 2D for grayscale, and 3D for color images.
+If 3D <i>slice</i> is given, <i>histogram</i> is applied separatelly for each channel.
+
+<br><br>
+<b>Note:</b><br>
+For more valid color <i>histogram</i> equalization results, try converting image to HSV color model
+    to perform equalization for V channel, <a href="https://en.wikipedia.org/wiki/Histogram_equalization#Histogram_equalization_of_color_images">to alter the color as less as possible</a>.
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Histogram</td>
+<td>(template parameter) Histogram type, see calcHistogram function for details.
+    larger integer value type, and T is value type of input image <i>slice</i>.</td></tr>
+<tr><td>Slice!(N, T*) <i>slice</i></td>
+<td>Input image <i>slice</i>.</td></tr>
+<tr><td>HistogramType <i>histogram</i></td>
+<td>Histogram values for input image <i>slice</i>.</td></tr>
+<tr><td>Slice!(N, T*) <i>prealloc</i></td>
+<td>Optional pre-allocated buffer where equalized image is saved.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Copy of input image <i>slice</i> with its <i>histogram</i> values equalized.<br><br>
 
 </dd>
 </dl>
