@@ -874,6 +874,29 @@ Histogram Equalization.
 Equalize histogram of given image slice. Slice can be 2D for grayscale, and 3D for color images.
 If 3D slice is given, histogram is applied separatelly for each channel.
 
+Example:
+----
+import dcv.core, dcv.io, dcv.imgproc, dcv.plot;
+
+void main()
+{
+    Image image = imread("dcv/examples/data/lena.png");
+
+    auto slice = image.sliced.rgb2gray;
+    auto equalized = slice.histEqual(slice.byElement.calcHistogram);
+
+    slice.imshow("Original");
+    equalized.imshow("Equalized");
+
+    waitKey();
+}
+----
+
+Example code will equalize grayscale Lena image, from this:
+$(IMAGE https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/lena.png?raw=true)
+... to this:
+$(IMAGE https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/histEqualExample.png?raw=true)
+
 Note:
     For more valid color histogram equalization results, try converting image to HSV color model
     to perform equalization for V channel, $(LINK2 https://en.wikipedia.org/wiki/Histogram_equalization#Histogram_equalization_of_color_images,to alter the color as less as possible).
