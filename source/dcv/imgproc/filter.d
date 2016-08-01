@@ -26,6 +26,7 @@ $(DL Module contains:
             $(LINK2 #canny,canny)
             $(LINK2 #bilateralFilter,bilateralFilter)
             $(LINK2 #medianFilter,medianFilter)
+            $(LINK2 #calcHistogram,calcHistogram)
             $(LINK2 #histEqual,histEqual)
     )
 )
@@ -36,8 +37,9 @@ module dcv.imgproc.filter;
 
 import std.experimental.ndslice;
 
-import std.traits : allSameType, allSatisfy, isFloatingPoint, isNumeric;
-import std.range : iota, array, lockstep;
+import std.traits : allSameType, allSatisfy, isFloatingPoint, isNumeric, isDynamicArray,
+    isStaticArray;
+import std.range : iota, array, lockstep, ElementType, isForwardRange;
 import std.exception : enforce;
 import std.math : abs, PI, floor, exp, pow;
 import std.algorithm.iteration : map, sum, each, reduce;
@@ -827,17 +829,57 @@ unittest
 }
 
 /**
+Calculate range value histogram.
+
+Params:
+    HistogramType = (template parameter) Histogram type. Valued types are static and dynamic arrays.
+    Most commonly is 32 bit integer static array of size T.max + 1, where T is element type of input range.
+    range = Input forward range, for which histogram is calculated.
+
+Returns:
+    Histogram for given forward range.
+*/
+HistogramType calcHistogram(Range, HistogramType = int[(ElementType!Range).max + 1])(Range range)
+        if (isForwardRange!Range && (isDynamicArray!HistogramType || isStaticArray!HistogramType))
+in
+{
+    static if (isStaticArray!HistogramType)
+    {
+        static assert(HistogramType.init.length == (ElementType!Range.max + 1),
+                "Invalid histogram size - if given histogram type is static array, it has to be of lenght T.max + 1");
+    }
+}
+body
+{
+    alias ValueType = ElementType!Range;
+
+    HistogramType histogram;
+    static if (isDynamicArray!HistogramType)
+    {
+        histogram.lenght = ValueType.max + 1;
+    }
+    histogram[] = cast(ElementType!HistogramType)0;
+
+    foreach (v; range)
+    {
+        histogram[cast(ulong)v]++;
+    }
+
+    return histogram;
+}
+
+/**
 Histogram Equalization.
 
 Equalize histogram of given image slice. Slice can be 2D for grayscale, and 3D for color images.
 If 3D slice is given, histogram is applied separatelly for each channel.
 
 Note:
-    For more valid color histogram equalization results, type converting image to HSV color model
-    and afterwards perform equalization for V or S channel, to alter the color as less as possible.
+    For more valid color histogram equalization results, try converting image to HSV color model
+    to perform equalization for V channel, $(LINK2 https://en.wikipedia.org/wiki/Histogram_equalization#Histogram_equalization_of_color_images,to alter the color as less as possible).
 
 Params:
-    Histogram = (template parameter) Histogram type, most commonly would be V[T.max + 1], where V is 32bit and 
+    Histogram = (template parameter) Histogram type, see calcHistogram function for details.
     larger integer value type, and T is value type of input image slice.
     slice = Input image slice.
     histogram = Histogram values for input image slice.
@@ -846,13 +888,15 @@ Params:
 Returns:
     Copy of input image slice with its histogram values equalized.
 */
-Slice!(N, T*) histEqual(T, Histogram, size_t N)(Slice!(N, T*) slice, Histogram histogram,
+Slice!(N, T*) histEqual(T, HistogramType, size_t N)(Slice!(N, T*) slice, HistogramType histogram,
         Slice!(N, T*) prealloc = emptySlice!(N, T))
 in
 {
-    assert(histogram.length == T.max + 1,
-            "Histogram size is invalid - should be of length N, where N is maximum value for input slice element type.");
     assert(!slice.empty());
+    static if (isDynamicArray!HistogramType)
+    {
+        assert(histogram.length == T.max + 1, "Invalid histogram length.");
+    }
 }
 body
 {
