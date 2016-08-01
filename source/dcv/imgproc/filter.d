@@ -26,6 +26,7 @@ $(DL Module contains:
             $(LINK2 #canny,canny)
             $(LINK2 #bilateralFilter,bilateralFilter)
             $(LINK2 #medianFilter,medianFilter)
+            $(LINK2 #histEqual,histEqual)
     )
 )
 
@@ -825,6 +826,72 @@ unittest
             20, 17, 21, 20, 12, 15, 5, 9, 54, 54, 17, 38, 5, 12, 21, 5, 9]));
 }
 
+/**
+Histogram Equalization.
+
+Equalize histogram of given image slice. Slice can be 2D for grayscale, and 3D for color images.
+If 3D slice is given, histogram is applied separatelly for each channel.
+
+Note:
+    For more valid color histogram equalization results, type converting image to HSV color model
+    and afterwards perform equalization for V or S channel, to alter the color as less as possible.
+
+Params:
+    Histogram = (template parameter) Histogram type, most commonly would be V[T.max + 1], where V is 32bit and 
+    larger integer value type, and T is value type of input image slice.
+    slice = Input image slice.
+    histogram = Histogram values for input image slice.
+    prealloc = Optional pre-allocated buffer where equalized image is saved.
+
+Returns:
+    Copy of input image slice with its histogram values equalized.
+*/
+Slice!(N, T*) histEqual(T, Histogram, size_t N)(Slice!(N, T*) slice, Histogram histogram,
+        Slice!(N, T*) prealloc = emptySlice!(N, T))
+in
+{
+    assert(histogram.length == T.max + 1,
+            "Histogram size is invalid - should be of length N, where N is maximum value for input slice element type.");
+    assert(!slice.empty());
+}
+body
+{
+    import std.array : uninitializedArray;
+
+    int n = cast(int)slice.shape.reduce!"a*b"; // number of pixels in image.
+    immutable tmax = cast(int)T.max; // maximal possible value for pixel value type.
+
+    // The probability of an occurrence of a pixel of level i in the image
+    float[tmax + 1] cdf;
+
+    cdf[0] = cast(float)histogram[0] / cast(float)n;
+    foreach (i; 1 .. tmax + 1)
+    {
+        cdf[i] = cdf[i - 1] + cast(float)histogram[i] / cast(float)n;
+    }
+
+    if (prealloc.shape != slice.shape)
+        prealloc = uninitializedArray!(T[])(slice.shape.reduce!"a*b").sliced(slice.shape);
+
+    static if (N == 2)
+    {
+        histEqualImpl(slice, cdf, prealloc);
+    }
+    else static if (N == 3)
+    {
+        foreach (c; 0 .. slice.length!2)
+        {
+            histEqualImpl(slice[0 .. $, 0 .. $, c], cdf, prealloc[0 .. $, 0 .. $, c]);
+        }
+    }
+    else
+    {
+        static assert(0, "Invalid dimension for histogram equalization. Only 2D and 3D slices supported.");
+    }
+
+    return prealloc;
+}
+
 private:
 
 void medianFilterImpl1(alias bc, T, O)(Slice!(1, T*) slice, Slice!(1, O*) filtered, ulong kernelSize)
@@ -885,5 +952,15 @@ void medianFilterImpl3(alias bc, T, O)(Slice!(3, T*) slice, Slice!(3, O*) filter
     foreach (channel; 0 .. slice.length!2)
     {
         medianFilterImpl2!bc(slice[0 .. $, 0 .. $, channel], filtered[0 .. $, 0 .. $, channel], kernelSize);
+    }
+}
+
+void histEqualImpl(T, Cdf)(Slice!(2, T*) slice, Cdf cdf, Slice!(2, T*) prealloc = emptySlice!(2, T))
+{
+    import std.range : lockstep;
+
+    foreach (ref o, i; lockstep(prealloc.byElement, slice.byElement))
+    {
+        o = cast(T)(i * cdf[i]);
     }
 }
