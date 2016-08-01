@@ -102,8 +102,9 @@ Figure figure(string title = "")
         if (_figures.length != 0)
         {
             auto p = _figures[$ - 1].position;
+            immutable typeof(p[0]) offset = 30;
             // TODO: figure out smarter window cascading.
-            f.move(50, 50);
+            f.moveTo(p[0] + offset, p[1] + offset);
         }
 
         _figures ~= f;
