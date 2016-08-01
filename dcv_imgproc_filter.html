@@ -237,8 +237,8 @@ Returns filtered image of same size as the input. If <i>prealloc</i> parameter i
 <br><br>
 <b>Params:</b><br>
 <table><tr><td>HistogramType</td>
-<td>(template parameter) Histogram type. Valued types are static and dynamic arrays.
-    Most commonly is 32 bit integer static array of size T.max + 1, where T is element type of input <i>range</i>.</td></tr>
+<td>(template parameter) Histogram type. Can be static or dynamic array, most commonly
+    of 32 bit integer, of size T.max + 1, where T is element type of input <i>range</i>.</td></tr>
 <tr><td>Range <i>range</i></td>
 <td>Input forward <i>range</i>, for which histogram is calculated.</td></tr>
 </table><br>
@@ -254,6 +254,34 @@ Equalize <i>histogram</i> of given image <i>slice</i>. Slice can be 2D for grays
 If 3D <i>slice</i> is given, <i>histogram</i> is applied separatelly for each channel.
 
 <br><br>
+<b>Example:</b><br>
+<pre class="d_code"><font color=blue>import</font> dcv.core, dcv.io, dcv.imgproc, dcv.plot;
+
+<font color=blue>void</font> main()
+{
+    Image image = imread(<font color=red>"dcv/examples/data/lena.png"</font>);
+
+    <font color=blue>auto</font> <i>slice</i> = image.sliced.rgb2gray;
+    <font color=blue>auto</font> equalized = <i>slice</i>.<u id="histEqual">histEqual</u>(<i>slice</i>.byElement.calcHistogram);
+
+    <i>slice</i>.imshow(<font color=red>"Original"</font>);
+    equalized.imshow(<font color=red>"Equalized"</font>);
+
+    waitKey();
+}
+</pre>
+Example code will equalize grayscale Lena image, from this:
+<br><br>
+
+<img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/lena_gray.png?raw=true"/>
+<br><br>
+
+... to this:
+<br><br>
+
+<img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/histEqualExample.png?raw=true"/>
+
+<br><br>
 <b>Note:</b><br>
 For more valid color <i>histogram</i> equalization results, try converting image to HSV color model
     to perform equalization for V channel, <a href="https://en.wikipedia.org/wiki/Histogram_equalization#Histogram_equalization_of_color_images">to alter the color as less as possible</a>.
@@ -261,8 +289,7 @@ For more valid color <i>histogram</i> equalization results, try converting image
 <br><br>
 <b>Params:</b><br>
 <table><tr><td>Histogram</td>
-<td>(template parameter) Histogram type, see calcHistogram function for details.
-    larger integer value type, and T is value type of input image <i>slice</i>.</td></tr>
+<td>(template parameter) Histogram type, see <a href="#calcHistogram">calcHistogram</a> function for details.</td></tr>
 <tr><td>Slice!(N, T*) <i>slice</i></td>
 <td>Input image <i>slice</i>.</td></tr>
 <tr><td>HistogramType <i>histogram</i></td>
