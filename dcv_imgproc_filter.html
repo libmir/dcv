@@ -11,6 +11,8 @@ Relja Ljubobratovic
 
 <dl>Module contains:
     <dd>            <big>Filter kernel generators: </big>
+            <a href="#boxKernel">boxKernel</a>
+            <a href="#radianKernel">radianKernel</a>
             <a href="#gaussian">gaussian</a>
             <a href="#laplacian">laplacian</a>
             <a href="#laplacianOfGaussian">laplacianOfGaussian</a>
@@ -28,10 +30,54 @@ Relja Ljubobratovic
             <a href="#medianFilter">medianFilter</a>
             <a href="#calcHistogram">calcHistogram</a>
             <a href="#histEqual">histEqual</a>
+            <a href="#erode">erode</a>
+            <a href="#dilate">dilate</a>
+            <a href="#open">open</a>
+            <a href="#close">close</a>
     </dd>
 </dl><br><br>
 
-<dl><dt><big><a name="gaussian"></a>pure Slice!(2, V*) <u id="gaussian">gaussian</u>(V = real)(real <i>sigma</i>, size_t <i>width</i>, size_t <i>height</i>);
+<dl><dt><big><a name="boxKernel"></a>Slice!(2, T*) <u id="boxKernel">boxKernel</u>(T)(ulong <i>rows</i>, ulong <i>cols</i>, T <i>value</i> = 1);
+<br>Slice!(2, T*) <u id="boxKernel">boxKernel</u>(T)(ulong <i>size</i>, T <i>value</i> = 1);
+</big></dt>
+<dd>Box kernel creation.
+<br><br>
+Creates square kernel of given <i>size</i>, filled with given <i>value</i>.
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>ulong <i>rows</i></td>
+<td>Rows, or height of kernel.</td></tr>
+<tr><td>ulong <i>cols</i></td>
+<td>Columns, or width of kernel.</td></tr>
+<tr><td>T <i>value</i></td>
+<td>Value of elements in the kernel.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Kernel of <i>size</i> [<i>rows</i>, <i>cols</i>], filled with given <i>value</i>.<br><br>
+
+</dd>
+<dt><big><a name="radialKernel"></a>Slice!(2, T*) <u id="radialKernel">radialKernel</u>(T)(ulong <i>radius</i>, T <i>foreground</i> = 1, T <i>background</i> = 0);
+</big></dt>
+<dd>Radial kernel creation.
+<br><br>
+Creates square kernel of given <i>radius</i> as edge length, with given values.
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>ulong <i>radius</i></td>
+<td>Radius of kernel. Pixels in kernel with distance to center lesser than
+             <i>radius</i> will have value of <i>foreground</i>, other pixels will have value of <i>background</i>.</td></tr>
+<tr><td>T <i>foreground</i></td>
+<td>Foreground kernel values, or in the given <i>radius</i> (circle). Default is 1.</td></tr>
+<tr><td>T <i>background</i></td>
+<td>Background kernel values, or out of the given <i>radius</i> (circle). Default is 0.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Kernel of size [<i>radius</i>, <i>radius</i>], filled with given values.<br><br>
+
+</dd>
+<dt><big><a name="gaussian"></a>pure Slice!(2, V*) <u id="gaussian">gaussian</u>(V = real)(real <i>sigma</i>, size_t <i>width</i>, size_t <i>height</i>);
 </big></dt>
 <dd>Instantiate 2D <u id="gaussian">gaussian</u> kernel.<br><br>
 
@@ -299,6 +345,170 @@ For more valid color <i>histogram</i> equalization results, try converting image
 </table><br>
 <b>Returns:</b><br>
 Copy of input image <i>slice</i> with its <i>histogram</i> values equalized.<br><br>
+
+</dd>
+<dt><big><a name="erode"></a>Slice!(2, T*) <u id="erode">erode</u>(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) <i>slice</i>, Slice!(2, T*) <i>kernel</i> = radialKernel!T(3), Slice!(2, T*) <i>prealloc</i> = emptySlice!(2, T)) if (isBoundaryCondition!BoundaryConditionTest);
+</big></dt>
+<dd>Perform morphological <a target="_blank" href="https://en.wikipedia.org/wiki/Erosion_(morphology)">erosion</a>.
+<br><br>
+Use given <i>kernel</i> matrix to estimate image erosion for given image <i>slice</i>. Given <i>slice</i> is
+considered to be binarized with <a href="#threshold">threshold</a> method.
+<br><br>
+
+For given input <i>slice</i>:
+<pre class="d_code">1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 0 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+</pre>
+... And erosion <i>kernel</i> of:
+<pre class="d_code">1 1 1
+1 1 1
+1 1 1
+</pre>
+... Resulting <i>slice</i> is:
+<pre class="d_code">0 0 0 0 0 0 0 0 0 0 0 0 0
+0 1 1 1 1 0 0 0 1 1 1 1 0
+0 1 1 1 1 0 0 0 1 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 1 1 0
+0 0 0 0 0 0 0 0 0 0 0 0 0
+</pre>
+
+<br><br>
+<b>Note:</b><br>
+Erosion works only for 2D binary images.
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Slice!(2, T*) <i>slice</i></td>
+<td>Input image <i>slice</i>, to be eroded.</td></tr>
+<tr><td>Slice!(2, T*) <i>kernel</i></td>
+<td>Erosion <i>kernel</i>. Default value is radialKernel!T(3).</td></tr>
+<tr><td>Slice!(2, T*) <i>prealloc</i></td>
+<td>Optional pre-allocated buffer to hold result.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Eroded image <i>slice</i>, of same type as input image.<br><br>
+
+</dd>
+<dt><big><a name="dilate"></a>Slice!(2, T*) <u id="dilate">dilate</u>(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) <i>slice</i>, Slice!(2, T*) <i>kernel</i> = radialKernel!T(3), Slice!(2, T*) <i>prealloc</i> = emptySlice!(2, T)) if (isBoundaryCondition!BoundaryConditionTest);
+</big></dt>
+<dd>Perform morphological <a target="_blank" href="https://en.wikipedia.org/wiki/Dilation_(morphology)">dilation</a>.
+<br><br>
+Use given <i>kernel</i> matrix to estimate image dilation for given image <i>slice</i>. Given <i>slice</i> is
+considered to be binarized with <a href="#threshold">threshold</a> method.
+<br><br>
+
+For given input <i>slice</i>:
+<pre class="d_code">0 0 0 0 0 0 0 0 0 0 0
+0 1 1 1 1 0 0 1 1 1 0
+0 1 1 1 1 0 0 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 0
+0 1 1 0 0 0 1 1 1 1 0
+0 1 1 0 0 0 1 1 1 1 0
+0 1 1 0 0 0 1 1 1 1 0
+0 1 1 1 1 1 1 1 0 0 0
+0 1 1 1 1 1 1 1 0 0 0
+0 0 0 0 0 0 0 0 0 0 0
+</pre>
+... And dilation <i>kernel</i> of:
+<pre class="d_code">1 1 1
+1 1 1
+1 1 1
+</pre>
+... Resulting <i>slice</i> is:
+<pre class="d_code">1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 0 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 0 0
+1 1 1 1 1 1 1 1 1 0 0
+</pre>
+
+<br><br>
+<b>Note:</b><br>
+Dilation works only for 2D binary images.
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Slice!(2, T*) <i>slice</i></td>
+<td>Input image <i>slice</i>, to be eroded.</td></tr>
+<tr><td>Slice!(2, T*) <i>kernel</i></td>
+<td>Dilation <i>kernel</i>. Default value is radialKernel!T(3).</td></tr>
+<tr><td>Slice!(2, T*) <i>prealloc</i></td>
+<td>Optional pre-allocated buffer to hold result.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Dilated image <i>slice</i>, of same type as input image.<br><br>
+
+</dd>
+<dt><big><a name="open"></a>Slice!(2, T*) <u id="open">open</u>(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) <i>slice</i>, Slice!(2, T*) <i>kernel</i> = radialKernel!T(3), Slice!(2, T*) <i>prealloc</i> = emptySlice!(2, T)) if (isBoundaryCondition!BoundaryConditionTest);
+</big></dt>
+<dd>Perform morphological <a target="_blank" href="https://en.wikipedia.org/wiki/Opening_(morphology)">opening</a>.
+<br><br>
+Performs erosion, than on the resulting eroded image performs dilation.
+
+<br><br>
+<b>Note:</b><br>
+Opening works only for 2D binary images.
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Slice!(2, T*) <i>slice</i></td>
+<td>Input image <i>slice</i>, to be eroded.</td></tr>
+<tr><td>Slice!(2, T*) <i>kernel</i></td>
+<td>Erosion/Dilation <i>kernel</i>. Default value is radialKernel!T(3).</td></tr>
+<tr><td>Slice!(2, T*) <i>prealloc</i></td>
+<td>Optional pre-allocated buffer to hold result.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Opened image <i>slice</i>, of same type as input image.<br><br>
+
+</dd>
+<dt><big><a name="close"></a>Slice!(2, T*) <u id="close">close</u>(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) <i>slice</i>, Slice!(2, T*) <i>kernel</i> = radialKernel!T(3), Slice!(2, T*) <i>prealloc</i> = emptySlice!(2, T)) if (isBoundaryCondition!BoundaryConditionTest);
+</big></dt>
+<dd>Perform morphological <a target="_blank" href="https://en.wikipedia.org/wiki/Closing_(morphology)">closing</a>.
+<br><br>
+Performs dilation, than on the resulting dilated image performs erosion.
+
+<br><br>
+<b>Note:</b><br>
+Closing works only for 2D binary images.
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>Slice!(2, T*) <i>slice</i></td>
+<td>Input image <i>slice</i>, to be eroded.</td></tr>
+<tr><td>Slice!(2, T*) <i>kernel</i></td>
+<td>Erosion/Dilation <i>kernel</i>. Default value is radialKernel!T(3).</td></tr>
+<tr><td>Slice!(2, T*) <i>prealloc</i></td>
+<td>Optional pre-allocated buffer to hold result.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+Closed image <i>slice</i>, of same type as input image.<br><br>
 
 </dd>
 </dl>
