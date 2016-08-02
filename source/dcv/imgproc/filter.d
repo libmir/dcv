@@ -10,6 +10,8 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 $(DL Module contains:
     $(DD 
             $(BIG Filter kernel generators: )
+            $(LINK2 #boxKernel,boxKernel)
+            $(LINK2 #radianKernel,radianKernel)
             $(LINK2 #gaussian, gaussian)
             $(LINK2 #laplacian,laplacian)
             $(LINK2 #laplacianOfGaussian,laplacianOfGaussian)
@@ -51,6 +53,86 @@ import std.parallelism : parallel, taskPool;
 
 import dcv.core.algorithm;
 import dcv.core.utils;
+
+
+/**
+Box kernel creation.
+
+Creates square kernel of given size, filled with given value.
+
+Params:
+    rows = Rows, or height of kernel.
+    cols = Columns, or width of kernel.
+    value = Value of elements in the kernel.
+
+Returns:
+    Kernel of size [rows, cols], filled with given value.
+*/
+Slice!(2, T*) boxKernel(T)(ulong rows, ulong cols, T value = 1)
+in
+{
+    assert(rows > 1 && cols > 1, "Invalid kernel size - rows, and columns have to be larger than 1.");
+}
+body
+{
+    import std.range : repeat, take;
+    import std.array : array;
+
+    return value.repeat.take(rows * cols).array.sliced(rows, cols);
+}
+
+/// ditto
+Slice!(2, T*) boxKernel(T)(ulong size, T value = 1)
+in
+{
+    assert(size > 1, "Invalid kernel size - has to be larger than 1.");
+}
+body
+{
+    return boxKernel!T(size, size, value);
+}
+
+/**
+Radial kernel creation.
+
+Creates square kernel of given radius as edge length, with given values.
+
+Params:
+    radius = Radius of kernel. Pixels in kernel with distance to center lesser than
+             radius will have value of foreground, other pixels will have value of background.
+    foreground = Foreground kernel values, or in the given radius (circle). Default is 1.
+    background = Background kernel values, or out of the given radius (circle). Default is 0.
+
+Returns:
+    Kernel of size [radius, radius], filled with given values.
+*/
+Slice!(2, T*) radialKernel(T)(ulong radius, T foreground = 1, T background = 0)
+in
+{
+    assert(radius >= 3, "Radial dilation kernel has to be of larger radius than 3.");
+    assert(radius % 2 != 0, "Radial dilation kernel has to be of odd radius.");
+}
+body
+{
+    import std.range : repeat, take;
+    import std.math : sqrt;
+
+    auto kernel = new T[radius * radius].sliced(radius, radius);
+
+    auto rf = cast(float)radius;
+    auto mid = radius / 2;
+
+    foreach (r; 0 .. radius)
+    {
+        foreach (c; 0 .. radius)
+        {
+            auto distanceToCenter = sqrt(cast(float)((mid - r) ^^ 2 + (mid - c) ^^ 2));
+            kernel[r, c] = (distanceToCenter > mid) ? background : foreground;
+        }
+    }
+
+    return kernel;
+}
 
 /**
 Instantiate 2D gaussian kernel.
