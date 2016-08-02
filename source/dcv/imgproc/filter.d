@@ -30,6 +30,10 @@ $(DL Module contains:
             $(LINK2 #medianFilter,medianFilter)
             $(LINK2 #calcHistogram,calcHistogram)
             $(LINK2 #histEqual,histEqual)
+            $(LINK2 #erode,erode)
+            $(LINK2 #dilate,dilate)
+            $(LINK2 #open,open)
+            $(LINK2 #close,close)
     )
 )
 
@@ -40,7 +44,7 @@ module dcv.imgproc.filter;
 import std.experimental.ndslice;
 
 import std.traits : allSameType, allSatisfy, isFloatingPoint, isNumeric, isDynamicArray,
-    isStaticArray;
+    isStaticArray,isIntegral;
 import std.range : iota, array, lockstep, ElementType, isForwardRange;
 import std.exception : enforce;
 import std.math : abs, PI, floor, exp, pow;
@@ -1042,6 +1046,176 @@ body
     return prealloc;
 }
 
+/**
+Perform morphological $(LINK3 https://en.wikipedia.org/wiki/Erosion_(morphology),erosion).
+
+Use given kernel matrix to estimate image erosion for given image slice. Given slice is
+considered to be binarized with $(LINK2 #threshold, threshold) method.
+
+For given input slice:
+----
+1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 0 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1 1 1
+----
+... And erosion kernel of:
+----
+1 1 1
+1 1 1
+1 1 1
+----
+... Resulting slice is:
+----
+0 0 0 0 0 0 0 0 0 0 0 0 0
+0 1 1 1 1 0 0 0 1 1 1 1 0
+0 1 1 1 1 0 0 0 1 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 1 1 0
+0 0 0 0 0 0 0 0 0 0 0 0 0
+----
+
+Note:
+    Erosion works only for 2D binary images.
+
+Params:
+    slice = Input image slice, to be eroded.
+    kernel = Erosion kernel. Default value is radialKernel!T(3).
+    prealloc = Optional pre-allocated buffer to hold result.
+    
+Returns:
+    Eroded image slice, of same type as input image.
+*/
+Slice!(2, T*) erode(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) slice,
+        Slice!(2, T*) kernel = radialKernel!T(3), Slice!(2, T*) prealloc = emptySlice!(2, T))
+        if (isBoundaryCondition!BoundaryConditionTest)
+{
+    return morphOp!(MorphologicOperation.ERODE, BoundaryConditionTest)(slice, kernel, prealloc);
+}
+
+/**
+Perform morphological $(LINK3 https://en.wikipedia.org/wiki/Dilation_(morphology),dilation).
+
+Use given kernel matrix to estimate image dilation for given image slice. Given slice is
+considered to be binarized with $(LINK2 #threshold, threshold) method.
+
+For given input slice:
+----
+0 0 0 0 0 0 0 0 0 0 0
+0 1 1 1 1 0 0 1 1 1 0
+0 1 1 1 1 0 0 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 0
+0 1 1 1 1 1 1 1 1 1 0
+0 1 1 0 0 0 1 1 1 1 0
+0 1 1 0 0 0 1 1 1 1 0
+0 1 1 0 0 0 1 1 1 1 0
+0 1 1 1 1 1 1 1 0 0 0
+0 1 1 1 1 1 1 1 0 0 0
+0 0 0 0 0 0 0 0 0 0 0
+----
+... And dilation kernel of:
+----
+1 1 1
+1 1 1
+1 1 1
+----
+... Resulting slice is:
+----
+1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 0 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 0 0
+1 1 1 1 1 1 1 1 1 0 0
+----
+
+Note:
+    Dilation works only for 2D binary images.
+
+Params:
+    slice = Input image slice, to be eroded.
+    kernel = Dilation kernel. Default value is radialKernel!T(3).
+    prealloc = Optional pre-allocated buffer to hold result.
+    
+Returns:
+    Dilated image slice, of same type as input image.
+*/
+Slice!(2, T*) dilate(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) slice,
+        Slice!(2, T*) kernel = radialKernel!T(3), Slice!(2, T*) prealloc = emptySlice!(2, T))
+        if (isBoundaryCondition!BoundaryConditionTest)
+{
+    return morphOp!(MorphologicOperation.DILATE, BoundaryConditionTest)(slice, kernel, prealloc);
+}
+
+/**
+Perform morphological $(LINK3 https://en.wikipedia.org/wiki/Opening_(morphology),opening).
+
+Performs erosion, than on the resulting eroded image performs dilation.
+
+Note:
+    Opening works only for 2D binary images.
+
+Params:
+    slice = Input image slice, to be eroded.
+    kernel = Erosion/Dilation kernel. Default value is radialKernel!T(3).
+    prealloc = Optional pre-allocated buffer to hold result.
+    
+Returns:
+    Opened image slice, of same type as input image.
+*/
+Slice!(2, T*) open(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) slice,
+        Slice!(2, T*) kernel = radialKernel!T(3), Slice!(2, T*) prealloc = emptySlice!(2, T))
+        if (isBoundaryCondition!BoundaryConditionTest)
+{
+    return morphOp!(MorphologicOperation.DILATE, BoundaryConditionTest)(morphOp!(MorphologicOperation.ERODE,
+            BoundaryConditionTest)(slice, kernel), kernel, prealloc);
+}
+
+/**
+Perform morphological $(LINK3 https://en.wikipedia.org/wiki/Closing_(morphology),closing).
+
+Performs dilation, than on the resulting dilated image performs erosion.
+
+Note:
+    Closing works only for 2D binary images.
+
+Params:
+    slice = Input image slice, to be eroded.
+    kernel = Erosion/Dilation kernel. Default value is radialKernel!T(3).
+    prealloc = Optional pre-allocated buffer to hold result.
+    
+Returns:
+    Closed image slice, of same type as input image.
+*/
+Slice!(2, T*) close(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) slice,
+        Slice!(2, T*) kernel = radialKernel!T(3), Slice!(2, T*) prealloc = emptySlice!(2, T))
+        if (isBoundaryCondition!BoundaryConditionTest)
+{
+    return morphOp!(MorphologicOperation.ERODE, BoundaryConditionTest)(morphOp!(MorphologicOperation.DILATE,
+            BoundaryConditionTest)(slice, kernel), kernel, prealloc);
+}
+
 private:
 
 void medianFilterImpl1(alias bc, T, O)(Slice!(1, T*) slice, Slice!(1, O*) filtered, ulong kernelSize)
@@ -1114,3 +1288,86 @@ void histEqualImpl(T, Cdf)(Slice!(2, T*) slice, Cdf cdf, Slice!(2, T*) prealloc 
         o = cast(T)(i * cdf[i]);
     }
 }
+
+enum MorphologicOperation
+{
+    ERODE,
+    DILATE
+}
+
+Slice!(2, T*) morphOp(MorphologicOperation op, alias BoundaryConditionTest = neumann, T)
+    (Slice!(2, T*) slice, Slice!(2, T*) kernel = radialKernel!T(3), 
+     Slice!(2, T*) prealloc = emptySlice!(2, T)) if (isBoundaryCondition!BoundaryConditionTest)
+in
+{
+    assert(!slice.empty);
+}
+body
+{
+    import std.array : uninitializedArray;
+
+    if (prealloc.shape != slice.shape)
+        prealloc = uninitializedArray!(T[])(slice.shape.reduce!"a*b").sliced(slice.shape);
+
+    int rows = cast(int)slice.length!0;
+    int cols = cast(int)slice.length!1;
+
+    int khr = cast(int)max(1, kernel.length!0 / 2);
+    int khc = cast(int)max(1, kernel.length!1 / 2);
+
+    static if (op == MorphologicOperation.ERODE)
+    {
+        immutable checkSlice = "!slice[r, c]";
+        immutable checkMorphResult = "!v";
+        T value = cast(T)0;
+    }
+    else
+    {
+        immutable checkSlice = "slice[r, c]";
+        immutable checkMorphResult = "v";
+
+        static if (isIntegral!T)
+            T value = T.max;
+        else
+            T value = cast(T)1.0;
+    }
+
+    foreach (r; iota(rows).parallel)
+    {
+        foreach (c; 0 .. cols)
+        {
+
+            if (mixin(checkSlice))
+            {
+                prealloc[r, c] = value;
+                continue;
+            }
+
+            ulong rk = 0;
+            foreach (rr; r - khr .. r + khr + 1)
+            {
+                ulong ck = 0;
+                foreach (cc; c - khc .. c + khc + 1)
+                {
+                    auto kv = kernel[rk, ck];
+                    if (kv)
+                    {
+                        auto v = BoundaryConditionTest(slice, rr, cc) * kv;
+                        if (mixin(checkMorphResult))
+                        {
+                            prealloc[r, c] = value;
+                            goto skip_dil;
+                        }
+                    }
+                    ++ck;
+                }
+                ++rk;
+            }
+            prealloc[r, c] = slice[r, c];
+        skip_dil:
+        }
+    }
+
+    return prealloc;
+}
+
