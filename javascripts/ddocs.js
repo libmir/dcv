@@ -37,6 +37,7 @@ var examples = [
     "example_features_corners.html",
     "example_features_rht.html",
     "example_video.html",
+    "example_morph.html",
     "example_imgmanip.html",
     "example_tracking_hornschunck.html",
     "example_tracking_lucaskanade.html"
