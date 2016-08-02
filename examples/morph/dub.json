@@ -1,0 +1,12 @@
+{
+	"name": "morph",
+	"description": "Morphological Operations Example for DCV Library.",
+	"copyright": "Copyright © 2016, Relja Ljubobratovic",
+	"authors": ["Relja Ljubobratovic"],
+	"dependencies": {
+		"dcv": {
+			"version": "~master",
+			"path": "../../"
+		}
+	}
+}
