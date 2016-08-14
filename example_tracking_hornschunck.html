@@ -11,7 +11,7 @@
 <h2 id="example-description">Example description</h2>
 <p>In this example, optical flow benchmark data set from <a href="http://vision.middlebury.edu/flow/data/">Middlebury University’s website</a> is used to demonstrate the algorithm results. Some of this data is present in the <a href="https://github.com/ljubobratovicrelja/dcv/tree/master/examples/data/optflow">library’s example data directory</a>.</p>
 <p>For simple demonstaration, let’s take the <strong>Army</strong> image pair from Middlebury:</p>
-<img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/optflow/Army/frame10.png?raw=true" alt="alt tag" />
+<img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/tracking/hornschunck/result/0_army_example.gif?raw=true" alt="alt tag" />
 <p>The Horn-Schunck properties are stored in the <code>HornSchunckProperties</code> structure. Here is the chunck of code where those are initialized:</p>
 <div ><pre style="margin: 0; line-height: 125%"><span style="color: #008000">// Setup algorithm parameters.</span>
 HornSchunckProperties props = HornSchunckProperties();
@@ -37,6 +37,10 @@ DensePyramidFlow densePyramid = <span style="color: #0000ff">new</span> DensePyr
 <p>Here is the color code of computed flow for <em>Army</em> images:</p>
 <div class="figure">
 <img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/tracking/hornschunck/result/2_flowColor.png?raw=true" alt="alt tag" />
+</div>
+<p>And here is the animated result, showing differences between target image and resulting warped source image:</p>
+<div class="figure">
+<img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/tracking/hornschunck/result/5_flowWarp.gif?raw=true" alt="alt tag" />
 </div>
 <p>And lastly we write out these images in following order:</p>
 <div ><pre style="margin: 0; line-height: 125%">current.imwrite(<span style="color: #a31515">&quot;./result/1_current.png&quot;</span>);

@@ -12,12 +12,14 @@
 <p>In the source code both Harris and Shi-Tomasi corner extraction is performed, but for simplicity’s sake, here we’ll explain only Harris code usage - the API is same for both algorithms, so the Shi-Tomasi should be clear as well.</p>
 <p>Example code will be broken down to segments, explaining each step.</p>
 <p>First reading of the building example from the /examples/data:</p>
-<div><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">auto</span> image = imread(<span style="color: #a31515">&quot;../data/building.png&quot;</span>);
+<div ><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">auto</span> image = imread(<span style="color: #a31515">&quot;../data/building.png&quot;</span>);
 </pre></div>
 <p>So, the input image is:</p>
+<div class="figure">
 <img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/building.png?raw=true" alt="alt tag" />
+</div>
 <p>Following chunk of code prepares the data for corner extraction - slices the image data, makes grayscale version of the image, and copies the input image where the corners will be drawn out.</p>
-<div ><pre style="margin: 0; line-height: 125%"><span style="color: #008000">// prepare working sliced</span>
+<div><pre style="margin: 0; line-height: 125%"><span style="color: #008000">// prepare working sliced</span>
 <span style="color: #0000ff">auto</span> imslice = image.sliced!<span style="color: #2b91af">ubyte</span>;
 <span style="color: #0000ff">auto</span> imfslice = imslice.asType!<span style="color: #2b91af">float</span>;
 <span style="color: #0000ff">auto</span> gray = imfslice.rgb2gray;
@@ -34,104 +36,123 @@ harrisDraw[] = imslice[];
 <div><pre style="margin: 0; line-height: 125%"><span style="color: #008000">// extract corners from the response matrix ( extract 100 corners, where each response is larger than 0.)</span>
 <span style="color: #0000ff">auto</span> harrisCorners = extractCorners(harrisResponse, 100, 0.);
 </pre></div>
-<p>After the extraction, we draw corners by using dummy function (which will hopefully be replaced in plot module with a proper one), and save the responses and the drawn corners to the file system, in the result folder:</p>
-<div><pre style="margin: 0; line-height: 125%">harrisDraw.drawCorners(harrisCorners, 9, <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">ubyte</span>[])[255, 0, 0]);
+<p>After the extraction, we plot and save extracted corners:</p>
+<div><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">auto</span> xs = corners.map!(v =&gt; v[1]);
+<span style="color: #0000ff">auto</span> ys = corners.map!(v =&gt; v[0]);
 
-harrisResponse
-  .byElement 
-  .ranged(0., 255.) <span style="color: #008000">// scale the value range so it fits 0-255, for the preview.</span>
-  .array
-  .sliced(harrisResponse.shape)
-  .asType!<span style="color: #2b91af">ubyte</span> <span style="color: #008000">// convert image (or the slice of an image data) from float to ubyte </span>
-  .imwrite(<span style="color: #a31515">&quot;result/harrisResponse.png&quot;</span>);
+<span style="color: #0000ff">auto</span> aes = Aes!(<span style="color: #0000ff">typeof</span>(xs), <span style="color: #a31515">&quot;x&quot;</span>, <span style="color: #0000ff">typeof</span>(ys), <span style="color: #a31515">&quot;y&quot;</span>, <span style="color: #2b91af">bool</span>[], <span style="color: #a31515">&quot;fill&quot;</span>, string[], <span style="color: #a31515">&quot;colour&quot;</span>)(xs, ys,
+        <span style="color: #0000ff">false</span>.repeat(xs.length).array, <span style="color: #a31515">&quot;red&quot;</span>.repeat(xs.length).array);
 
-harrisDraw.imwrite(<span style="color: #a31515">&quot;result/harrisCorners.png&quot;</span>);
+<span style="color: #0000ff">auto</span> gg = GGPlotD().put(geomPoint(aes));
+
+<span style="color: #008000">// plot corners on the same figure, and save it&#39;s image to disk.</span>
+slice.plot(gg, windowName).image().imwrite(<span style="color: #a31515">&quot;result/&quot;</span> ~ windowName ~ <span style="color: #a31515">&quot;.png&quot;</span>);
+</pre></div>
+<p>… And process the response for easier visualization, then save it to <em>result</em> folder:</p>
+<div><pre style="margin: 0; line-height: 125%">harrisResponse 
+    <span style="color: #008000">// Scale values to fit 0-255 range,</span>
+    .byElement
+    .ranged(0., 255.).array.sliced(harrisResponse.shape).asType!<span style="color: #2b91af">ubyte</span>
+    <span style="color: #008000">// .. show the window,</span>
+    .imshow(windowName) 
+    .image
+    <span style="color: #008000">// ... but also write it to disk.</span>
+    .imwrite(<span style="color: #a31515">&quot;result/&quot;</span> ~ windowName ~ <span style="color: #a31515">&quot;.png&quot;</span>);
 </pre></div>
 <p>So the response result image looks like:</p>
-<img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/features/result/harrisCorners.png?raw=true"/>
+<div class="figure">
+<img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/features/result/harrisResponse.png?raw=true" alt="alt tag" />
+</div>
 <p>And the drawn corners:</p>
-<img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/features/result/harrisResponse.png?raw=true"/>
-
-<br/><br/><span><big>Complete code:</big></span>
+<div class="figure">
+<img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/features/result/harrisCorners.png?raw=true" alt="alt tag" />
+</div>
+<br><br><span><big>Complete code:</big></span>
 <div><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">module</span> dcv.example.imgmanip;
+
 <span style="color: #008000">/** </span>
 <span style="color: #008000"> * Corner extraction example, by using Harris and Shi-Tomasi algorithms.</span>
 <span style="color: #008000"> */</span>
 
 <span style="color: #0000ff">import</span> std.stdio;
 <span style="color: #0000ff">import</span> std.experimental.ndslice;
+<span style="color: #0000ff">import</span> std.array : array;
+<span style="color: #0000ff">import</span> std.algorithm.iteration : map, reduce;
+<span style="color: #0000ff">import</span> std.range : repeat;
 
 <span style="color: #0000ff">import</span> dcv.core;
 <span style="color: #0000ff">import</span> dcv.features;
 <span style="color: #0000ff">import</span> dcv.imgproc.color;
 <span style="color: #0000ff">import</span> dcv.imgproc.filter;
 <span style="color: #0000ff">import</span> dcv.io;
+<span style="color: #0000ff">import</span> dcv.plot;
 
+<span style="color: #0000ff">import</span> ggplotd.ggplotd;
+<span style="color: #0000ff">import</span> ggplotd.geom;
+<span style="color: #0000ff">import</span> ggplotd.aes;
 
 <span style="color: #2b91af">void</span> main()
 {
-	<span style="color: #0000ff">import</span> std.algorithm.iteration : reduce;
+    <span style="color: #008000">// read source image</span>
+    <span style="color: #0000ff">auto</span> image = imread(<span style="color: #a31515">&quot;../data/building.png&quot;</span>);
 
-	<span style="color: #008000">// read source image</span>
-	<span style="color: #0000ff">auto</span> image = imread(<span style="color: #a31515">&quot;../data/building.png&quot;</span>);
+    <span style="color: #008000">// prepare working sliced</span>
+    <span style="color: #0000ff">auto</span> imslice = image.sliced!<span style="color: #2b91af">ubyte</span>;
+    <span style="color: #0000ff">auto</span> imfslice = imslice.asType!<span style="color: #2b91af">float</span>;
+    <span style="color: #0000ff">auto</span> gray = imfslice.rgb2gray;
 
-	<span style="color: #008000">// prepare working sliced</span>
-	<span style="color: #0000ff">auto</span> imslice = image.sliced!<span style="color: #2b91af">ubyte</span>;
-	<span style="color: #0000ff">auto</span> imfslice = imslice.asType!<span style="color: #2b91af">float</span>;
-	<span style="color: #0000ff">auto</span> gray = imfslice.rgb2gray;
+    <span style="color: #008000">// make copies to draw corners </span>
+    <span style="color: #0000ff">auto</span> pixelSize = imslice.shape.reduce!<span style="color: #a31515">&quot;a*b&quot;</span>;
+    <span style="color: #0000ff">auto</span> shiTomasiDraw = <span style="color: #0000ff">new</span> <span style="color: #2b91af">ubyte</span>[pixelSize].sliced(imslice.shape);
+    <span style="color: #0000ff">auto</span> harrisDraw = <span style="color: #0000ff">new</span> <span style="color: #2b91af">ubyte</span>[pixelSize].sliced(imslice.shape);
+    shiTomasiDraw[] = imslice[];
+    harrisDraw[] = imslice[];
 
-	<span style="color: #008000">// make copies to draw corners </span>
-	<span style="color: #0000ff">auto</span> pixelSize = imslice.shape.reduce!<span style="color: #a31515">&quot;a*b&quot;</span>;
-	<span style="color: #0000ff">auto</span> shiTomasiDraw = <span style="color: #0000ff">new</span> <span style="color: #2b91af">ubyte</span>[pixelSize].sliced(imslice.shape);
-	<span style="color: #0000ff">auto</span> harrisDraw = <span style="color: #0000ff">new</span> <span style="color: #2b91af">ubyte</span>[pixelSize].sliced(imslice.shape);
-	shiTomasiDraw[] = imslice[];
-	harrisDraw[] = imslice[];
+    <span style="color: #008000">// estimate corner response for each of corner algorithms by using 5x5 window.</span>
+    <span style="color: #0000ff">auto</span> shiTomasiResponse = shiTomasiCorners(gray, 5).filterNonMaximum;
+    <span style="color: #0000ff">auto</span> harrisResponse = harrisCorners(gray, 5).filterNonMaximum;
 
-	<span style="color: #008000">// estimate corner response for each of corner algorithms by using 7x7 window.</span>
-	<span style="color: #0000ff">auto</span> shiTomasiResponse = shiTomasiCorners(gray, 7).filterNonMaximum; 
-	<span style="color: #0000ff">auto</span> harrisResponse = harrisCorners(gray, 7).filterNonMaximum;
+    <span style="color: #008000">// extract corners from the response matrix ( extract 100 corners, where each response is larger than 0.)</span>
+    <span style="color: #0000ff">auto</span> shiTomasiCorners = extractCorners(shiTomasiResponse, 100, 0.);
+    <span style="color: #0000ff">auto</span> harrisCorners = extractCorners(harrisResponse, 100, 0.);
 
-	<span style="color: #008000">// extract corners from the response matrix ( extract 100 corners, where each response is larger than 0.)</span>
-	<span style="color: #0000ff">auto</span> shiTomasiCorners = extractCorners(shiTomasiResponse, 100, 0.);
-	<span style="color: #0000ff">auto</span> harrisCorners = extractCorners(harrisResponse, 100, 0.);
+    <span style="color: #008000">// visualize corner response, and write it to disk.</span>
+    visualizeCornerResponse(harrisResponse, <span style="color: #a31515">&quot;harrisResponse&quot;</span>);
+    visualizeCornerResponse(shiTomasiResponse, <span style="color: #a31515">&quot;shiTomasiResponse&quot;</span>);
 
-	<span style="color: #008000">// dummy function to draw corners</span>
-	shiTomasiDraw.drawCorners(shiTomasiCorners, 9, <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">ubyte</span>[])[255, 0, 0]);
-	harrisDraw.drawCorners(harrisCorners, 9, <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">ubyte</span>[])[255, 0, 0]);
+    <span style="color: #008000">// plot corner points on image.</span>
+    cornerPlot(harrisDraw, harrisCorners, <span style="color: #a31515">&quot;harrisCorners&quot;</span>);
+    cornerPlot(shiTomasiDraw, shiTomasiCorners, <span style="color: #a31515">&quot;shiTomasiCorners&quot;</span>);
 
-	shiTomasiResponse
-		.byElement
-		.ranged(0., 255.) <span style="color: #008000">// scale values in the response matrix for easier visualization.</span>
-		.array
-		.sliced(shiTomasiResponse.shape)
-		.asType!<span style="color: #2b91af">ubyte</span>
-		.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;result/shiTomasiResponse.png&quot;</span>);
-
-	harrisResponse
-		.byElement
-		.ranged(0., 255.)
-		.array
-		.sliced(harrisResponse.shape)
-		.asType!<span style="color: #2b91af">ubyte</span>
-		.imwrite(ImageFormat.IF_MONO, <span style="color: #a31515">&quot;result/harrisResponse.png&quot;</span>);
-
-	shiTomasiDraw.imwrite(ImageFormat.IF_RGB, <span style="color: #a31515">&quot;result/shiTomasiCorners.png&quot;</span>);
-	harrisDraw.imwrite(ImageFormat.IF_RGB, <span style="color: #a31515">&quot;result/harrisCorners.png&quot;</span>);
-
+    waitKey();
 }
 
-<span style="color: #2b91af">void</span> drawCorners(T, Color)(Slice!(3, T*) image, <span style="color: #2b91af">ulong</span> [2][] corners, <span style="color: #2b91af">ulong</span> cornerSize, Color color) {
-	<span style="color: #0000ff">import</span> std.algorithm.iteration : each;
-	<span style="color: #0000ff">auto</span> ch = <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">long</span>)(cornerSize / 2);
-	<span style="color: #0000ff">foreach</span>(corner; corners) { 
-		<span style="color: #0000ff">auto</span> c0 = <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">long</span>)corner[0];
-		<span style="color: #0000ff">auto</span> c1 = <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">long</span>)corner[1];
-		<span style="color: #0000ff">if</span> (c0 - ch &lt; 0 || c0 + ch &gt;= image.length!0 - 1 ||
-			c1 - ch &lt; 0 || c1 + ch &gt;= image.length!1 - 1)	<span style="color: #0000ff">continue</span>;
-		<span style="color: #0000ff">auto</span> window = image[corner[0] - ch.. corner[0] + ch, corner[1] - ch.. corner[1] + ch, 0..$];
-		<span style="color: #0000ff">foreach</span>(pix; window.pack!1.byElement) {
-			pix[] = color[];
-		}
-	}
+<span style="color: #2b91af">void</span> visualizeCornerResponse(Slice!(2, <span style="color: #2b91af">float</span>*) response, string windowName)
+{
+    response 
+        <span style="color: #008000">// scale values in the response matrix for easier visualization.</span>
+        .byElement
+        .ranged(0., 255.).array.sliced(response.shape).asType!<span style="color: #2b91af">ubyte</span>
+        <span style="color: #008000">// Show the window</span>
+        .imshow(windowName) 
+        .image
+        <span style="color: #008000">// ... but also write it to disk.</span>
+        .imwrite(<span style="color: #a31515">&quot;result/&quot;</span> ~ windowName ~ <span style="color: #a31515">&quot;.png&quot;</span>);
+}
+
+<span style="color: #2b91af">void</span> cornerPlot(Slice!(3, <span style="color: #2b91af">ubyte</span>*) slice, <span style="color: #2b91af">ulong</span>[2][] corners, string windowName)
+{
+    <span style="color: #008000">// separate coordinate values</span>
+    <span style="color: #0000ff">auto</span> xs = corners.map!(v =&gt; v[1]);
+    <span style="color: #0000ff">auto</span> ys = corners.map!(v =&gt; v[0]);
+
+    <span style="color: #0000ff">auto</span> aes = Aes!(<span style="color: #0000ff">typeof</span>(xs), <span style="color: #a31515">&quot;x&quot;</span>, <span style="color: #0000ff">typeof</span>(ys), <span style="color: #a31515">&quot;y&quot;</span>, <span style="color: #2b91af">bool</span>[], <span style="color: #a31515">&quot;fill&quot;</span>, string[], <span style="color: #a31515">&quot;colour&quot;</span>)(xs, ys,
+            <span style="color: #0000ff">false</span>.repeat(xs.length).array, <span style="color: #a31515">&quot;red&quot;</span>.repeat(xs.length).array);
+
+    <span style="color: #0000ff">auto</span> gg = GGPlotD().put(geomPoint(aes));
+
+    <span style="color: #008000">// plot corners on the same figure, and save it&#39;s image to disk.</span>
+    slice.plot(gg, windowName).image().imwrite(<span style="color: #a31515">&quot;result/&quot;</span> ~ windowName ~ <span style="color: #a31515">&quot;.png&quot;</span>);
 }
 </pre></div>
+
