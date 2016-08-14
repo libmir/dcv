@@ -184,8 +184,8 @@ int main(string[] args)
         // draw tracked corners and write the image
         auto f2c = thisFrame.sliced.reshape(h, w).gray2rgb.asType!float;
 
-        f2c.imshow("KLT");
-        plotPoints(corners).plot("KLT");
+        // plot tracked points on screen.
+        f2c.plot(plotPoints(corners), "KLT");
 
         if (waitKey(10) == KEY_ESCAPE)
             break;
@@ -195,6 +195,9 @@ int main(string[] args)
 
         // take this frame as next one's previous
         prevFrame = thisFrame;
+
+        if (!figure("KLT").visible)
+            break;
     }
 
     return 0;
