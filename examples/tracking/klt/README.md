@@ -37,12 +37,12 @@ This example demonstrates usage of Pyramidal Lucas-Kanade Optical Flow algorithm
 ## Tracking
 
  Tracking algorithm is most trivially defined as:
-    1. grab next frame
-    2. find N shi-tomasi corners in the frame
-    3. grab next frame
-    4. estimate lucas-kanade flow for each corner, between these two frames
-    5. discard poorly tracked corners (ones which result in small corner eigenvalue by [Shi-Tomasi formula](https://en.wikipedia.org/wiki/Corner_detection#The_Harris_.26_Stephens_.2F_Plessey_.2F_Shi.E2.80.93Tomasi_corner_detection_algorithms)
-    6. repeat from 2, until no more frames. 
+ 1. grab next frame
+ 2. find N shi-tomasi corners in the frame
+ 3. grab next frame
+ 4. estimate lucas-kanade flow for each corner, between these two frames
+ 5. discard poorly tracked corners (ones that result in small corner eigenvalue by [Shi-Tomasi formula](https://en.wikipedia.org/wiki/Corner_detection#The_Harris_.26_Stephens_.2F_Plessey_.2F_Shi.E2.80.93Tomasi_corner_detection_algorithms)
+ 6. repeat from 2, until no more frames. 
 
  Here is the sneak preview of the tracking, performed on the *dcv/examples/data/centaur_1.mpg* file:
 
