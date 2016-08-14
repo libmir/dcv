@@ -14,7 +14,8 @@ This example demonstrates usage of Pyramidal Lucas-Kanade Optical Flow algorithm
 ## Example description
 
  In this example, [Kanade-Lucas-Tomasi](https://en.wikipedia.org/wiki/Kanade%E2%80%93Lucas%E2%80%93Tomasi_feature_tracker) 
- tracker is implemented to demonstrate feature tracking with [Lucas-Kanade](https://en.wikipedia.org/wiki/Lucas%E2%80%93Kanade_method) optical flow method.
+ tracker is implemented to demonstrate feature tracking with [Lucas-Kanade](https://en.wikipedia.org/wiki/Lucas%E2%80%93Kanade_method) optical flow method. 
+ KLT is very popular technique used to help solve various tasks such as [match moving](https://en.wikipedia.org/wiki/Match_moving).
  Similar to Horn-Schunck method, Lucas-Kanade is used to estimate field displacement of two adjacent frames in the video, only 
  here the displacement is estimated locally, around a distinct feature point in the frame. 
 
@@ -42,7 +43,8 @@ This example demonstrates usage of Pyramidal Lucas-Kanade Optical Flow algorithm
  3. grab next frame
  4. estimate lucas-kanade flow for each corner, between these two frames
  5. discard poorly tracked corners (ones that result in small corner eigenvalue by [Shi-Tomasi formula](https://en.wikipedia.org/wiki/Corner_detection#The_Harris_.26_Stephens_.2F_Plessey_.2F_Shi.E2.80.93Tomasi_corner_detection_algorithms)
- 6. repeat from 2, until no more frames. 
+ 6. extract new corners so that sum of old and new corners is N
+ 7. repeat from 3, until no more frames. 
 
  Here is the sneak preview of the tracking, performed on the *dcv/examples/data/centaur_1.mpg* file:
 
