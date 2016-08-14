@@ -39,7 +39,21 @@ DCV offers simple interface to show an image on screen:
 f.draw(image); <font color=green>// draw an image to the figure's canvas.
 </font>f.show(); <font color=green>// show the figure on screen.
 </font>
-<font color=green>// run the event loop for each previously set up figure, and wait
+<font color=green>// Figure mechanism is integrated with ggplotd library, so GGPlotD context can be directly plotted onto existing figure:
+</font><font color=blue>immutable</font> title = <font color=red>"Image With Point Plot"</font>;
+<font color=green>// show the image
+</font>image.imshow(title);
+<font color=green>// construct the plot
+</font><font color=blue>auto</font> gg = GGPlotD().put(geomPoint(Aes!(<font color=blue>double</font>[], <font color=red>"x"</font>, <font color=blue>double</font>[], <font color=red>"y"</font>)([100.00, 200.0], [200.0,100.0])));
+<font color=green>// draw it onto the figure with given title...
+</font>gg.plot(title);
+
+<font color=green>// Once figure's image buffer is drawn out (say you have an image, and few plots drawn on it),
+</font><font color=green>// it can be extracted from the figure, and used in rest of the code:
+</font>Image plotImage = <u id="figure">figure</u>(title).image;
+plotImage.imwrite(<font color=red>"my_plot.png"</font>);
+
+<font color=green>// And at the end, you can run the event loop for each previously set up figure, to wait
 </font><font color=green>// for key input, or given time to pass.
 </font>waitKey!<font color=red>"seconds"</font>(10);
 </pre>
@@ -90,6 +104,33 @@ If <u id="figure">figure</u> with given <i>title</i> exists already, that <u id=
 <br><br>
 
 If figure with given <i>title</i> exists, than the <i>image</i> content is updated with the given <i>image</i>.</td></tr>
+</table><br>
+<b>Returns:</b><br>
+If figure with given <i>title</i> exists already, that figure is returned,
+    otherwise new figure is created and returned.<br><br>
+
+</dd>
+<dt><big><a name="plot"></a>Figure <u id="plot">plot</u>(Image <i>image</i>, GGPlotD <i>gg</i>, string <i>title</i> = "");
+<br>Figure <u id="plot">plot</u>(size_t N, T)(Slice!(N, T*) <i>slice</i>, GGPlotD <i>gg</i>, string <i>title</i> = "");
+<br>Figure <u id="plot">plot</u>(size_t N, T)(Slice!(N, T*) <i>slice</i>, ImageFormat <i>format</i>, GGPlotD <i>gg</i>, string <i>title</i> = "");
+</big></dt>
+<dd>Show given <i>image</i>, and then <u id="plot">plot</u> given GGPlotD context on top of it.<br><br>
+
+</dd>
+<dt><big><a name="plot.2"></a>Figure <u id="plot">plot</u>(GGPlotD <i>gg</i>, string <i>title</i> = "");
+</big></dt>
+<dd>Plot GGPlotD context onto figure with given <i>title</i>.
+<br><br>
+Given <u id="plot">plot</u> is drawn on top of figure's current image buffer. Size of the figure, and it's image buffer is
+unchanged. If no figure exists with given <i>title</i>, new one is allocated with default setup (500x500, with
+black background), and the <u id="plot">plot</u> is drawn on it.
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>GGPlotD <i>gg</i></td>
+<td>GGPlotD context, to be plotted on figure.</td></tr>
+<tr><td>string <i>title</i></td>
+<td>Title of the window. If none given (default), window is named by "Figure id".</td></tr>
 </table><br>
 <b>Returns:</b><br>
 If figure with given <i>title</i> exists already, that figure is returned,
@@ -179,6 +220,11 @@ Ascii value as int of keyboard press, or 0 if timer runs out.<br><br>
 <dd>Assign mouse callback function.<br><br>
 
 </dd>
+<dt><big><a name="Figure.image"></a>const @property auto <u id="image">image</u>();
+</big></dt>
+<dd>Get a copy of <u id="image">image</u> currently drawn on figure's canvas.<br><br>
+
+</dd>
 <dt><big><a name="Figure.show"></a>void <u id="show">show</u>();
 </big></dt>
 <dd>Show the figure window.<br><br>
@@ -214,6 +260,18 @@ Ascii value as int of keyboard press, or 0 if timer runs out.<br><br>
 <dt><big><a name="Figure.draw.2"></a>void <u id="draw">draw</u>(size_t N, T)(Slice!(N, T*) <i>slice</i>, ImageFormat <i>format</i> = ImageFormat.IF_UNASSIGNED);
 </big></dt>
 <dd>Draw <i>slice</i> of image onto figure canvas.<br><br>
+
+</dd>
+<dt><big><a name="Figure.draw.3"></a>void <u id="draw">draw</u>(GGPlotD <i>plot</i>);
+</big></dt>
+<dd>Draw the GGPlotD context on this figure's canvas.
+<br><br>
+    Important Notes:
+        - ggplotd's coordinate system starts from down-left corner. To match
+          the image coordinate system (which starts from up-left corner), y axis
+          is flipped in the given <i>plot</i>.
+        - GGPlotD's margins are zeroed out in this function, and axes hidden.
+        - GGPlotD's axes ranges are configured in this function to match figure size (width and height).<br><br>
 
 </dd>
 </dl>

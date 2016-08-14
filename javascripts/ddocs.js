@@ -21,7 +21,6 @@ var docs = [
     "dcv_io_video_common.html", 
     "dcv_io_video_input.html", 
     "dcv_io_video_output.html", 
-    "dcv_plot_draw.html", 
     "dcv_plot_figure.html", 
     "dcv_plot_opticalflow.html", 
     "dcv_tracking_opticalflow_base.html", 
