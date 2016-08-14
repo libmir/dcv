@@ -68,10 +68,13 @@ import std.experimental.ndslice;
 import std.exception;
 import std.conv : to;
 
+import ggplotd.ggplotd, ggplotd.aes, ggplotd.axes, ggplotd.geom;
+
 import dcv.core.image : Image, ImageFormat, BitDepth, asImage;
 import dcv.core.utils : asType;
 
 import dcv.plot.bindings;
+
 
 /**
 Create a plotting figure.
@@ -151,6 +154,13 @@ Figure imshow(size_t N, T)(Slice!(N, T*) slice, ImageFormat format, string title
     return f;
 }
 
+Figure plot(GGPlotD gg, string title = "")
+{
+    auto f = figure(title);
+    f.draw(gg);
+    f.show();
+    return f;
+}
 /**
 Run the event loop for each present figure, and wait for key and/or given time.
 
@@ -411,20 +421,6 @@ class Figure
         }
     }
 
-    /// Show the figure window.
-    void show()
-    {
-        if (_glfwWindow)
-            glfwShowWindow(_glfwWindow);
-    }
-
-    /// Show the figure window.
-    void hide()
-    {
-        if (_glfwWindow)
-            glfwHideWindow(_glfwWindow);
-    }
-
     @property visible() inout
     {
         if (_glfwWindow is null)
@@ -445,6 +441,35 @@ class Figure
         int w, h;
         glfwGetWindowSize(cast(GLFWwindow*)_glfwWindow, &w, &h);
         return [w, h];
+    }
+
+
+    /// Get a copy of image currently drawn on figure's canvas.
+    @property image() const 
+    in
+    {
+        assert(width && height);
+    }
+    body
+    {
+        Image im = new Image(width, height, ImageFormat.IF_RGB, BitDepth.BD_8);
+        im.data[] = _data[];
+        return im;
+    }
+
+
+    /// Show the figure window.
+    void show()
+    {
+        if (_glfwWindow)
+            glfwShowWindow(_glfwWindow);
+    }
+
+    /// Show the figure window.
+    void hide()
+    {
+        if (_glfwWindow)
+            glfwHideWindow(_glfwWindow);
     }
 
     /// Clear canvas content of this figure.
@@ -512,6 +537,12 @@ class Figure
             draw(showSlice.asImage());
         else
             draw(showSlice.asImage(format));
+    }
+
+    void draw(GGPlotD plot)
+    {
+        drawGGPlotD(plot, _data, _width, _height);
+        fitWindow();
     }
 
     private void fitWindow()
@@ -683,14 +714,13 @@ static this()
     });
 }
 
-private
-{
-    Figure[] _figures; // book-keeping of each running figure.
-    int _lastKey = -1; // last hit key
+private:
 
-    KeyPressCallback _keyPressCallback; // global key press callback
-    CharCallback _charCallback; // global char callback
-}
+Figure[] _figures; // book-keeping of each running figure.
+int _lastKey = -1; // last hit key
+
+KeyPressCallback _keyPressCallback; // global key press callback
+CharCallback _charCallback; // global char callback
 
 void keyCallbackWrapper(int mods, int action, int scancode, int key, GLFWwindow* window)
 {
@@ -782,4 +812,35 @@ Image adoptImage(Image image)
         break;
     }
     return showImage;
+}
+
+void drawGGPlotD(GGPlotD gg,  ubyte[] data,  int width, int height)
+{
+    import std.parallelism : parallel;
+    import std.range : iota;
+    import cairo = cairo;
+
+    gg.put(xaxisRange(0, width)).put(yaxisRange(0, height)); // fit range to image size.
+    gg.put(xaxisOffset(-10)).put(yaxisOffset(-10)); // change offset to hide axes.
+    gg.put(Margins(0, 0, 0, 0)); // Change margins, to match image coordinates.
+
+    cairo.Surface surface = new cairo.ImageSurface(cairo.Format.CAIRO_FORMAT_RGB24, width, height);
+    gg.drawToSurface(surface, width, height);
+    auto imSurface = cast(cairo.ImageSurface)surface; 
+    auto surfData = imSurface.getData();
+
+    foreach (r; iota(height))
+        foreach (c; 0 .. width)
+        {
+            auto pixpos = (height - r) * width * 4 + c * 4;
+            auto dpixpos = r * width * 3 + c * 3;
+            auto alpha = surfData[pixpos + 3];
+            if (alpha)
+            {
+                auto af = cast(float)alpha / 255.0f;
+                data[dpixpos + 0] = cast(ubyte)(data[dpixpos + 0] * (1.0f - af) + surfData[pixpos + 2] * af);
+                data[dpixpos + 1] = cast(ubyte)(data[dpixpos + 1] * (1.0f - af) + surfData[pixpos + 1] * af);
+                data[dpixpos + 2] = cast(ubyte)(data[dpixpos + 2] * (1.0f - af) + surfData[pixpos + 0] * af);
+            }
+        }
 }
