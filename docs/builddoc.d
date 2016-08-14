@@ -16,7 +16,10 @@ immutable ignoreList = [
 
 immutable includes = [
     "../source", "/home/relja/.dub/packages/ffmpeg-d-2.5.0/ffmpeg-d/source",
-    "/home/relja/.dub/packages/imageformats-5.2.0/imageformats"
+    "/home/relja/.dub/packages/imageformats-5.2.0/imageformats",
+    "/home/relja/.dub/packages/cairod-0.0.1-alpha.3_1.10.2/cairod/src",
+    "/home/relja/.dub/packages/painlesstraits-0.2.0/painlesstraits/source",
+    "/home/relja/.dub/packages/ggplotd-0.9.4/ggplotd/source"
 ];
 
 immutable setupDdoc = "export DDOCFILE=\"dcv.ddoc\"\n";
