@@ -62,6 +62,7 @@ waitKey!"seconds"(10);
 $(DL Module contains:
     $(DD 
             $(LINK2 #imshow,imshow)
+            $(LINK2 #plot,plot)
             $(LINK2 #waitKey,waitKey)
             $(LINK2 #imdestroy,imdestroy)
             $(LINK2 #Figure,Figure)
