@@ -15,7 +15,6 @@
     "importPaths": [
         "source/"
     ],
-    "version": "0.1.0",
     "configurations": [
         {
             "name": "d_source_library",
