@@ -53,20 +53,34 @@ After the response matrix is estimated and filtered, we can call ```extractCorne
 auto harrisCorners = extractCorners(harrisResponse, 100, 0.);
 ```
 
-After the extraction, we draw corners by using dummy function (which will hopefully be replaced in plot module with a proper one), and save the responses and the drawn corners to the file system, in the result folder:
+After the extraction, we plot and save extracted corners:
 
 ```d
-harrisDraw.drawCorners(harrisCorners, 9, cast(ubyte[])[255, 0, 0]);
+auto xs = corners.map!(v => v[1]);
+auto ys = corners.map!(v => v[0]);
 
-harrisResponse
-  .byElement 
-  .ranged(0., 255.) // scale the value range so it fits 0-255, for the preview.
-  .array
-  .sliced(harrisResponse.shape)
-  .asType!ubyte // convert image (or the slice of an image data) from float to ubyte 
-  .imwrite("result/harrisResponse.png");
+auto aes = Aes!(typeof(xs), "x", typeof(ys), "y", bool[], "fill", string[], "colour")(xs, ys,
+        false.repeat(xs.length).array, "red".repeat(xs.length).array);
 
-harrisDraw.imwrite("result/harrisCorners.png");
+auto gg = GGPlotD().put(geomPoint(aes));
+
+// plot corners on the same figure, and save it's image to disk.
+slice.plot(gg, windowName).image().imwrite("result/" ~ windowName ~ ".png");
+```
+
+... And process the response for easier visualization, then save it to *result* folder:
+
+```d
+harrisResponse 
+    // Scale values to fit 0-255 range,
+    .byElement
+    .ranged(0., 255.).array.sliced(harrisResponse.shape).asType!ubyte
+    // .. show the window,
+    .imshow(windowName) 
+    .image
+    // ... but also write it to disk.
+    .imwrite("result/" ~ windowName ~ ".png");
+
 ```
 
 So the response result image looks like:

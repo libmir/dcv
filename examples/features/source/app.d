@@ -59,14 +59,18 @@ void main()
 
 void visualizeCornerResponse(Slice!(2, float*) response, string windowName)
 {
-    response// scale values in the response matrix for easier visualization.
-    .byElement.ranged(0., 255.).array.sliced(response.shape).asType!ubyte// Show the window
-    .imshow(windowName)
-        .image// ... but also write it to disk.
+    response 
+        // scale values in the response matrix for easier visualization.
+        .byElement
+        .ranged(0., 255.).array.sliced(response.shape).asType!ubyte
+        // Show the window
+        .imshow(windowName) 
+        .image
+        // ... but also write it to disk.
         .imwrite("result/" ~ windowName ~ ".png");
 }
 
-void cornerPlot(Slice!(3, ubyte*) background, ulong[2][] corners, string windowName)
+void cornerPlot(Slice!(3, ubyte*) slice, ulong[2][] corners, string windowName)
 {
     // separate coordinate values
     auto xs = corners.map!(v => v[1]);
@@ -77,9 +81,6 @@ void cornerPlot(Slice!(3, ubyte*) background, ulong[2][] corners, string windowN
 
     auto gg = GGPlotD().put(geomPoint(aes));
 
-    // show the background image
-    background.imshow(windowName);
-
     // plot corners on the same figure, and save it's image to disk.
-    gg.plot(windowName).image().imwrite("result/" ~ windowName ~ ".png");
+    slice.plot(gg, windowName).image().imwrite("result/" ~ windowName ~ ".png");
 }
