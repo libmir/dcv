@@ -56,7 +56,7 @@ auto flowWarp = current.sliced.warp(flow);
 
 Here is the color code of computed flow for *Army* images:
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/opticalflow/result/2_flowColor.png)
+![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/tracking/hornschunck/result/2_flowColor.png)
 
 And here is the animated result, showing differences between target image and resulting warped source image:
 
