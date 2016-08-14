@@ -6,17 +6,23 @@ module dcv.example.imgmanip;
 
 import std.stdio;
 import std.experimental.ndslice;
+import std.array : array;
+import std.algorithm.iteration : map, reduce;
+import std.range : repeat;
 
 import dcv.core;
 import dcv.features;
 import dcv.imgproc.color;
 import dcv.imgproc.filter;
 import dcv.io;
+import dcv.plot;
+
+import ggplotd.ggplotd;
+import ggplotd.geom;
+import ggplotd.aes;
 
 void main()
 {
-    import std.algorithm.iteration : reduce;
-
     // read source image
     auto image = imread("../data/building.png");
 
@@ -32,45 +38,48 @@ void main()
     shiTomasiDraw[] = imslice[];
     harrisDraw[] = imslice[];
 
-    // estimate corner response for each of corner algorithms by using 7x7 window.
-    auto shiTomasiResponse = shiTomasiCorners(gray, 7).filterNonMaximum;
-    auto harrisResponse = harrisCorners(gray, 7).filterNonMaximum;
+    // estimate corner response for each of corner algorithms by using 5x5 window.
+    auto shiTomasiResponse = shiTomasiCorners(gray, 5).filterNonMaximum;
+    auto harrisResponse = harrisCorners(gray, 5).filterNonMaximum;
 
     // extract corners from the response matrix ( extract 100 corners, where each response is larger than 0.)
     auto shiTomasiCorners = extractCorners(shiTomasiResponse, 100, 0.);
     auto harrisCorners = extractCorners(harrisResponse, 100, 0.);
 
-    // dummy function to draw corners
-    shiTomasiDraw.drawCorners(shiTomasiCorners, 9, cast(ubyte[])[255, 0, 0]);
-    harrisDraw.drawCorners(harrisCorners, 9, cast(ubyte[])[255, 0, 0]);
+    // visualize corner response, and write it to disk.
+    visualizeCornerResponse(harrisResponse, "harrisResponse");
+    visualizeCornerResponse(shiTomasiResponse, "shiTomasiResponse");
 
-    shiTomasiResponse.byElement.ranged(0., 255.) // scale values in the response matrix for easier visualization.
-    .array.sliced(shiTomasiResponse.shape)
-        .asType!ubyte.imwrite(ImageFormat.IF_MONO, "result/shiTomasiResponse.png");
+    // plot corner points on image.
+    cornerPlot(harrisDraw, harrisCorners, "harrisCorners");
+    cornerPlot(shiTomasiDraw, shiTomasiCorners, "shiTomasiCorners");
 
-    harrisResponse.byElement.ranged(0., 255.).array.sliced(harrisResponse.shape)
-        .asType!ubyte.imwrite(ImageFormat.IF_MONO, "result/harrisResponse.png");
-
-    shiTomasiDraw.imwrite(ImageFormat.IF_RGB, "result/shiTomasiCorners.png");
-    harrisDraw.imwrite(ImageFormat.IF_RGB, "result/harrisCorners.png");
-
+    waitKey();
 }
 
-void drawCorners(T, Color)(Slice!(3, T*) image, ulong[2][] corners, ulong cornerSize, Color color)
+void visualizeCornerResponse(Slice!(2, float*) response, string windowName)
 {
-    import std.algorithm.iteration : each;
+    response// scale values in the response matrix for easier visualization.
+    .byElement.ranged(0., 255.).array.sliced(response.shape).asType!ubyte// Show the window
+    .imshow(windowName)
+        .image// ... but also write it to disk.
+        .imwrite("result/" ~ windowName ~ ".png");
+}
 
-    auto ch = cast(long)(cornerSize / 2);
-    foreach (corner; corners)
-    {
-        auto c0 = cast(long)corner[0];
-        auto c1 = cast(long)corner[1];
-        if (c0 - ch < 0 || c0 + ch >= image.length!0 - 1 || c1 - ch < 0 || c1 + ch >= image.length!1 - 1)
-            continue;
-        auto window = image[corner[0] - ch .. corner[0] + ch, corner[1] - ch .. corner[1] + ch, 0 .. $];
-        foreach (pix; window.pack!1.byElement)
-        {
-            pix[] = color[];
-        }
-    }
+void cornerPlot(Slice!(3, ubyte*) background, ulong[2][] corners, string windowName)
+{
+    // separate coordinate values
+    auto xs = corners.map!(v => v[1]);
+    auto ys = corners.map!(v => v[0]);
+
+    auto aes = Aes!(typeof(xs), "x", typeof(ys), "y", bool[], "fill", string[], "colour")(xs, ys,
+            false.repeat(xs.length).array, "red".repeat(xs.length).array);
+
+    auto gg = GGPlotD().put(geomPoint(aes));
+
+    // show the background image
+    background.imshow(windowName);
+
+    // plot corners on the same figure, and save it's image to disk.
+    gg.plot(windowName).image().imwrite("result/" ~ windowName ~ ".png");
 }

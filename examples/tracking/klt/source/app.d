@@ -7,7 +7,7 @@ module dcv.example.opticalflow;
 import std.stdio;
 import std.conv : to;
 import std.algorithm : copy, map, each;
-import std.range : lockstep;
+import std.range : lockstep, repeat;
 import std.array : array;
 import std.experimental.ndslice;
 
@@ -19,6 +19,11 @@ import dcv.features.corner.harris : shiTomasiCorners;
 import dcv.features.utils : extractCorners;
 import dcv.tracking.opticalflow : LucasKanadeFlow, SparsePyramidFlow;
 import dcv.plot.figure;
+
+import ggplotd.aes;
+import ggplotd.geom;
+import ggplotd.ggplotd;
+
 
 void printHelp()
 {
@@ -178,9 +183,9 @@ int main(string[] args)
 
         // draw tracked corners and write the image
         auto f2c = thisFrame.sliced.reshape(h, w).gray2rgb.asType!float;
-        f2c.drawCorners(corners, 3, cast(ubyte[])[255, 0, 0]);
 
         f2c.imshow("KLT");
+        plotPoints(corners).plot("KLT");
 
         if (waitKey(10) == KEY_ESCAPE)
             break;
@@ -195,21 +200,11 @@ int main(string[] args)
     return 0;
 }
 
-void drawCorners(T, Color)(Slice!(3, T*) image, float[2][] corners, float cornerSize, Color color)
+GGPlotD plotPoints(float[2][] corners)
 {
-    import std.algorithm.iteration : each;
+    auto xs = corners.map!(v => v[1]);
+    auto ys = corners.map!(v => v[0]);
 
-    auto ch = cast(long)(cornerSize / 2);
-    foreach (corner; corners)
-    {
-        auto c0 = cast(long)corner[0];
-        auto c1 = cast(long)corner[1];
-        if (c0 - ch < 0 || c0 + ch >= image.length!0 - 1 || c1 - ch < 0 || c1 + ch >= image.length!1 - 1)
-            continue;
-        auto window = image[c0 - ch .. c0 + ch, c1 - ch .. c1 + ch, 0 .. $];
-        foreach (pix; window.pack!1.byElement)
-        {
-            pix[] = color[];
-        }
-    }
+    return GGPlotD().put(geomPoint(Aes!(typeof(xs), "x", typeof(ys), "y", bool[], "fill", string[], "colour")
+            (xs, ys, false.repeat(xs.length).array, "red".repeat(xs.length).array)));
 }
