@@ -110,8 +110,6 @@ int main(string[] args)
     auto iterCount = args.length >= 8 ? args[7].to!uint : 10; // number of levels in the optical flow pyramid
     auto eigLim = args.length >= 9 ? args[8].to!float : 1000.0f; // corner eigenvalue limit, after which the feature is invalid.
 
-    auto frame = 0; // frame counter
-
     // initialize and setup the optical flow algorithm
     LucasKanadeFlow lkFlow = new LucasKanadeFlow;
     SparsePyramidFlow spFlow = new SparsePyramidFlow(lkFlow, pyrLevels);
@@ -119,22 +117,17 @@ int main(string[] args)
     lkFlow.sigma = 0.80f;
     lkFlow.iterationCount = iterCount;
 
+    float[2][] corners;
+    float[2][] reg = new float[2][cornerCount].map!(v => cast(float[2])[cornerW, cornerW]).array;
+
     // read first frame and use it to detect initial corners for tracking
     stream.readFrame(prevFrame);
-
     // take the y channel and form an image
     prevFrame = prevFrame.sliced[0 .. $, 0 .. $, 0].asImage(ImageFormat.IF_MONO);
 
     auto h = prevFrame.height;
     auto w = prevFrame.width;
-
-    // detect corners to track
-    writeln("Search features...");
-    auto f1f = prevFrame.sliced.reshape(h, w).asType!float;
-    auto corners = f1f.shiTomasiCorners(cast(uint)cornerW)
-        .filterNonMaximum.extractCorners(cornerCount).map!(v => cast(float[2])[cast(float)v[0], cast(float)v[1]]).array;
-
-    auto reg = new float[2][corners.length].map!(v => cast(float[2])[cornerW, cornerW]).array;
+    auto frame = 0; // frame counter
 
     while (stream.readFrame(thisFrame))
     {
@@ -175,6 +168,7 @@ int main(string[] args)
             }
         }
 
+        // Displace previous corner coordinates with newly estimated flow vectors
         foreach (ref c, f; lockstep(corners, flow))
         {
             c[0] = c[0] + f[1];
