@@ -39,7 +39,21 @@ f.setMouseCallback( (Figure figure, int button, int scancode, int mods)
 f.draw(image); // draw an image to the figure's canvas.
 f.show(); // show the figure on screen.
 
-// run the event loop for each previously set up figure, and wait 
+// Figure mechanism is integrated with ggplotd library, so GGPlotD context can be directly plotted onto existing figure:
+immutable title = "Image With Point Plot";
+// show the image
+image.imshow(title);
+// construct the plot
+auto gg = GGPlotD().put(geomPoint(Aes!(double[], "x", double[], "y")([100.00, 200.0], [200.0,100.0])));
+// draw it onto the figure with given title...
+gg.plot(title); 
+
+// Once figure's image buffer is drawn out (say you have an image, and few plots drawn on it),
+// it can be extracted from the figure, and used in rest of the code:
+Image plotImage = figure(title).image;
+plotImage.imwrite("my_plot.png");
+
+// And at the end, you can run the event loop for each previously set up figure, to wait
 // for key input, or given time to pass.
 waitKey!"seconds"(10); 
 ----
@@ -154,6 +168,53 @@ Figure imshow(size_t N, T)(Slice!(N, T*) slice, ImageFormat format, string title
     return f;
 }
 
+/**
+Show given image, and then plot given GGPlotD context on top of it.
+*/
+Figure plot(Image image, GGPlotD gg, string title = "")
+{
+    auto f = figure(title);
+    f.draw(image);
+    f.draw(gg);
+    f.show();
+    return f;
+}
+
+/// ditto
+Figure plot(size_t N, T)(Slice!(N, T*) slice, GGPlotD gg, string title = "")
+{
+    auto f = figure(title);
+    f.draw(slice, ImageFormat.IF_UNASSIGNED);
+    f.draw(gg);
+    f.show();
+    return f;
+}
+
+/// ditto
+Figure plot(size_t N, T)(Slice!(N, T*) slice, ImageFormat format, GGPlotD gg, string title = "")
+{
+    auto f = figure(title);
+    f.draw(slice, format);
+    f.draw(gg);
+    f.show();
+    return f;
+}
+
+/**
+Plot GGPlotD context onto figure with given title.
+
+Given plot is drawn on top of figure's current image buffer. Size of the figure, and it's image buffer is
+unchanged. If no figure exists with given title, new one is allocated with default setup (500x500, with 
+black background), and the plot is drawn on it.
+
+Params:
+    gg = GGPlotD context, to be plotted on figure.
+    title = Title of the window. If none given (default), window is named by "Figure id".
+
+Returns:
+    If figure with given title exists already, that figure is returned, 
+    otherwise new figure is created and returned.
+*/
 Figure plot(GGPlotD gg, string title = "")
 {
     auto f = figure(title);
@@ -457,7 +518,6 @@ class Figure
         return im;
     }
 
-
     /// Show the figure window.
     void show()
     {
@@ -539,6 +599,16 @@ class Figure
             draw(showSlice.asImage(format));
     }
 
+    /**
+    Draw the GGPlotD context on this figure's canvas.
+
+    Important Notes:
+        - ggplotd's coordinate system starts from down-left corner. To match
+          the image coordinate system (which starts from up-left corner), y axis
+          is flipped in the given plot.
+        - GGPlotD's margins are zeroed out in this function, and axes hidden.
+        - GGPlotD's axes ranges are configured in this function to match figure size (width and height).
+    */
     void draw(GGPlotD plot)
     {
         drawGGPlotD(plot, _data, _width, _height);
