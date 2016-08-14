@@ -83,15 +83,17 @@ waitKey();
                         <li><strong>features</strong> - Feature detection, description and matching module;</li>
                     </ul>
                     <h1>Development</h1>
-                    <p><a href="https://travis-ci.org/ljubobratovicrelja/dcv"><img src="https://travis-ci.org/ljubobratovicrelja/dcv.svg?branch=master" alt="Build Status" /></a> <a href="https://codecov.io/github/ljubobratovicrelja/dcv?branch=master"><img src="https://codecov.io/github/ljubobratovicrelja/dcv/coverage.svg?branch=master" alt="codecov.io" /></a> <a href="https://gitter.im/ljubobratovicrelja/dcv?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img src="https://badges.gitter.im/ljubobratovicrelja/dcv.svg" alt="Join the chat at https://gitter.im/ljubobratovicrelja/dcv" /></a></p>
-                    <p>Currently, library is in early development (design) stage. 
-                    Each module's header should note the v0.1 norm, which should list 
-                    completion goals, after which the library could be used for most basic computer 
-                    vision tasks. In the v0.1 development state, all algorithms will be naively implemented, 
-                    without too much care for performance or factoring, but with proper API design. 
-                    Goal of v0.1 is to have the overall shape of the library with good coverage, so it can 
-                    be refactored and optimized in future versions.
-                    </p>
+                    <p><a href="https://travis-ci.org/ljubobratovicrelja/dcv"><img src="https://travis-ci.org/ljubobratovicrelja/dcv.svg?branch=master" alt="Build Status" /></a> <a href="https://codecov.io/github/ljubobratovicrelja/dcv?branch=master"><img src="https://codecov.io/github/ljubobratovicrelja/dcv/coverage.svg?branch=master" alt="codecov.io" /></a> <a href="https://gitter.im/ljubobratovicrelja/dcv?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img src="https://badges.gitter.im/ljubobratovicrelja/dcv.svg" alt="Join the chat at https://gitter.im/ljubobratovicrelja/dcv" /></a> <a href="http://code.dlang.org/packages/dcv"><img src="https://img.shields.io/dub/v/dcv.svg" alt="DUB" /></a> <a href="http://code.dlang.org/packages/dcv"><img src="https://img.shields.io/dub/dt/dcv.svg" alt="DUB" /></a></p>
+                    <p>Project is in early development stage. Here is the rough development roadmap:
+                    <ul>
+                        <li><strong>0.1.0</strong> - core implementation of the library, most basic implementation of popular and common algorithms in CV;</li>
+                        <li>0.2.0 - feature detection and matching algorithms</li>
+                        <li>0.3.0 - object recognition (HOG, Viola-Jones etc.)</li>
+                        <li>0.4.0 - multi-view geometry basics, camera calibration, stereo etc.</li>
+                        <li>0.5.0-1.0.0 - optimization, testing, refactoring...</li>
+                    </ul>
+                    <p>This roadmap is obviously quite ambitious, so any form of help is much appreciated - <strong>PRs are most welcome!</strong> 
+                    Also feel free to post a GitHub issue to report a bug, request a feature, or for any form of inquiry related to the library and computer vision!</p>
                     <h1><a id="license" class="anchor" href="#license" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>License</h1>
                     <p>Library is licensed under Boost Software License - Version 1.0. Some modules in the library contain code that is licensed under some other terms. If a module in the library states different license terms in it's header, then the Boost Software License does not apply to that module.</p>
                 </div>
