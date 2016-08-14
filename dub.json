@@ -6,7 +6,8 @@
     "dependencies": {
         "imageformats": "~>5.2.0",
         "scid": "~>0.3.0",
-        "ffmpeg-d": "2.5.0"
+        "ffmpeg-d": "2.5.0",
+        "ggplotd": "~>0.9.4"
     },
     "sourcePaths": [
         "source/"
