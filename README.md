@@ -48,9 +48,9 @@ This is the checklist on v0.1.0 completion. More elaborated development status m
  - [x] io
    - [x] video
    - [x] image
- - [ ] plot
+ - [x] plot
    - [x] figure
-   - [ ] basic shape drawing
+   - [x] data plotting (ggplotd integration)
  - [x] tracking
    - [x] opticalflow
      - [x] hornschunck
