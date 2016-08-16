@@ -10,8 +10,9 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 
 module dcv.features.utils;
 
-import mir.ndslice;
 import std.traits : isNumeric;
+
+import mir.ndslice;
 
 /**
 Feature point.

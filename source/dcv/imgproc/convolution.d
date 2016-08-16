@@ -43,20 +43,21 @@ separable_conv
 v0.1+ plans:
 1d_conv_simd
 */
-import dcv.core.memory;
-import dcv.core.utils;
 
 import std.traits : isAssignable;
 import std.range;
 import std.algorithm.comparison : equal;
-
-import mir.ndslice;
 
 import std.algorithm.iteration : reduce;
 import std.algorithm.comparison : max, min;
 import std.exception : enforce;
 import std.parallelism : parallel;
 import std.math : abs, floor;
+
+import mir.ndslice;
+
+import dcv.core.memory;
+import dcv.core.utils;
 
 /**
 Perform convolution to given range, using given kernel.

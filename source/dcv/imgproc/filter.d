@@ -41,8 +41,6 @@ $(DL Module contains:
 
 module dcv.imgproc.filter;
 
-import mir.ndslice;
-
 import std.traits : allSameType, allSatisfy, isFloatingPoint, isNumeric, isDynamicArray,
     isStaticArray,isIntegral;
 import std.range : iota, array, lockstep, ElementType, isForwardRange;
@@ -58,6 +56,7 @@ import std.parallelism : parallel, taskPool;
 import dcv.core.algorithm;
 import dcv.core.utils;
 
+import mir.ndslice;
 
 /**
 Box kernel creation.

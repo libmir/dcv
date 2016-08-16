@@ -35,10 +35,6 @@ luv2rgb -||-
 bayer2rgb -||-
 */
 
-import mir.ndslice;
-
-import dcv.core.utils;
-
 import std.array : uninitializedArray;
 import std.traits : CommonType, isFloatingPoint, isAssignable, isNumeric;
 import std.algorithm.iteration : sum, each, reduce, map;
@@ -49,6 +45,10 @@ import std.range : zip, array, iota;
 import std.parallelism : parallel;
 import std.exception : enforce;
 import std.range : lockstep;
+
+import mir.ndslice;
+
+import dcv.core.utils;
 
 /**
 RGB to Grayscale convertion strategy.

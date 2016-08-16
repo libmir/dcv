@@ -14,9 +14,7 @@ import std.math : PI, floor;
 
 import dcv.core.image;
 import dcv.imgproc.convolution;
-
 import dcv.tracking.opticalflow.base;
-
 public import dcv.imgproc.interpolate;
 
 /**

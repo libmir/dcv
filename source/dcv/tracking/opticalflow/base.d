@@ -10,6 +10,7 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 module dcv.tracking.opticalflow.base;
 
 public import mir.ndslice : Slice;
+
 public import dcv.core.image : Image;
 public import dcv.core.utils : emptySlice;
 

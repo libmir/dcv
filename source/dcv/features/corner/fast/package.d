@@ -14,9 +14,9 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 1. Edward Rosten, Tom Drummond (2005). "Fusing points and lines for high performance tracking", IEEE International Conference on Computer Vision 2: 1508–1511.
 */
 
-module dcv.features.corner.fast;
-
 import mir.ndslice;
+
+module dcv.features.corner.fast;
 
 import dcv.core.image : BitDepth;
 import dcv.features.utils : Feature;

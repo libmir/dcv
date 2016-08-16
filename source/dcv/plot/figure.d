@@ -79,17 +79,16 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 module dcv.plot.figure;
 
 import std.string : toStringz;
-import mir.ndslice;
 import std.exception;
 import std.conv : to;
+
+import mir.ndslice;
 
 import ggplotd.ggplotd, ggplotd.aes, ggplotd.axes, ggplotd.geom;
 
 import dcv.core.image : Image, ImageFormat, BitDepth, asImage;
 import dcv.core.utils : asType;
-
 import dcv.plot.bindings;
-
 
 /**
 Create a plotting figure.

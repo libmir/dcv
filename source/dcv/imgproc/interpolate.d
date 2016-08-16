@@ -7,19 +7,7 @@ Authors: Relja Ljubobratovic
 
 License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
 */
-
 module dcv.imgproc.interpolate;
-/**
- 
- * 
- * v0.1 norm:
- * nn
- * linear
- * cubic
- * 
- * v0.1+:
- * lanczos?
- */
 
 import std.range : isRandomAccessRange, ElementType;
 import std.traits : isNumeric, isScalarType, isIntegral, allSameType, allSatisfy, ReturnType,
