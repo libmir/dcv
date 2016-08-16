@@ -5,7 +5,7 @@ module dcv.example.imgmanip;
  */
 
 import std.stdio;
-import std.experimental.ndslice;
+import mir.ndslice;
 import std.array : array;
 import std.algorithm.iteration : map, reduce;
 import std.range : repeat;

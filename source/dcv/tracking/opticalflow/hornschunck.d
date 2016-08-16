@@ -10,7 +10,7 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 
 module dcv.tracking.opticalflow.hornschunck;
 
-import std.experimental.ndslice;
+import mir.ndslice;
 
 import dcv.core.image;
 import dcv.tracking.opticalflow.base;

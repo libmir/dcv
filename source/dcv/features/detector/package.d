@@ -9,7 +9,7 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 */
 module dcv.features.detector;
 
-import std.experimental.ndslice;
+import mir.ndslice;
 
 public import dcv.core.image : Image;
 public import dcv.features.utils : Feature;

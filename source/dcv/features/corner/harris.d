@@ -9,7 +9,7 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 */
 module dcv.features.corner.harris;
 
-import std.experimental.ndslice;
+import mir.ndslice;
 
 import dcv.core.utils : emptySlice;
 import dcv.imgproc.filter : calcPartialDerivatives;

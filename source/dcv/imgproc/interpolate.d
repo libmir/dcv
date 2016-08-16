@@ -26,7 +26,7 @@ import std.traits : isNumeric, isScalarType, isIntegral, allSameType, allSatisfy
     isFloatingPoint;
 import std.exception;
 
-import std.experimental.ndslice;
+import mir.ndslice;
 
 /**
 Test if given function is proper form for interpolation.

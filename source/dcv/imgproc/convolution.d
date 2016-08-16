@@ -50,7 +50,7 @@ import std.traits : isAssignable;
 import std.range;
 import std.algorithm.comparison : equal;
 
-import std.experimental.ndslice;
+import mir.ndslice;
 
 import std.algorithm.iteration : reduce;
 import std.algorithm.comparison : max, min;

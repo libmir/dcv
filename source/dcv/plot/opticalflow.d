@@ -10,7 +10,7 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 
 module dcv.plot.opticalflow;
 
-import std.experimental.ndslice;
+import mir.ndslice;
 
 /**
  * Draw color-coded optical flow.

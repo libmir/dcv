@@ -4,7 +4,7 @@ module dcv.example.convolution;
  * Spatial image filtering example using dcv library.
  */
 
-import std.experimental.ndslice;
+import mir.ndslice;
 import std.stdio : writeln;
 import std.datetime : StopWatch;
 import std.math : fabs;

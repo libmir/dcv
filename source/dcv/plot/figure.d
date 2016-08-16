@@ -79,7 +79,7 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 module dcv.plot.figure;
 
 import std.string : toStringz;
-import std.experimental.ndslice;
+import mir.ndslice;
 import std.exception;
 import std.conv : to;
 

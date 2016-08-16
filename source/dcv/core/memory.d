@@ -101,7 +101,7 @@ unittest
 {
     // TODO: design the test...
 
-    import std.experimental.ndslice;
+    import mir.ndslice;
 
     int[] arr = allocArray!int(3);
     scope (exit)

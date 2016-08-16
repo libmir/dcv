@@ -24,7 +24,7 @@ module dcv.imgproc.imgmanip;
 public import dcv.imgproc.interpolate;
 
 import std.exception : enforce;
-import std.experimental.ndslice;
+import mir.ndslice;
 import std.traits : allSatisfy, isFloatingPoint, allSameType, isNumeric, isIntegral;
 import std.algorithm : each;
 import std.range : iota;

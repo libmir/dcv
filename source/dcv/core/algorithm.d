@@ -21,10 +21,11 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 
 module dcv.core.algorithm;
 
-import std.experimental.ndslice;
 import std.range;
 import std.traits : isNumeric, isAssignable;
 import std.algorithm : map, each, max, min, reduce;
+
+import mir.ndslice;
 
 /**
 Type of matrix and vector norms.

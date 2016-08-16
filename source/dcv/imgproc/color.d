@@ -35,7 +35,7 @@ luv2rgb -||-
 bayer2rgb -||-
 */
 
-import std.experimental.ndslice;
+import mir.ndslice;
 
 import dcv.core.utils;
 

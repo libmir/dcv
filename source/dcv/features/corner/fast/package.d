@@ -16,7 +16,7 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 
 module dcv.features.corner.fast;
 
-import std.experimental.ndslice;
+import mir.ndslice;
 
 import dcv.core.image : BitDepth;
 import dcv.features.utils : Feature;

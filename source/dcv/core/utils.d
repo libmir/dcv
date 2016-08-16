@@ -9,7 +9,7 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 */
 module dcv.core.utils;
 
-import std.experimental.ndslice;
+import mir.ndslice;
 import std.traits;
 import std.meta : allSatisfy;
 import std.range : lockstep;

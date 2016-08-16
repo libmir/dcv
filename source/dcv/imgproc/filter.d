@@ -41,7 +41,7 @@ $(DL Module contains:
 
 module dcv.imgproc.filter;
 
-import std.experimental.ndslice;
+import mir.ndslice;
 
 import std.traits : allSameType, allSatisfy, isFloatingPoint, isNumeric, isDynamicArray,
     isStaticArray,isIntegral;

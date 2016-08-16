@@ -5,7 +5,7 @@ module dcv.example.imgmanip;
  */
 
 import std.stdio;
-import std.experimental.ndslice;
+import mir.ndslice;
 
 import dcv.core;
 import dcv.imgproc.imgmanip;

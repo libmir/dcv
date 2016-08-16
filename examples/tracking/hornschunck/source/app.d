@@ -7,7 +7,7 @@ module dcv.example.opticalflow;
 
 import std.stdio;
 import std.conv : to;
-import std.experimental.ndslice;
+import mir.ndslice;
 
 import dcv.core;
 import dcv.io;
