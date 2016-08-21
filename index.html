@@ -58,7 +58,7 @@
                     </p>
                     <div><pre style="margin: 0; line-height: 125%"><a href="https://ljubobratovicrelja.github.io/dcv/?loc=dcv_core_image.html">Image</a> image = imread(<span style="color: #a31515">&quot;/path/to/image.png&quot;</span>); <span style="color: #008000">// read an image from filesystem.</span>
 
-<span style="color: #0000ff">auto</span> slice = image.sliced; <span style="color: #008000">// slice image data (calls <a href="http://dlang.org/phobos/std_experimental_ndslice_slice.html#.sliced">std.experimental.ndslice.slice.sliced</a> on image data)</span>
+<span style="color: #0000ff">auto</span> slice = image.sliced; <span style="color: #008000">// slice image data (calls mir.ndslice.slice.sliced on image data)</span>
 
 slice
     .asType!<span style="color: #2b91af">float</span>[0..$, 0..$, 1] <span style="color: #008000">// convert slice data to float, and take the green channel only.</span>
@@ -71,7 +71,7 @@ waitKey();
                     <p>Be sure to check out other <a id="examlesOnHomePage" href="javascript:;"><strong>examples!</strong></a></p>
                     <h1><a id="library-modules" class="anchor" href="#library-modules" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Library Modules</h1>
                     <ul> <!--hrefs will move to documentation once its readdy-->
-                        <li><strong>core</strong> - Core structures and algorithms (mainly relying on std.experimental.ndslice);</li>
+                        <li><strong>core</strong> - Core structures and algorithms (mainly relying on mir.ndslice);</li>
                         <li><strong>imgproc</strong> - Image processing tasks;</li>
                         <li><strong>io</strong> - Input/Output support for different image and video formats;</li>
                         <li><strong>plot</strong> - Ploting module, showing images, videos, basic 2D shape drawing etc;</li>
