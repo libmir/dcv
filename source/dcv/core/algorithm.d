@@ -23,11 +23,21 @@ import std.range;
 import std.traits : isNumeric, isFloatingPoint;
 
 import mir.ndslice.slice : Slice, sliced, DeepElementType;
-import mir.ndslice.algorithm : ndFold, ndReduce, ndEach, Yes;
+import mir.ndslice.algorithm : ndReduce, ndEach, Yes;
+
+version(LDC)
+{
+    import ldc.intrinsics : sqrt = llvm_sqrt, fabs = llvm_fabs, min = llvm_minnum, max = llvm_maxnum;
+}
+else
+{
+    import std.math : sqrt, fabs;
+    import std.algorithm.comparison : min, max;
+}
 
 version(unittest)
 {
-    import std.math : sqrt, approxEqual;
+    import std.math : approxEqual;
 }
 
 /**
@@ -48,18 +58,10 @@ Params:
     normType = requested type of norm.
 
 Returns:
-    Calculated norm value as real.
+    Calculated norm value.
 */
-@nogc pure nothrow real norm(Range, size_t N)(auto ref Slice!(N, Range) tensor, NormType normType)
+@nogc pure nothrow auto norm(Range, size_t N)(auto ref Slice!(N, Range) tensor, NormType normType)
 {
-    import std.algorithm.comparison : max;
-    import std.conv : to;
-
-    version (LDC)
-        import ldc.intrinsics : sqrt = llvm_sqrt, abs = llvm_abs;
-    else
-        import std.math : sqrt, abs;
-
     alias T = DeepElementType!(typeof(tensor));
 
     static if (isFloatingPoint!T)
@@ -70,11 +72,11 @@ Returns:
     final switch (normType)
     {
     case NormType.INF:
-        return min.ndReduce!max(tensor).to!real;
+        return min.ndReduce!(max, Yes.vectorized)(tensor);
     case NormType.L1:
-        return T(0).ndReduce!((a, b) => abs(a + b))(tensor).to!real;
+        return T(0).ndReduce!((a, b) => fabs(a + b), Yes.vectorized)(tensor);
     case NormType.L2:
-        return T(0).ndReduce!((a, b) => a + b ^^ 2)(tensor).to!real.sqrt;
+        return T(0).ndReduce!((a, b) => a + (b * b), Yes.vectorized)(tensor).sqrt;
     }
 }
 
@@ -103,9 +105,9 @@ pure nothrow unittest
     t2[] /= t2.norm(NormType.L1);
     t3[] /= t3.norm(NormType.L1);
 
-    assert(approxEqual(t1.ndFold!"a+b"(0.0f), 1.0f));
-    assert(approxEqual(t2.ndFold!"a+b"(0.0f), 1.0f));
-    assert(approxEqual(t3.ndFold!"a+b"(0.0f), 1.0f));
+    assert(approxEqual(ndReduce!"a+b"(0.0f, t1), 1.0f));
+    assert(approxEqual(ndReduce!"a+b"(0.0f, t2), 1.0f));
+    assert(approxEqual(ndReduce!"a+b"(0.0f, t3), 1.0f));
 }
 
 // Test L2 norm - test vector length == 1 after normalization
@@ -119,9 +121,9 @@ pure nothrow unittest
     t2[] /= t2.norm(NormType.L2);
     t3[] /= t3.norm(NormType.L2);
 
-    assert(approxEqual(t1.ndFold!( (v, n) => v + n*n)(0.0f), 1.0f));
-    assert(approxEqual(t2.ndFold!( (v, n) => v + n*n)(0.0f), 1.0f));
-    assert(approxEqual(t3.ndFold!( (v, n) => v + n*n)(0.0f), 1.0f));
+    assert(approxEqual(ndReduce!( (v, n) => v + n*n)(0.0f, t1), 1.0f));
+    assert(approxEqual(ndReduce!( (v, n) => v + n*n)(0.0f, t2), 1.0f));
+    assert(approxEqual(ndReduce!( (v, n) => v + n*n)(0.0f, t3), 1.0f));
 }
 
 /**
@@ -200,16 +202,13 @@ Params:
 @nogc auto ranged(Scalar, Range, size_t N)(auto ref Slice!(N, Range) tensor,
         Scalar minValue = 0, Scalar maxValue = 1) if (isNumeric!Scalar)
 {
-    import std.traits : isFloatingPoint;
-    import std.algorithm.comparison : min, max;
-
     alias RangeElementType = DeepElementType!(typeof(tensor));
 
-    auto _min = tensor.ndFold!min(RangeElementType.max);
+    auto _min = ndReduce!(min, Yes.vectorized)(RangeElementType.max, tensor);
     static if (isFloatingPoint!RangeElementType)
-        auto _max = tensor.ndFold!max(RangeElementType.min_normal);
+        auto _max = ndReduce!(max, Yes.vectorized)(RangeElementType.min_normal, tensor);
     else
-        auto _max = tensor.ndFold!max(RangeElementType.min);
+        auto _max = ndReduce!(max, Yes.vectorized)(RangeElementType.min, tensor);
 
     auto rn_val = _max - _min;
     auto sc_val = maxValue - minValue;
@@ -240,8 +239,6 @@ unittest
 
 nothrow unittest
 {
-    import std.algorithm.comparison : max, min;
-
     immutable smin = -10.0f;
     immutable smax = 15.0f;
 
@@ -253,14 +250,14 @@ nothrow unittest
     auto t2r = t2.ranged(smin, smax);
     auto t3r = t3.ranged(smin, smax);
 
-    assert(approxEqual(ndFold!min(t1r, float.max), smin));
-    assert(approxEqual(ndFold!max(t1r, float.min_normal), smax));
+    assert(approxEqual(ndReduce!min(float.max, t1r), smin));
+    assert(approxEqual(ndReduce!max(float.min_normal, t1r), smax));
 
-    assert(approxEqual(ndFold!min(t2r, float.max), smin));
-    assert(approxEqual(ndFold!max(t2r, float.min_normal), smax));
+    assert(approxEqual(ndReduce!min(float.max, t2r), smin));
+    assert(approxEqual(ndReduce!max(float.min_normal, t2r), smax));
 
-    assert(approxEqual(ndFold!min(t3r, float.max), smin));
-    assert(approxEqual(ndFold!max(t3r, float.min_normal), smax));
+    assert(approxEqual(ndReduce!min(float.max, t3r), smin));
+    assert(approxEqual(ndReduce!max(float.min_normal, t3r), smax));
 }
 
 version (unittest)

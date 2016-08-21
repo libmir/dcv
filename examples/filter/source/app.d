@@ -62,8 +62,8 @@ int main(string[] args)
     // scale values from 0 to 255 to preview gradient direction and magnitude
     xgrads.ranged(0, 255);
     // Take absolute values and range them from 0 to 255, to preview edges
-    laplaceEdges = laplaceEdges.ndMap!(a => fabs(a)).byElement.array.sliced(laplaceEdges.shape).ranged(0.0f, 255.0f);
-    logEdges = logEdges.ndMap!(a => fabs(a)).byElement.array.sliced(logEdges.shape).ranged(0.0f, 255.0f);
+    laplaceEdges = laplaceEdges.ndMap!(a => fabs(a)).slice.ranged(0.0f, 255.0f);
+    logEdges = logEdges.ndMap!(a => fabs(a)).slice.ranged(0.0f, 255.0f);
 
     // Show images on screen
     img.imshow("Original");
