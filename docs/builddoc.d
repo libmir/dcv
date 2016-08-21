@@ -19,7 +19,8 @@ immutable includes = [
     "/home/relja/.dub/packages/imageformats-5.2.0/imageformats",
     "/home/relja/.dub/packages/cairod-0.0.1-alpha.3_1.10.2/cairod/src",
     "/home/relja/.dub/packages/painlesstraits-0.2.0/painlesstraits/source",
-    "/home/relja/.dub/packages/ggplotd-0.9.4/ggplotd/source"
+    "/home/relja/.dub/packages/ggplotd-0.9.4/ggplotd/source",
+    "/home/relja/.dub/packages/mir-0.16.0-beta1/mir/source"
 ];
 
 immutable setupDdoc = "export DDOCFILE=\"dcv.ddoc\"\n";

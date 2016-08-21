@@ -164,7 +164,7 @@ Params:
 
 Performs value modification of tensor elements using following formula:
 ----
-out = alpha * (in) + beta;
+ref output = alpha * (input) + beta;
 ----
 
 Returns:
