@@ -4,7 +4,7 @@ Module implements various algorithms used often in computer vision.
 $(DL Module contains:
     $(DD 
             $(LINK2 #norm,norm)
-            $(LINK2 #normalize,normalize)
+            $(LINK2 #normalized,normalized)
             $(LINK2 #scaled,scaled)
             $(LINK2 #ranged,ranged)
     )
