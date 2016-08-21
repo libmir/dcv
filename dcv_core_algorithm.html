@@ -2,10 +2,8 @@
            Module implements various algorithms used often in computer vision.
 <br><br>
 <dl>Module contains:
-    <dd>            <a href="#findMin">findMin</a>
-            <a href="#findMax">findMax</a>
-            <a href="#norm">norm</a>
-            <a href="#normalize">normalize</a>
+    <dd>            <a href="#norm">norm</a>
+            <a href="#normalized">normalized</a>
             <a href="#scaled">scaled</a>
             <a href="#ranged">ranged</a>
     </dd>
@@ -37,129 +35,69 @@ Relja Ljubobratovic
 </dd>
 </dl>
 </dd>
-<dt><big><a name="findMin"></a>pure nothrow ElementType!Range <u id="findMin">findMin</u>(Range)(Range <i>range</i>) if (isForwardRange!Range &amp;&amp; isNumeric!(ElementType!Range));
-</big></dt>
-<dd>Find minimum value in the forward <i>range</i>.
-<br><br>
-<b>Params:</b><br>
-<table><tr><td>Range <i>range</i></td>
-<td>Forward <i>range</i> in which minimum value is looked for.</td></tr>
-</table><br>
-<b>Returns:</b><br>
-Minimum value of all elements in given <i>range</i>.<br><br>
-<b>Examples:</b><br>
-Find minimal value in the array.
-<pre class="d_code">
-<font color=blue>auto</font> arr = [1, 2, 3];
-<font color=blue>assert</font>(arr.<u id="findMin">findMin</u> == 1);
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="findMax"></a>pure nothrow ElementType!Range <u id="findMax">findMax</u>(Range)(Range <i>range</i>) if (isForwardRange!Range &amp;&amp; isNumeric!(ElementType!Range));
-</big></dt>
-<dd>Find maximum value in the forward <i>range</i>.
-<br><br>
-<b>Params:</b><br>
-<table><tr><td>Range <i>range</i></td>
-<td>Forward <i>range</i> in which maximum value is looked for.</td></tr>
-</table><br>
-<b>Returns:</b><br>
-Maximum value of all elements in given <i>range</i>.<br><br>
-<b>Examples:</b><br>
-Find maximal value in the array.
-<pre class="d_code">
-<font color=blue>auto</font> arr = [1, 2, 3];
-<font color=blue>assert</font>(arr.<u id="findMax">findMax</u> == 3);
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="norm"></a>real <u id="norm">norm</u>(Range)(Range <i>range</i>, in NormType <i>normType</i>) if (isForwardRange!Range &amp;&amp; isNumeric!(ElementType!Range) &amp;&amp; isAssignable!(real, ElementType!Range));
+<dt><big><a name="norm"></a>pure nothrow @nogc auto <u id="norm">norm</u>(Range, size_t N)(auto ref Slice!(N, Range) <i>tensor</i>, NormType <i>normType</i>);
 </big></dt>
 <dd>Calculate value of various <u id="norm">norm</u> types for vectors and matrices.
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Range <i>range</i></td>
-<td>Forward <i>range</i> that represents vector or matrix of which the <u id="norm">norm</u> is calculated.</td></tr>
+<table><tr><td>Slice!(N, Range) <i>tensor</i></td>
+<td>Tensor of which the <u id="norm">norm</u> value is calculated.</td></tr>
 <tr><td>NormType <i>normType</i></td>
 <td>requested type of <u id="norm">norm</u>.</td></tr>
 </table><br>
 <b>Returns:</b><br>
-Calculated <u id="norm">norm</u> value as real.<br><br>
+Calculated <u id="norm">norm</u> value.<br><br>
 
 </dd>
-<dt><big><a name="normalize"></a>auto <u id="normalize">normalize</u>(Range)(Range <i>range</i>, NormType <i>normType</i> = NormType.L2) if (isForwardRange!Range &amp;&amp; isAssignable!(real, ElementType!Range));
+<dt><big><a name="normalized"></a>nothrow @nogc auto <u id="normalized">normalized</u>(Range, size_t N)(auto ref Slice!(N, Range) <i>tensor</i>, NormType <i>normType</i> = NormType.L2);
 </big></dt>
-<dd>Normalize <i>range</i> using given norm type.
-<br><br>
-Performs lazy normalization by utilizing std.algorithm.iteration.map.
-
+<dd>Normalize <i>tensor</i> values using given norm type.
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Range <i>range</i></td>
-<td>Forward <i>range</i> that represent vector or matrix which is normalized.</td></tr>
+<table><tr><td>Slice!(N, Range) <i>tensor</i></td>
+<td>Tensor which is <u id="normalized">normalized</u>.</td></tr>
 <tr><td>NormType <i>normType</i></td>
-<td>requested norm type for normalization.</td></tr>
+<td>Requested norm type for normalization.</td></tr>
 </table><br>
 <b>Returns:</b><br>
-Returns the map result <i>range</i> that evaluates normalization lazily.<br><br>
+Returns <u id="normalized">normalized</u> input <i>tensor</i>.<br><br>
 
 </dd>
-<dt><big><a name="scaled"></a>pure nothrow @safe auto <u id="scaled">scaled</u>(Scalar, Range)(Range <i>range</i>, Scalar <i>alpha</i> = 1, Scalar <i>beta</i> = 0) if (isForwardRange!Range &amp;&amp; isNumeric!(ElementType!Range) &amp;&amp; isNumeric!Scalar &amp;&amp; isAssignable!(ElementType!Range, Scalar));
+<dt><big><a name="scaled"></a>nothrow @nogc auto <u id="scaled">scaled</u>(Scalar, Range, size_t N)(auto ref Slice!(N, Range) <i>tensor</i>, Scalar <i>alpha</i> = 1, Scalar <i>beta</i> = 0) if (isNumeric!Scalar);
 </big></dt>
-<dd>Scale <i>range</i> values by shift and multiplication.
-<br><br>
-Performs value scaling by multiplication and shifting by following equation:
-<pre class="d_code"><i>out</i> = <i><i>alpha</i></i>*<i><i>range</i></i> + <i><i>beta</i></i></pre>
-<br><br>
-
-Performs lazy scale of the values by utilizing std.algorithm.iteration.map.
-
+<dd>Scale <i>tensor</i> values.
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Range <i>range</i></td>
-<td>Forward <i>range</i> in which values are being <u id="scaled">scaled</u>.</td></tr>
+<table><tr><td>Slice!(N, Range) <i>tensor</i></td>
+<td>Input <i>tensor</i>.</td></tr>
 <tr><td>Scalar <i>alpha</i></td>
 <td>Multiplier value.</td></tr>
 <tr><td>Scalar <i>beta</i></td>
-<td>Shift value.</td></tr>
+<td>Offset value.
+<br><br>
+
+Performs value modification of <i>tensor</i> elements using following formula:
+<pre class="d_code"><font color=blue>ref</font> output = <i>alpha</i> * (input) + <i>beta</i>;
+</pre>
+</td></tr>
 </table><br>
 <b>Returns:</b><br>
-Returns the map result <i>range</i> that evaluates value scaling lazily.<br><br>
-<b>Examples:</b><br>
-<pre class="d_code">
-<font color=blue>auto</font> arr = [0.0, 0.5, 1.0];
-arr = arr.<u id="scaled">scaled</u>(10.0, 2.0).array;
-<font color=blue>assert</font>(arr[0] == 2.0);
-<font color=blue>assert</font>(arr[1] == 7.0);
-<font color=blue>assert</font>(arr[2] == 12.0);
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="ranged"></a>auto <u id="ranged">ranged</u>(Scalar, Range)(Range <i>range</i>, Scalar <i>min</i> = 0, Scalar <i>max</i> = 1) if (isForwardRange!Range &amp;&amp; isNumeric!(ElementType!Range) &amp;&amp; isNumeric!Scalar &amp;&amp; isAssignable!(ElementType!Range, Scalar));
-</big></dt>
-<dd>Scale <i>range</i> values to fit a given value <i>range</i>.
-<br><br>
-Performs lazy scale of the values by utilizing std.algorithm.iteration.map.
+Scaled input <i>tensor</i>.<br><br>
 
+</dd>
+<dt><big><a name="ranged"></a>@nogc auto <u id="ranged">ranged</u>(Scalar, Range, size_t N)(auto ref Slice!(N, Range) <i>tensor</i>, Scalar <i>minValue</i> = 0, Scalar <i>maxValue</i> = 1) if (isNumeric!Scalar);
+</big></dt>
+<dd>In-place <i>tensor</i> scaling to fit given value range.
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Range <i>range</i></td>
-<td>Forward <i>range</i> in which values are being scaled.</td></tr>
-<tr><td>Scalar <i>min</i></td>
-<td>Minimal <i>range</i> value.</td></tr>
-<tr><td>Scalar <i>max</i></td>
-<td>Maximal <i>range</i> value.</td></tr>
+<table><tr><td>Slice!(N, Range) <i>tensor</i></td>
+<td>Input <i>tensor</i>.</td></tr>
+<tr><td>Scalar <i>minValue</i></td>
+<td>Minimal value output <i>tensor</i> should contain.</td></tr>
+<tr><td>Scalar <i>maxValue</i></td>
+<td>Maximal value output <i>tensor</i> should contain.</td></tr>
 </table><br>
-<b>Returns:</b><br>
-Returns the map result <i>range</i> that evaluates value scaling lazily.<br><br>
-<b>Examples:</b><br>
-<pre class="d_code">
-<font color=blue>auto</font> arr = [0.0, 0.5, 1.0].<u id="ranged">ranged</u>(0, 10).array;
-<font color=blue>assert</font>(arr[0] == 0.);
-<font color=blue>assert</font>(arr[1] == 5.);
-<font color=blue>assert</font>(arr[2] == 10.);
-</pre>
-<br><br>
+
 </dd>
 </dl>
 

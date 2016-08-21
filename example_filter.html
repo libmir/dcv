@@ -122,12 +122,13 @@ noise, such as salt and pepper noise. Take following image as example, which has
 <span style="color: #008000"> * Spatial image filtering example using dcv library.</span>
 <span style="color: #008000"> */</span>
 
-<span style="color: #0000ff">import</span> std.experimental.ndslice;
 <span style="color: #0000ff">import</span> std.stdio : writeln;
 <span style="color: #0000ff">import</span> std.datetime : StopWatch;
 <span style="color: #0000ff">import</span> std.math : fabs;
 <span style="color: #0000ff">import</span> std.array : array;
 <span style="color: #0000ff">import</span> std.algorithm.iteration : map;
+
+<span style="color: #0000ff">import</span> mir.ndslice;
 
 <span style="color: #0000ff">import</span> dcv.core : Image, asType, ranged, ImageFormat;
 <span style="color: #0000ff">import</span> dcv.io : imread, imwrite;
@@ -146,8 +147,9 @@ noise, such as salt and pepper noise. Take following image as example, which has
         <span style="color: #0000ff">return</span> 1;
     }
 
-    Slice!(3, <span style="color: #2b91af">float</span>*) imslice = img.asType!<span style="color: #2b91af">float</span> <span style="color: #008000">// convert Image data type from ubyte to float</span>
-    .sliced!<span style="color: #2b91af">float</span>; <span style="color: #008000">// slice image data - calls img.data!float.sliced(img.height, img.width, img.channels)</span>
+    Slice!(3, <span style="color: #2b91af">float</span>*) imslice = img
+        .asType!<span style="color: #2b91af">float</span> <span style="color: #008000">// convert Image data type from ubyte to float</span>
+        .sliced!<span style="color: #2b91af">float</span>; <span style="color: #008000">// slice image data - calls img.data!float.sliced(img.height, img.width, img.channels)</span>
 
     <span style="color: #0000ff">auto</span> gray = imslice.rgb2gray; <span style="color: #008000">// convert rgb image to grayscale</span>
 
@@ -176,10 +178,10 @@ noise, such as salt and pepper noise. Take following image as example, which has
     <span style="color: #0000ff">auto</span> medBlur = noisyImage.medianFilter(5);
 
     <span style="color: #008000">// scale values from 0 to 255 to preview gradient direction and magnitude</span>
-    xgrads = xgrads.byElement.ranged(0, 255).array.sliced(xgrads.shape);
+    xgrads.ranged(0, 255);
     <span style="color: #008000">// Take absolute values and range them from 0 to 255, to preview edges</span>
-    laplaceEdges = laplaceEdges.byElement.map!(a =&gt; fabs(a)).ranged(0, 255).array.sliced(laplaceEdges.shape);
-    logEdges = logEdges.byElement.map!(a =&gt; fabs(a)).ranged(0, 255).array.sliced(logEdges.shape);
+    laplaceEdges = laplaceEdges.ndMap!(a =&gt; fabs(a)).slice.ranged(0.0f, 255.0f);
+    logEdges = logEdges.ndMap!(a =&gt; fabs(a)).slice.ranged(0.0f, 255.0f);
 
     <span style="color: #008000">// Show images on screen</span>
     img.imshow(<span style="color: #a31515">&quot;Original&quot;</span>);
