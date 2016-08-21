@@ -3,8 +3,6 @@ Module implements various algorithms used often in computer vision.
 
 $(DL Module contains:
     $(DD 
-            $(LINK2 #findMin,findMin)
-            $(LINK2 #findMax,findMax)
             $(LINK2 #norm,norm)
             $(LINK2 #normalize,normalize)
             $(LINK2 #scaled,scaled)
