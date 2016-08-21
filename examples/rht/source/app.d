@@ -4,11 +4,12 @@ module dcv.example.rht;
  * Randomized Hough Transform example using dcv library.
  */
 
-import std.experimental.ndslice;
 import std.stdio : writeln;
 import std.datetime : StopWatch;
 import std.math : fabs, PI, sin, cos, rint;
 import std.typecons : tuple;
+
+import mir.ndslice;
 
 import dcv.core : Image, asType, ranged, ImageFormat;
 import dcv.io : imread, imwrite;

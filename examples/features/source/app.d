@@ -61,8 +61,7 @@ void visualizeCornerResponse(Slice!(2, float*) response, string windowName)
 {
     response 
         // scale values in the response matrix for easier visualization.
-        .byElement
-        .ranged(0., 255.).array.sliced(response.shape).asType!ubyte
+        .ranged(0., 255.).asType!ubyte
         // Show the window
         .imshow(windowName) 
         .image
