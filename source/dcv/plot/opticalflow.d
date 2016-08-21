@@ -10,7 +10,8 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 
 module dcv.plot.opticalflow;
 
-import mir.ndslice;
+import mir.ndslice.slice : Slice, sliced;
+import mir.ndslice.algorithm : Yes, ndEach;
 
 /**
  * Draw color-coded optical flow.
@@ -29,7 +30,6 @@ Slice!(3, ubyte*) colorCode(Slice!(3, float*) flow, float maxSize = 0)
 {
     import std.math : sqrt;
     import std.array : array;
-    import std.algorithm.iteration : map;
 
     import dcv.core.algorithm : ranged;
     import dcv.imgproc.color : hsv2rgb;
@@ -61,13 +61,9 @@ Slice!(3, ubyte*) colorCode(Slice!(3, float*) flow, float maxSize = 0)
         }
     }
 
-    // Range saturation values
-    auto rangedS = hsv[0 .. $, 0 .. $, 1].byElement.ranged(0.0f,
-            maxSize) // range values from 0 to maxSize
-    .map!(v => v / maxSize) // normalize values
-    .array.sliced(hsv[0 .. $, 0 .. $, 0].shape);
+    hsv[0 .. $, 0 .. $, 1]
+        .ranged(0.0f, maxSize)
+        .ndEach!( (ref v) { v/= maxSize; }, Yes.vectorized);
 
-    hsv[0 .. $, 0 .. $, 1][] = rangedS[];
-
-    return hsv.hsv2rgb!ubyte;
+    return hsv.hsv2rgb!ubyte; // Convert to RGB, and return...
 }

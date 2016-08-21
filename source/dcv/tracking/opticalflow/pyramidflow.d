@@ -245,8 +245,9 @@ class DensePyramidFlow : DenseOpticalFlow
                 current = warp(current, flow);
             }
 
+            import dcv.core.utils : asType;
             // evaluate the flow algorithm
-            auto lflow = flowAlgorithm.evaluate(current.asImage(f1.format), next.asImage(f2.format));
+            auto lflow = flowAlgorithm.evaluate(current.asType!ubyte.asImage(f1.format), next.asType!ubyte.asImage(f2.format));
 
             // add flow calculated in this iteration to previous one.
             flow[] += lflow;
