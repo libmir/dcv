@@ -14,9 +14,7 @@ import std.math : PI, floor;
 
 import dcv.core.image;
 import dcv.imgproc.convolution;
-
 import dcv.tracking.opticalflow.base;
-
 public import dcv.imgproc.interpolate;
 
 /**
@@ -63,22 +61,27 @@ class LucasKanadeFlow : SparseOpticalFlow
     }
     body
     {
+        import std.array : uninitializedArray;
+        import std.range : lockstep, iota;
+        import std.array : array;
+        import std.algorithm.iteration : each;
+        import std.parallelism : parallel;
+
+        import mir.ndslice.slice : assumeSameStructure;
+        import mir.ndslice.algorithm : ndEach, Yes;
+
         import dcv.core.algorithm : ranged, ranged;
         import dcv.imgproc.interpolate : linear;
         import dcv.imgproc.filter;
         import dcv.core.utils : asType;
-
-        import std.array : uninitializedArray;
-        import std.range : lockstep, iota;
-        import std.array : array;
-        import std.algorithm.iteration : map;
-        import std.parallelism : parallel;
+        import dcv.core.memory;
 
         const auto rows = f1.height;
         const auto cols = f1.width;
         const auto rl = cast(int)(rows - 1);
         const auto cl = cast(int)(cols - 1);
         const auto pointCount = points.length;
+        const auto pixelCount = rows * cols;
 
         if (!usePrevious)
         {
@@ -92,37 +95,42 @@ class LucasKanadeFlow : SparseOpticalFlow
         float gaussMul = 1.0f / (2.0f * PI * sigma);
         float gaussDel = 2.0f * (sigma ^^ 2);
 
-        auto f1s = new float[f1.height*f1.width].sliced(f1.height, f1.width);
-        auto f2s = new float[f1.height*f1.width].sliced(f1.height, f1.width);
+        // Temporary buffers, used in alrithm -------------------------------
+        // TODO: cache these in class, and reuse
+        auto floatPool = [
+            alignedAlloc!float(pixelCount), alignedAlloc!float(pixelCount),
+            alignedAlloc!float(pixelCount), alignedAlloc!float(pixelCount)
+        ];
+        auto ubytePool = [alignedAlloc!ubyte(pixelCount), alignedAlloc!ubyte(pixelCount)];
 
-        auto fxs = new float[f1.height*f1.width].sliced(f1.height, f1.width);
-        auto fys = new float[f1.height*f1.width].sliced(f1.height, f1.width);
-
-        auto f1d = f1.data;
-        auto f2d = f2.data;
-
-        foreach(r; iota(f1.height).parallel)
+        scope (exit)
         {
-            foreach(c; 0 .. f1.width)
-            {
-                auto id = r * f1.width + c;
-                f1s[r, c] = cast(float)f1d[id];
-                f2s[r, c] = cast(float)f2d[id];
-            }
+            floatPool.each!(v => alignedFree(v));
+            ubytePool.each!(v => alignedFree(v));
         }
+        // --------------------------------------------------------------------
 
+        auto f1s = floatPool[0].sliced(rows, cols);
+        auto f2s = floatPool[1].sliced(rows, cols);
+        auto fxs = floatPool[2].sliced(rows, cols);
+        auto fys = floatPool[3].sliced(rows, cols);
+        auto fxmask = ubytePool[0].sliced(rows, cols);
+        auto fymask = ubytePool[1].sliced(rows, cols);
+        auto f1d = f1.data.sliced(f1s.shape);
+        auto f2d = f2.data.sliced(f2s.shape);
 
-        auto fxmask = new ubyte[f1.height * f1.width].sliced(f1.height, f1.width);
-        auto fymask = new ubyte[f1.height * f1.width].sliced(f1.height, f1.width);
+        assumeSameStructure!("f1s", "f2s", "f1", "f2")(f1s, f2s, f1d, f2d).ndEach!((v) {
+            v.f1s = cast(float)v.f1;
+            v.f2s = cast(float)v.f2;
+        }, Yes.vectorized);
 
         fxs[] = 0.0f;
         fys[] = 0.0f;
-
-        fxmask[] = cast(ubyte)0;
-        fymask[] = cast(ubyte)0;
+        fxmask[] = ubyte(0);
+        fymask[] = ubyte(0);
 
         // Fill-in masks where points are present
-        foreach(p, r; lockstep(points, searchRegions))
+        foreach (p, r; lockstep(points, searchRegions))
         {
             auto rb = cast(int)(p[0] - r[0] / 2.0f);
             auto re = cast(int)(p[0] + r[0] / 2.0f);
@@ -139,9 +147,9 @@ class LucasKanadeFlow : SparseOpticalFlow
                 continue;
             }
 
-            foreach(i; rb .. re)
+            foreach (i; rb .. re)
             {
-                foreach(j; cb .. ce)
+                foreach (j; cb .. ce)
                 {
                     fxmask[i, j] = cast(ubyte)1;
                     fymask[i, j] = cast(ubyte)1;

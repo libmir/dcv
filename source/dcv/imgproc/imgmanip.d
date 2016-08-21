@@ -18,13 +18,9 @@ $(DL Module contains:
     )
 )
 */
-
 module dcv.imgproc.imgmanip;
 
-public import dcv.imgproc.interpolate;
-
 import std.exception : enforce;
-import std.experimental.ndslice;
 import std.traits : allSatisfy, isFloatingPoint, allSameType, isNumeric, isIntegral;
 import std.algorithm : each;
 import std.range : iota;
@@ -32,6 +28,9 @@ import std.parallelism : parallel;
 import std.range : isArray, ElementType;
 
 import dcv.core.utils;
+public import dcv.imgproc.interpolate;
+
+import mir.ndslice;
 
 /**
 Resize array using custom interpolation function.

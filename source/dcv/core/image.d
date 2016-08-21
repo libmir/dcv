@@ -2,7 +2,7 @@
 Module implements Image utility class, and basic API for image manipulation.
 
 Image class encapsulates image properties with minimal functionality. It is primarily designed to be used as I/O unit.
-For any image processing needs, image data can be sliced to std.experimental.ndslice.slice.Slice. 
+For any image processing needs, image data can be sliced to mir.ndslice.slice.Slice. 
 
 Example:
 ----
@@ -27,7 +27,7 @@ module dcv.core.image;
 import std.exception : enforce;
 import std.algorithm : reduce;
 
-public import std.experimental.ndslice;
+public import mir.ndslice;
 
 /// Image (pixel) format.
 enum ImageFormat

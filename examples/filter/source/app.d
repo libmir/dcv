@@ -4,12 +4,13 @@ module dcv.example.convolution;
  * Spatial image filtering example using dcv library.
  */
 
-import std.experimental.ndslice;
 import std.stdio : writeln;
 import std.datetime : StopWatch;
 import std.math : fabs;
 import std.array : array;
 import std.algorithm.iteration : map;
+
+import mir.ndslice;
 
 import dcv.core : Image, asType, ranged, ImageFormat;
 import dcv.io : imread, imwrite;
@@ -28,8 +29,9 @@ int main(string[] args)
         return 1;
     }
 
-    Slice!(3, float*) imslice = img.asType!float // convert Image data type from ubyte to float
-    .sliced!float; // slice image data - calls img.data!float.sliced(img.height, img.width, img.channels)
+    Slice!(3, float*) imslice = img
+        .asType!float // convert Image data type from ubyte to float
+        .sliced!float; // slice image data - calls img.data!float.sliced(img.height, img.width, img.channels)
 
     auto gray = imslice.rgb2gray; // convert rgb image to grayscale
 
@@ -58,10 +60,10 @@ int main(string[] args)
     auto medBlur = noisyImage.medianFilter(5);
 
     // scale values from 0 to 255 to preview gradient direction and magnitude
-    xgrads = xgrads.byElement.ranged(0, 255).array.sliced(xgrads.shape);
+    xgrads.ranged(0, 255);
     // Take absolute values and range them from 0 to 255, to preview edges
-    laplaceEdges = laplaceEdges.byElement.map!(a => fabs(a)).ranged(0, 255).array.sliced(laplaceEdges.shape);
-    logEdges = logEdges.byElement.map!(a => fabs(a)).ranged(0, 255).array.sliced(logEdges.shape);
+    laplaceEdges = laplaceEdges.ndMap!(a => fabs(a)).slice.ranged(0.0f, 255.0f);
+    logEdges = logEdges.ndMap!(a => fabs(a)).slice.ranged(0.0f, 255.0f);
 
     // Show images on screen
     img.imshow("Original");

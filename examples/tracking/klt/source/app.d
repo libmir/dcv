@@ -9,7 +9,7 @@ import std.conv : to;
 import std.algorithm : copy, map, each;
 import std.range : lockstep, repeat;
 import std.array : array;
-import std.experimental.ndslice;
+import mir.ndslice;
 
 import dcv.core;
 import dcv.io;

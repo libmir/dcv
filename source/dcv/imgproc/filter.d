@@ -41,8 +41,6 @@ $(DL Module contains:
 
 module dcv.imgproc.filter;
 
-import std.experimental.ndslice;
-
 import std.traits : allSameType, allSatisfy, isFloatingPoint, isNumeric, isDynamicArray,
     isStaticArray,isIntegral;
 import std.range : iota, array, lockstep, ElementType, isForwardRange;
@@ -58,6 +56,7 @@ import std.parallelism : parallel, taskPool;
 import dcv.core.algorithm;
 import dcv.core.utils;
 
+import mir.ndslice;
 
 /**
 Box kernel creation.
@@ -718,7 +717,9 @@ Slice!(2, V*) canny(V, T)(Slice!(2, T*) slice, T lowThresh, T upThresh,
     calcGradients(slice, mag, orient, edgeKernelType);
     auto nonmax = nonMaximaSupression(mag, orient);
 
-    return nonmax.byElement.ranged(0, upval).array.sliced(nonmax.shape).threshold!V(lowThresh, upThresh);
+    return nonmax
+        .ranged(0, upval)
+        .threshold!V(lowThresh, upThresh);
 }
 
 /**
@@ -801,7 +802,7 @@ body
             }
 
             // normalize mask and calculate result value.
-            float mask_sum = mask.byElement.norm(NormType.L1);
+            float mask_sum = mask.norm(NormType.L1);
             float res_val = 0.0f;
 
             i = 0;
