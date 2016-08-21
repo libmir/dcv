@@ -35,7 +35,7 @@ waitKey();
 
 ## Documentation
 
-API reference, and examples can be found in project gh-pages: [https://ljubobratovicrelja.github.io/dcv/](https://ljubobratovicrelja.github.io/dcv/). Also project roadmap, news and other related stuff should be always located on the site's home page.
+API reference, and examples can be found in project gh-pages: [dcv.dlang.io](http://dcv.dlang.io/). Also project roadmap, news and other related stuff should be always located on the site's home page.
 
 ## Contributions
 PRs and any form of help is most appreciated. Also, you can file an issue for feature request, bug report or any other library related inquiry. If you have any sort of quick question, feel free to post it in the gitter room.
