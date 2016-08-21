@@ -14,18 +14,20 @@ Focus of the library is to present an easy-to-use interface, that would attract 
 
 ## API
 
-DCV's API heavily utilizes [std.experimental.ndslice](https://dlang.org/phobos/std_experimental_ndslice.html) package, which originated in [Mir](https://github.com/libmir/mir) project. It's n-dimensional range view structure [Slice](https://dlang.org/phobos/std_experimental_ndslice_slice.html#.Slice) is used for any form of image manipulation and processing. But overall shape of the API is adopted from well known computer vision toolkits such as Matlab Image Processing Toolbox, and OpenCV library, to be easily familiarized with. But it's also spiced up with D's syntactic sugar, to support pipelined calls:
+DCV's API heavily utilizes [Mir](https://github.com/libmir/mir) library, and it's `mir.ndslice` package. N-dimensional range view 
+structure [Slice](https://github.com/libmir/mir/blob/master/source/mir/ndslice/slice.d) is used for any form of image manipulation 
+and processing. But overall shape of the API is adopted from well known computer vision toolkits such as Matlab Image Processing 
+Toolbox, and OpenCV library, to be easily familiarized with. But it's also spiced up with D's syntactic sugar, to support pipelined calls:
 
 ```d
 Image image = imread("/path/to/image.png"); // read an image from filesystem.
 
-auto slice = image.sliced; // slice image data (calls std.experimental.ndslice.slice.sliced on image data)
+auto slice = image.sliced; // slice image data (calls mir.ndslice.slice.sliced on image data)
 
 slice
     .asType!float[0..$, 0..$, 1] // convert slice data to float, and take the green channel only.
     .conv!symmetric(sobel!float(GradientDirection.DIR_X)) // convolve image with horizontal Sobel kernel.
-    .byElement
-    .ranged(0, 255).array.sliced(slice.shape[0..2]) // scale values to fit the range between the 0 and 255
+    .ranged(0, 255) // scale values to fit the range between the 0 and 255
     .imshow("Sobel derivatives"); // preview changes on screen.
 
 waitKey();
