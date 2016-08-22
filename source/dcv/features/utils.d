@@ -49,7 +49,7 @@ return:
 Dynamic array of size_t[2], as in array of 2D points, of corner reponses 
 which fit the given criteria.
 */
-size_t[2][] extractCorners(T)(Slice!(2, T*) cornerResponse, long count = -1, T threshold = cast(T)0)@trusted pure nothrow 
+size_t[2][] extractCorners(T)(Slice!(2, T*) cornerResponse, int count = -1, T threshold = cast(T)0)@trusted pure nothrow 
         if (isNumeric!T)
 {
     import std.algorithm : sort, map, min;
