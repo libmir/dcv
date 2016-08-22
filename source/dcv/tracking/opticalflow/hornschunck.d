@@ -100,7 +100,7 @@ class HornSchunckFlow : DenseOpticalFlow
         if (!prealloc.shape[0 .. 2].array.equal(current.shape.array))
         {
             const auto arrayLen = current.shape.reduce!"a*b" * 2;
-            ulong[current.shape.length + 1] arrayShape;
+            size_t[current.shape.length + 1] arrayShape;
             arrayShape[0 .. $ - 1] = current.shape[];
             arrayShape[$ - 1] = 2;
             prealloc = new float[arrayLen].sliced(arrayShape);

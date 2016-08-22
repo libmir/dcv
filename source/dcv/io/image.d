@@ -132,7 +132,7 @@ data = Image data in unsigned bytes.
 return:
 Status of the writing as bool.
 */
-bool imwrite(in string path, ulong width, ulong height, ImageFormat format, BitDepth depth, ubyte[] data)
+bool imwrite(in string path, size_t width, size_t height, ImageFormat format, BitDepth depth, ubyte[] data)
 {
     assert(depth != BitDepth.BD_UNASSIGNED);
     assert(width > 0 && height > 0);
@@ -339,13 +339,13 @@ Image imreadImpl_imageformats(in string path, ReadParams params)
     if (params.depth == BitDepth.BD_UNASSIGNED || params.depth == BitDepth.BD_8)
     {
         IFImage ifim = read_image(path, ch);
-        im = new Image(cast(ulong)ifim.w, cast(ulong)ifim.h, params.format, BitDepth.BD_8, ifim.pixels);
+        im = new Image(cast(size_t)ifim.w, cast(size_t)ifim.h, params.format, BitDepth.BD_8, ifim.pixels);
     }
     else if (params.depth == BitDepth.BD_16)
     {
         enforce(path.extension.toLower == ".png", "Reading 16-bit image has to be in PNG format.");
         IFImage16 ifim = read_png16(path, ch);
-        im = new Image(cast(ulong)ifim.w, cast(ulong)ifim.h, params.format, BitDepth.BD_16, cast(ubyte[])ifim.pixels);
+        im = new Image(cast(size_t)ifim.w, cast(size_t)ifim.h, params.format, BitDepth.BD_16, cast(ubyte[])ifim.pixels);
     }
     else
     {

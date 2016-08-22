@@ -66,11 +66,11 @@ class SparsePyramidFlow : SparseOpticalFlow
         import std.array : uninitializedArray;
         import dcv.core.utils : asType;
 
-        ulong[2] size = [f1.height, f1.width];
+        size_t[2] size = [f1.height, f1.width];
         const auto pointCount = points.length;
 
         // pyramid flow array - each item is double sized flow from the next
-        ulong[2][] flowPyramid;
+        size_t[2][] flowPyramid;
         flowPyramid.length = levelCount;
         flowPyramid[$ - 1] = size.dup;
 
@@ -178,11 +178,11 @@ class DensePyramidFlow : DenseOpticalFlow
     body
     {
 
-        ulong[2] size = [f1.height, f1.width];
+        size_t[2] size = [f1.height, f1.width];
         uint level = 0;
 
         // pyramid flow array - each item is double sized flow from the next
-        ulong[2][] flowPyramid;
+        size_t[2][] flowPyramid;
         flowPyramid.length = levelCount;
         flowPyramid[$ - 1] = size.dup;
 

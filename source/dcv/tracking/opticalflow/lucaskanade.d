@@ -27,7 +27,7 @@ class LucasKanadeFlow : SparseOpticalFlow
     {
         float sigma = 0.84f;
         float[] cornerResponse;
-        ulong iterationCount = 10;
+        size_t iterationCount = 10;
     }
 
     /**

@@ -46,17 +46,17 @@ threshold = Response threshold - response values in the matrix
 larger than this are considered as valid corners.
 
 return:
-Dynamic array of ulong[2], as in array of 2D points, of corner reponses 
+Dynamic array of size_t[2], as in array of 2D points, of corner reponses 
 which fit the given criteria.
 */
-ulong[2][] extractCorners(T)(Slice!(2, T*) cornerResponse, long count = -1, T threshold = cast(T)0)@trusted pure nothrow 
+size_t[2][] extractCorners(T)(Slice!(2, T*) cornerResponse, long count = -1, T threshold = cast(T)0)@trusted pure nothrow 
         if (isNumeric!T)
 {
     import std.algorithm : sort, map, min;
     import std.array : array;
     import std.range : take, iota;
 
-    ulong[2][float] features;
+    size_t[2][float] features;
 
     if (cornerResponse.empty)
     {
