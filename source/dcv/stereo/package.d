@@ -2,6 +2,6 @@ module dcv.stereo;
 
 public
 {
-	import dcv.stereo.matching;
+    import dcv.stereo.matching;
 }
 
