@@ -190,6 +190,9 @@ private void pointwiseCost(alias fun)(const ref StereoPipelineProperties propert
 	}
 }
 
+/**
+Implements the cost aggregation method described by Hirschmuller (2007), commonly known as Semi-Global Matching.
+*/
 StereoCostAggregator semiGlobalAggregator(CostType p1 = 15, CostType p2 = 100)
 {
 	struct Path
@@ -280,6 +283,11 @@ StereoCostAggregator semiGlobalAggregator(CostType p1 = 15, CostType p2 = 100)
 	return &aggregator;
 }
 
+/**
+Implements the naive winner takes all algorithm for computing a diparity map from a cost volume.
+
+At each (x, y) coordinate the disparity with the lowest cost is selected.
+*/
 DisparityMethod winnerTakesAll()
 {
 	void disparityMethod(const ref StereoPipelineProperties props, CostVolume costVol, DisparityMap disp)
@@ -292,6 +300,9 @@ DisparityMethod winnerTakesAll()
 	return &disparityMethod;
 }
 
+/**
+Applies a median filter to the disparity map in order to correct outliers.
+*/
 DisparityRefiner medianDisparityFilter(size_t windowSize = 3)
 {
 	void disparityRefiner(const ref StereoPipelineProperties props, DisparityMap disp)
@@ -302,24 +313,13 @@ DisparityRefiner medianDisparityFilter(size_t windowSize = 3)
 	return &disparityRefiner;
 }
 
+/**
+Creates a StereoPipeline that performs semi-global matching.
+
+Absolute difference is used for computing costs, and 3x3 median filter is applied to the winner take all disparity map.
+*/
 StereoPipeline semiGlobalMatchingPipeline(const ref StereoPipelineProperties props)
 {
 	return new StereoPipeline(props, absoluteDifference(), semiGlobalAggregator(), winnerTakesAll(), medianDisparityFilter());
 }
 
-unittest
-{
-	import std.functional;
-	import dcv.io;
-	import dcv.plot;
-
-	auto left = imread("im2.png");
-	auto right = imread("im6.png");
-
-	auto props = StereoPipelineProperties(left.width, left.height, left.channels);
-	auto matcher = semiGlobalMatchingPipeline(props);
-	auto disp = matcher.evaluate(left, right);
-
-	imshow(disp.ndMap!(x => x * 4).slice);
-	waitKey();
-}
