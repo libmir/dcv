@@ -148,7 +148,7 @@ StereoCostFunction absoluteDifference()
 {
     import std.functional;
     import std.math;
-    return toDelegate(&pointwiseCost!(x => abs(x[0] - x[1])));
+    return toDelegate(&pointwiseCost!(x => abs(x.left - x.right)));
 }
 
 /**
@@ -165,29 +165,18 @@ private void pointwiseCost(alias fun)(const ref StereoPipelineProperties propert
             .asType!CostType
             .sliced!CostType;
 
-    //TODO: rewrite the rest of this function to use mir.ndslice.algorithm, etc.
-    for(size_t y = 0; y < properties.frameHeight; y++)
-    {
-        for(size_t x = 0; x < properties.frameWidth; x++)
-        {
-            for(size_t d = 0; d < properties.disparityRange; d++)
-            {
-                if(x >= properties.minDisparity + d)
-                {
-                    import std.algorithm;
-                    import std.range;
+	for(size_t d = 0; d < properties.disparityRange; d++)
+	{
+		//Fill the invalid region of the cost volume with a very high cost
+		costVol[0 .. $, 0 .. d, d] = CostType.max;
 
-                    costVol[y, x, d] = zip(l[y, x], r[y, x - properties.minDisparity - d])
-                                      .map!(fun)
-                                      .fold!((a, b) => a + b)(cast(CostType)0);
-                }
-                else
-                {
-                    costVol[y, x, d] = CostType.max;
-                }
-            }
-        }
-    }
+		//Compute the costs for the current disparity
+		costVol[0 .. $, d .. $, d] = assumeSameStructure!("left", "right")(l[0 .. $, d .. $], r[0 .. $, 0 .. $ - d])
+									.ndMap!(fun)
+									.pack!1
+									.ndMap!(x => x.ndFold!((a, b) => a + b)(CostType(0)))
+									.unpack;
+	}
 }
 
 /**
@@ -324,7 +313,7 @@ DisparityRefiner medianDisparityFilter(size_t windowSize = 3)
 {
     void disparityRefiner(const ref StereoPipelineProperties props, DisparityMap disp)
     {
-        //disp[] = medianFilter(disp, windowSize)[];
+        disp[] = medianFilter(disp, windowSize)[];
     }
 
     return &disparityRefiner;
