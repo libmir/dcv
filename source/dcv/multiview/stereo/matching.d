@@ -165,18 +165,18 @@ private void pointwiseCost(alias fun)(const ref StereoPipelineProperties propert
             .asType!CostType
             .sliced!CostType;
 
-	for(size_t d = 0; d < properties.disparityRange; d++)
-	{
-		//Fill the invalid region of the cost volume with a very high cost
-		costVol[0 .. $, 0 .. d, d] = CostType.max;
+    for(size_t d = 0; d < properties.disparityRange; d++)
+    {
+        //Fill the invalid region of the cost volume with a very high cost
+        costVol[0 .. $, 0 .. d, d] = CostType.max;
 
-		//Compute the costs for the current disparity
-		costVol[0 .. $, d .. $, d] = assumeSameStructure!("left", "right")(l[0 .. $, d .. $], r[0 .. $, 0 .. $ - d])
-									.ndMap!(fun)
-									.pack!1
-									.ndMap!(x => x.ndFold!((a, b) => a + b)(CostType(0)))
-									.unpack;
-	}
+        //Compute the costs for the current disparity
+        costVol[0 .. $, d .. $, d] = assumeSameStructure!("left", "right")(l[0 .. $, d .. $], r[0 .. $, 0 .. $ - d])
+                                    .ndMap!(fun)
+                                    .pack!1
+                                    .ndMap!(x => x.ndFold!((a, b) => a + b)(CostType(0)))
+                                    .unpack;
+    }
 }
 
 /**
@@ -185,7 +185,7 @@ Implements the cost aggregation method described by Hirschmuller (2007), commonl
 StereoCostAggregator semiGlobalAggregator(size_t numPaths = 8, CostType p1 = 15, CostType p2 = 100)
 in
 {
-	assert(numPaths == 2 || numPaths == 4 || numPaths == 8 || numPaths == 16, "numPaths must be 2, 4, 8, or 16");
+    assert(numPaths == 2 || numPaths == 4 || numPaths == 8 || numPaths == 16, "numPaths must be 2, 4, 8, or 16");
 }
 body
 {
@@ -198,22 +198,22 @@ body
     }
 
     static Path[16] paths = [//Horizontal
-							Path(false, false, 0, 1),
+                            Path(false, false, 0, 1),
                             Path(false, true, 0, 1),
-							//Vertical
+                            //Vertical
                             Path(false, false, 1, 0),
                             Path(true, false, 1, 0),
-							//45 degree angle
+                            //45 degree angle
                             Path(false, false, 1, 1),
                             Path(false, true, 1, 1),
                             Path(true, false, 1, 1),
                             Path(true, true, 1, 1),
-							//22.5 degree increments
-							Path(false, false, 1, 2),
+                            //22.5 degree increments
+                            Path(false, false, 1, 2),
                             Path(false, true, 1, 2),
                             Path(true, false, 1, 2),
                             Path(true, true, 1, 2),
-							Path(false, false, 2, 1),
+                            Path(false, false, 2, 1),
                             Path(false, true, 2, 1),
                             Path(true, false, 2, 1),
                             Path(true, true, 2, 1)];
@@ -248,7 +248,7 @@ body
                 //Iterate over the x coordinate
                 for(int x = path.deltaX; x < width; x++)
                 {
-                    CostType minCost = pathCost[y - path.deltaY, x - path.deltaX].ndFold!"min(a, b)"(CostType.max);
+                    CostType minCost = pathCost[y - path.deltaY, x - path.deltaX].ndFold!min(CostType.max);
 
                     //Iterate over each possible disparity
                     for(int d = 0; d < props.disparityRange; d++)
@@ -270,14 +270,16 @@ body
                 }
             }
 
+            tmpCostVol = pathCost;
+
             if(path.reverseY)
             {
-                tmpCostVol = pathCost.reversed!0;
+                tmpCostVol = tmpCostVol.reversed!0;
             }
 
             if(path.reverseX)
             {
-                tmpCostVol = pathCost.reversed!1;
+                tmpCostVol = tmpCostVol.reversed!1;
             }
 
             totalCost[] += tmpCostVol[];

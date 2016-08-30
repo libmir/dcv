@@ -122,7 +122,7 @@ public:
     */
     pure this(in Image copy, bool deepCopy = false)
     {
-        if (copy is null || copy.data is null)
+        if (copy is null || copy._data is null)
         {
             return;
         }
