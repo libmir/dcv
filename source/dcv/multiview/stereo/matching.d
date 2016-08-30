@@ -4,6 +4,8 @@ Contains methods that compute disparity maps for stereo pairs.
 module dcv.multiview.stereo.matching;
 
 import std.algorithm;
+import std.functional;
+import std.math;
 
 import mir.ndslice;
 
@@ -145,10 +147,16 @@ class StereoPipeline : StereoMatcher
 Creates a StereoCostFunction that computes the pixelwise absolute difference between intensities in the left and right images
 */
 StereoCostFunction absoluteDifference()
-{
-    import std.functional;
-    import std.math;
+{ 
     return toDelegate(&pointwiseCost!(x => abs(x.left - x.right)));
+}
+
+/**
+Creates a StereoCostFunction that computes the pixelwise squared difference between intensities in the left and right images
+*/
+StereoCostFunction squaredDifference()
+{
+    return toDelegate(&pointwiseCost!(x => pow(x.left - x.right, 2)));
 }
 
 /**
