@@ -8,6 +8,7 @@ import std.functional;
 import std.math;
 
 import mir.ndslice;
+import mir.sum;
 
 import dcv.core;
 import dcv.core.image;
@@ -144,6 +145,65 @@ class StereoPipeline : StereoMatcher
 }
 
 /**
+Computes the sum of absolute differences between two image patches in order to compute the matching cost.
+*/
+StereoCostFunction sumAbsoluteDifferences(uint windowSize = 5)
+{
+    return windowCost!(x => x.ndMap!(a => abs(a.left - a.right)).ndFold!"a + b"(CostType(0)))(windowSize);
+}
+
+/**
+Computes the normalised cross correlation, also known as the cosine similarity, between image patches.
+
+The resulting values are multiplied by negative one, so as to act as a loss rather than a fitness.
+*/
+StereoCostFunction normalisedCrossCorrelation(uint windowSize = 5)
+{
+    return windowCost!(w => -w.ndMap!(x => x.left * x.right).ndFold!"a + b"(CostType(0)) /
+                             sqrt(w.ndMap!(x => x.left * x.left).ndFold!"a + b"(CostType(0)) * w.ndMap!(x => x.right * x.right).ndFold!"a + b"(CostType(0))))(windowSize);
+}
+
+private StereoCostFunction windowCost(alias fun)(uint windowSize)
+{
+    void costFunc(const ref StereoPipelineProperties props, inout Image left, inout Image right, CostVolume costVol)
+    {
+        //Get the images as slices
+        auto l = left
+                .asType!CostType
+                .sliced!CostType;
+
+        auto r = right
+                .asType!CostType
+                .sliced!CostType;
+
+        auto lpad = slice([l.shape[0] + windowSize - 1, l.shape[1] + windowSize - 1, l.shape[2]], CostType(0));
+        auto rpad = slice([l.shape[0] + windowSize - 1, l.shape[1] + windowSize - 1, l.shape[2]], CostType(0));
+        lpad[windowSize / 2 .. $ - windowSize / 2, windowSize / 2 .. $ - windowSize / 2, 0 .. $] = l[];
+        rpad[windowSize / 2 .. $ - windowSize / 2, windowSize / 2 .. $ - windowSize / 2, 0 .. $] = r[];
+
+        for(size_t d = 0; d < props.disparityRange; d++)
+        {
+            costVol[0 .. $, 0 .. d, d] = CostType.max;
+
+            import std.typecons;
+            costVol[0 .. $, d .. $, d] = assumeSameStructure!("left", "right")(lpad[0 .. $, d .. $], rpad[0 .. $, 0 .. $ - d])
+                                        .ndMap!(x => tuple!("left", "right")(x.left, x.right))
+                                        .pack!1
+                                        .windows(windowSize, windowSize)
+                                        .unpack
+                                        .transposed!(0, 1, 4)
+                                        .pack!2
+                                        .ndMap!fun
+                                        .pack!1
+                                        .ndMap!(x => x.ndFold!"a + b"(CostType(0)))
+                                        .unpack;
+        }
+    }
+
+    return &costFunc;
+}
+
+/**
 Creates a StereoCostFunction that computes the pixelwise absolute difference between intensities in the left and right images
 */
 StereoCostFunction absoluteDifference()
@@ -182,7 +242,7 @@ private void pointwiseCost(alias fun)(const ref StereoPipelineProperties propert
         costVol[0 .. $, d .. $, d] = assumeSameStructure!("left", "right")(l[0 .. $, d .. $], r[0 .. $, 0 .. $ - d])
                                     .ndMap!(fun)
                                     .pack!1
-                                    .ndMap!(x => x.ndFold!((a, b) => a + b)(CostType(0)))
+                                    .ndMap!(x => x.ndFold!"a + b"(CostType(0)))
                                     .unpack;
     }
 }
@@ -324,6 +384,19 @@ DisparityRefiner medianDisparityFilter(size_t windowSize = 3)
     void disparityRefiner(const ref StereoPipelineProperties props, DisparityMap disp)
     {
         disp[] = medianFilter(disp, windowSize)[];
+    }
+
+    return &disparityRefiner;
+}
+
+/**
+Applies a bilateral filter to the disparity map in order to correct outliers.
+*/
+DisparityRefiner bilateralDisparityFilter(uint windowSize, float sigma)
+{
+    void disparityRefiner(const ref StereoPipelineProperties props, DisparityMap disp)
+    {
+        disp[] = bilateralFilter(disp, sigma, windowSize);
     }
 
     return &disparityRefiner;

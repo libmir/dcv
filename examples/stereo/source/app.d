@@ -38,10 +38,10 @@ void main(string[] args)
     auto acc = zip(estimate.byElement, groundTruth.asType!ushort.sliced!ushort.rgb2gray.byElement)
               .filter!(x => x[1] != 0)
               .tee!(x => c++)
-              .map!(x => abs(cast(int)x[0] - cast(int)x[1]) < 12 ? 1 : 0)
+              .map!(x => abs(cast(int)x[0] - cast(int)x[1]) <= 12 ? 1 : 0)
               .fold!((a, b) => a + b)(0.0f);
 
-    writeln((acc / cast(float)c) * 100, "% accuracy (<3px)");
+    writeln((acc / cast(float)c) * 100, "% accuracy (<=3px)");
 
     //Display estimated disparity and true disparity
     imshow(estimate);
