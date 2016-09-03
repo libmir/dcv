@@ -8,7 +8,6 @@ import std.functional;
 import std.math;
 
 import mir.ndslice;
-import mir.sum;
 
 import dcv.core;
 import dcv.core.image;
@@ -149,7 +148,14 @@ Computes the sum of absolute differences between two image patches in order to c
 */
 StereoCostFunction sumAbsoluteDifferences(uint windowSize = 5)
 {
-    return windowCost!(x => x.ndMap!(a => abs(a.left - a.right)).ndFold!"a + b"(CostType(0)))(windowSize);
+    import mir.ndslice.internal;
+
+	static @fastmath CostType sad(CostType a, CostType b, CostType c)
+	{
+        return a + abs(b - c);
+	}
+
+    return windowCost!((l, r) => ndReduce!(sad, Yes.vectorized)(CostType(0), l, r))(windowSize);
 }
 
 /**
@@ -159,8 +165,21 @@ The resulting values are multiplied by negative one, so as to act as a loss rath
 */
 StereoCostFunction normalisedCrossCorrelation(uint windowSize = 5)
 {
-    return windowCost!(w => -w.ndMap!(x => x.left * x.right).ndFold!"a + b"(CostType(0)) /
-                             sqrt(w.ndMap!(x => x.left * x.left).ndFold!"a + b"(CostType(0)) * w.ndMap!(x => x.right * x.right).ndFold!"a + b"(CostType(0))))(windowSize);
+    import mir.ndslice.internal;
+
+    static @fastmath CostType fma(CostType c, CostType a, CostType b)
+	{
+        return c + a * b;
+    }
+
+    alias dot = ndReduce!(fma, Yes.vectorized);
+
+	static @fastmath CostType ncc(L, R)(L l, R r)
+	{
+		return -dot(CostType(0), l, r) / sqrt(dot(CostType(0), l, l) * dot(CostType(0), r, r));
+	}
+
+    return windowCost!ncc(windowSize);
 }
 
 private StereoCostFunction windowCost(alias fun)(uint windowSize)
@@ -193,9 +212,9 @@ private StereoCostFunction windowCost(alias fun)(uint windowSize)
                                         .unpack
                                         .transposed!(0, 1, 4)
                                         .pack!2
-                                        .ndMap!fun
+                                        .ndMap!(x => fun(x.ndMap!(y => y.left), x.ndMap!(y => y.right)))
                                         .pack!1
-                                        .ndMap!(x => x.ndFold!"a + b"(CostType(0)))
+                                        .ndMap!(x => x.sum())
                                         .unpack;
         }
     }
@@ -242,7 +261,7 @@ private void pointwiseCost(alias fun)(const ref StereoPipelineProperties propert
         costVol[0 .. $, d .. $, d] = assumeSameStructure!("left", "right")(l[0 .. $, d .. $], r[0 .. $, 0 .. $ - d])
                                     .ndMap!(fun)
                                     .pack!1
-                                    .ndMap!(x => x.ndFold!"a + b"(CostType(0)))
+                                    .ndMap!(x => x.sum())
                                     .unpack;
     }
 }
@@ -409,6 +428,6 @@ Absolute difference is used for computing costs, and 3x3 median filter is applie
 */
 StereoPipeline semiGlobalMatchingPipeline(const ref StereoPipelineProperties props, size_t numPaths = 8, CostType p1 = 15, CostType p2 = 100)
 {
-    return new StereoPipeline(props, absoluteDifference(), semiGlobalAggregator(numPaths, p1, p2), winnerTakesAll(), medianDisparityFilter());
+    return new StereoPipeline(props, normalisedCrossCorrelation(), semiGlobalAggregator(numPaths, p1, p2), winnerTakesAll(), medianDisparityFilter());
 }
 
