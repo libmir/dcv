@@ -428,6 +428,6 @@ Absolute difference is used for computing costs, and 3x3 median filter is applie
 */
 StereoPipeline semiGlobalMatchingPipeline(const ref StereoPipelineProperties props, size_t numPaths = 8, CostType p1 = 15, CostType p2 = 100)
 {
-    return new StereoPipeline(props, normalisedCrossCorrelation(), semiGlobalAggregator(numPaths, p1, p2), winnerTakesAll(), medianDisparityFilter());
+    return new StereoPipeline(props, absoluteDifference(), semiGlobalAggregator(numPaths, p1, p2), winnerTakesAll(), medianDisparityFilter());
 }
 
