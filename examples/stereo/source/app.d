@@ -34,12 +34,22 @@ void main(string[] args)
     estimate[] *= 4;
 
     //Compute the accuracy. In this case we consider something within 3 units correct. Note that we have scaled everything up by a factor of 4.
-    uint c;
-    auto acc = zip(estimate.byElement, groundTruth.asType!ushort.sliced!ushort.rgb2gray.byElement)
-              .filter!(x => x[1] != 0)
-              .tee!(x => c++)
-              .map!(x => abs(cast(int)x[0] - cast(int)x[1]) <= 12 ? 1 : 0)
-              .fold!((a, b) => a + b)(0.0f);
+    float c = 0;
+
+    float evalAccum(float accum, uint est, uint gt)
+	{
+        if(gt != 0)
+        {
+            c++;
+            return accum + (abs(cast(float)est - cast(float)gt) <= 12.0f ? 1.0f : 0.0f);
+        }
+        else
+        {
+            return accum;
+        }
+	}
+
+    auto acc = ndReduce!(evalAccum)(0.0f, estimate, groundTruth.asType!ushort.sliced!ushort.rgb2gray);
 
     writeln((acc / cast(float)c) * 100, "% accuracy (<=3px)");
 
