@@ -1,0 +1,14 @@
+{
+	"name": "stereo",
+	"authors": [
+		"Henry Gouk"
+	],
+	"description": "Stereo matching example for DCV.",
+	"copyright": "Copyright © 2016, Henry Gouk",
+	"dependencies": {
+		"dcv": {
+			"version": "~master",
+			"path": "../../"
+		}
+	}
+}
