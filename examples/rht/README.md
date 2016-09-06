@@ -1,4 +1,5 @@
-# Image filtering example
+# Randomized Hough Transform (RHT)
+*... by [Dmitry Olshansky](https://github.com/DmitryOlshansky)*
 
 
 This example should demonstrate how to use Randomized Hough Transform to detect
@@ -67,7 +68,6 @@ auto canny = blur.canny!ubyte(80);
 
 ![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/rht/result/canny.png)
 
-## Randomized Hough Transform (RHT)
 
 ### RHT for lines
 
