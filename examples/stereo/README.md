@@ -37,11 +37,11 @@ with **median filter**.
 
 Let's use *Cones* example images, from [Middlebury dataset](http://vision.middlebury.edu/stereo/data/):
 
-![middlebury-cones]()
+![middlebury-cones](https://github.com/ljubobratovicrelja/dcv/blob/stereo-docs/examples/data/stereo/example_anim.gif)
 
 In the example code, paths to stereo pair (left and right images) and to it's ground truth disparity map should be supplied as entry point arguments.
 Given stereo pair is used to estimate disparity map with semiglobal matching algorithm, which is afterwards compared against given ground truth image. 
 Here are the estimated disparity map results from the example program, and ground truth disparity map for *Cones* by Middlebury:
 
-![disparity-results]()
+![disparity-results](https://github.com/ljubobratovicrelja/dcv/blob/stereo-docs/examples/data/stereo/result_anim.gif)
 
