@@ -1,0 +1,96 @@
+<h1 id="stereo-matching">Stereo Matching</h1>
+<p><em>… by <a href="https://github.com/henrygouk">Henry Gouk</a></em></p>
+<p>This example shows how to use stereo matching utilities in DCV.</p>
+<h2 id="modules-used">Modules used</h2>
+<ul>
+<li>dcv.imgproc</li>
+<li>dcv.io.image</li>
+<li>dcv.plot</li>
+<li>dcv.multiview.stereo.matching</li>
+</ul>
+<h2 id="stereo-matching-pipeline">Stereo Matching Pipeline</h2>
+<p>Stereo matching API is realized through the <code>dcv.multiview.stereo.matching.StereoPipeline</code> class. This class provides a framework for constructing stereo matching pipelines that conform to the taxonomy laid out in <a href="http://vision.middlebury.edu/stereo/taxonomy-IJCV.pdf">Scharstein and Szeliski (2002)</a>.</p>
+<p>According to this taxonomy, stereo matching can be divided into four steps:</p>
+<ol style="list-style-type: decimal">
+<li>Matching cost computation</li>
+<li>Cost aggregation</li>
+<li>Disparity computation</li>
+<li>Disparity refinement</li>
+</ol>
+<p>Implementations of various algorithms that conform to requirements of these components can be found in <code>dcv.multiview.stereo.matching</code> module, as well as several helper functions that will create commonly used pipelines out of these building blocks.</p>
+<h2 id="semiglobal-stereo-matching">Semiglobal Stereo Matching</h2>
+<p>One particular pipeline construct in DCV is the semiglobal matching[1], initialized with <code>dcv.multiview.stereo.matching.semiGlobalMatchingPipeline</code> function. <strong>Absolute difference</strong> is used here for computing costs, <strong>winner takes all</strong> algorithm is used to compute disparity map, which is afterwards refined with <strong>median filter</strong>.</p>
+<p><em>[1] Hirschmuller, H. (2008). Stereo processing by semiglobal matching and mutual information. IEEE Transactions on pattern analysis and machine intelligence, 30(2), 328-341.</em></p>
+<h2 id="results">Results</h2>
+<p>Let’s use <em>Cones</em> example images, from <a href="http://vision.middlebury.edu/stereo/data/">Middlebury dataset</a>:</p>
+<div class="figure">
+<img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/stereo/example_anim.gif?raw=true" alt="middlebury-cones" />
+</div>
+<p>In the example code, paths to stereo pair (left and right images) and to it’s ground truth disparity map should be supplied as entry point arguments. Given stereo pair is used to estimate disparity map with semiglobal matching algorithm, which is afterwards compared against given ground truth image. Here are the estimated disparity map results from the example program, and ground truth disparity map for <em>Cones</em> by Middlebury:</p>
+<div class="figure">
+<img src="https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/stereo/result_anim.gif?raw=true" alt="disparity-results" />
+</div>
+
+<br><span><big>Complete code:</big></span>
+
+<div><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">module</span> dcv.example.stereo;
+
+<span style="color: #0000ff">import</span> std.algorithm;
+<span style="color: #0000ff">import</span> std.math;
+<span style="color: #0000ff">import</span> std.range;
+<span style="color: #0000ff">import</span> std.stdio;
+
+<span style="color: #0000ff">import</span> dcv.imgproc;
+<span style="color: #0000ff">import</span> dcv.io.image;
+<span style="color: #0000ff">import</span> dcv.plot;
+<span style="color: #0000ff">import</span> dcv.multiview.stereo.matching;
+
+<span style="color: #2b91af">void</span> main(string[] args)
+{
+    <span style="color: #0000ff">if</span> (args.length != 4)
+    {
+        writeln(<span style="color: #a31515">&quot;Usage: stereo &lt;left image&gt; &lt;right image&gt; &lt;true disparity image&gt;&quot;</span>);
+        <span style="color: #0000ff">return</span>;
+    }
+
+    <span style="color: #008000">//Load the input images</span>
+    <span style="color: #0000ff">auto</span> left = imread(args[1]);
+    <span style="color: #0000ff">auto</span> right = imread(args[2]);
+    <span style="color: #0000ff">auto</span> groundTruth = imread(args[3]);
+
+    <span style="color: #008000">//Create a matcher</span>
+    <span style="color: #0000ff">auto</span> props = StereoPipelineProperties(left.width, left.height, left.channels);
+    <span style="color: #0000ff">auto</span> matcher = semiGlobalMatchingPipeline(props);
+
+    <span style="color: #008000">//Estimate the disparity</span>
+    <span style="color: #0000ff">auto</span> estimate = matcher.evaluate(left, right);
+
+    <span style="color: #008000">//Scale by a factor 4 for displaying</span>
+    estimate[] *= 4;
+
+    <span style="color: #008000">//Compute the accuracy. In this case we consider something within 3 units correct. Note that we have scaled everything up by a factor of 4.</span>
+    <span style="color: #2b91af">float</span> c = 0;
+
+    <span style="color: #2b91af">float</span> evalAccum(<span style="color: #2b91af">float</span> accum, <span style="color: #2b91af">uint</span> est, <span style="color: #2b91af">uint</span> gt)
+    {
+        <span style="color: #0000ff">if</span> (gt != 0)
+        {
+            c++;
+            <span style="color: #0000ff">return</span> accum + (abs(<span style="color: #0000ff">cast</span>(<span style="color: #2b91af">float</span>)est - <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">float</span>)gt) &lt;= 12.0f ? 1.0f : 0.0f);
+        }
+        <span style="color: #0000ff">else</span>
+        {
+            <span style="color: #0000ff">return</span> accum;
+        }
+    }
+
+    <span style="color: #0000ff">auto</span> acc = ndReduce!(evalAccum)(0.0f, estimate, groundTruth.asType!<span style="color: #2b91af">ushort</span>.sliced!<span style="color: #2b91af">ushort</span>.rgb2gray);
+
+    writeln((acc / <span style="color: #0000ff">cast</span>(<span style="color: #2b91af">float</span>)c) * 100, <span style="color: #a31515">&quot;% accuracy (&lt;=3px)&quot;</span>);
+
+    <span style="color: #008000">//Display estimated disparity and true disparity</span>
+    imshow(estimate);
+    imshow(groundTruth);
+    waitKey();
+}
+</pre></div>

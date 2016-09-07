@@ -21,6 +21,7 @@ var docs = [
     "dcv_io_video_common.html", 
     "dcv_io_video_input.html", 
     "dcv_io_video_output.html", 
+    "dcv_multiview_stereo_matching.html", 
     "dcv_plot_figure.html", 
     "dcv_plot_opticalflow.html", 
     "dcv_tracking_opticalflow_base.html", 
@@ -37,6 +38,7 @@ var examples = [
     "example_features_rht.html",
     "example_video.html",
     "example_morph.html",
+    "example_stereo.html",
     "example_imgmanip.html",
     "example_tracking_hornschunck.html",
     "example_tracking_lucaskanade.html"

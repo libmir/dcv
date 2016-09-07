@@ -1,0 +1,129 @@
+<h1>dcv.multiview.stereo.matching</h1>
+           Module introduces methods that compute disparity maps for stereo pairs.
+<br><br>
+<dl>Stereo Matching Base API:
+    <dd>            <a href="#emptyDisparityMap">emptyDisparityMap</a>
+            <a href="#StereoMatcher">StereoMatcher</a>
+            <a href="#StereoPipelineProperties">StereoPipelineProperties</a>
+            <a href="#StereoPipeline">StereoPipeline</a>
+            <a href="#sumAbsoluteDifferences">sumAbsoluteDifferences</a>
+            <a href="#normalisedCrossCorrelation">normalisedCrossCorrelation</a>
+            <a href="#absoluteDifference">absoluteDifference</a>
+            <a href="#squaredDifference">squaredDifference</a>
+            <a href="#semiGlobalAggregator">semiGlobalAggregator</a>
+            <a href="#winnerTakesAll">winnerTakesAll</a>
+            <a href="#medianDisparityFilter">medianDisparityFilter</a>
+            <a href="#bilateralDisparityFilter">bilateralDisparityFilter</a>
+    </dd>
+</dl>
+<dl>Stereo Matching Pipelines:
+    <dd>            <a href="#semiGlobalMatchingPipeline">semiGlobalMatchingPipeline</a>
+    </dd>
+</dl>
+
+<br><br>
+<b>Authors:</b><br>
+Henry Gouk
+
+<br><br>
+<b>License:</b><br>
+<a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.<br><br>
+
+<dl><dt><big><a name="emptyDisparityMap"></a>DisparityMap <u id="emptyDisparityMap">emptyDisparityMap</u>();
+</big></dt>
+<dd>Creates an empty disparity map<br><br>
+
+</dd>
+<dt><big><a name="StereoMatcher"></a>abstract class <u id="StereoMatcher">StereoMatcher</u>;
+</big></dt>
+<dd>Handles boilerplate code common to all stereo matching methods.<br><br>
+
+<dl><dt><big><a name="StereoMatcher.evaluate"></a>DisparityMap <u id="evaluate">evaluate</u>(inout Image <i>left</i>, inout Image <i>right</i>, DisparityMap <i>prealloc</i> = emptyDisparityMap());
+</big></dt>
+<dd>Compute a disparity map using the method defined by the subclass.
+<br><br>
+This method assumes the images have been rectified.<br><br>
+
+</dd>
+</dl>
+</dd>
+<dt><big><a name="StereoPipelineProperties"></a>struct <u id="StereoPipelineProperties">StereoPipelineProperties</u>;
+</big></dt>
+<dd>Contains the properties required to build a StereoPipeline<br><br>
+
+</dd>
+<dt><big><a name="StereoPipeline"></a>class <u id="StereoPipeline">StereoPipeline</u>: <u id="dcv.multiview.stereo.matching.StereoMatcher">dcv.multiview.stereo.matching.StereoMatcher</u>;
+</big></dt>
+<dd>This class provides a framework for constructing stereo matching pipelines that conform
+to the taxonomy laid out in Scharstein and Szeliski (2002).
+<br><br>
+According to this taxonomy, stereo matching can be divided into four steps:
+<br><br>
+
+1) Matching cost computation
+2) Cost aggregation
+3) Disparity computation
+4) Disparity refinement
+<br><br>
+
+Implementations of various algorithms that conform to requirements of these components
+can be found in this module, as well as several helper functions that will create
+commonly used pipelines out of these building blocks.<br><br>
+
+</dd>
+<dt><big><a name="sumAbsoluteDifferences"></a>StereoCostFunction <u id="sumAbsoluteDifferences">sumAbsoluteDifferences</u>(uint <i>windowSize</i> = 5);
+</big></dt>
+<dd>Computes the sum of absolute differences between two image patches in order to compute the matching cost.<br><br>
+
+</dd>
+<dt><big><a name="normalisedCrossCorrelation"></a>StereoCostFunction <u id="normalisedCrossCorrelation">normalisedCrossCorrelation</u>(uint <i>windowSize</i> = 5);
+</big></dt>
+<dd>Computes the normalised cross correlation, also known as the cosine similarity, between image patches.
+<br><br>
+The resulting values are multiplied by negative one, so as to act as a loss rather than a fitness.<br><br>
+
+</dd>
+<dt><big><a name="absoluteDifference"></a>StereoCostFunction <u id="absoluteDifference">absoluteDifference</u>();
+</big></dt>
+<dd>Creates a StereoCostFunction that computes the pixelwise absolute difference between intensities in the left and right images<br><br>
+
+</dd>
+<dt><big><a name="squaredDifference"></a>StereoCostFunction <u id="squaredDifference">squaredDifference</u>();
+</big></dt>
+<dd>Creates a StereoCostFunction that computes the pixelwise squared difference between intensities in the left and right images<br><br>
+
+</dd>
+<dt><big><a name="semiGlobalAggregator"></a>StereoCostAggregator <u id="semiGlobalAggregator">semiGlobalAggregator</u>(size_t <i>numPaths</i> = 8, CostType <i>p1</i> = 15, CostType <i>p2</i> = 100);
+</big></dt>
+<dd>Implements the cost aggregation method described by Hirschmuller (2007), commonly known as Semi-Global Matching.<br><br>
+
+</dd>
+<dt><big><a name="winnerTakesAll"></a>DisparityMethod <u id="winnerTakesAll">winnerTakesAll</u>();
+</big></dt>
+<dd>Implements the naive winner takes all algorithm for computing a diparity map from a cost volume.
+<br><br>
+At each (x, y) coordinate the disparity with the lowest cost is selected.<br><br>
+
+</dd>
+<dt><big><a name="medianDisparityFilter"></a>DisparityRefiner <u id="medianDisparityFilter">medianDisparityFilter</u>(size_t <i>windowSize</i> = 3);
+</big></dt>
+<dd>Applies a median filter to the disparity map in order to correct outliers.<br><br>
+
+</dd>
+<dt><big><a name="bilateralDisparityFilter"></a>DisparityRefiner <u id="bilateralDisparityFilter">bilateralDisparityFilter</u>(uint <i>windowSize</i>, float <i>sigma</i>);
+</big></dt>
+<dd>Applies a bilateral filter to the disparity map in order to correct outliers.<br><br>
+
+</dd>
+<dt><big><a name="semiGlobalMatchingPipeline"></a>StereoPipeline <u id="semiGlobalMatchingPipeline">semiGlobalMatchingPipeline</u>(ref const StereoPipelineProperties <i>props</i>, size_t <i>numPaths</i> = 8, CostType <i>p1</i> = 15, CostType <i>p2</i> = 100);
+</big></dt>
+<dd>Creates a StereoPipeline that performs semi-global matching.
+<br><br>
+Absolute difference is used for computing costs, and 3x3 median filter is applied to the winner take all disparity map.<br><br>
+
+</dd>
+</dl>
+
+           <hr>Copyright © 2016, Henry Gouk.
+
+
