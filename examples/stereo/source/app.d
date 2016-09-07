@@ -12,7 +12,7 @@ import dcv.multiview.stereo.matching;
 
 void main(string[] args)
 {
-    if(args.length != 4)
+    if (args.length != 4)
     {
         writeln("Usage: stereo <left image> <right image> <true disparity image>");
         return;
@@ -37,8 +37,8 @@ void main(string[] args)
     float c = 0;
 
     float evalAccum(float accum, uint est, uint gt)
-	{
-        if(gt != 0)
+    {
+        if (gt != 0)
         {
             c++;
             return accum + (abs(cast(float)est - cast(float)gt) <= 12.0f ? 1.0f : 0.0f);
@@ -47,7 +47,7 @@ void main(string[] args)
         {
             return accum;
         }
-	}
+    }
 
     auto acc = ndReduce!(evalAccum)(0.0f, estimate, groundTruth.asType!ushort.sliced!ushort.rgb2gray);
 
