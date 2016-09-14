@@ -37,12 +37,7 @@ static Slice!(N, O*) asType(O, V, size_t N)(Slice!(N, V*) inslice)
 {
     static if (__traits(compiles, cast(O)V.init))
     {
-        auto other = new O[inslice.shape.reduce!"a*b"].sliced(inslice.shape);
-        foreach (e, ref a; lockstep(inslice.byElement, other.byElement))
-        {
-            a = cast(O)e;
-        }
-        return other;
+        return inslice.ndMap!(a => cast(O)a).slice;
     }
     else
     {
@@ -57,10 +52,7 @@ unittest
 
     auto slice = 6.iota.array.sliced(2, 3);
     auto fslice = slice.asType!float;
-    foreach (ref s, ref f; lockstep(slice.byElement, fslice.byElement))
-    {
-        assert(cast(float)s == f);
-    }
+    assert(slice == fslice);
 }
 
 /**
