@@ -11,8 +11,6 @@ module dcv.core.utils;
 
 import std.traits;
 import std.meta : allSatisfy;
-import std.range : lockstep;
-import std.algorithm.iteration : reduce;
 
 import mir.ndslice;
 
@@ -39,12 +37,7 @@ static Slice!(N, O*) asType(O, V, size_t N)(Slice!(N, V*) inslice)
 {
     static if (__traits(compiles, cast(O)V.init))
     {
-        auto other = new O[inslice.shape.reduce!"a*b"].sliced(inslice.shape);
-        foreach (e, ref a; lockstep(inslice.byElement, other.byElement))
-        {
-            a = cast(O)e;
-        }
-        return other;
+        return inslice.ndMap!(a => cast(O)a).slice;
     }
     else
     {
@@ -59,10 +52,7 @@ unittest
 
     auto slice = 6.iota.array.sliced(2, 3);
     auto fslice = slice.asType!float;
-    foreach (ref s, ref f; lockstep(slice.byElement, fslice.byElement))
-    {
-        assert(cast(float)s == f);
-    }
+    assert(slice == fslice);
 }
 
 /**
@@ -139,7 +129,7 @@ static if (__VERSION__ >= 2071)
         alias T = typeof(slices[0].byElement.front);
 
         immutable D = slices[0].shape.length;
-        const auto length = slices[0].shape.reduce!"a*b";
+        const auto length = slices[0].elementsCount;
 
         auto data = uninitializedArray!(T[])(length * slices.length);
         ElementRange[slices.length] elRange;
