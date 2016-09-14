@@ -6,3 +6,7 @@
 *.userprefs
 *.lst
 __test__*
+
+source/.DS_Store
+
+.DS_Store
