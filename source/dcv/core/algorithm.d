@@ -62,21 +62,15 @@ Returns:
 */
 @nogc pure nothrow auto norm(Range, size_t N)(auto ref Slice!(N, Range) tensor, NormType normType)
 {
-    alias T = DeepElementType!(typeof(tensor));
-
-    static if (isFloatingPoint!T)
-        auto min = T.min_normal;
-    else
-        auto min = T.min;
-
+    import mir.glas.l1;
     final switch (normType)
     {
     case NormType.INF:
-        return min.ndReduce!(max, Yes.vectorized)(tensor);
+        return tensor.amax;
     case NormType.L1:
-        return T(0).ndReduce!((a, b) => fabs(a + b), Yes.vectorized)(tensor);
+        return tensor.asum;
     case NormType.L2:
-        return T(0).ndReduce!((a, b) => a + (b * b), Yes.vectorized)(tensor).sqrt;
+        return tensor.nrm2;
     }
 }
 
