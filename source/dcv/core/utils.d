@@ -11,8 +11,6 @@ module dcv.core.utils;
 
 import std.traits;
 import std.meta : allSatisfy;
-import std.range : lockstep;
-import std.algorithm.iteration : reduce;
 
 import mir.ndslice;
 
@@ -139,7 +137,7 @@ static if (__VERSION__ >= 2071)
         alias T = typeof(slices[0].byElement.front);
 
         immutable D = slices[0].shape.length;
-        const auto length = slices[0].shape.reduce!"a*b";
+        const auto length = slices[0].elementsCount;
 
         auto data = uninitializedArray!(T[])(length * slices.length);
         ElementRange[slices.length] elRange;
