@@ -24,8 +24,8 @@ Image image = imread("/path/to/image.png"); // read an image from filesystem.
 
 auto slice = image.sliced; // slice image data (calls mir.ndslice.slice.sliced on image data)
 
-slice
-    .asType!float[0..$, 0..$, 1] // convert slice data to float, and take the green channel only.
+slice[0..$, 0..$, 1] // take the green channel only.
+    .asType!float // convert slice data to float.
     .conv!symmetric(sobel!float(GradientDirection.DIR_X)) // convolve image with horizontal Sobel kernel.
     .ranged(0, 255) // scale values to fit the range between the 0 and 255
     .imshow("Sobel derivatives"); // preview changes on screen.
