@@ -54,6 +54,40 @@
     url('../fonts/Noto-Sans-700italic/Noto-Sans-700italic.svg#NotoSans') format('svg');
 }
 
+.contributorbox
+{
+
+}
+
+.contributor
+{
+    display: inline-block;
+}
+
+.contributor img
+{
+    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+}
+
+.progress {
+    position: fixed;
+    top: 0px;
+    right: 0px;
+    display: block;
+    text-align: center;
+    width: 0;
+    height: 3px;
+    background: rgb(107, 175, 207);
+    transition: width .3s;
+}
+
+.progress.hide {
+    opacity: 0;
+    transition: opacity 1.3s;
+}
+
 ul.tree, ul.tree ul { 
     list-style-type: none; 
     margin: 0; padding: 0; 
@@ -168,6 +202,18 @@ img {
 .wrapper {
     overflow:hidden;
     display:inline;
+}
+
+#project-contributors
+{
+    margin-top:8px;
+}
+
+.tightroundedbox {
+    background: #fcfcfc;
+    border:1px solid #e0e0e0;
+    border-radius: 5px;
+    padding: 8px;
 }
 
 .roundedbox {

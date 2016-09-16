@@ -31,24 +31,12 @@ var docs = [
     "dcv_tracking_opticalflow_pyramidflow.html", 
 ];
 
-
 var examples = [
-    "example_filter.html",
-    "example_features_corners.html",
-    "example_features_rht.html",
-    "example_video.html",
-    "example_morph.html",
-    "example_stereo.html",
-    "example_imgmanip.html",
-    "example_tracking_hornschunck.html",
-    "example_tracking_lucaskanade.html"
 ];
 
 var DESKTOP_UI = 0;
 var PHONE_UI = 1;
 var DESKTOP_MIN_WIDTH = 1200;
-//var TREE_SYMB_UP = '▲';
-//var TREE_SYMB_DOWN = '▼';
 var TREE_SYMB_UP = '◎';
 var TREE_SYMB_DOWN = '◉';
 var CONTENT_SYMB_UP = TREE_SYMB_UP + ' Content';
@@ -60,7 +48,7 @@ var PROJECT_BOX_WIDTH_SHRUNK = "65%";
 
 var animationSpeed = 200;
 var currentUI = DESKTOP_UI; 
-var currentLocation = ""
+var currentLocation = "NONE"
 
 function replaceAll(str, find, replace) {
     return str.replace(new RegExp(find, 'g'), replace);
@@ -97,13 +85,24 @@ function toggleContent() {
 }
 
 function setupHome() {
-    $("#projectbox").animate({width: PROJECT_BOX_WIDTH}, {duration:animationSpeed, queue:false});
-    $("#sourcetreebox").hide(animationSpeed, function() {
-        window.location.href = "index.html";
+    loadAbout();
+    window.history.pushState({path:"index.html"},"","index.html");
+}
+
+function loadAbout()
+{
+    $.ajax({
+        url : "about.html",
+        dataType : 'text',
+        success: function(result) {
+            document.getElementById("pagemain").innerHTML = result;
+            document.getElementById("examlesOnHomePage").onclick = setupExamples;
+            loadProjectContributors();
+        }
     });
 }
 
-function loadHTML(path) {
+function loadDocumentation(path) {
     if (path == "" || path == undefined) 
         return;
     var html = "";
@@ -112,20 +111,21 @@ function loadHTML(path) {
         dataType : 'text',
         success: function(result) {
             document.getElementById("pagemain").innerHTML = result;
+            var file = "source_" + path.replace(".html", ".d");
+            loadContributors(file);
+
+            var fullLocation = String(window.location);
+            if (fullLocation.indexOf("#") != -1)
+            {
+                var anchor = fullLocation.split("#")[1];
+                var element = document.getElementById(anchor);
+                if (element)
+                {
+                    window.scrollTo(0, element.offsetTop); 
+                }
+            }
         }
     });
-}
-
-function expandTreeItem(id) {
-
-}
-
-function collapseTreeItem(id) {
-
-}
-
-function isTreeItemCollapsed(id) {
-
 }
 
 function toggleTreeItem(id) {
@@ -135,7 +135,14 @@ function toggleTreeItem(id) {
         collapseTreeItem(id);
 }
 
-function setupContent(content) {
+function setupContent(contentType) {
+
+    var content;
+
+    if (contentType == "docs")
+        content = docs;
+    else 
+        content = examples;
 
     var sourcetree = document.getElementById("sourcetree");
     sourcetree.innerHTML = '';
@@ -215,42 +222,8 @@ function setupContent(content) {
     showContent();
 }
 
-/*
-function setupContent(content) {
-
-    var sourcetree = document.getElementById("sourcetree");
-    sourcetree.innerHTML = '';
-
-    if (content.length == 0) {
-        hideContent();
-        return;
-    } 
-
-    content.forEach(function(item, index) {
-        var lis = "";
-        var itemtokens = item.split("/");
-        var itempretty = itemtokens[itemtokens.length-1].replace(".html", "");
-        itempretty = replaceAll(itempretty, "_", ".");
-        itempretty = replaceAll(itempretty, ".package", "");
-        lis += "<a href=\"javascript:;\">";
-        lis += itempretty;
-        lis += "</a>\n";
-
-
-        var li = document.createElement("li");
-        li.innerHTML = lis;
-        var htmlLoadFunc = function() {
-            setLocationQueryString(item);
-        };
-        li.onclick = htmlLoadFunc;
-        sourcetree.appendChild(li);
-    });
-    showContent();
-}
-*/
-
 function setupDocumentation() {
-    setupContent(docs);
+    setupContent("docs");
     if (currentUI == PHONE_UI) {
         // collapse sub-packages of dcv
         document.getElementById("dcv_core_root").click();
@@ -259,11 +232,12 @@ function setupDocumentation() {
         document.getElementById("dcv_io_root").click();
         document.getElementById("dcv_plot_root").click();
         document.getElementById("dcv_tracking_root").click();
+        document.getElementById("dcv_multiview_root").click();
     }
 }
 
 function setupExamples() {
-    setupContent(examples);
+    setupContent("examples");
 }
 
 function setupPhoneUI() {
@@ -323,42 +297,122 @@ function evalSize() {
     }
 }
 
+function loadLocation(loc) 
+{
+    if (loc == "")
+    {
+        loadAbout();
+    }
+    else if (loc.indexOf(".html") != -1)
+    {
+        loadDocumentation(loc);
+    }
+    else
+    {
+        loadExample(loc);
+    }
+}
+
 function reloadQueryLocation() {
     var loc = getLocationFromQueryString();
+
     if (currentLocation == loc)
         return;
 
     currentLocation = loc;
-    loadHTML(loc);
+    loadLocation(loc);
 }
 
 function loadQueryLocation() {
-    loadHTML(getLocationFromQueryString());
+    loc = getLocationFromQueryString();
+    loadLocation(loc);
+}
+
+function removeQueryString()
+{
+
+}
+
+function setQueryString(key, value) {
+    str = "?" + key + "=" + value;
+
+    p = window.location;
+    pathStr = String(p);
+    toks = pathStr.split("?");
+
+    if (toks.length == 2)
+        pathStr = toks[0]
+
+    var newurl = pathStr + "?" + key + "=" + value;
+    window.history.pushState({path:newurl},value,str);
 }
 
 function setLocationQueryString(location) {
 
     currentLocation = location;
-    newLocation = "?loc=" + location;
-
-    var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?loc=' + location;
-    window.history.pushState({path:newurl},'',newurl);
+    setQueryString("loc", location);
 
     loadQueryLocation();
 }
 
-function getLocationFromQueryString() {
+function getQueryString() {
     tokens = window.location.href.split("?");
     str = "";
     if (tokens.length >=2 )
         str = tokens[1];
-    else
-        return;
+    return str;
+}
 
-    return str.split("=")[1];
+function parseQueryString() 
+{
+    keyValues = [];
+    qstr = getQueryString();
+    if (qstr.length != 0)
+    {
+        qstrTokens = qstr.split("&");
+        $.each(qstrTokens, function(i, v)
+                {
+                    sp = v.split("=");
+                    if (sp.length == 2)
+                        keyValues.push([sp[0], sp[1]]);
+                });
+    }
+    return keyValues;
+}
+
+function getQueryStringValue() {
+    str = getQueryString();
+    value = "";
+    if (str != "")
+        value = str.split("=")[1];
+    return value;
+}
+
+function getLocationFromQueryString() {
+    loc = "";
+    $.each(parseQueryString(), function(i, v) 
+            {
+                if (v[0] == "loc")
+                    loc = v[1];
+            });
+    return loc;
+}
+
+function loadExamples()
+{
+    listExamples(ACTIVE_BRANCH, 
+            function(data)
+            {
+                $.each(data.split(","), 
+                        function(i, v)
+                        {
+                            examples.push("example_" + v);
+                        });
+            });
 }
 
 $(document).ready(function(e) {
+    loadExamples();
 
     // setup content toggle
     $("#content").click(toggleContent);
@@ -369,7 +423,6 @@ $(document).ready(function(e) {
     document.getElementById("homelink").onclick = setupHome;
     document.getElementById("doclink").onclick = setupDocumentation;
     document.getElementById("exampleslink").onclick = setupExamples;
-    document.getElementById("examlesOnHomePage").onclick = setupExamples;
 
     window.onresize = evalSize;
 
@@ -388,12 +441,11 @@ $(document).ready(function(e) {
         }, animationSpeed*2);
     });
 
-    evalSize();
-
     $(window).on('popstate', function(event) {
-        location.reload();
+        reloadQueryLocation();
     });
 
+    evalSize();
     reloadQueryLocation();
 });
 
