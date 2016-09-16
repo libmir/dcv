@@ -131,9 +131,9 @@ template VectorSSE2(T)
     {
         alias VectorSSE2 = uint4;
     }
-    else static if (is(T == size_t))
+    else static if (is(T == ulong))
     {
-        alias VectorSSE2 = size_t2;
+        alias VectorSSE2 = ulong2;
     }
     else static if (is(T == byte))
     {
@@ -185,9 +185,9 @@ template VectorAVX(T)
     {
         alias VectorAVX = uint8;
     }
-    else static if (is(T == size_t))
+    else static if (is(T == ulong))
     {
-        alias VectorAVX = size_t4;
+        alias VectorAVX = ulong4;
     }
     else static if (is(T == byte))
     {
