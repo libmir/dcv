@@ -54,7 +54,7 @@ int main(string[] args)
     auto bilBlur = imslice.bilateralFilter(10.0f, 5);
 
     // Add salt and pepper noise at input image green channel
-    auto noisyImage = imslice.byElement.array.sliced(imslice.shape);
+    auto noisyImage = imslice.slice;
     auto saltNPepperNoise = noisyImage[0 .. $, 0 .. $, 1].saltNPepper(0.15f);
     // ... and perform median blurring on noisy image
     auto medBlur = noisyImage.medianFilter(5);
