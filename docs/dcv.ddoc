@@ -43,4 +43,5 @@ D_PARAM      = $(I $0)
 
 DDOC =     <h1>$(TITLE)</h1>
            $(BODY)
+           <div id="contributors"></div>
            <hr>$(COPYRIGHT)

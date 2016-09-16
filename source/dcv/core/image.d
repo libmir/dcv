@@ -25,7 +25,6 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 module dcv.core.image;
 
 import std.exception : enforce;
-import std.algorithm : reduce;
 
 public import mir.ndslice;
 
@@ -544,14 +543,14 @@ Image asImage(size_t N, T)(Slice!(N, T*) slice, ImageFormat format)
     static if (N == 2)
     {
         ubyte* ptr = cast(ubyte*)slice.byElement.array.ptr;
-        ubyte[] s_arr = ptr[0 .. slice.shape.reduce!"a*b" * T.sizeof][];
+        ubyte[] s_arr = ptr[0 .. slice.elementsCount * T.sizeof][];
         enforce(format.to!int == 1, "Invalid image format - has to be single channel");
         return new Image(slice.shape[1], slice.shape[0], format, depth, s_arr);
     }
     else static if (N == 3)
     {
         ubyte* ptr = cast(ubyte*)slice.byElement.array.ptr;
-        ubyte[] s_arr = ptr[0 .. slice.shape.reduce!"a*b" * T.sizeof][];
+        ubyte[] s_arr = ptr[0 .. slice.elementsCount * T.sizeof][];
         auto ch = slice.shape[2];
         enforce(ch >= 1 && ch <= 4,
                 "Invalid slice shape - third dimension should contain from 1(grayscale) to 4(rgba) values.");

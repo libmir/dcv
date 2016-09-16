@@ -5,11 +5,11 @@ This example demonstrates corner detection algorithms - Harris, and Shi-Tomasi.
 
 
 ## Modules used
-* dcv.core;
+* dcv.core
 * dcv.features
-* dcv.imgproc.color;
-* dcv.imgproc.filter;
-* dcv.io;
+* dcv.imgproc.color
+* dcv.imgproc.filter
+* dcv.io
 
 ## Example description
 

@@ -1,5 +1,33 @@
 /**
-Contains methods that compute disparity maps for stereo pairs.
+Module introduces methods that compute disparity maps for stereo pairs.
+
+$(DL Stereo Matching Base API:
+    $(DD
+            $(LINK2 #emptyDisparityMap,emptyDisparityMap)
+            $(LINK2 #StereoMatcher,StereoMatcher)
+            $(LINK2 #StereoPipelineProperties,StereoPipelineProperties)
+            $(LINK2 #StereoPipeline,StereoPipeline)
+            $(LINK2 #sumAbsoluteDifferences,sumAbsoluteDifferences)
+            $(LINK2 #normalisedCrossCorrelation,normalisedCrossCorrelation)
+            $(LINK2 #absoluteDifference,absoluteDifference)
+            $(LINK2 #squaredDifference,squaredDifference)
+            $(LINK2 #semiGlobalAggregator,semiGlobalAggregator)
+            $(LINK2 #winnerTakesAll,winnerTakesAll)
+            $(LINK2 #medianDisparityFilter,medianDisparityFilter)
+            $(LINK2 #bilateralDisparityFilter,bilateralDisparityFilter)
+    )
+)
+$(DL Stereo Matching Pipelines:
+    $(DD
+            $(LINK2 #semiGlobalMatchingPipeline,semiGlobalMatchingPipeline)
+    )
+)
+
+Copyright: Copyright © 2016, Henry Gouk.
+
+Authors: Henry Gouk
+
+License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
 */
 module dcv.multiview.stereo.matching;
 
