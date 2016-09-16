@@ -54,7 +54,7 @@ enum NormType
 Calculate value of various norm types for vectors and matrices.
 
 Note:
-    Deprecated in favor of mir.blas.l1 functions: amax asum, nrm2.
+    Deprecated in favor of mir.glas.l1 functions: amax asum, nrm2.
 
 Params:
     tensor = Tensor of which the norm value is calculated.
