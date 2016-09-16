@@ -118,21 +118,21 @@ Slice!(N, V*) scale(alias interp = linear, V, size_t N, Scale...)(Slice!(N, V*) 
         static assert(scale.length == 1, "Invalid scale setup - dimension does not match with input slice.");
         auto newsize = slice.length * scale[0];
         enforce(newsize > 0, "Scaling value invalid - after scaling array size is zero.");
-        return resizeImpl_1!interp(slice, cast(ulong)newsize);
+        return resizeImpl_1!interp(slice, cast(size_t)newsize);
     }
     else static if (N == 2)
     {
         static assert(scale.length == 2, "Invalid scale setup - dimension does not match with input slice.");
         auto newsize = [slice.length!0 * scale[0], slice.length!1 * scale[1]];
         enforce(newsize[0] > 0 && newsize[1] > 0, "Scaling value invalid - after scaling array size is zero.");
-        return resizeImpl_2!interp(slice, cast(ulong)newsize[0], cast(ulong)newsize[1]);
+        return resizeImpl_2!interp(slice, cast(size_t)newsize[0], cast(size_t)newsize[1]);
     }
     else static if (N == 3)
     {
         static assert(scale.length == 2, "Invalid scale setup - 3D scale is performed as 2D."); // TODO: find better way to say this...
         auto newsize = [slice.length!0 * scale[0], slice.length!1 * scale[1]];
         enforce(newsize[0] > 0 && newsize[1] > 0, "Scaling value invalid - after scaling array size is zero.");
-        return resizeImpl_3!interp(slice, cast(ulong)newsize[0], cast(ulong)newsize[1]);
+        return resizeImpl_3!interp(slice, cast(size_t)newsize[0], cast(size_t)newsize[1]);
     }
     else
     {
@@ -503,7 +503,7 @@ unittest
 private:
 
 // 1d resize implementation
-Slice!(1, V*) resizeImpl_1(alias interp, V)(Slice!(1, V*) slice, ulong newsize)
+Slice!(1, V*) resizeImpl_1(alias interp, V)(Slice!(1, V*) slice, size_t newsize)
 {
 
     enforce(!slice.empty && newsize > 0);
@@ -520,7 +520,7 @@ Slice!(1, V*) resizeImpl_1(alias interp, V)(Slice!(1, V*) slice, ulong newsize)
 }
 
 // 1d resize implementation
-Slice!(2, V*) resizeImpl_2(alias interp, V)(Slice!(2, V*) slice, ulong height, ulong width)
+Slice!(2, V*) resizeImpl_2(alias interp, V)(Slice!(2, V*) slice, size_t height, size_t width)
 {
 
     enforce(!slice.empty && width > 0 && height > 0);
@@ -546,7 +546,7 @@ Slice!(2, V*) resizeImpl_2(alias interp, V)(Slice!(2, V*) slice, ulong height, u
 }
 
 // 1d resize implementation
-Slice!(3, V*) resizeImpl_3(alias interp, V)(Slice!(3, V*) slice, ulong height, ulong width)
+Slice!(3, V*) resizeImpl_3(alias interp, V)(Slice!(3, V*) slice, size_t height, size_t width)
 {
 
     enforce(!slice.empty && width > 0 && height > 0);

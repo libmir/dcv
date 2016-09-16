@@ -41,7 +41,7 @@ enum ImageFormat
     IF_BGR_ALPHA /// BGR format with alpha.
 }
 
-immutable ulong[] imageFormatChannelCount = [0, // unassigned
+immutable size_t[] imageFormatChannelCount = [0, // unassigned
     1, // mono
     2, // mono alpha
     3, // rgb
@@ -171,7 +171,7 @@ public:
         assert(depth != BitDepth.BD_UNASSIGNED && format != ImageFormat.IF_UNASSIGNED);
         if (data !is null)
         {
-            assert(data.length == width * height * imageFormatChannelCount[cast(ulong)format] * (cast(ulong)depth / 8));
+            assert(data.length == width * height * imageFormatChannelCount[cast(size_t)format] * (cast(size_t)depth / 8));
         }
     }
     body
@@ -217,7 +217,7 @@ public:
         assert(image.channels == channels);
         assert(image.depth == depth);
         assert(image.empty == false);
-        assert(image.size == cast(ulong[3])[width, height, channels]);
+        assert(image.size == cast(size_t[3])[width, height, channels]);
     }
 
     unittest
@@ -515,7 +515,7 @@ unittest
 
 unittest
 {
-    ulong floatsize = width * height * 4;
+    size_t floatsize = width * height * 4;
     ubyte[] fdata = new ubyte[floatsize];
     ubyte* ptr = cast(ubyte*)(data.map!(v => cast(float)v).array.ptr);
     fdata[] = ptr[0 .. floatsize][];

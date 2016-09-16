@@ -132,7 +132,7 @@ unittest
 
     try
     {
-        inputStream.seekFrame(ulong.max); // should throw
+        inputStream.seekFrame(size_t.max); // should throw
     }
     catch (SeekFrameException e)
     {
@@ -154,7 +154,7 @@ unittest
 
     try
     {
-        inputStream.seekTime(ulong.max); // should throw
+        inputStream.seekTime(size_t.max); // should throw
     }
     catch (SeekTimeException e)
     {

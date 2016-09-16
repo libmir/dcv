@@ -155,7 +155,7 @@ Slice!(1, InputType*) conv1Impl(alias bc, InputType, KernelType, MaskType)(Slice
 {
 
     if (prealloc.empty || prealloc.shape != range.shape)
-        prealloc = uninitializedArray!(InputType[])(cast(ulong)range.length).sliced(range.shape);
+        prealloc = uninitializedArray!(InputType[])(cast(size_t)range.length).sliced(range.shape);
 
     enforce(&range[0] != &prealloc[0], "Preallocated has to contain different data from that of a input range.");
 
@@ -188,7 +188,7 @@ Slice!(2, InputType*) conv2Impl(alias bc, InputType, KernelType, MaskType)(Slice
 {
 
     if (prealloc.empty || prealloc.shape != range.shape)
-        prealloc = uninitializedArray!(InputType[])(cast(ulong)range.shape.reduce!"a*b").sliced(range.shape);
+        prealloc = uninitializedArray!(InputType[])(cast(size_t)range.shape.reduce!"a*b").sliced(range.shape);
 
     enforce(&range[0, 0] != &prealloc[0, 0], "Preallocated has to contain different data from that of a input range.");
 
@@ -231,7 +231,7 @@ Slice!(3, InputType*) conv3Impl(alias bc, InputType, KernelType, MaskType, size_
         Slice!(NK, MaskType*) mask)
 {
     if (prealloc.empty || prealloc.shape != range.shape)
-        prealloc = uninitializedArray!(InputType[])(cast(ulong)range.shape.reduce!"a*b").sliced(range.shape);
+        prealloc = uninitializedArray!(InputType[])(cast(size_t)range.shape.reduce!"a*b").sliced(range.shape);
 
     enforce(&range[0, 0, 0] != &prealloc[0, 0, 0],
             "Preallocated has to contain different data from that of a input range.");

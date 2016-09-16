@@ -394,8 +394,8 @@ void adoptYUYV422(AVFrame* frame, ubyte[] data)
 
     auto yuyvdata = frame.data[0];
 
-    ulong dataIter = 0;
-    ulong yuyvIter = 0;
+    size_t dataIter = 0;
+    size_t yuyvIter = 0;
 
     foreach (i; 0 .. s)
     {

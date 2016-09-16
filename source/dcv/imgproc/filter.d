@@ -71,7 +71,7 @@ Params:
 Returns:
     Kernel of size [rows, cols], filled with given value.
 */
-Slice!(2, T*) boxKernel(T)(ulong rows, ulong cols, T value = 1)
+Slice!(2, T*) boxKernel(T)(size_t rows, size_t cols, T value = 1)
 in
 {
     assert(rows > 1 && cols > 1, "Invalid kernel size - rows, and columns have to be larger than 1.");
@@ -85,7 +85,7 @@ body
 }
 
 /// ditto
-Slice!(2, T*) boxKernel(T)(ulong size, T value = 1)
+Slice!(2, T*) boxKernel(T)(size_t size, T value = 1)
 in
 {
     assert(size > 1, "Invalid kernel size - has to be larger than 1.");
@@ -109,7 +109,7 @@ Params:
 Returns:
     Kernel of size [radius, radius], filled with given values.
 */
-Slice!(2, T*) radialKernel(T)(ulong radius, T foreground = 1, T background = 0)
+Slice!(2, T*) radialKernel(T)(size_t radius, T foreground = 1, T background = 0)
 in
 {
     assert(radius >= 3, "Radial dilation kernel has to be of larger radius than 3.");
@@ -611,8 +611,8 @@ body
         prealloc = uninitializedArray!(V[])(mag.length!0 * mag.length!1).sliced(mag.shape);
     }
 
-    ulong[2] p0;
-    ulong[2] p1;
+    size_t[2] p0;
+    size_t[2] p1;
 
     foreach (i; 1 .. mag.length!0 - 1)
     {
@@ -858,7 +858,7 @@ Returns:
     is used.
 */
 Slice!(N, O*) medianFilter(alias BoundaryConditionTest = neumann, T, O = T, size_t N)(Slice!(N,
-        T*) slice, ulong kernelSize, Slice!(N, O*) prealloc = emptySlice!(N, O))
+        T*) slice, size_t kernelSize, Slice!(N, O*) prealloc = emptySlice!(N, O))
 in
 {
     import std.traits : isAssignable;
@@ -949,7 +949,7 @@ body
 
     foreach (v; range)
     {
-        histogram[cast(ulong)v]++;
+        histogram[cast(size_t)v]++;
     }
 
     return histogram;
@@ -1219,7 +1219,7 @@ Slice!(2, T*) close(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) slic
 
 private:
 
-void medianFilterImpl1(alias bc, T, O)(Slice!(1, T*) slice, Slice!(1, O*) filtered, ulong kernelSize)
+void medianFilterImpl1(alias bc, T, O)(Slice!(1, T*) slice, Slice!(1, O*) filtered, size_t kernelSize)
 {
     import std.algorithm.sorting : topN;
     import std.algorithm.comparison : max;
@@ -1233,7 +1233,7 @@ void medianFilterImpl1(alias bc, T, O)(Slice!(1, T*) slice, Slice!(1, O*) filter
     foreach (i; iota(length).parallel)
     {
         auto kernel = kernelStorage.get();
-        ulong ki = 0;
+        size_t ki = 0;
         foreach (ii; i - kh .. i + kh + 1)
         {
             kernel[ki++] = bc(slice, ii);
@@ -1243,7 +1243,7 @@ void medianFilterImpl1(alias bc, T, O)(Slice!(1, T*) slice, Slice!(1, O*) filter
     }
 }
 
-void medianFilterImpl2(alias bc, T, O)(Slice!(2, T*) slice, Slice!(2, O*) filtered, ulong kernelSize)
+void medianFilterImpl2(alias bc, T, O)(Slice!(2, T*) slice, Slice!(2, O*) filtered, size_t kernelSize)
 {
     int kh = max(1, cast(int)kernelSize / 2);
     int n = cast(int)kernelSize ^^ 2;
@@ -1258,7 +1258,7 @@ void medianFilterImpl2(alias bc, T, O)(Slice!(2, T*) slice, Slice!(2, O*) filter
         foreach (c; 0 .. cols)
         {
             auto kernel = kernelStorage.get();
-            ulong i = 0;
+            size_t i = 0;
             foreach (rr; r - kh .. r + kh + 1)
             {
                 foreach (cc; c - kh .. c + kh + 1)
@@ -1272,7 +1272,7 @@ void medianFilterImpl2(alias bc, T, O)(Slice!(2, T*) slice, Slice!(2, O*) filter
     }
 }
 
-void medianFilterImpl3(alias bc, T, O)(Slice!(3, T*) slice, Slice!(3, O*) filtered, ulong kernelSize)
+void medianFilterImpl3(alias bc, T, O)(Slice!(3, T*) slice, Slice!(3, O*) filtered, size_t kernelSize)
 {
     foreach (channel; 0 .. slice.length!2)
     {
@@ -1344,10 +1344,10 @@ body
                 continue;
             }
 
-            ulong rk = 0;
+            size_t rk = 0;
             foreach (rr; r - khr .. r + khr + 1)
             {
-                ulong ck = 0;
+                size_t ck = 0;
                 foreach (cc; c - khc .. c + khc + 1)
                 {
                     auto kv = kernel[rk, ck];
