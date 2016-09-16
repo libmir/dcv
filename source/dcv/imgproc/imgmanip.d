@@ -272,7 +272,7 @@ private
         typeof(image) warped;
         if (prealloc.empty || !prealloc.shape.array.equal(image.shape.array))
         {
-            warped = uninitializedArray!(T[])(image.shape.reduce!"a*b").sliced(image.shape);
+            warped = uninitializedArray!(T[])(image.elementsCount).sliced(image.shape);
         }
         else
         {

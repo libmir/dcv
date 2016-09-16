@@ -470,7 +470,7 @@ body
     import std.array : array, uninitializedArray;
     import std.algorithm : equal, reduce;
 
-    auto itemLength = slice.shape.reduce!"a*b";
+    auto itemLength = slice.elementsCount;
     if (!fx.shape[].equal(slice.shape[]))
         fx = uninitializedArray!(V[])(itemLength).sliced(slice.shape);
     if (!fy.shape[].equal(slice.shape[]))
@@ -768,7 +768,7 @@ body
 
     if (prealloc.empty || prealloc.shape != slice.shape)
     {
-        prealloc = uninitializedArray!(OutputType[])(slice.shape.reduce!"a*b").sliced(slice.shape);
+        prealloc = uninitializedArray!(OutputType[])(slice.elementsCount).sliced(slice.shape);
     }
 
     int ks = cast(int)kernelSize;
@@ -832,7 +832,7 @@ Slice!(N, OutputType*) bilateralFilter(alias bc = neumann, InputType, OutputType
 {
     if (prealloc.empty || prealloc.shape != slice.shape)
     {
-        prealloc = uninitializedArray!(OutputType[])(slice.shape.reduce!"a*b").sliced(slice.shape);
+        prealloc = uninitializedArray!(OutputType[])(slice.elementsCount).sliced(slice.shape);
     }
 
     foreach (channel; 0 .. slice.length!2)
@@ -875,7 +875,7 @@ body
     import std.algorithm.iteration : reduce;
 
     if (prealloc.shape != slice.shape)
-        prealloc = uninitializedArray!(O[])(slice.shape.reduce!"a*b").sliced(slice.shape);
+        prealloc = uninitializedArray!(O[])(slice.elementsCount).sliced(slice.shape);
 
     static if (N == 1)
         medianFilterImpl1!BoundaryConditionTest(slice, prealloc, kernelSize);
@@ -1013,7 +1013,7 @@ body
 {
     import std.array : uninitializedArray;
 
-    int n = cast(int)slice.shape.reduce!"a*b"; // number of pixels in image.
+    int n = cast(int)slice.elementsCount; // number of pixels in image.
     immutable tmax = cast(int)T.max; // maximal possible value for pixel value type.
 
     // The probability of an occurrence of a pixel of level i in the image
@@ -1026,7 +1026,7 @@ body
     }
 
     if (prealloc.shape != slice.shape)
-        prealloc = uninitializedArray!(T[])(slice.shape.reduce!"a*b").sliced(slice.shape);
+        prealloc = uninitializedArray!(T[])(slice.elementsCount).sliced(slice.shape);
 
     static if (N == 2)
     {
@@ -1308,7 +1308,7 @@ body
     import std.array : uninitializedArray;
 
     if (prealloc.shape != slice.shape)
-        prealloc = uninitializedArray!(T[])(slice.shape.reduce!"a*b").sliced(slice.shape);
+        prealloc = uninitializedArray!(T[])(slice.elementsCount).sliced(slice.shape);
 
     int rows = cast(int)slice.length!0;
     int cols = cast(int)slice.length!1;

@@ -53,7 +53,7 @@ body
 
     if (prealloc.shape[] != slice.shape[])
     {
-        prealloc = uninitializedArray!(OutputType[])(slice.shape[].reduce!"a*b").sliced(slice.shape);
+        prealloc = uninitializedArray!(OutputType[])(slice.elementsCount).sliced(slice.shape);
     }
 
     static if (isFloatingPoint!OutputType)

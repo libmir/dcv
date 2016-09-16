@@ -53,6 +53,9 @@ enum NormType
 /**
 Calculate value of various norm types for vectors and matrices.
 
+Note:
+    Deprecated in favor of mir.blas.l1 functions: amax asum, nrm2.
+
 Params:
     tensor = Tensor of which the norm value is calculated.
     normType = requested type of norm.
@@ -60,7 +63,7 @@ Params:
 Returns:
     Calculated norm value.
 */
-@nogc pure nothrow auto norm(Range, size_t N)(auto ref Slice!(N, Range) tensor, NormType normType)
+deprecated @nogc pure nothrow auto norm(Range, size_t N)(auto ref Slice!(N, Range) tensor, NormType normType)
 {
     import mir.glas.l1;
     final switch (normType)
@@ -130,7 +133,7 @@ Params:
 Returns:
     Returns normalized input tensor.
 */
-@nogc nothrow auto normalized(Range, size_t N)(auto ref Slice!(N, Range) tensor, NormType normType = NormType.L2)
+deprecated @nogc nothrow auto normalized(Range, size_t N)(auto ref Slice!(N, Range) tensor, NormType normType = NormType.L2)
 {
     alias T = DeepElementType!(typeof(tensor));
     auto n = tensor.norm(normType);
@@ -165,7 +168,7 @@ Returns:
     Scaled input tensor.
     
 */
-@nogc nothrow auto scaled(Scalar, Range, size_t N)(auto ref Slice!(N, Range) tensor, Scalar alpha = 1, Scalar beta = 0)
+deprecated @nogc nothrow auto scaled(Scalar, Range, size_t N)(auto ref Slice!(N, Range) tensor, Scalar alpha = 1, Scalar beta = 0)
         if (isNumeric!Scalar)
 {
     tensor.ndEach!((ref v) { v = alpha * (v) + beta; }, Yes.vectorized);

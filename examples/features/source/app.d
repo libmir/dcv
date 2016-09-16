@@ -32,7 +32,7 @@ void main()
     auto gray = imfslice.rgb2gray;
 
     // make copies to draw corners 
-    auto pixelSize = imslice.shape.reduce!"a*b";
+    auto pixelSize = imslice.elementsCount;
     auto shiTomasiDraw = new ubyte[pixelSize].sliced(imslice.shape);
     auto harrisDraw = new ubyte[pixelSize].sliced(imslice.shape);
     shiTomasiDraw[] = imslice[];
