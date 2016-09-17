@@ -15,11 +15,5 @@
             "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
         }
     },
-    "configurations": [
-        {
-            "name": "source",
-            "targetType": "sourceLibrary"
-        }
-    ],
     "libs": ["gl", "glfw"]
 }
