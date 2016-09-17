@@ -3,6 +3,7 @@
     "description": "Computer vision library for D programming language.",
     "copyright": "Copyright © 2016, Relja Ljubobratovic",
     "authors": ["Relja Ljubobratovic"],
+    "license": "BSL-1.0",
     "dependencies": {
         "imageformats": "~>5.2.0",
         "scid": "~>0.3.0",
@@ -10,28 +11,11 @@
         "ffmpeg-d": "2.5.0",
         "ggplotd": "~>0.9.4"
     },
-    "sourcePaths": [
-        "source/"
-    ],
-    "importPaths": [
-        "source/"
-    ],
     "configurations": [
         {
-            "name": "d_source_library",
+            "name": "source",
             "targetType": "sourceLibrary"
         }
     ],
-    "subPackages": [
-        "examples/filter/",
-        "examples/imgmanip/",
-        "examples/video/",
-        "examples/tracking/hornschunck",
-        "examples/tracking/klt",
-        "examples/features/",
-        "examples/plot/",
-        "examples/morph/"
-    ],
-    "libs": ["gl", "glfw"],
-    "license": "BSL-1.0"
+    "libs": ["gl", "glfw"]
 }
