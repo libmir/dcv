@@ -234,7 +234,6 @@ private StereoCostFunction windowCost(alias fun)(uint windowSize)
 
             import std.typecons;
             costVol[0 .. $, d .. $, d] = assumeSameStructure!("left", "right")(lpad[0 .. $, d .. $], rpad[0 .. $, 0 .. $ - d])
-                                        .ndMap!(x => tuple!("left", "right")(x.left, x.right))
                                         .pack!1
                                         .windows(windowSize, windowSize)
                                         .unpack
