@@ -579,22 +579,25 @@ Slice!(3, V*) resizeImpl_3(alias interp, V)(Slice!(3, V*) slice, size_t height, 
 
 Slice!(2, float*) invertTransformMatrix(TransformMatrix)(TransformMatrix t)
 {
-    import scid.matrix;
-    import scid.linalg : invert;
+    auto result = slice!float(3, 3);
 
-    static if (isArray!TransformMatrix)
-    {
-        float[] tarray = [t[0][0], t[0][1], t[0][2], t[1][0], t[1][1], t[1][2], t[2][0], t[2][1], t[2][2]];
-    }
-    else
-    {
-        float[] tarray = [t[0, 0], t[0, 1], t[0, 2], t[1, 0], t[1, 1], t[1, 2], t[2, 0], t[2, 1], t[2, 2]];
-    }
+    double determinant = +t[0][0] * (t[1][1] * t[2][2] - t[2][1] * t[1][2]) - t[0][1] * (
+            t[1][0] * t[2][2] - t[1][2] * t[2][0]) + t[0][2] * (t[1][0] * t[2][1] - t[1][1] * t[2][0]);
 
-    auto tmatrix = MatrixView!float(tarray, 3, 3);
-    invert(tmatrix);
+    enforce(determinant != 0.0f, "Transform matrix determinant is zero.");
 
-    return tmatrix.array.sliced(3, 3);
+    double invdet = 1 / determinant;
+    result[0][0] = (t[1][1] * t[2][2] - t[2][1] * t[1][2]) * invdet;
+    result[0][1] = -(t[0][1] * t[2][2] - t[0][2] * t[2][1]) * invdet;
+    result[0][2] = (t[0][1] * t[1][2] - t[0][2] * t[1][1]) * invdet;
+    result[1][0] = -(t[1][0] * t[2][2] - t[1][2] * t[2][0]) * invdet;
+    result[1][1] = (t[0][0] * t[2][2] - t[0][2] * t[2][0]) * invdet;
+    result[1][2] = -(t[0][0] * t[1][2] - t[1][0] * t[0][2]) * invdet;
+    result[2][0] = (t[1][0] * t[2][1] - t[2][0] * t[1][1]) * invdet;
+    result[2][1] = -(t[0][0] * t[2][1] - t[2][0] * t[0][1]) * invdet;
+    result[2][2] = (t[0][0] * t[1][1] - t[1][0] * t[0][1]) * invdet;
+
+    return result;
 }
 
 Slice!(N, V*) transformImpl(TransformType transformType, alias interp, V, TransformMatrix, size_t N)(

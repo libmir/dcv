@@ -7,14 +7,13 @@ os:
 
 d:
  - dmd-2.071.1
+ - ldc-1.1.0-beta2
 
 addons:
  apt:
   sources:
    - george-edison55-precise-backports # cmake 3.2.3 
   packages:
-   - liblapack-dev
-   - ffmpeg
    - cmake
    - cmake-data
 
@@ -27,7 +26,20 @@ before_script:
  - ./scripts/travis_lib_setup.sh
 
 script:
+ - dub add-path examples/
+ - dub add-path examples/tracking/
+ - dub build features
+ - dub build filter
+ - dub build imgmanip
+ - dub build rht
+ - dub build plot
+ - dub build morph
+ - dub build stereo
+ - dub build video
+ - dub build klt
+ - dub build hornschunck
  - dub test -b unittest-cov
+ - dub test -b unittest-release
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
