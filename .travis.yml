@@ -25,6 +25,18 @@ before_script:
  - ./scripts/travis_lib_setup.sh
 
 script:
+ - dub add-path examples/
+ - dub add-path examples/tracking/
+ - dub build features
+ - dub build filter
+ - dub build imgmanip
+ - dub build rht
+ - dub build plot
+ - dub build morph
+ - dub build stereo
+ - dub build video
+ - dub build klt
+ - dub build hornschunck
  - dub test -b unittest-cov
 
 after_success:
