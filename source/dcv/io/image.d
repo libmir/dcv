@@ -180,7 +180,7 @@ bool imwrite(size_t dims, T)(Slice!(dims, T*) slice, ImageFormat format, in stri
 {
     static assert(dims >= 2);
 
-    auto sdata = slice.reshape(slice.shape[].reduce!"a*b").array;
+    auto sdata = slice.reshape(slice.elementsCount).array;
 
     static if (is(T == ubyte))
     {

@@ -6,7 +6,7 @@
     "dependencies": {
         "imageformats": "~>5.2.0",
         "scid": "~>0.3.0",
-        "mir": "~>0.17.0-alpha5",
+        "mir": "~>0.17.0-alpha7",
         "ffmpeg-d": "2.5.0",
         "ggplotd": "~>0.9.4"
     },
