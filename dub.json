@@ -9,7 +9,7 @@
         "scid": "~>0.3.0",
         "mir": "~>0.17.0-alpha9",
         "ffmpeg-d": "2.5.0",
-        "ggplotd": "~>0.9.4"
+        "ggplotd": "~>1.1.0"
     },
     "configurations": [
         {
