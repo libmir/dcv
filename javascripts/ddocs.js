@@ -135,7 +135,7 @@ function toggleTreeItem(id) {
         collapseTreeItem(id);
 }
 
-function setupContent(contentType) {
+function setupContent(contentType, showAfter = true) {
 
     var content;
 
@@ -148,82 +148,89 @@ function setupContent(contentType) {
     sourcetree.innerHTML = '';
 
     if (content.length == 0) {
-        hideContent();
-        return;
-    } 
+        var li = document.createElement('li');
+        li.innerHTML = 'Loading content, please wait...';
+        sourcetree.appendChild(li);
+    }
+    else
+    {
+        content.forEach(function(item, index) {
+            tokens = item.replace(".html", "").split("_");
 
-    content.forEach(function(item, index) {
-        tokens = item.replace(".html", "").split("_");
+            var ul = null;
+            var parentUl = document.getElementById("sourcetree");
 
-        var ul = null;
-        var parentUl = document.getElementById("sourcetree");
+            var uniquePath = "";
 
-        var uniquePath = "";
+            for (j = 0; j < tokens.length - 1; ++j) {
 
-        for (j = 0; j < tokens.length - 1; ++j) {
+                if (j > 0) {
+                    uniquePath += "_";
+                }
 
-            if (j > 0) {
-                uniquePath += "_";
+                uniquePath += tokens[j];
+
+                ul = document.getElementById(uniquePath);
+
+                if (ul == null) {
+                    var li= document.createElement("li");
+
+                    li.innerHTML = '<a style="outline:none" href="javascript:;">' + TREE_SYMB_DOWN + " " + tokens[j] + '</a>';
+                    li.id = uniquePath + "_root";
+                    $(li).css("list-style-type", "none");
+                    $(li).css("cursor", "pointer");
+
+                    ul = document.createElement("ul");
+                    ul.id = uniquePath;
+
+                    parentUl.appendChild(li);
+                    parentUl.appendChild(ul);
+
+                    // setup onclick toggle animation
+                    li.onclick = function(uniquePath) { return function() {
+                        var text = $(this).text();
+                        if (text.indexOf(TREE_SYMB_DOWN) != -1) {
+                            // it is expanded
+                            $(this).text(text.replace(TREE_SYMB_DOWN, TREE_SYMB_UP));
+                        } else {
+                            $(this).text(text.replace(TREE_SYMB_UP, TREE_SYMB_DOWN));
+                        }
+                        var ul = document.getElementById(uniquePath);
+                        $(ul).children().toggle(animationSpeed);
+                    }; }(uniquePath);
+                }
+                parentUl = ul;
             }
 
-            uniquePath += tokens[j];
+            var li = document.createElement("li");
+            li.id = item;
 
-            ul = document.getElementById(uniquePath);
+            var lis = "<a href=\"javascript:;\">";
+            lis += tokens[tokens.length-1];
+            lis += "</a>\n";
 
-            if (ul == null) {
-                var li= document.createElement("li");
+            li.innerHTML = lis;
 
-                li.innerHTML = '<a style="outline:none" href="javascript:;">' + TREE_SYMB_DOWN + " " + tokens[j] + '</a>';
-                li.id = uniquePath + "_root";
-                $(li).css("list-style-type", "none");
-                $(li).css("cursor", "pointer");
+            var htmlLoadFunc = function() {
+                setLocationQueryString(item);
+            };
 
-                ul = document.createElement("ul");
-                ul.id = uniquePath;
+            li.onclick = htmlLoadFunc;
+            $(li).css("list-style-type", "circle");
 
-                parentUl.appendChild(li);
-                parentUl.appendChild(ul);
+            parentUl.appendChild(li);
+        });
 
-                // setup onclick toggle animation
-                li.onclick = function(uniquePath) { return function() {
-                    var text = $(this).text();
-                    if (text.indexOf(TREE_SYMB_DOWN) != -1) {
-                        // it is expanded
-                        $(this).text(text.replace(TREE_SYMB_DOWN, TREE_SYMB_UP));
-                    } else {
-                        $(this).text(text.replace(TREE_SYMB_UP, TREE_SYMB_DOWN));
-                    }
-                    var ul = document.getElementById(uniquePath);
-                    $(ul).children().toggle(animationSpeed);
-                }; }(uniquePath);
-            }
-            parentUl = ul;
-        }
+    }
 
-        var li = document.createElement("li");
-        li.id = item;
-
-        var lis = "<a href=\"javascript:;\">";
-        lis += tokens[tokens.length-1];
-        lis += "</a>\n";
-
-        li.innerHTML = lis;
-
-        var htmlLoadFunc = function() {
-            setLocationQueryString(item);
-        };
-
-        li.onclick = htmlLoadFunc;
-        $(li).css("list-style-type", "circle");
-
-        parentUl.appendChild(li);
-    });
-
-    showContent();
+    if (showAfter)
+    {
+        showContent();
+    }
 }
 
-function setupDocumentation() {
-    setupContent("docs");
+function setupDocumentation(showAfter = true) {
+    setupContent("docs", showAfter);
     if (currentUI == PHONE_UI) {
         // collapse sub-packages of dcv
         document.getElementById("dcv_core_root").click();
@@ -236,8 +243,8 @@ function setupDocumentation() {
     }
 }
 
-function setupExamples() {
-    setupContent("examples");
+function setupExamples(showAfter = true) {
+    setupContent("examples", showAfter);
 }
 
 function setupPhoneUI() {
@@ -328,11 +335,6 @@ function loadQueryLocation() {
     loadLocation(loc);
 }
 
-function removeQueryString()
-{
-
-}
-
 function setQueryString(key, value) {
     str = "?" + key + "=" + value;
 
@@ -403,11 +405,13 @@ function loadExamples()
     listExamples(ACTIVE_BRANCH, 
             function(data)
             {
+                examples = [];
                 $.each(data.split(","), 
                         function(i, v)
                         {
                             examples.push("example_" + v);
                         });
+                setupExamples(false);
             });
 }
 
