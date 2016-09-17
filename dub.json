@@ -5,9 +5,8 @@
     "authors": ["Relja Ljubobratovic"],
     "license": "BSL-1.0",
     "dependencies": {
-        "imageformats": "~>5.2.0",
-        "scid": "~>0.3.0",
         "mir": "~>0.17.0-alpha9",
+        "imageformats": "~>5.2.0",
         "ffmpeg-d": "2.5.0",
         "ggplotd": "~>1.1.0"
     },
