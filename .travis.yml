@@ -38,6 +38,7 @@ script:
  - dub build klt
  - dub build hornschunck
  - dub test -b unittest-cov
+ - dub test -b unittest-release
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)

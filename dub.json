@@ -10,6 +10,11 @@
         "ffmpeg-d": "2.5.0",
         "ggplotd": "~>0.9.4"
     },
+    "buildTypes": {
+        "unittest-release": {
+            "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
+        }
+    },
     "configurations": [
         {
             "name": "source",
