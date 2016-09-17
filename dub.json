@@ -8,7 +8,7 @@
         "mir": "~>0.17.0-alpha9",
         "imageformats": "~>6.1.0",
         "ffmpeg-d": "2.5.0",
-        "ggplotd": "~>1.1.0"
+        "ggplotd": "~>0.9.4"
     },
     "configurations": [
         {
