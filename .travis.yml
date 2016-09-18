@@ -41,9 +41,7 @@ script:
  - dub test dcv:core -b unittest-cov
  - dub test dcv:io -b unittest-cov
  - dub test dcv:plot -b unittest-cov
- - dub test dcv:core -b unittest-release
- - dub test dcv:io -b unittest-release
- - dub test dcv:plot -b unittest-release
+ - dub test dcv -b unittest-release
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)

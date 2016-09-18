@@ -15,7 +15,6 @@
 
     "buildTypes": {
         "unittest-release": {
-            "sourcePaths": ["source/"],
             "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
         }
     },
