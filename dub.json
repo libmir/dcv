@@ -11,6 +11,10 @@
         ":plot": "*"
     },
 
+    "subConfigurations": {
+        ":plot": "ggplotd"
+    },
+
     "buildTypes": {
         "unittest-release": {
             "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
@@ -53,8 +57,20 @@
                 "source/dcv/plot"
             ],
             "dependencies":{
-                "dcv:core": ">=0.0.0",
-                "ggplotd": "~>0.9.4"
+                "dcv:core": ">=0.0.0"
+            },
+            "configurations":
+            {
+                {
+                    "name": "default"
+                },
+                {
+                    "name": "ggplotd",
+                    "dependencies": {
+                        "ggplotd": "~>0.9.4"
+                    },
+                    "versions": ["ggplotd"]
+                }
             },
             "libs": ["gl", "glfw"]
         }
