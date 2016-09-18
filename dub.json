@@ -7,7 +7,7 @@
     "dependencies": {
         "mir": "~>0.17.0-alpha9",
         "imageformats": "~>6.1.0",
-        "ffmpeg-d": "2.5.0",
+        "ffmpeg-d": "~>2.5.1",
         "ggplotd": "~>0.9.4"
     },
     "buildTypes": {
@@ -15,11 +15,5 @@
             "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
         }
     },
-    "configurations": [
-        {
-            "name": "source",
-            "targetType": "sourceLibrary"
-        }
-    ],
     "libs": ["gl", "glfw"]
 }
