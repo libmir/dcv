@@ -29,13 +29,6 @@
                 "source/dcv/multiview",
                 "source/dcv/tracking"
             ],
-            "configurations":
-            [
-                {
-                    "name": "source",
-                    "targetType": "sourceLibrary"
-                }
-            ],
             "dependencies":
             {
                 "mir": "~>0.17.0-alpha9"
@@ -46,13 +39,6 @@
             "description": "Image and Video I/O package.",
             "sourcePaths": [
                 "source/dcv/io"
-            ],
-            "configurations":
-            [
-                {
-                    "name": "source",
-                    "targetType": "sourceLibrary"
-                }
             ],
             "dependencies":{
                 "dcv:core": ">=0.0.0",
@@ -65,13 +51,6 @@
             "description": "Visualization package.",
             "sourcePaths": [
                 "source/dcv/plot"
-            ],
-            "configurations":
-            [
-                {
-                    "name": "source",
-                    "targetType": "sourceLibrary"
-                }
             ],
             "dependencies":{
                 "dcv:core": ">=0.0.0",
