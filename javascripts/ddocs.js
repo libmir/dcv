@@ -135,8 +135,7 @@ function toggleTreeItem(id) {
         collapseTreeItem(id);
 }
 
-function setupContent(contentType, showAfter = true) {
-
+function setupContent(contentType, showAfter) {
     var content;
 
     if (contentType == "docs")
@@ -229,7 +228,10 @@ function setupContent(contentType, showAfter = true) {
     }
 }
 
-function setupDocumentation(showAfter = true) {
+function setupDocumentation() {
+    if (showAfter == undefined)
+        showAfter = true;
+
     setupContent("docs", showAfter);
     if (currentUI == PHONE_UI) {
         // collapse sub-packages of dcv
@@ -243,7 +245,9 @@ function setupDocumentation(showAfter = true) {
     }
 }
 
-function setupExamples(showAfter = true) {
+function setupExamples(showAfter) {
+    if (showAfter == undefined)
+        showAfter = true;
     setupContent("examples", showAfter);
 }
 
