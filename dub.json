@@ -60,7 +60,7 @@
                 "dcv:core": ">=0.0.0"
             },
             "configurations":
-            {
+            [
                 {
                     "name": "default"
                 },
@@ -71,7 +71,7 @@
                     },
                     "versions": ["ggplotd"]
                 }
-            },
+            ],
             "libs": ["gl", "glfw"]
         }
     ]
