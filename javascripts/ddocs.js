@@ -228,7 +228,7 @@ function setupContent(contentType, showAfter) {
     }
 }
 
-function setupDocumentation() {
+function setupDocumentation(showAfter) {
     if (showAfter == undefined)
         showAfter = true;
 
