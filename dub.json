@@ -4,22 +4,80 @@
     "copyright": "Copyright © 2016, Relja Ljubobratovic",
     "authors": ["Relja Ljubobratovic"],
     "license": "BSL-1.0",
+
     "dependencies": {
-        "mir": "~>0.17.0-alpha9",
-        "imageformats": "~>6.1.0",
-        "ffmpeg-d": "2.5.0",
-        "ggplotd": "~>0.9.4"
+        ":core": "*",
+        ":io": "*",
+        ":plot": "*"
     },
+
     "buildTypes": {
         "unittest-release": {
             "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
         }
     },
-    "configurations": [
+
+    "subPackages":
+    [
         {
-            "name": "source",
-            "targetType": "sourceLibrary"
+            "name": "core",
+            "description": "Core package of DCV. Contains computer vision algorithms.",
+            "sourcePaths": [
+                "source/dcv/core",
+                "source/dcv/features",
+                "source/dcv/imgproc",
+                "source/dcv/multiview",
+                "source/dcv/tracking"
+            ],
+            "configurations":
+            [
+                {
+                    "name": "source",
+                    "targetType": "sourceLibrary"
+                }
+            ],
+            "dependencies":
+            {
+                "mir": "~>0.17.0-alpha9"
+            }
+        },
+        {
+            "name": "io",
+            "description": "Image and Video I/O package.",
+            "sourcePaths": [
+                "source/dcv/io"
+            ],
+            "configurations":
+            [
+                {
+                    "name": "source",
+                    "targetType": "sourceLibrary"
+                }
+            ],
+            "dependencies":{
+                "dcv:core": ">=0.0.0",
+                "imageformats": "~>6.1.0",
+                "ffmpeg-d": "~>2.5.1"
+            }
+        },
+        {
+            "name": "plot",
+            "description": "Visualization package.",
+            "sourcePaths": [
+                "source/dcv/plot"
+            ],
+            "configurations":
+            [
+                {
+                    "name": "source",
+                    "targetType": "sourceLibrary"
+                }
+            ],
+            "dependencies":{
+                "dcv:core": ">=0.0.0",
+                "ggplotd": "~>0.9.4"
+            },
+            "libs": ["gl", "glfw"]
         }
-    ],
-    "libs": ["gl", "glfw"]
+    ]
 }
