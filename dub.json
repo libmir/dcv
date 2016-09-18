@@ -11,10 +11,6 @@
         ":plot": "*"
     },
 
-    "subConfigurations": {
-        "dcv:plot": "ggplotd"
-    },
-
     "targetType": "library",
     "sourcePaths": ["scripts"],
     "sourceFiles": ["source/dcv/core/image.d"],
@@ -24,6 +20,19 @@
             "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
         }
     },
+
+    "configurations": [
+        {
+            "name": "default"
+        },
+        {
+            "name": "ggplotd",
+            "subConfigurations": 
+            {
+                "dcv:plot": "ggplotd"
+            }
+        }
+    ],
 
     "subPackages":
     [
