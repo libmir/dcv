@@ -12,11 +12,10 @@
     },
 
     "targetType": "library",
-    "sourcePaths": ["scripts"],
-    "sourceFiles": ["source/dcv/core/image.d"],
 
     "buildTypes": {
         "unittest-release": {
+            "sourcePaths": ["source/"],
             "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
         }
     },
