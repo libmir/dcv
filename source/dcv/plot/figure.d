@@ -39,15 +39,6 @@ f.setMouseCallback( (Figure figure, int button, int scancode, int mods)
 f.draw(image); // draw an image to the figure's canvas.
 f.show(); // show the figure on screen.
 
-// Figure mechanism is integrated with ggplotd library, so GGPlotD context can be directly plotted onto existing figure:
-immutable title = "Image With Point Plot";
-// show the image
-image.imshow(title);
-// construct the plot
-auto gg = GGPlotD().put(geomPoint(Aes!(double[], "x", double[], "y")([100.00, 200.0], [200.0,100.0])));
-// draw it onto the figure with given title...
-gg.plot(title); 
-
 // Once figure's image buffer is drawn out (say you have an image, and few plots drawn on it),
 // it can be extracted from the figure, and used in rest of the code:
 Image plotImage = figure(title).image;
@@ -57,7 +48,36 @@ plotImage.imwrite("my_plot.png");
 // for key input, or given time to pass.
 waitKey!"seconds"(10); 
 ----
-
+Figure mechanism is integrated with ggplotd library, so GGPlotD context can be directly plotted onto existing figure.
+To use GGPlotD library integration with DCV $(LINK2 http://dcv.dlang.io/?loc=dcv_plot_figure.html#plo, (dcv.plot.figure.plot)),
+define ggplotd subConfiguration of dcv in dub configuration file:
+----
+"dependencies": {
+    "dcv": "~>0.1.2"
+},
+"subConfigurations":{
+    "dcv": "ggplotd"
+}
+----
+This configuration is actually in dcv:plot subpackage, so if you define dcv:plot as dependency, you should define your subConfigurations as:
+----
+"dependencies": {
+    "dcv:plot": "~>0.1.2"
+},
+"subConfigurations":{
+    "dcv:plot": "ggplotd"
+}
+----
+Example:
+----
+immutable title = "Image With Point Plot";
+// show the image
+image.imshow(title);
+// construct the plot
+auto gg = GGPlotD().put(geomPoint(Aes!(double[], "x", double[], "y")([100.00, 200.0], [200.0,100.0])));
+// draw it onto the figure with given title...
+gg.plot(title); 
+----
 
 $(DL Module contains:
     $(DD 
