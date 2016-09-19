@@ -35,9 +35,13 @@ Relja Ljubobratovic
 </dd>
 </dl>
 </dd>
-<dt><big><a name="norm"></a>pure nothrow @nogc auto <u id="norm">norm</u>(Range, size_t N)(auto ref Slice!(N, Range) <i>tensor</i>, NormType <i>normType</i>);
+<dt><big><a name="norm"></a>deprecated pure nothrow @nogc auto <u id="norm">norm</u>(Range, size_t N)(auto ref Slice!(N, Range) <i>tensor</i>, NormType <i>normType</i>);
 </big></dt>
 <dd>Calculate value of various <u id="norm">norm</u> types for vectors and matrices.
+<br><br>
+<b>Note:</b><br>
+Deprecated in favor of mir.glas.l1 functions: amax asum, nrm2.
+
 <br><br>
 <b>Params:</b><br>
 <table><tr><td>Slice!(N, Range) <i>tensor</i></td>
@@ -49,7 +53,7 @@ Relja Ljubobratovic
 Calculated <u id="norm">norm</u> value.<br><br>
 
 </dd>
-<dt><big><a name="normalized"></a>nothrow @nogc auto <u id="normalized">normalized</u>(Range, size_t N)(auto ref Slice!(N, Range) <i>tensor</i>, NormType <i>normType</i> = NormType.L2);
+<dt><big><a name="normalized"></a>deprecated nothrow @nogc auto <u id="normalized">normalized</u>(Range, size_t N)(auto ref Slice!(N, Range) <i>tensor</i>, NormType <i>normType</i> = NormType.L2);
 </big></dt>
 <dd>Normalize <i>tensor</i> values using given norm type.
 <br><br>
@@ -63,7 +67,7 @@ Calculated <u id="norm">norm</u> value.<br><br>
 Returns <u id="normalized">normalized</u> input <i>tensor</i>.<br><br>
 
 </dd>
-<dt><big><a name="scaled"></a>nothrow @nogc auto <u id="scaled">scaled</u>(Scalar, Range, size_t N)(auto ref Slice!(N, Range) <i>tensor</i>, Scalar <i>alpha</i> = 1, Scalar <i>beta</i> = 0) if (isNumeric!Scalar);
+<dt><big><a name="scaled"></a>deprecated nothrow @nogc auto <u id="scaled">scaled</u>(Scalar, Range, size_t N)(auto ref Slice!(N, Range) <i>tensor</i>, Scalar <i>alpha</i> = 1, Scalar <i>beta</i> = 0) if (isNumeric!Scalar);
 </big></dt>
 <dd>Scale <i>tensor</i> values.
 <br><br>

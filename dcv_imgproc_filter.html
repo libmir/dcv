@@ -37,8 +37,8 @@ Relja Ljubobratovic
     </dd>
 </dl><br><br>
 
-<dl><dt><big><a name="boxKernel"></a>Slice!(2, T*) <u id="boxKernel">boxKernel</u>(T)(ulong <i>rows</i>, ulong <i>cols</i>, T <i>value</i> = 1);
-<br>Slice!(2, T*) <u id="boxKernel">boxKernel</u>(T)(ulong <i>size</i>, T <i>value</i> = 1);
+<dl><dt><big><a name="boxKernel"></a>Slice!(2, T*) <u id="boxKernel">boxKernel</u>(T)(size_t <i>rows</i>, size_t <i>cols</i>, T <i>value</i> = 1);
+<br>Slice!(2, T*) <u id="boxKernel">boxKernel</u>(T)(size_t <i>size</i>, T <i>value</i> = 1);
 </big></dt>
 <dd>Box kernel creation.
 <br><br>
@@ -46,9 +46,9 @@ Creates square kernel of given <i>size</i>, filled with given <i>value</i>.
 
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>ulong <i>rows</i></td>
+<table><tr><td>size_t <i>rows</i></td>
 <td>Rows, or height of kernel.</td></tr>
-<tr><td>ulong <i>cols</i></td>
+<tr><td>size_t <i>cols</i></td>
 <td>Columns, or width of kernel.</td></tr>
 <tr><td>T <i>value</i></td>
 <td>Value of elements in the kernel.</td></tr>
@@ -57,7 +57,7 @@ Creates square kernel of given <i>size</i>, filled with given <i>value</i>.
 Kernel of <i>size</i> [<i>rows</i>, <i>cols</i>], filled with given <i>value</i>.<br><br>
 
 </dd>
-<dt><big><a name="radialKernel"></a>Slice!(2, T*) <u id="radialKernel">radialKernel</u>(T)(ulong <i>radius</i>, T <i>foreground</i> = 1, T <i>background</i> = 0);
+<dt><big><a name="radialKernel"></a>Slice!(2, T*) <u id="radialKernel">radialKernel</u>(T)(size_t <i>radius</i>, T <i>foreground</i> = 1, T <i>background</i> = 0);
 </big></dt>
 <dd>Radial kernel creation.
 <br><br>
@@ -65,7 +65,7 @@ Creates square kernel of given <i>radius</i> as edge length, with given values.
 
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>ulong <i>radius</i></td>
+<table><tr><td>size_t <i>radius</i></td>
 <td>Radius of kernel. Pixels in kernel with distance to center lesser than
              <i>radius</i> will have value of <i>foreground</i>, other pixels will have value of <i>background</i>.</td></tr>
 <tr><td>T <i>foreground</i></td>
@@ -259,14 +259,14 @@ Non-linear, edge-preserving and noise-reducing smoothing filtering algorithm.
 Slice of filtered image.<br><br>
 
 </dd>
-<dt><big><a name="medianFilter"></a>Slice!(N, O*) <u id="medianFilter">medianFilter</u>(alias BoundaryConditionTest = neumann, T, O = T, size_t N)(Slice!(N, T*) <i>slice</i>, ulong <i>kernelSize</i>, Slice!(N, O*) <i>prealloc</i> = emptySlice!(N, O));
+<dt><big><a name="medianFilter"></a>Slice!(N, O*) <u id="medianFilter">medianFilter</u>(alias BoundaryConditionTest = neumann, T, O = T, size_t N)(Slice!(N, T*) <i>slice</i>, size_t <i>kernelSize</i>, Slice!(N, O*) <i>prealloc</i> = emptySlice!(N, O));
 </big></dt>
 <dd>Median filtering algorithm.
 <br><br>
 <b>Params:</b><br>
 <table><tr><td>Slice!(N, T*) <i>slice</i></td>
 <td>Input image <i>slice</i>.</td></tr>
-<tr><td>ulong <i>kernelSize</i></td>
+<tr><td>size_t <i>kernelSize</i></td>
 <td>Square size of median kernel.</td></tr>
 <tr><td>Slice!(N, O*) <i>prealloc</i></td>
 <td>Optional pre-allocated return image buffer.</td></tr>

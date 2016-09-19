@@ -34,16 +34,16 @@ Image read from the filesystem.
 Exception and ImageIOException from imageformats library.<br><br>
 
 </dd>
-<dt><big><a name="imwrite"></a>bool <u id="imwrite">imwrite</u>(in string <i>path</i>, ulong <i>width</i>, ulong <i>height</i>, ImageFormat <i>format</i>, BitDepth <i>depth</i>, ubyte[] <i>data</i>);
+<dt><big><a name="imwrite"></a>bool <u id="imwrite">imwrite</u>(in string <i>path</i>, size_t <i>width</i>, size_t <i>height</i>, ImageFormat <i>format</i>, BitDepth <i>depth</i>, ubyte[] <i>data</i>);
 </big></dt>
 <dd>Write image to the given <i>path</i> on the filesystem.
 <br><br>
 <b>Params:</b><br>
 <table><tr><td>string <i>path</i></td>
 <td>Path where the image will be written.</td></tr>
-<tr><td>ulong <i>width</i></td>
+<tr><td>size_t <i>width</i></td>
 <td>Width of the image.</td></tr>
-<tr><td>ulong <i>height</i></td>
+<tr><td>size_t <i>height</i></td>
 <td>Height of the image.</td></tr>
 <tr><td>ImageFormat <i>format</i></td>
 <td>Format of the image.</td></tr>
