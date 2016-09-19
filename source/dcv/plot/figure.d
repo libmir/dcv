@@ -84,7 +84,10 @@ import std.conv : to;
 
 import mir.ndslice;
 
-import ggplotd.ggplotd, ggplotd.aes, ggplotd.axes, ggplotd.geom;
+version(ggplotd)
+{
+    import ggplotd.ggplotd, ggplotd.aes, ggplotd.axes, ggplotd.geom;
+}
 
 import dcv.core.image : Image, ImageFormat, BitDepth, asImage;
 import dcv.core.utils : asType;
@@ -168,59 +171,62 @@ Figure imshow(size_t N, T)(Slice!(N, T*) slice, ImageFormat format, string title
     return f;
 }
 
-/**
-Show given image, and then plot given GGPlotD context on top of it.
-*/
-Figure plot(Image image, GGPlotD gg, string title = "")
+version(ggplotd)
 {
-    auto f = figure(title);
-    f.draw(image);
-    f.draw(gg);
-    f.show();
-    return f;
-}
+    /**
+      Show given image, and then plot given GGPlotD context on top of it.
+     */
+    Figure plot(Image image, GGPlotD gg, string title = "")
+    {
+        auto f = figure(title);
+        f.draw(image);
+        f.draw(gg);
+        f.show();
+        return f;
+    }
 
-/// ditto
-Figure plot(size_t N, T)(Slice!(N, T*) slice, GGPlotD gg, string title = "")
-{
-    auto f = figure(title);
-    f.draw(slice, ImageFormat.IF_UNASSIGNED);
-    f.draw(gg);
-    f.show();
-    return f;
-}
+    /// ditto
+    Figure plot(size_t N, T)(Slice!(N, T*) slice, GGPlotD gg, string title = "")
+    {
+        auto f = figure(title);
+        f.draw(slice, ImageFormat.IF_UNASSIGNED);
+        f.draw(gg);
+        f.show();
+        return f;
+    }
 
-/// ditto
-Figure plot(size_t N, T)(Slice!(N, T*) slice, ImageFormat format, GGPlotD gg, string title = "")
-{
-    auto f = figure(title);
-    f.draw(slice, format);
-    f.draw(gg);
-    f.show();
-    return f;
-}
+    /// ditto
+    Figure plot(size_t N, T)(Slice!(N, T*) slice, ImageFormat format, GGPlotD gg, string title = "")
+    {
+        auto f = figure(title);
+        f.draw(slice, format);
+        f.draw(gg);
+        f.show();
+        return f;
+    }
 
-/**
-Plot GGPlotD context onto figure with given title.
+    /**
+      Plot GGPlotD context onto figure with given title.
 
-Given plot is drawn on top of figure's current image buffer. Size of the figure, and it's image buffer is
-unchanged. If no figure exists with given title, new one is allocated with default setup (500x500, with 
-black background), and the plot is drawn on it.
+      Given plot is drawn on top of figure's current image buffer. Size of the figure, and it's image buffer is
+      unchanged. If no figure exists with given title, new one is allocated with default setup (500x500, with 
+      black background), and the plot is drawn on it.
 
-Params:
-    gg = GGPlotD context, to be plotted on figure.
-    title = Title of the window. If none given (default), window is named by "Figure id".
+     Params:
+         gg = GGPlotD context, to be plotted on figure.
+         title = Title of the window. If none given (default), window is named by "Figure id".
 
-Returns:
-    If figure with given title exists already, that figure is returned, 
-    otherwise new figure is created and returned.
-*/
-Figure plot(GGPlotD gg, string title = "")
-{
-    auto f = figure(title);
-    f.draw(gg);
-    f.show();
-    return f;
+     Returns:
+         If figure with given title exists already, that figure is returned, 
+         otherwise new figure is created and returned.
+     */
+    Figure plot(GGPlotD gg, string title = "")
+    {
+        auto f = figure(title);
+        f.draw(gg);
+        f.show();
+        return f;
+    }
 }
 /**
 Run the event loop for each present figure, and wait for key and/or given time.
@@ -599,6 +605,7 @@ class Figure
             draw(showSlice.asImage(format));
     }
 
+
     /**
     Draw the GGPlotD context on this figure's canvas.
 
@@ -609,7 +616,7 @@ class Figure
         - GGPlotD's margins are zeroed out in this function, and axes hidden.
         - GGPlotD's axes ranges are configured in this function to match figure size (width and height).
     */
-    void draw(GGPlotD plot)
+    version(ggplotd) void draw(GGPlotD plot)
     {
         drawGGPlotD(plot, _data, _width, _height);
         fitWindow();
@@ -884,7 +891,7 @@ Image adoptImage(Image image)
     return showImage;
 }
 
-void drawGGPlotD(GGPlotD gg,  ubyte[] data,  int width, int height)
+version(ggplotd) void drawGGPlotD(GGPlotD gg,  ubyte[] data,  int width, int height)
 {
     import std.parallelism : parallel;
     import std.range : iota;

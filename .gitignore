@@ -1,12 +1,6 @@
-./dcv
-./dub.selections.json
-/dcv
-/dub.selections.json
 .dub/
-*.userprefs
+dub.selections.json
+dub.userprefs
 *.lst
 __test__*
-
-source/.DS_Store
-
-.DS_Store
+libdcv*.a

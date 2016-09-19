@@ -1,12 +1,16 @@
 {
-	"name": "klt",
-	"description": "A minimal D application.",
-	"copyright": "Copyright © 2016, relja",
-	"authors": ["relja"],
-	"dependencies": {
-		"dcv": {
-			"version": "~master",
-			"path": "../../../"
-		}
-	}
+    "name": "klt",
+    "description": "A minimal D application.",
+    "copyright": "Copyright © 2016, relja",
+    "authors": ["relja"],
+    "dependencies": {
+        "dcv": {
+            "version": "~master",
+            "path": "../../../"
+        }
+    },
+    "subConfigurations":
+    {
+        "dcv": "ggplotd"
+    }
 }

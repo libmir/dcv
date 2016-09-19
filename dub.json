@@ -4,16 +4,86 @@
     "copyright": "Copyright © 2016, Relja Ljubobratovic",
     "authors": ["Relja Ljubobratovic"],
     "license": "BSL-1.0",
+
     "dependencies": {
-        "mir": "~>0.17.0-alpha9",
-        "imageformats": "~>6.1.0",
-        "ffmpeg-d": "~>2.5.1",
-        "ggplotd": "~>0.9.4"
+        ":core": "*",
+        ":io": "*",
+        ":plot": "*"
     },
+
+    "targetType": "library",
+
     "buildTypes": {
         "unittest-release": {
             "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
         }
     },
-    "libs": ["gl", "glfw"]
+
+    "configurations": [
+        {
+            "name": "default"
+        },
+        {
+            "name": "ggplotd",
+            "subConfigurations": 
+            {
+                "dcv:plot": "ggplotd"
+            }
+        }
+    ],
+
+    "subPackages":
+    [
+        {
+            "name": "core",
+            "description": "Core package of DCV. Contains computer vision algorithms.",
+            "sourcePaths": [
+                "source/dcv/core",
+                "source/dcv/features",
+                "source/dcv/imgproc",
+                "source/dcv/multiview",
+                "source/dcv/tracking"
+            ],
+            "dependencies":
+            {
+                "mir": "~>0.17.0-alpha9"
+            }
+        },
+        {
+            "name": "io",
+            "description": "Image and Video I/O package.",
+            "sourcePaths": [
+                "source/dcv/io"
+            ],
+            "dependencies":{
+                "dcv:core": ">=0.0.0",
+                "imageformats": "~>6.1.0",
+                "ffmpeg-d": "~>2.5.1"
+            }
+        },
+        {
+            "name": "plot",
+            "description": "Visualization package.",
+            "sourcePaths": [
+                "source/dcv/plot"
+            ],
+            "dependencies":{
+                "dcv:core": ">=0.0.0"
+            },
+            "configurations":
+            [
+                {
+                    "name": "default"
+                },
+                {
+                    "name": "ggplotd",
+                    "dependencies": {
+                        "ggplotd": "~>0.9.4"
+                    },
+                    "versions": ["ggplotd"]
+                }
+            ],
+            "libs": ["gl", "glfw"]
+        }
+    ]
 }
