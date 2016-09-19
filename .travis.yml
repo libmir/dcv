@@ -38,10 +38,10 @@ script:
  - dub build video
  - dub build klt
  - dub build hornschunck
- - dub test dcv:core -b unittest-cov
- - dub test dcv:io -b unittest-cov
- - dub test dcv:plot -b unittest-cov
  - dub test dcv -b unittest-release
+ - dub test dcv:plot -b unittest-cov
+ - dub test dcv:io -b unittest-cov
+ - dub test dcv:core -b unittest-cov
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
