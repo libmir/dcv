@@ -53,22 +53,22 @@ Params:
 
 TODO: consider size input as array, and add prealloc
 */
-Slice!(N, V*) resize(alias interp = linear, V, size_t N)(Slice!(N, V*) slice, size_t[] newsize, TaskPool pool = taskPool)
+Slice!(N, V*) resize(alias interp = linear, V, size_t N, size_t SN)(Slice!(N, V*) slice, size_t[SN] newsize, TaskPool pool = taskPool)
         if (isInterpolationFunc!interp)
 {
     static if (N == 1)
     {
-        assert(newsize.length == 1, "Invalid new-size setup - dimension does not match with input slice.");
+        static assert(SN == 1, "Invalid new-size setup - dimension does not match with input slice.");
         return resizeImpl_1!interp(slice, newsize[0], pool);
     }
     else static if (N == 2)
     {
-        assert(newsize.length == 2, "Invalid new-size setup - dimension does not match with input slice.");
+        static assert(SN == 2, "Invalid new-size setup - dimension does not match with input slice.");
         return resizeImpl_2!interp(slice, newsize[0], newsize[1], pool);
     }
     else static if (N == 3)
     {
-        assert(newsize.length == 2, "Invalid new-size setup - 3D resize is performed as 2D."); // TODO: find better way to say this...
+        static assert(SN == 2, "Invalid new-size setup - 3D resize is performed as 2D."); // TODO: find better way to say this...
         return resizeImpl_3!interp(slice, newsize[0], newsize[1], pool);
     }
     else
@@ -106,7 +106,7 @@ using scaled shape of the input slice as:
 $(D_CODE scaled = resize(input, input.shape*scale))
 
  */
-Slice!(N, V*) scale(alias interp = linear, V, size_t N, ScaleValue)(Slice!(N, V*) slice, ScaleValue[] scale, TaskPool pool = taskPool)
+Slice!(N, V*) scale(alias interp = linear, V, ScaleValue, size_t N, size_t SN)(Slice!(N, V*) slice, ScaleValue[SN] scale, TaskPool pool = taskPool)
         if (isFloatingPoint!ScaleValue && isInterpolationFunc!interp)
 {
     foreach (v; scale)
@@ -114,21 +114,21 @@ Slice!(N, V*) scale(alias interp = linear, V, size_t N, ScaleValue)(Slice!(N, V*
 
     static if (N == 1)
     {
-        assert(scale.length == 1, "Invalid scale setup - dimension does not match with input slice.");
+        static assert(SN == 1, "Invalid scale setup - dimension does not match with input slice.");
         size_t newsize = cast(size_t)(slice.length * scale[0]);
         enforce(newsize > 0, "Scaling value invalid - after scaling array size is zero.");
         return resizeImpl_1!interp(slice, newsize, pool);
     }
     else static if (N == 2)
     {
-        assert(scale.length == 2, "Invalid scale setup - dimension does not match with input slice.");
+        static assert(SN == 2, "Invalid scale setup - dimension does not match with input slice.");
         size_t [2]newsize = [cast(size_t)(slice.length!0 * scale[0]), cast(size_t)(slice.length!1 * scale[1])];
         enforce(newsize[0] > 0 && newsize[1] > 0, "Scaling value invalid - after scaling array size is zero.");
         return resizeImpl_2!interp(slice, newsize[0], newsize[1], pool);
     }
     else static if (N == 3)
     {
-        assert(scale.length == 2, "Invalid scale setup - 3D scale is performed as 2D."); // TODO: find better way to say this...
+        static assert(SN == 2, "Invalid scale setup - 3D scale is performed as 2D."); // TODO: find better way to say this...
         size_t [2]newsize = [cast(size_t)(slice.length!0 * scale[0]), cast(size_t)(slice.length!1 * scale[1])];
         enforce(newsize[0] > 0 && newsize[1] > 0, "Scaling value invalid - after scaling array size is zero.");
         return resizeImpl_3!interp(slice, newsize[0], newsize[1], pool);
