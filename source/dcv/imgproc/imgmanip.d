@@ -24,7 +24,7 @@ import std.exception : enforce;
 import std.traits : allSatisfy, isFloatingPoint, allSameType, isNumeric, isIntegral;
 import std.algorithm : each;
 import std.range : iota;
-import std.parallelism : parallel;
+import std.parallelism : TaskPool, taskPool, parallel;
 import std.range : isArray, ElementType;
 
 import dcv.core.utils;
@@ -53,28 +53,27 @@ Params:
 
 TODO: consider size input as array, and add prealloc
 */
-Slice!(N, V*) resize(alias interp = linear, V, size_t N, Size...)(Slice!(N, V*) slice, Size newsize)
-        if (allSameType!Size && allSatisfy!(isIntegral, Size) && isInterpolationFunc!interp)
+Slice!(N, V*) resize(alias interp = linear, V, size_t N)(Slice!(N, V*) slice, size_t[] newsize, TaskPool pool = taskPool)
+        if (isInterpolationFunc!interp)
 {
     static if (N == 1)
     {
-        static assert(newsize.length == 1, "Invalid new-size setup - dimension does not match with input slice.");
-        return resizeImpl_1!interp(slice, newsize[0]);
+        assert(newsize.length == 1, "Invalid new-size setup - dimension does not match with input slice.");
+        return resizeImpl_1!interp(slice, newsize[0], pool);
     }
     else static if (N == 2)
     {
-        static assert(newsize.length == 2, "Invalid new-size setup - dimension does not match with input slice.");
-        return resizeImpl_2!interp(slice, newsize[0], newsize[1]);
+        assert(newsize.length == 2, "Invalid new-size setup - dimension does not match with input slice.");
+        return resizeImpl_2!interp(slice, newsize[0], newsize[1], pool);
     }
     else static if (N == 3)
     {
-        static assert(newsize.length == 2, "Invalid new-size setup - 3D resize is performed as 2D."); // TODO: find better way to say this...
-        return resizeImpl_3!interp(slice, newsize[0], newsize[1]);
+        assert(newsize.length == 2, "Invalid new-size setup - 3D resize is performed as 2D."); // TODO: find better way to say this...
+        return resizeImpl_3!interp(slice, newsize[0], newsize[1], pool);
     }
     else
     {
         import std.conv : to;
-
         static assert(0, "Resize is not supported for slice with " ~ N.to!string ~ " dimensions.");
     }
 }
@@ -85,15 +84,15 @@ unittest
     auto matrix = [0.0f, 0.1f, 0.2f, 0.3f].sliced(2, 2);
     auto image = [0.0f, 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f].sliced(2, 2, 2);
 
-    auto resv = vector.resize!linear(10);
+    auto resv = vector.resize!linear([10]);
     assert(resv.shape.length == 1);
     assert(resv.length == 10);
 
-    auto resm = matrix.resize!linear(10, 15);
+    auto resm = matrix.resize!linear([10, 15]);
     assert(resm.shape.length == 2);
     assert(resm.length!0 == 10 && resm.length!1 == 15);
 
-    auto resi = image.resize!linear(20, 14);
+    auto resi = image.resize!linear([20, 14]);
     assert(resi.shape.length == 3);
     assert(resi.length!0 == 20 && resi.length!1 == 14 && resi.length!2 == 2);
 }
@@ -107,37 +106,36 @@ using scaled shape of the input slice as:
 $(D_CODE scaled = resize(input, input.shape*scale))
 
  */
-Slice!(N, V*) scale(alias interp = linear, V, size_t N, Scale...)(Slice!(N, V*) slice, Scale scale)
-        if (allSameType!Scale && allSatisfy!(isFloatingPoint, Scale) && isInterpolationFunc!interp)
+Slice!(N, V*) scale(alias interp = linear, V, size_t N, ScaleValue)(Slice!(N, V*) slice, ScaleValue[] scale, TaskPool pool = taskPool)
+        if (isFloatingPoint!ScaleValue && isInterpolationFunc!interp)
 {
     foreach (v; scale)
         assert(v > 0., "Invalid scale values (v > 0.0)");
 
     static if (N == 1)
     {
-        static assert(scale.length == 1, "Invalid scale setup - dimension does not match with input slice.");
-        auto newsize = slice.length * scale[0];
+        assert(scale.length == 1, "Invalid scale setup - dimension does not match with input slice.");
+        size_t newsize = cast(size_t)(slice.length * scale[0]);
         enforce(newsize > 0, "Scaling value invalid - after scaling array size is zero.");
-        return resizeImpl_1!interp(slice, cast(size_t)newsize);
+        return resizeImpl_1!interp(slice, newsize, pool);
     }
     else static if (N == 2)
     {
-        static assert(scale.length == 2, "Invalid scale setup - dimension does not match with input slice.");
-        auto newsize = [slice.length!0 * scale[0], slice.length!1 * scale[1]];
+        assert(scale.length == 2, "Invalid scale setup - dimension does not match with input slice.");
+        size_t [2]newsize = [cast(size_t)(slice.length!0 * scale[0]), cast(size_t)(slice.length!1 * scale[1])];
         enforce(newsize[0] > 0 && newsize[1] > 0, "Scaling value invalid - after scaling array size is zero.");
-        return resizeImpl_2!interp(slice, cast(size_t)newsize[0], cast(size_t)newsize[1]);
+        return resizeImpl_2!interp(slice, newsize[0], newsize[1], pool);
     }
     else static if (N == 3)
     {
-        static assert(scale.length == 2, "Invalid scale setup - 3D scale is performed as 2D."); // TODO: find better way to say this...
-        auto newsize = [slice.length!0 * scale[0], slice.length!1 * scale[1]];
+        assert(scale.length == 2, "Invalid scale setup - 3D scale is performed as 2D."); // TODO: find better way to say this...
+        size_t [2]newsize = [cast(size_t)(slice.length!0 * scale[0]), cast(size_t)(slice.length!1 * scale[1])];
         enforce(newsize[0] > 0 && newsize[1] > 0, "Scaling value invalid - after scaling array size is zero.");
-        return resizeImpl_3!interp(slice, cast(size_t)newsize[0], cast(size_t)newsize[1]);
+        return resizeImpl_3!interp(slice, newsize[0], newsize[1], pool);
     }
     else
     {
         import std.conv : to;
-
         static assert(0, "Resize is not supported for slice with " ~ N.to!string ~ " dimensions.");
     }
 }
@@ -148,15 +146,15 @@ unittest
     auto matrix = [0.0f, 0.1f, 0.2f, 0.3f].sliced(2, 2);
     auto image = [0.0f, 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f].sliced(2, 2, 2);
 
-    auto resv = vector.scale!linear(2.0f);
+    auto resv = vector.scale!linear([2.0f]);
     assert(resv.shape.length == 1);
     assert(resv.length == vector.length * 2);
 
-    auto resm = matrix.scale!linear(3.0f, 4.0f);
+    auto resm = matrix.scale!linear([3.0f, 4.0f]);
     assert(resm.shape.length == 2);
     assert(resm.length!0 == matrix.length!0 * 3 && resm.length!1 == matrix.length!1 * 4);
 
-    auto resi = image.scale!linear(5.0f, 8.0f);
+    auto resi = image.scale!linear([5.0f, 8.0f]);
     assert(resi.shape.length == 3);
     assert(resi.length!0 == image.length!0 * 5 && resi.length!1 == image.length!1 * 8 && resi.length!2 == 2);
 }
@@ -503,7 +501,7 @@ unittest
 private:
 
 // 1d resize implementation
-Slice!(1, V*) resizeImpl_1(alias interp, V)(Slice!(1, V*) slice, size_t newsize)
+Slice!(1, V*) resizeImpl_1(alias interp, V)(Slice!(1, V*) slice, size_t newsize, TaskPool pool)
 {
 
     enforce(!slice.empty && newsize > 0);
@@ -511,7 +509,7 @@ Slice!(1, V*) resizeImpl_1(alias interp, V)(Slice!(1, V*) slice, size_t newsize)
     auto retval = new V[newsize];
     auto resizeRatio = cast(float)(newsize - 1) / cast(float)(slice.length - 1);
 
-    foreach (i; iota(newsize).parallel)
+    foreach (i; pool.parallel(iota(newsize)))
     {
         retval[i] = interp(slice, cast(float)i / resizeRatio);
     }
@@ -520,7 +518,7 @@ Slice!(1, V*) resizeImpl_1(alias interp, V)(Slice!(1, V*) slice, size_t newsize)
 }
 
 // 1d resize implementation
-Slice!(2, V*) resizeImpl_2(alias interp, V)(Slice!(2, V*) slice, size_t height, size_t width)
+Slice!(2, V*) resizeImpl_2(alias interp, V)(Slice!(2, V*) slice, size_t height, size_t width, TaskPool pool)
 {
 
     enforce(!slice.empty && width > 0 && height > 0);
@@ -533,7 +531,7 @@ Slice!(2, V*) resizeImpl_2(alias interp, V)(Slice!(2, V*) slice, size_t height, 
     auto r_v = cast(float)(height - 1) / cast(float)(rows - 1); // horizontaresize ratio
     auto r_h = cast(float)(width - 1) / cast(float)(cols - 1);
 
-    foreach (i; iota(height).parallel)
+    foreach (i; pool.parallel(iota(height)))
     {
         auto row = retval[i, 0 .. width];
         foreach (j; iota(width))
@@ -546,7 +544,7 @@ Slice!(2, V*) resizeImpl_2(alias interp, V)(Slice!(2, V*) slice, size_t height, 
 }
 
 // 1d resize implementation
-Slice!(3, V*) resizeImpl_3(alias interp, V)(Slice!(3, V*) slice, size_t height, size_t width)
+Slice!(3, V*) resizeImpl_3(alias interp, V)(Slice!(3, V*) slice, size_t height, size_t width, TaskPool pool)
 {
 
     enforce(!slice.empty && width > 0 && height > 0);
@@ -564,7 +562,7 @@ Slice!(3, V*) resizeImpl_3(alias interp, V)(Slice!(3, V*) slice, size_t height, 
     {
         auto sl_ch = slice[0 .. rows, 0 .. cols, c];
         auto ret_ch = retval[0 .. height, 0 .. width, c];
-        foreach (i; iota(height).parallel)
+        foreach (i; pool.parallel(iota(height)))
         {
             auto row = ret_ch[i, 0 .. width];
             foreach (j; iota(width))
