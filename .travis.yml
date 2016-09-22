@@ -6,7 +6,6 @@ os:
  - linux
 
 d:
- - dmd-2.071.1
  - ldc-1.1.0-beta2
 
 addons:
