@@ -51,7 +51,7 @@ import std.algorithm.sorting : topN;
 import std.algorithm.comparison : max;
 import std.algorithm.mutation : copy;
 import std.array : uninitializedArray;
-import std.parallelism : parallel, taskPool;
+import std.parallelism : parallel, taskPool, TaskPool;
 
 import dcv.core.algorithm;
 import dcv.core.utils;
@@ -744,15 +744,15 @@ Params:
     slice = Slice of the input image.
     sigma = Smoothing strength parameter.
     kernelSize = Size of convolution kernel. Must be odd number.
-    prealloc = Optional pre-allocated result image buffer. If not of same shape as input slice, its allocated
-        anew.
+    prealloc = Optional pre-allocated result image buffer. If not of same shape as input slice, its allocated anew.
+    pool = Optional TaskPool instance used to parallelize computation.
 
 Returns:
     Slice of filtered image.
 */
 Slice!(N, OutputType*) bilateralFilter(alias bc = neumann, InputType, OutputType = InputType, size_t N)(Slice!(N,
         InputType*) slice, float sigma, uint kernelSize, Slice!(N,
-        OutputType*) prealloc = emptySlice!(N, OutputType)) if (N == 2)
+        OutputType*) prealloc = emptySlice!(N, OutputType), TaskPool pool = taskPool) if (N == 2)
 in
 {
     static assert(isBoundaryCondition!bc, "Invalid boundary condition test function.");
@@ -764,7 +764,7 @@ body
     import std.algorithm.comparison : max;
     import std.algorithm.iteration : reduce;
     import std.math : exp, sqrt;
-    import std.parallelism : parallel;
+    import mir.glas.l1 : asum;
 
     if (prealloc.empty || prealloc.shape != slice.shape)
     {
@@ -776,7 +776,7 @@ body
     int rows = cast(int)slice.length!0;
     int cols = cast(int)slice.length!1;
 
-    foreach (r; iota(rows).parallel)
+    foreach (r; pool.parallel(iota(rows)))
     {
         auto mask = new float[ks * ks].sliced(ks, ks);
         foreach (c; 0 .. cols)
@@ -802,7 +802,7 @@ body
             }
 
             // normalize mask and calculate result value.
-            float mask_sum = mask.norm(NormType.L1);
+            float mask_sum = mask.asum;
             float res_val = 0.0f;
 
             i = 0;
@@ -851,6 +851,7 @@ Params:
     slice = Input image slice.
     kernelSize = Square size of median kernel.
     prealloc = Optional pre-allocated return image buffer.
+    pool = Optional TaskPool instance used to parallelize computation.
 
 Returns:
     Returns filtered image of same size as the input. If prealloc parameter is not an empty slice, and is
@@ -858,7 +859,7 @@ Returns:
     is used.
 */
 Slice!(N, O*) medianFilter(alias BoundaryConditionTest = neumann, T, O = T, size_t N)(Slice!(N,
-        T*) slice, size_t kernelSize, Slice!(N, O*) prealloc = emptySlice!(N, O))
+        T*) slice, size_t kernelSize, Slice!(N, O*) prealloc = emptySlice!(N, O), TaskPool pool = taskPool)
 in
 {
     import std.traits : isAssignable;
@@ -878,13 +879,15 @@ body
         prealloc = uninitializedArray!(O[])(slice.elementsCount).sliced(slice.shape);
 
     static if (N == 1)
-        medianFilterImpl1!BoundaryConditionTest(slice, prealloc, kernelSize);
+        alias medianFilterImpl = medianFilterImpl1;
     else static if (N == 2)
-        medianFilterImpl2!BoundaryConditionTest(slice, prealloc, kernelSize);
+        alias medianFilterImpl = medianFilterImpl2;
     else static if (N == 3)
-        medianFilterImpl3!BoundaryConditionTest(slice, prealloc, kernelSize);
+        alias medianFilterImpl = medianFilterImpl3;
     else
         static assert(0, "Invalid slice dimension for median filtering.");
+
+    medianFilterImpl!BoundaryConditionTest(slice, prealloc, kernelSize, pool);
 
     return prealloc;
 }
@@ -1099,15 +1102,17 @@ Params:
     slice = Input image slice, to be eroded.
     kernel = Erosion kernel. Default value is radialKernel!T(3).
     prealloc = Optional pre-allocated buffer to hold result.
+    pool = Optional TaskPool instance used to parallelize computation.
     
 Returns:
     Eroded image slice, of same type as input image.
 */
 Slice!(2, T*) erode(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) slice,
-        Slice!(2, T*) kernel = radialKernel!T(3), Slice!(2, T*) prealloc = emptySlice!(2, T))
+        Slice!(2, T*) kernel = radialKernel!T(3), Slice!(2, T*) prealloc = emptySlice!(2, T),
+    TaskPool pool = taskPool)
         if (isBoundaryCondition!BoundaryConditionTest)
 {
-    return morphOp!(MorphologicOperation.ERODE, BoundaryConditionTest)(slice, kernel, prealloc);
+    return morphOp!(MorphologicOperation.ERODE, BoundaryConditionTest)(slice, kernel, prealloc, pool);
 }
 
 /**
@@ -1158,15 +1163,17 @@ Params:
     slice = Input image slice, to be eroded.
     kernel = Dilation kernel. Default value is radialKernel!T(3).
     prealloc = Optional pre-allocated buffer to hold result.
+    pool = Optional TaskPool instance used to parallelize computation.
     
 Returns:
     Dilated image slice, of same type as input image.
 */
 Slice!(2, T*) dilate(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) slice,
-        Slice!(2, T*) kernel = radialKernel!T(3), Slice!(2, T*) prealloc = emptySlice!(2, T))
+        Slice!(2, T*) kernel = radialKernel!T(3), Slice!(2, T*) prealloc = emptySlice!(2, T),
+    TaskPool pool = taskPool)
         if (isBoundaryCondition!BoundaryConditionTest)
 {
-    return morphOp!(MorphologicOperation.DILATE, BoundaryConditionTest)(slice, kernel, prealloc);
+    return morphOp!(MorphologicOperation.DILATE, BoundaryConditionTest)(slice, kernel, prealloc, pool);
 }
 
 /**
@@ -1181,16 +1188,18 @@ Params:
     slice = Input image slice, to be eroded.
     kernel = Erosion/Dilation kernel. Default value is radialKernel!T(3).
     prealloc = Optional pre-allocated buffer to hold result.
+    pool = Optional TaskPool instance used to parallelize computation.
     
 Returns:
     Opened image slice, of same type as input image.
 */
 Slice!(2, T*) open(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) slice,
-        Slice!(2, T*) kernel = radialKernel!T(3), Slice!(2, T*) prealloc = emptySlice!(2, T))
+        Slice!(2, T*) kernel = radialKernel!T(3), Slice!(2, T*) prealloc = emptySlice!(2, T),
+    TaskPool pool = taskPool)
         if (isBoundaryCondition!BoundaryConditionTest)
 {
     return morphOp!(MorphologicOperation.DILATE, BoundaryConditionTest)(morphOp!(MorphologicOperation.ERODE,
-            BoundaryConditionTest)(slice, kernel), kernel, prealloc);
+            BoundaryConditionTest)(slice, kernel, emptySlice!(2, T), pool), kernel, prealloc, pool);
 }
 
 /**
@@ -1205,21 +1214,24 @@ Params:
     slice = Input image slice, to be eroded.
     kernel = Erosion/Dilation kernel. Default value is radialKernel!T(3).
     prealloc = Optional pre-allocated buffer to hold result.
+    pool = Optional TaskPool instance used to parallelize computation.
     
 Returns:
     Closed image slice, of same type as input image.
 */
 Slice!(2, T*) close(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) slice,
-        Slice!(2, T*) kernel = radialKernel!T(3), Slice!(2, T*) prealloc = emptySlice!(2, T))
+        Slice!(2, T*) kernel = radialKernel!T(3), Slice!(2, T*) prealloc = emptySlice!(2, T),
+    TaskPool pool = taskPool)
         if (isBoundaryCondition!BoundaryConditionTest)
 {
     return morphOp!(MorphologicOperation.ERODE, BoundaryConditionTest)(morphOp!(MorphologicOperation.DILATE,
-            BoundaryConditionTest)(slice, kernel), kernel, prealloc);
+            BoundaryConditionTest)(slice, kernel, emptySlice!(2, T), pool), kernel, prealloc, pool);
 }
 
 private:
 
-void medianFilterImpl1(alias bc, T, O)(Slice!(1, T*) slice, Slice!(1, O*) filtered, size_t kernelSize)
+void medianFilterImpl1(alias bc, T, O)(Slice!(1, T*) slice, Slice!(1, O*) filtered,
+    size_t kernelSize, TaskPool pool)
 {
     import std.algorithm.sorting : topN;
     import std.algorithm.comparison : max;
@@ -1228,9 +1240,9 @@ void medianFilterImpl1(alias bc, T, O)(Slice!(1, T*) slice, Slice!(1, O*) filter
     int kh = max(1, cast(int)kernelSize / 2);
     int length = cast(int)slice.length!0;
 
-    auto kernelStorage = taskPool.workerLocalStorage(new T[kernelSize]);
+    auto kernelStorage = pool.workerLocalStorage(new T[kernelSize]);
 
-    foreach (i; iota(length).parallel)
+    foreach (i; pool.parallel(iota(length)))
     {
         auto kernel = kernelStorage.get();
         size_t ki = 0;
@@ -1243,7 +1255,8 @@ void medianFilterImpl1(alias bc, T, O)(Slice!(1, T*) slice, Slice!(1, O*) filter
     }
 }
 
-void medianFilterImpl2(alias bc, T, O)(Slice!(2, T*) slice, Slice!(2, O*) filtered, size_t kernelSize)
+void medianFilterImpl2(alias bc, T, O)(Slice!(2, T*) slice, Slice!(2, O*) filtered,
+    size_t kernelSize, TaskPool pool)
 {
     int kh = max(1, cast(int)kernelSize / 2);
     int n = cast(int)kernelSize ^^ 2;
@@ -1251,9 +1264,9 @@ void medianFilterImpl2(alias bc, T, O)(Slice!(2, T*) slice, Slice!(2, O*) filter
     int rows = cast(int)slice.length!0;
     int cols = cast(int)slice.length!1;
 
-    auto kernelStorage = taskPool.workerLocalStorage(new T[kernelSize ^^ 2]);
+    auto kernelStorage = pool.workerLocalStorage(new T[kernelSize ^^ 2]);
 
-    foreach (r; iota(rows).parallel)
+    foreach (r; pool.parallel(iota(rows)))
     {
         foreach (c; 0 .. cols)
         {
@@ -1272,11 +1285,12 @@ void medianFilterImpl2(alias bc, T, O)(Slice!(2, T*) slice, Slice!(2, O*) filter
     }
 }
 
-void medianFilterImpl3(alias bc, T, O)(Slice!(3, T*) slice, Slice!(3, O*) filtered, size_t kernelSize)
+void medianFilterImpl3(alias bc, T, O)(Slice!(3, T*) slice, Slice!(3, O*) filtered,
+    size_t kernelSize, TaskPool pool)
 {
     foreach (channel; 0 .. slice.length!2)
     {
-        medianFilterImpl2!bc(slice[0 .. $, 0 .. $, channel], filtered[0 .. $, 0 .. $, channel], kernelSize);
+        medianFilterImpl2!bc(slice[0 .. $, 0 .. $, channel], filtered[0 .. $, 0 .. $, channel], kernelSize, pool);
     }
 }
 
@@ -1297,8 +1311,8 @@ enum MorphologicOperation
 }
 
 Slice!(2, T*) morphOp(MorphologicOperation op, alias BoundaryConditionTest = neumann, T)
-    (Slice!(2, T*) slice, Slice!(2, T*) kernel = radialKernel!T(3), 
-     Slice!(2, T*) prealloc = emptySlice!(2, T)) if (isBoundaryCondition!BoundaryConditionTest)
+    (Slice!(2, T*) slice, Slice!(2, T*) kernel, 
+     Slice!(2, T*) prealloc, TaskPool pool) if (isBoundaryCondition!BoundaryConditionTest)
 in
 {
     assert(!slice.empty);
@@ -1333,7 +1347,7 @@ body
             T value = cast(T)1.0;
     }
 
-    foreach (r; iota(rows).parallel)
+    foreach (r; pool.parallel(iota(rows)))
     {
         foreach (c; 0 .. cols)
         {

@@ -913,7 +913,6 @@ Image adoptImage(Image image)
 
 version(ggplotd) void drawGGPlotD(GGPlotD gg,  ubyte[] data,  int width, int height)
 {
-    import std.parallelism : parallel;
     import std.range : iota;
     import cairo = cairo;
 

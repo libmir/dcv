@@ -34,14 +34,14 @@ void main()
 
     // resize 1D array:
     writeln("1D:");
-    array_1d.resize(9).writeln; // so, same as calling array_1d.resize!linear(9)
+    array_1d.resize([9]).writeln; // so, same as calling array_1d.resize!linear([9])
     writeln();
 
     auto array_2d = [1., 2., 3., 4.].sliced(2, 2);
 
     // resize 2D array:
     writeln("2D:");
-    auto res_2d = array_2d.resize(9, 9);
+    auto res_2d = array_2d.resize([9, 9]);
     foreach (row; res_2d)
         row.writeln;
     writeln();
@@ -50,18 +50,18 @@ void main()
 
     // resize 3D array:
     writeln("3D:");
-    auto res_3d = array_3d.resize(9, 9);
+    auto res_3d = array_3d.resize([9, 9]);
     foreach (row; res_3d)
         row.writeln;
     writeln();
 
     // resize image:
     auto image = [255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255].sliced(2, 2, 3).asType!ubyte;
-    auto resizedImage = image.resize(300, 300);
+    auto resizedImage = image.resize([300, 300]);
     resizedImage.imwrite(ImageFormat.IF_RGB, "./result/resizedImage.png");
 
     // scale image:
-    auto scaledImage = resizedImage.scale(2., 2.);
+    auto scaledImage = resizedImage.scale([2., 2.]);
     scaledImage.imwrite(ImageFormat.IF_RGB, "./result/scaledImage.png");
 
     /*

@@ -42,7 +42,6 @@ import std.algorithm.mutation : copy;
 import std.algorithm.comparison : equal;
 import std.algorithm : swap;
 import std.range : zip, array, iota;
-import std.parallelism : parallel;
 import std.exception : enforce;
 import std.range : lockstep;
 

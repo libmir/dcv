@@ -51,7 +51,7 @@ import std.algorithm.comparison : equal;
 import std.algorithm.iteration : reduce;
 import std.algorithm.comparison : max, min;
 import std.exception : enforce;
-import std.parallelism : parallel;
+import std.parallelism : parallel, taskPool, TaskPool;
 import std.math : abs, floor;
 
 import mir.ndslice;
@@ -75,13 +75,14 @@ Params:
     prealloc is not of same shape as input range, resulting array will be newly allocated. 
     mask = Masking range. Convolution will skip each element where mask is 0. Default value
     is empty slice, which tells that convolution will be performed on the whole range.
+    pool = Optional TaskPool instance used to parallelize computation.
 
 Returns:
     Slice of resulting image after convolution.
 */
 Slice!(N, InputType*) conv(alias bc = neumann, InputType, KernelType, MaskType = InputType, size_t N, size_t NK)(Slice!(N,
         InputType*) range, Slice!(NK, KernelType*) kernel, Slice!(N,
-        InputType*) prealloc = emptySlice!(N, InputType), Slice!(NK, MaskType*) mask = emptySlice!(NK, MaskType))
+        InputType*) prealloc = emptySlice!(N, InputType), Slice!(NK, MaskType*) mask = emptySlice!(NK, MaskType), TaskPool pool = taskPool)
 {
     static assert(isBoundaryCondition!bc, "Invalid boundary condition test function.");
     static assert(isAssignable!(InputType, KernelType), "Uncompatible types for range and kernel");
@@ -97,17 +98,17 @@ Slice!(N, InputType*) conv(alias bc = neumann, InputType, KernelType, MaskType =
     static if (N == 1)
     {
         static assert(NK == 1, "Invalid kernel dimension");
-        return conv1Impl!bc(range, kernel, prealloc, mask);
+        return conv1Impl!bc(range, kernel, prealloc, mask, pool);
     }
     else static if (N == 2)
     {
         static assert(NK == 2, "Invalid kernel dimension");
-        return conv2Impl!bc(range, kernel, prealloc, mask);
+        return conv2Impl!bc(range, kernel, prealloc, mask, pool);
     }
     else static if (N == 3)
     {
         static assert(NK == 2, "Invalid kernel dimension");
-        return conv3Impl!bc(range, kernel, prealloc, mask);
+        return conv3Impl!bc(range, kernel, prealloc, mask, pool);
     }
     else
     {
@@ -151,7 +152,7 @@ private:
 
 // TODO: implement SIMD
 Slice!(1, InputType*) conv1Impl(alias bc, InputType, KernelType, MaskType)(Slice!(1, InputType*) range,
-        Slice!(1, KernelType*) kernel, Slice!(1, InputType*) prealloc, Slice!(1, MaskType*) mask)
+        Slice!(1, KernelType*) kernel, Slice!(1, InputType*) prealloc, Slice!(1, MaskType*) mask, TaskPool pool)
 {
 
     if (prealloc.empty || prealloc.shape != range.shape)
@@ -168,7 +169,7 @@ Slice!(1, InputType*) conv1Impl(alias bc, InputType, KernelType, MaskType)(Slice
     bool useMask = !mask.empty;
 
     // run main (inner) loop
-    foreach (i; iota(rl).parallel)
+    foreach (i; pool.parallel(iota(rl)))
     {
         if (useMask && !mask[i])
             continue;
@@ -184,7 +185,7 @@ Slice!(1, InputType*) conv1Impl(alias bc, InputType, KernelType, MaskType)(Slice
 }
 
 Slice!(2, InputType*) conv2Impl(alias bc, InputType, KernelType, MaskType)(Slice!(2, InputType*) range,
-        Slice!(2, KernelType*) kernel, Slice!(2, InputType*) prealloc, Slice!(2, MaskType*) mask)
+        Slice!(2, KernelType*) kernel, Slice!(2, InputType*) prealloc, Slice!(2, MaskType*) mask, TaskPool pool)
 {
 
     if (prealloc.empty || prealloc.shape != range.shape)
@@ -204,7 +205,7 @@ Slice!(2, InputType*) conv2Impl(alias bc, InputType, KernelType, MaskType)(Slice
     bool useMask = !mask.empty;
 
     // run inner body convolution of the matrix.
-    foreach (i; iota(rr).parallel)
+    foreach (i; pool.parallel(iota(rr)))
     {
         auto row = prealloc[i, 0 .. rc];
         foreach (j; iota(rc))
@@ -228,7 +229,7 @@ Slice!(2, InputType*) conv2Impl(alias bc, InputType, KernelType, MaskType)(Slice
 
 Slice!(3, InputType*) conv3Impl(alias bc, InputType, KernelType, MaskType, size_t NK)(Slice!(3,
         InputType*) range, Slice!(NK, KernelType*) kernel, Slice!(3, InputType*) prealloc,
-        Slice!(NK, MaskType*) mask)
+        Slice!(NK, MaskType*) mask, TaskPool pool)
 {
     if (prealloc.empty || prealloc.shape != range.shape)
         prealloc = uninitializedArray!(InputType[])(cast(size_t)range.elementsCount).sliced(range.shape);
@@ -240,7 +241,7 @@ Slice!(3, InputType*) conv3Impl(alias bc, InputType, KernelType, MaskType, size_
     {
         auto r_c = range[0 .. $, 0 .. $, i];
         auto p_c = prealloc[0 .. $, 0 .. $, i];
-        r_c.conv(kernel, p_c);
+        r_c.conv(kernel, p_c, mask, pool);
     }
 
     return prealloc;
