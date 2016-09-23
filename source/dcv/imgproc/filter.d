@@ -744,8 +744,8 @@ Params:
     slice = Slice of the input image.
     sigma = Smoothing strength parameter.
     kernelSize = Size of convolution kernel. Must be odd number.
-    prealloc = Optional pre-allocated result image buffer. If not of same shape as input slice, its allocated
-        anew.
+    prealloc = Optional pre-allocated result image buffer. If not of same shape as input slice, its allocated anew.
+    pool = Optional TaskPool instance used to parallelize computation.
 
 Returns:
     Slice of filtered image.
@@ -851,6 +851,7 @@ Params:
     slice = Input image slice.
     kernelSize = Square size of median kernel.
     prealloc = Optional pre-allocated return image buffer.
+    pool = Optional TaskPool instance used to parallelize computation.
 
 Returns:
     Returns filtered image of same size as the input. If prealloc parameter is not an empty slice, and is
@@ -1101,6 +1102,7 @@ Params:
     slice = Input image slice, to be eroded.
     kernel = Erosion kernel. Default value is radialKernel!T(3).
     prealloc = Optional pre-allocated buffer to hold result.
+    pool = Optional TaskPool instance used to parallelize computation.
     
 Returns:
     Eroded image slice, of same type as input image.
@@ -1161,6 +1163,7 @@ Params:
     slice = Input image slice, to be eroded.
     kernel = Dilation kernel. Default value is radialKernel!T(3).
     prealloc = Optional pre-allocated buffer to hold result.
+    pool = Optional TaskPool instance used to parallelize computation.
     
 Returns:
     Dilated image slice, of same type as input image.
@@ -1185,6 +1188,7 @@ Params:
     slice = Input image slice, to be eroded.
     kernel = Erosion/Dilation kernel. Default value is radialKernel!T(3).
     prealloc = Optional pre-allocated buffer to hold result.
+    pool = Optional TaskPool instance used to parallelize computation.
     
 Returns:
     Opened image slice, of same type as input image.
@@ -1210,6 +1214,7 @@ Params:
     slice = Input image slice, to be eroded.
     kernel = Erosion/Dilation kernel. Default value is radialKernel!T(3).
     prealloc = Optional pre-allocated buffer to hold result.
+    pool = Optional TaskPool instance used to parallelize computation.
     
 Returns:
     Closed image slice, of same type as input image.

@@ -50,6 +50,7 @@ Params:
     newsize = tuple that defines new shape. New dimension has to be
     the same as input slice in the 1D and 2D resize, where in the 
     3D resize newsize has to be 2D.
+    pool = Optional TaskPool instance used to parallelize computation.
 
 TODO: consider size input as array, and add prealloc
 */

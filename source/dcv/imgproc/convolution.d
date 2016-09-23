@@ -75,6 +75,7 @@ Params:
     prealloc is not of same shape as input range, resulting array will be newly allocated. 
     mask = Masking range. Convolution will skip each element where mask is 0. Default value
     is empty slice, which tells that convolution will be performed on the whole range.
+    pool = Optional TaskPool instance used to parallelize computation.
 
 Returns:
     Slice of resulting image after convolution.
