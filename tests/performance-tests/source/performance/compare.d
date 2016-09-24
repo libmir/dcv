@@ -54,7 +54,7 @@ void compare(string sha)
     auto currentData = loadProfileData();
 
     auto file = File(chainPath(exeDir, "benchmark.csv"), "w");
-    file.writeln("Function Name,Previous Runtime[usecs],Current Runtime[usecs],Speedup[percent]");
+    file.writeln("Function Name,Previous Runtime[μs],Current Runtime[μs],Speedup[%]");
     foreach(p; prevData.byKeyValue)
     {
         auto key = p.key;
