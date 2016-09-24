@@ -18,9 +18,9 @@ function check_file_exists {
 }
 
 function chapter_title {
-	echo -e "$GREEN\n-------------------------------------------------------------------------------"
+	echo -e "$GREEN\n-----------------------------------------------------------------------------------"
 	echo -e "$1"
-	echo -e "-------------------------------------------------------------------------------\n$NC"
+	echo -e "-----------------------------------------------------------------------------------\n$NC"
 }
 
 function info 
@@ -44,7 +44,7 @@ BIN=performance-tests
 PREV_LIB=$SCRIPTPATH/.cache/$SHA_PREV/libdcv.a
 PREV_BIN=$SCRIPTPATH/.cache/$SHA_PREV/tests/performance-tests/performance-tests
 
-PREV_PROFILE_RESULT=$SCRIPTPATH/.cache/$SHA_PREV/profile.csv
+PREV_PROFILE_RESULT=$SCRIPTPATH/.cache/$SHA_PREV/tests/performance-tests/profile.csv
 CURR_PROFILE_RESULT=$SCRIPTPATH/profile.csv
 
 BENCHMARK_RESULT=$SCRIPTPATH/benchmark.csv
@@ -53,9 +53,8 @@ BENCHMARK_RESULT=$SCRIPTPATH/benchmark.csv
 RUN=./$BIN
 RUN_PREV=$PREV_BIN
 
-chapter_title "Project cleanup..."
-dub clean
-rm -rf $BIN dub.selections.json .dub/ dub.userprefs
+info "Project cleanup..."
+rm -rf $BIN profile.csv benchmark.csv dub.selections.json .dub/ dub.userprefs source/dcv/
 
 chapter_title "Building test application..."
 dub build --compiler=ldc2 --build=release
@@ -73,7 +72,7 @@ check_file_exists $PREV_BIN "Building $SHA_PREV test application failed. Exiting
 chmod u+x $PREV_BIN
 
 chapter_title "Profiling..."
-info "$SHA_PREV"
+info "$SHA_PREV:"
 $RUN_PREV -m measure
 
 if [ -e $PREV_PROFILE_RESULT ]; then
@@ -83,7 +82,7 @@ else
     exit
 fi
 
-info "this"
+info "\nthis:"
 $RUN -m measure
 
 if [ -e $CURR_PROFILE_RESULT ]; then
@@ -96,7 +95,14 @@ fi
 chapter_title "Comparing and writing comparison results..."
 $RUN -m compare --sha $SHA_PREV
 
-# cleanup at the end
-chapter_title "Cleanup..."
-$RUN -m cleanup
+if [ -e $BENCHMARK_RESULT ]; then
+    echo "Comparison done, results written in $BENCHMARK_RESULT"
+else
+    echo "Benchmark failed."
+    exit
+fi
+
+chapter_title "Results..."
+cat benchmark.csv
+
 
