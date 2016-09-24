@@ -9,6 +9,8 @@ import std.traits;
 import std.typecons;
 import core.time;
 
+import performance.common;
+
 import dcv;
 
 immutable imsize = 128;
@@ -28,7 +30,7 @@ void measure()
 
     writeln("\n=========================================");
     writeln("Running benchmarks...\n");
-    runBenchmarks("profile.csv");
+    runBenchmarks(exeDir ~ "/profile.csv");
 }
 
 void registerBenchmark(alias fun)()
