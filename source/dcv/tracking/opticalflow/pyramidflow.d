@@ -119,8 +119,8 @@ class SparsePyramidFlow : SparseOpticalFlow
 
             if (lh != h || lw != w)
             {
-                current = f1s.resize(lh, lw);
-                next = f2s.resize(lh, lw);
+                current = f1s.resize([lh, lw]);
+                next = f2s.resize([lh, lw]);
             }
             else
             {
@@ -199,7 +199,7 @@ class DensePyramidFlow : DenseOpticalFlow
         // allocate flow for each pyramid level
         if (usePrevious)
         {
-            flow = prealloc.resize(flowPyramid[0][0], flowPyramid[0][1]);
+            flow = prealloc.resize(flowPyramid[0]);
         }
         else
         {
@@ -228,8 +228,8 @@ class DensePyramidFlow : DenseOpticalFlow
 
             if (lh != h || lw != w)
             {
-                current = f1s.resize(lh, lw);
-                next = f2s.resize(lh, lw);
+                current = f1s.resize([lh, lw]);
+                next = f2s.resize([lh, lw]);
             }
             else
             {
@@ -254,7 +254,7 @@ class DensePyramidFlow : DenseOpticalFlow
 
             if (i < levelCount - 1)
             {
-                flow = flow.resize(flowPyramid[i + 1][0], flowPyramid[i + 1][1]);
+                flow = flow.resize(flowPyramid[i + 1]);
                 flow[] *= 2.0f;
             }
             // assign the first flow indicator to false.
