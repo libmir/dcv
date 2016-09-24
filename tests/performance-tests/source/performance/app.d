@@ -22,8 +22,6 @@ void main(string []args)
 
     auto helpInformation = getopt(args, 
             "mode|m", "Mode of the program.", &mode,
-            "shaprev|sp", "Sha of the previous state to be checked out.",&shaprev,
-            "shacurrent|sc", "Sha of the current state to be checked out.",&shacurrent,
             "sha|s", "Sha of the state to be checked out.",&sha);
 
     if (helpInformation.helpWanted)
@@ -45,8 +43,7 @@ void main(string []args)
             measure();
             break;
         case Mode.compare:
-            writeln([shaprev, shacurrent]);
-            compare(shaprev, shacurrent);
+            compare(sha);
             break;
     }
 }

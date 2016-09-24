@@ -12,9 +12,15 @@ import std.conv;
 
 import performance.common;
 
-ulong[string] loadProfileData(string sha)
+ulong[string] loadProfileData(string sha = "")
 {
-    string fpath = chainPath(getCachePath(), sha, "tests/performance-tests/profile.csv").array.to!string;
+    string fpath;
+    
+    if (sha.empty)
+        fpath = chainPath(exeDir, "profile.csv").array.to!string;
+    else
+        fpath = chainPath(getCachePath(), sha, "tests/performance-tests/profile.csv").array.to!string;
+
     enforce(fpath.exists, "SHA profile data does not exists at path " ~ fpath);
 
     ulong[string] data;
@@ -42,20 +48,20 @@ ulong[string] loadProfileData(string sha)
     return data;
 }
 
-void compare(string sha1, string sha2)
+void compare(string sha)
 {
-    auto sha1Data = loadProfileData(sha1);
-    auto sha2Data = loadProfileData(sha2);
+    auto prevData = loadProfileData(sha);
+    auto thisData = loadProfileData();
 
     auto file = File(chainPath(exeDir, "benchmark.csv"), "w");
-    foreach(s1; sha1Data.byKeyValue)
+    foreach(p; prevData.byKeyValue)
     {
-        auto key = s1.key;
-        auto prevValue = float(s1.value);
+        auto key = p.key;
+        auto prevValue = float(p.value);
 
-        if (key in sha2Data)
+        if (key in thisData)
         {
-            auto nextValue = float(sha2Data[key]);
+            auto nextValue = float(thisData[key]);
             float ratio = (prevValue / nextValue) * 100.0f;
             file.writefln("%s,%f,%f,%#.3f%s", key, prevValue, nextValue, ratio, "%");
         }

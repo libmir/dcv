@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-if [ $# -ne 2 ]; then
-	echo "Invalid test setup - name two sha's to compare."
+if [ $# -ne 1 ]; then
+	echo "Invalid test setup - name the sha to which to compare to."
 	exit
 fi
 
@@ -34,27 +34,24 @@ function error
 }
 
 SHA_PREV=$1
-SHA_CURR=$2
 
 SCRIPT=`realpath $0`
 SCRIPTPATH=`dirname $SCRIPT`
 
-chapter_title "Running DCV performance benchmark for states: $SHA_PREV and $SHA_CURR"
+chapter_title "Running DCV performance benchmark against: $SHA_PREV"
 
 BIN=performance-tests
 PREV_LIB=$SCRIPTPATH/.cache/$SHA_PREV/libdcv.a
-CURR_LIB=$SCRIPTPATH/.cache/$SHA_CURR/libdcv.a
 PREV_BIN=$SCRIPTPATH/.cache/$SHA_PREV/tests/performance-tests/performance-tests
-CURR_BIN=$SCRIPTPATH/.cache/$SHA_CURR/tests/performance-tests/performance-tests
 
 PREV_PROFILE_RESULT=$SCRIPTPATH/.cache/$SHA_PREV/profile.csv
-CURR_PROFILE_RESULT=$SCRIPTPATH/.cache/$SHA_CURR/profile.csv
+CURR_PROFILE_RESULT=$SCRIPTPATH/profile.csv
+
 BENCHMARK_RESULT=$SCRIPTPATH/benchmark.csv
 
 # command for running tests
 RUN=./$BIN
-RUN_PREV=./$PREV_BIN
-RUN_CURR=./$CURR_BIN
+RUN_PREV=$PREV_BIN
 
 chapter_title "Project cleanup..."
 dub clean
@@ -75,11 +72,6 @@ $RUN -m checkout -s $SHA_PREV
 check_file_exists $PREV_BIN "Building $SHA_PREV test application failed. Exiting..."
 chmod u+x $PREV_BIN
 
-info "Checking out $SHA_CURR"
-$RUN -m checkout -s $SHA_CURR
-check_file_exists $CURR_BIN "Building $SHA_CURR test application failed. Exiting..."
-chmod u+x $CURR_BIN
-
 chapter_title "Profiling..."
 info "$SHA_PREV"
 $RUN_PREV -m measure
@@ -91,8 +83,8 @@ else
     exit
 fi
 
-info "$SHA_CURR"
-$RUN_CURR -m measure
+info "this"
+$RUN -m measure
 
 if [ -e $CURR_PROFILE_RESULT ]; then
     echo "$SHA_CURR profiling done, results written in $CURR_PROFILE_RESULT"
@@ -102,7 +94,7 @@ else
 fi
 
 chapter_title "Comparing and writing comparison results..."
-$RUN -m compare --shaprev $SHA_PREV --shacurrent $SHA_CURR
+$RUN -m compare --sha $SHA_PREV
 
 # cleanup at the end
 chapter_title "Cleanup..."
