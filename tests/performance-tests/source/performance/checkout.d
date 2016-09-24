@@ -27,10 +27,18 @@ auto checkout(string sha)
 
     string cmd;
 
-    cmd ~= "cd " ~ cachePath ~ "\n";
-    cmd ~= "git clone https://github.com/ljubobratovicrelja/dcv " ~ sha ~ "\n";
-    cmd ~= "cd " ~ sha ~ "\n";
-    cmd ~= "git checkout " ~ sha ~ "\n";
+    if (!(cachePath ~ "/" ~ sha).exists)
+    {
+        cmd ~= "cd " ~ cachePath ~ "\n";
+        cmd ~= "git clone https://github.com/ljubobratovicrelja/dcv " ~ sha ~ "\n";
+        cmd ~= "cd " ~ sha ~ "\n";
+        cmd ~= "git checkout " ~ sha ~ "\n";
+    }
+    else
+    {
+        cmd ~= "cd " ~ cachePath ~ "/" ~ sha ~ "\n";
+    }
+
     cmd ~= "dub build --compiler=ldc2 --build=release\n";
     cmd ~= "cd tests/performance-tests\n";
     cmd ~= "dub build --compiler=ldc2 --build=release\n";

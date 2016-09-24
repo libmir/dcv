@@ -4,16 +4,18 @@ import std.stdio;
 import std.range;
 import std.algorithm;
 import std.datetime;
-import std.string;;
+import std.string;
 import std.traits;
 import std.typecons;
+
 import core.time;
+import core.thread;
 
 import performance.common;
 
 import dcv;
 
-immutable imsize = 128;
+immutable imsize = 256;
 immutable iterations = 1_000;
 
 alias BenchmarkFunction = Duration function();
@@ -22,20 +24,14 @@ BenchmarkFunction[string] funcs;
 
 void measure()
 {
-    writeln("\n=========================================");
-    write("Registering benchmarks...");
-    stdout.flush();
     registerBenchmarks();
-    writeln("done");
-
-    writeln("\n=========================================");
-    writeln("Running benchmarks...\n");
+    Thread.getThis.sleep(dur!"msecs"(1000));
     runBenchmarks(exeDir ~ "/profile.csv");
 }
 
 void registerBenchmark(alias fun)()
 {
-    funcs[fullyQualifiedName!fun.replace("performance.measure.", "").replace("run_", "")] = &fun;
+    funcs[fullyQualifiedName!fun.replace("performance.measure.", "").replace("run_", "").replace("_", ".")] = &fun;
 }
 
 void registerBenchmarks()
@@ -82,7 +78,9 @@ auto evalBenchmark(Fn, Args...)(Fn fn, Args args)
     return dur / iterations;
 }
 
-auto run_rgb2gray()
+// Profiling functions ------------------------------------------------------------------
+
+auto run_dcv_imgproc_color_rgb2gray()
 {
     auto rgb = slice!ubyte(imsize, imsize, 3);
     auto grey = slice!ubyte(imsize, imsize);
@@ -90,11 +88,12 @@ auto run_rgb2gray()
     return evalBenchmark(&rgb2gray!ubyte, rgb, grey, Rgb2GrayConvertion.LUMINANCE_PRESERVE);
 }
 
-auto run_rgb2hsv()
+auto run_dcv_imgproc_color_rgb2hsv()
 {
     auto rgb = slice!ubyte(imsize, imsize, 3);
     auto hsv = slice!float(imsize, imsize, 3);
 
     return evalBenchmark(&rgb2hsv!(float, ubyte), rgb, hsv);
 }
+
 

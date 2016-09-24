@@ -51,19 +51,20 @@ ulong[string] loadProfileData(string sha = "")
 void compare(string sha)
 {
     auto prevData = loadProfileData(sha);
-    auto thisData = loadProfileData();
+    auto currentData = loadProfileData();
 
     auto file = File(chainPath(exeDir, "benchmark.csv"), "w");
+    file.writeln("Function Name,Previous Runtime[usecs],Current Runtime[usecs],Speedup[percent]");
     foreach(p; prevData.byKeyValue)
     {
         auto key = p.key;
-        auto prevValue = float(p.value);
+        auto prevTime = p.value;
 
-        if (key in thisData)
+        if (key in currentData)
         {
-            auto nextValue = float(thisData[key]);
-            float ratio = (prevValue / nextValue) * 100.0f;
-            file.writefln("%s,%f,%f,%#.3f%s", key, prevValue, nextValue, ratio, "%");
+            auto currentTime = currentData[key];
+            long speedup = cast(long)((float(prevTime) / float(currentTime) - 1.0f) * 100.0f);
+            file.writefln("%s,%d,%d,%d", key, prevTime, currentTime, speedup, "%");
         }
         else
         {
