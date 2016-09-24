@@ -1,0 +1,13 @@
+{
+    "name": "performance-tests",
+    "description": "Performance test for DCV.",
+    "targetType": "executable",
+    "sourcePaths": ["source"],
+    "dependencies": 
+    {
+        "dcv":
+        {
+            "path": "../../"
+        }
+    }
+}
