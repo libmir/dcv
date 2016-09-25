@@ -16,6 +16,11 @@ auto getCachePath()
     return chainPath(exeDir, ".cache").array.to!string;
 }
 
+auto getExampleDataPath()
+{
+    return chainPath(exeDir, "../../examples/data").array.buildNormalizedPath;
+}
+
 auto initCachePath()
 {
     auto cachePath = getCachePath();
