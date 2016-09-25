@@ -19,9 +19,13 @@ void main(string []args)
 
     Mode mode;
     string sha, shaprev, shacurrent;
+    string test;
+    size_t iterations = 1_000;
 
     auto helpInformation = getopt(args, 
             "mode|m", "Mode of the program.", &mode,
+            "test|t", "Name of the test to run. If not given, all tests are run.", &test,
+            "iterations|i", "Number of test running iterations. Default is 1000", &iterations,
             "sha|s", "Sha of the state to be checked out.",&sha);
 
     if (helpInformation.helpWanted)
@@ -40,7 +44,7 @@ void main(string []args)
             checkout(sha);
             break;
         case Mode.measure:
-            measure();
+            measure(test, iterations);
             break;
         case Mode.compare:
             compare(sha);
