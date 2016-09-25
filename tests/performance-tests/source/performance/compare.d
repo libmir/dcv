@@ -55,10 +55,12 @@ void compare(string sha)
 
     auto file = File(chainPath(exeDir, "benchmark.csv"), "w");
     file.writeln("Function Name,Previous Runtime[μs],Current Runtime[μs],Speedup[%]");
-    foreach(p; prevData.byKeyValue)
+
+    auto keys = sort(prevData.keys);
+
+    foreach(key; keys)
     {
-        auto key = p.key;
-        auto prevTime = p.value;
+        auto prevTime = prevData[key];
 
         if (key in currentData)
         {
