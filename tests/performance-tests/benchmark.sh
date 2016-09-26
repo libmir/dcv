@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 
-if [ $# -ne 1 ]; then
-	echo "Invalid test setup - name the sha to which to compare to."
-	exit
+if [ $# -lt 1 ]; then
+    SHA_PREV=master
+    ARGS=""
+else
+    SHA_PREV=$1
+    ARGS=${@:2}
 fi
 
 GREEN='\033[0;32m'
@@ -32,8 +35,6 @@ function error
 {
 	echo -e "$RED$1$NC"
 }
-
-SHA_PREV=$1
 
 SCRIPT=`realpath $0`
 SCRIPTPATH=`dirname $SCRIPT`
@@ -73,7 +74,7 @@ chmod u+x $PREV_BIN
 
 chapter_title "Profiling..."
 info "$SHA_PREV:"
-$RUN_PREV -m measure
+$RUN_PREV -m measure $ARGS
 
 if [ -e $PREV_PROFILE_RESULT ]; then
     echo "$SHA_PREV profiling done, results written in $PREV_PROFILE_RESULT"
@@ -83,7 +84,7 @@ else
 fi
 
 info "\nthis:"
-$RUN -m measure
+$RUN -m measure $ARGS
 
 if [ -e $CURR_PROFILE_RESULT ]; then
     echo "$SHA_CURR profiling done, results written in $CURR_PROFILE_RESULT"
@@ -93,7 +94,7 @@ else
 fi
 
 chapter_title "Comparing and writing comparison results..."
-$RUN -m compare --sha $SHA_PREV
+$RUN -m compare --sha $SHA_PREV $ARGS
 
 if [ -e $BENCHMARK_RESULT ]; then
     echo "Comparison done, results written in $BENCHMARK_RESULT"
