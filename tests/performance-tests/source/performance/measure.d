@@ -14,12 +14,17 @@ import core.thread;
 
 import performance.common;
 
-import dcv;
+import dcv.core;
+import dcv.imgproc;
+import dcv.features;
+import dcv.multiview;
+import dcv.tracking;
+import dcv.io;
 
 immutable imsize = 128;
 size_t iterations = 1_000;
 
-alias BenchmarkFunction = Duration function();
+alias BenchmarkFunction = long function();
 
 BenchmarkFunction[string] funcs;
 
@@ -64,23 +69,22 @@ void runBenchmarks(string outputPath)
         std.stdio.write(name, ":");
         stdout.flush();
         auto res = fn();
-        std.stdio.writeln(res.total!"usecs");
+        std.stdio.writeln(res.usecs);
 
-        output ~= format("%s,%d\n", name, res.total!"usecs");
+        output ~= format("%s,%d\n", name, res);
     }
     write(outputPath, output);
 }
 
 auto evalBenchmark(Fn, Args...)(Fn fn, Args args)
 {
-    Duration dur;
+    StopWatch s;
+    s.start;
     foreach (i; iota(iterations))
     {
-        auto t = Clock.currTime();
         fn(args);
-        dur += Clock.currTime - t;
     }
-    return dur / iterations;
+    return s.peek.usecs;
 }
 
 // Profiling functions ------------------------------------------------------------------
