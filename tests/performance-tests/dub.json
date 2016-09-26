@@ -5,9 +5,7 @@
     "sourcePaths": ["source"],
     "dependencies": 
     {
-        "dcv":
-        {
-            "path": "../../"
-        }
+        "dcv:core": {"path": "../../"},
+        "dcv:io": {"path": "../../"}
     }
 }
