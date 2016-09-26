@@ -1,0 +1,7 @@
+dub.selections.json
+dub.userprefs
+.dub/
+performance-tests
+.cache/
+benchmark.csv
+profile.csv
