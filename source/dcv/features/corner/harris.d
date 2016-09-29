@@ -9,7 +9,10 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 */
 module dcv.features.corner.harris;
 
+import std.parallelism : parallel, taskPool, TaskPool;
+
 import mir.ndslice;
+import mir.ndslice.algorithm : ndEach, Yes;
 
 import dcv.core.utils : emptySlice;
 import dcv.imgproc.filter : calcPartialDerivatives;
@@ -31,12 +34,23 @@ Returns:
  */
 Slice!(2, OutputType*) harrisCorners(InputType, OutputType = InputType)(Slice!(2,
         InputType*) image, in uint winSize = 3, in float k = 0.64f, in float gauss = 0.84f, Slice!(2,
-        OutputType*) prealloc = emptySlice!(2, OutputType))
+        OutputType*) prealloc = emptySlice!(2, OutputType), TaskPool pool = taskPool)
+in
 {
-
-    HarrisDetector det;
-    det.k = k;
-    return calcCorners(image, winSize, gauss, prealloc, det);
+    assert(!image.empty, "Empty image given.");
+    assert(winSize % 2 != 0, "Kernel window size has to be odd.");
+    assert(gauss > 0.0, "Gaussian sigma value has to be greater than 0.");
+    assert(k > 0.0, "K value has to be greater than 0.");
+}
+body
+{
+    if (prealloc.shape != image.shape)
+    {
+        prealloc = uninitializedSlice!OutputType(image.shape);
+    }
+    HarrisDetector detector;
+    detector.k = k;
+    return calcCorners(image, winSize, gauss, prealloc, detector, pool);
 }
 
 /**
@@ -55,10 +69,22 @@ Returns:
  */
 Slice!(2, OutputType*) shiTomasiCorners(InputType, OutputType = InputType)(Slice!(2,
         InputType*) image, in uint winSize = 3, in float gauss = 0.84f, Slice!(2,
-        OutputType*) prealloc = emptySlice!(2, OutputType))
+        OutputType*) prealloc = emptySlice!(2, OutputType), TaskPool pool = taskPool)
+in
 {
-    ShiTomasiDetector det;
-    return calcCorners(image, winSize, gauss, prealloc, det);
+    assert(!image.empty, "Empty image given.");
+    assert(winSize % 2 != 0, "Kernel window size has to be odd.");
+    assert(gauss > 0.0, "Gaussian sigma value has to be greater than 0.");
+}
+body
+{
+    if (prealloc.shape != image.shape)
+    {
+        prealloc = uninitializedSlice!OutputType(image.shape);
+    }
+
+    ShiTomasiDetector detector;
+    return calcCorners(image, winSize, gauss, prealloc, detector, pool);
 }
 
 unittest
@@ -115,7 +141,7 @@ struct HarrisDetector
 {
     float k;
 
-    float opCall(float r1, float r2, float r3)
+    @nogc nothrow float opCall(float r1, float r2, float r3)
     {
         return (((r1 * r1) - (r2 * r3)) - k * ((r1 + r3) * r1 + r3));
     }
@@ -123,7 +149,7 @@ struct HarrisDetector
 
 struct ShiTomasiDetector
 {
-    float opCall(float r1, float r2, float r3)
+    @nogc nothrow float opCall(float r1, float r2, float r3)
     {
         import std.math : sqrt;
 
@@ -132,64 +158,37 @@ struct ShiTomasiDetector
 }
 
 Slice!(2, OutputType*) calcCorners(Detector, InputType, OutputType)(Slice!(2, InputType*) image,
-        uint winSize, float gaussSigma, Slice!(2, OutputType*) prealloc, Detector detector)
+        uint winSize, float gaussSigma, Slice!(2, OutputType*) prealloc, Detector detector, TaskPool pool)
 {
-
-    import std.math : exp, PI;
-    import std.array : uninitializedArray;
-    import std.range : iota;
-    import std.algorithm.iteration : reduce, each;
-    import std.algorithm.comparison : equal;
-
-    assert(!image.empty);
-
-    if (!prealloc.shape[].equal(image.shape[]))
-    {
-        prealloc = uninitializedArray!(OutputType[])(image.shape[].reduce!"a*b").sliced(image.shape);
-    }
-    prealloc[] = cast(OutputType)0;
-
-    auto rows = image.length!0;
-    auto cols = image.length!1;
+    // TODO: implement gaussian weighting!
 
     Slice!(2, InputType*) fx, fy;
     calcPartialDerivatives(image, fx, fy);
 
-    auto winSqr = winSize ^^ 2;
-    auto winHalf = winSize / 2;
+    auto windowPack = assumeSameStructure!("corners", "fx", "fy")(prealloc, fx, fy).windows(winSize, winSize);
 
-    float R; // Score value
-    float w, gx, gy, r1, r2, r3;
-    float gaussMul = 1.0f / (2.0f * PI * gaussSigma);
-    float gaussDel = 2.0f * (gaussSigma ^^ 2);
-
-    foreach (i; winHalf.iota(rows - winHalf))
+    foreach (windowRow; pool.parallel(windowPack))
     {
-        foreach (j; winHalf.iota(cols - winHalf))
-        {
-            r1 = 0.;
-            r2 = 0.;
-            r3 = 0.;
-            for (int cr = cast(int)(i - winHalf); cr < i + winHalf; cr++)
-            {
-                for (int cc = cast(int)(j - winHalf); cc < j + winHalf; cc++)
-                {
-                    w = 1.0f; //gaussMul * exp(-((cast(float)cr - i)^^2 + (cast(float)cc - j)^^2) / gaussDel);
-
-                    gx = fx[cr, cc];
-                    gy = fy[cr, cc];
-                    r1 += w * (gx * gx);
-                    r2 += w * (gx * gy);
-                    r3 += w * (gy * gy);
-                }
-            }
-            r1 = (r1 / winSqr) * 0.5;
-            r2 /= winSqr;
-            r3 = (r3 / winSqr) * 0.5;
-            R = detector(r1, r2, r3);
-            if (R > 0)
-                prealloc[i, j] = cast(OutputType)R;
-        }
+        windowRow.ndEach!(win => calcCornersImpl(win, detector));
     }
+
     return prealloc;
+}
+
+@nogc nothrow
+void calcCornersImpl(Window, Detector)(ref Window window, ref Detector detector)
+{
+    float r1 = 0.0f, r2 = 0.0f, r3 = 0.0f;
+    float winSqr = float(window.length!0);
+    winSqr *= winSqr;
+
+    window.ndEach!((pack) { auto gx = pack.fx; auto gy = pack.fy; r1 += gx * gx; r2 += gx * gy; r3 += gy * gy;  });
+
+    r1 = (r1 / winSqr) * 0.5;
+    r2 /= winSqr;
+    r3 = (r3 / winSqr) * 0.5;
+
+    auto r = detector(r1, r2, r3);
+    if (r > 0)
+        window[$ / 2, $ / 2].corners = r;
 }

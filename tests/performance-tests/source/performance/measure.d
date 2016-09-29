@@ -93,28 +93,28 @@ auto run_dcv_features_corner_harris_harrisCorners_3()
 {
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&harrisCorners!(float, float), image, 3, 0.64, 0.84, result);
+    return evalBenchmark(&harrisCorners!(float, float), image, 3, 0.64, 0.84, result, taskPool);
 }
 
 auto run_dcv_features_corner_harris_harrisCorners_5()
 {
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&harrisCorners!(float, float), image, 5, 0.64, 0.84, result);
+    return evalBenchmark(&harrisCorners!(float, float), image, 5, 0.64, 0.84, result, taskPool);
 }
 
 auto run_dcv_features_corner_harris_shiTomasiCorners_3()
 {
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&shiTomasiCorners!(float, float), image, 3, 0.84, result);
+    return evalBenchmark(&shiTomasiCorners!(float, float), image, 3, 0.84, result, taskPool);
 }
 
 auto run_dcv_features_corner_harris_shiTomasiCorners_5()
 {
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&shiTomasiCorners!(float, float), image, 5, 0.84, result);
+    return evalBenchmark(&shiTomasiCorners!(float, float), image, 5, 0.84, result, taskPool);
 }
 
 auto run_dcv_features_corner_fast_FASTDetector()
