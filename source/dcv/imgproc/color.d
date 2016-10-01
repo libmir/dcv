@@ -45,6 +45,8 @@ import std.range : zip, array, iota;
 import std.exception : enforce;
 import std.range : lockstep;
 
+import ldc.attributes : fastmath;
+
 import mir.ndslice;
 
 import dcv.core.utils;
@@ -62,7 +64,6 @@ private immutable rgb2GrayMltp = [
     [0.333333333f, 0.333333333f, 0.333333333f], // MEAN
     [0.212642529f, 0.715143029f, 0.072214443f] // LUMINANCE_PRESERVE
 ];
-
 
 /**
 Convert RGB image to grayscale.
@@ -165,6 +166,10 @@ Returns:
 */
 Slice!(3, V*) gray2rgb(V)(Slice!(2, V*) range, Slice!(3, V*) prealloc = emptySlice!(3, V)) pure nothrow
 {
+    /*
+    TODO: 
+    assumeSameStructure!("gray", "rgb")(range, prealloc.pack!1).ndEach!(...)
+    */
 
     if (prealloc.empty || (range.shape[0 .. 2][]).equal(prealloc.shape[0 .. 2][]) || prealloc.shape[2] != 3)
         prealloc = uninitializedArray!(V[])(range.length!0 * range.length!1 * 3).sliced(range.length!0,
@@ -216,68 +221,20 @@ Params:
 Returns:
     Returns HSV verion of the given RGB image.
 */
-Slice!(3, R*) rgb2hsv(R, V)(Slice!(3, V*) range, Slice!(3, R*) prealloc = emptySlice!(3, R))
+Slice!(3, R*) rgb2hsv(R, V)(Slice!(3, V*) range, Slice!(3, R*) prealloc = emptySlice!(3, R)) pure nothrow
         if (isNumeric!R && isNumeric!V)
+in
 {
-    import std.algorithm.comparison : max, min;
-
     static assert(R.max >= 360, "Invalid output type for HSV (R.max >= 360)");
+    assert(range.length!2 == 3, "Invalid channel count.");
+}
+body
+{
+    if (prealloc.shape != range.shape)
+        prealloc = uninitializedSlice!R(range.shape);
 
-    enforce(range.length!2 == 3, "Invalid channel count.");
+    assumeSameStructure!("rgb", "hsv")(range, prealloc).pack!1.ndEach!((p) { rgb2hsvImpl!(V, R)(p); });
 
-    if (prealloc.empty || prealloc.shape[].equal(range.shape[]))
-    {
-        prealloc = uninitializedArray!(R[])(range.length!0 * range.length!1 * 3).sliced(range.length!0,
-                range.length!1, 3);
-    }
-
-    foreach (rgb, hsv; lockstep(range.pack!1.byElement, prealloc.pack!1.byElement))
-    {
-        static if (is(V == ubyte))
-        {
-            auto r = cast(float)(rgb[0]) / 255.;
-            auto g = cast(float)(rgb[1]) / 255.;
-            auto b = cast(float)(rgb[2]) / 255.;
-        }
-        else static if (is(V == ushort))
-        {
-            auto r = cast(float)(rgb[0]) / 65535.;
-            auto g = cast(float)(rgb[1]) / 65535.;
-            auto b = cast(float)(rgb[2]) / 65535.;
-        }
-        else static if (isFloatingPoint!V)
-        {
-            // assumes rgb value range 0-1
-            auto r = cast(float)(rgb[0]);
-            auto g = cast(float)(rgb[1]);
-            auto b = cast(float)(rgb[2]);
-        }
-        else
-        {
-            static assert(0, "Invalid RGB input type: " ~ V.stringof);
-        }
-
-        auto cmax = max(r, max(g, b));
-        auto cmin = min(r, min(g, b));
-        auto cdelta = cmax - cmin;
-
-        hsv[0] = cast(R)((cdelta == 0) ? 0 : (cmax == r) ? 60.0f * ((g - b) / cdelta) : (cmax == g)
-                ? 60.0f * ((b - r) / cdelta + 2) : 60.0f * ((r - g) / cdelta + 4));
-
-        if (hsv[0] < 0)
-            hsv[0] += 360;
-
-        static if (isFloatingPoint!R)
-        {
-            hsv[1] = cast(R)(cmax == 0 ? 0 : cdelta / cmax);
-            hsv[2] = cast(R)(cmax);
-        }
-        else
-        {
-            hsv[1] = cast(R)(100.0 * (cmax == 0 ? 0 : cdelta / cmax));
-            hsv[2] = cast(R)(100.0 * cmax);
-        }
-    }
     return prealloc;
 }
 
@@ -548,5 +505,59 @@ unittest
     yuv2rgbTest(cast(ubyte[])[41, 240, 110], cast(ubyte[])[0, 0, 255]);
 }
 
+private:
 
+@nogc nothrow @fastmath private void rgb2hsvImpl(V, R, RGBHSV)(RGBHSV pack)
+{
+    import ldc.intrinsics : max = llvm_maxnum, min = llvm_minnum;
+
+    static if (is(V == ubyte))
+    {
+        auto r = cast(float)(pack[0].rgb) / 255.0f;
+        auto g = cast(float)(pack[1].rgb) / 255.0f;
+        auto b = cast(float)(pack[2].rgb) / 255.0f;
+    }
+    else static if (is(V == ushort))
+    {
+        auto r = cast(float)(pack[0].rgb) / 65535.0f;
+        auto g = cast(float)(pack[1].rgb) / 65535.0f;
+        auto b = cast(float)(pack[2].rgb) / 65535.0f;
+    }
+    else static if (isFloatingPoint!V)
+    {
+        // assumes rgb value range 0-1
+        auto r = cast(float)(pack[0].rgb);
+        auto g = cast(float)(pack[1].rgb);
+        auto b = cast(float)(pack[2].rgb);
+    }
+    else
+    {
+        static assert(0, "Invalid RGB input type: " ~ V.stringof);
+    }
+
+    auto cmax = max(r, max(g, b));
+    auto cmin = min(r, min(g, b));
+    auto cdelta = cmax - cmin;
+
+    auto h = cast(R)((cdelta == 0) ? 0 : (cmax == r) ? 60.0f * ((g - b) / cdelta) : (cmax == g)
+            ? 60.0f * ((b - r) / cdelta + 2) : 60.0f * ((r - g) / cdelta + 4));
+
+    if (h < 0)
+        h += 360;
+
+    static if (isFloatingPoint!R)
+    {
+        auto s = cast(R)(cmax == 0 ? 0 : cdelta / cmax);
+        auto v = cast(R)(cmax);
+    }
+    else
+    {
+        auto s = cast(R)(100.0 * (cmax == 0 ? 0 : cdelta / cmax));
+        auto v = cast(R)(100.0 * cmax);
+    }
+
+    pack[0].hsv = h;
+    pack[1].hsv = s;
+    pack[2].hsv = v;
+}
 
