@@ -280,70 +280,21 @@ Params:
     discarded and allocated anew.
 
 Returns:
-    Returns HSV verion of the given RGB image.
+    Returns RGB verion of the given HSV image.
 */
-Slice!(3, R*) hsv2rgb(R, V)(Slice!(3, V*) range, Slice!(3, R*) prealloc = emptySlice!(3, R))
+Slice!(3, R*) hsv2rgb(R, V)(Slice!(3, V*) range, Slice!(3, R*) prealloc = emptySlice!(3, R)) pure nothrow
         if (isNumeric!R && isNumeric!V)
+in
 {
-    import std.math : fabs, abs;
+    assert(range.length!2 == 3, "Invalid channel count.");
+}
+body
+{
+    if (prealloc.shape != range.shape)
+        prealloc = uninitializedSlice!R(range.shape);
 
-    enforce(range.length!2 == 3, "Invalid channel count.");
+    assumeSameStructure!("hsv", "rgb")(range, prealloc).pack!1.ndEach!((p) { hsv2rgbImpl!(V, R)(p); });
 
-    if (prealloc.empty || prealloc.shape[].equal(range.shape[]))
-    {
-        prealloc = uninitializedArray!(R[])(range.length!0 * range.length!1 * 3).sliced(range.length!0,
-                range.length!1, 3);
-    }
-
-    float[3] _rgb;
-    immutable hhswitch = [[0, 1, 2], [1, 0, 2], [2, 0, 1], [2, 1, 0], [1, 2, 0], [0, 2, 1]];
-
-    foreach (hsv, rgb; lockstep(range.pack!1.byElement, prealloc.pack!1.byElement))
-    {
-
-        static if (isFloatingPoint!V)
-        {
-            auto h = hsv[0];
-            auto s = hsv[1];
-            auto v = hsv[2];
-        }
-        else
-        {
-            float h = cast(float)hsv[0];
-            float s = cast(float)hsv[1] / 100.0;
-            float v = cast(float)hsv[2] / 100.0;
-        }
-
-        float c = v * s;
-        float x = c * (1. - fabs((h / 60.) % 2 - 1));
-        float m = v - c;
-
-        int hh = abs(cast(int)(h / 60.) % 6);
-        _rgb = [c, x, 0.];
-
-        static if (isFloatingPoint!R)
-        {
-            rgb[0] = cast(R)((_rgb[hhswitch[hh][0]] + m));
-            rgb[1] = cast(R)((_rgb[hhswitch[hh][1]] + m));
-            rgb[2] = cast(R)((_rgb[hhswitch[hh][2]] + m));
-        }
-        else static if (is(R == ubyte))
-        {
-            rgb[0] = cast(R)((_rgb[hhswitch[hh][0]] + m) * 255.);
-            rgb[1] = cast(R)((_rgb[hhswitch[hh][1]] + m) * 255.);
-            rgb[2] = cast(R)((_rgb[hhswitch[hh][2]] + m) * 255.);
-        }
-        else static if (is(R == ushort))
-        {
-            rgb[0] = cast(R)((_rgb[hhswitch[hh][0]] + m) * 65535.);
-            rgb[1] = cast(R)((_rgb[hhswitch[hh][1]] + m) * 65535.);
-            rgb[2] = cast(R)((_rgb[hhswitch[hh][2]] + m) * 65535.);
-        }
-        else
-        {
-            static assert(0, "Output type is not supported: " ~ R.stringof);
-        }
-    }
     return prealloc;
 }
 
@@ -372,7 +323,7 @@ unittest
     hsv2rgbTest(cast(ushort[])[150, 50, 80], cast(ubyte[])[102, 204, 153]);
 
     hsv2rgbTest(cast(float[])[0.0f, 0.0f, 1.0f], cast(ubyte[])[255, 255, 255]);
-    hsv2rgbTest(cast(float[])[150.0f, 0.5f, 1.0f], cast(ubyte[])[128, 255, 191]);
+    hsv2rgbTest(cast(float[])[150.0f, 0.5f, 1.0f], cast(ubyte[])[127, 255, 191]);
     hsv2rgbTest(cast(float[])[150.0f, 0.5f, 0.8f], cast(ubyte[])[102, 204, 153]);
 
     hsv2rgbTest(cast(ushort[])[0, 0, 100], cast(ushort[])[65535, 65535, 65535]);
@@ -561,3 +512,106 @@ private:
     pack[2].hsv = v;
 }
 
+@nogc nothrow @fastmath private void hsv2rgbImpl(V, R, HSVRGB)(HSVRGB pack)
+{
+    float r, g, b, p, q, t;
+
+    static if (isFloatingPoint!V)
+    {
+        auto h = pack[0].hsv;
+        auto s = pack[1].hsv;
+        auto v = pack[2].hsv;
+    }
+    else
+    {
+        float h = cast(float)pack[0].hsv;
+        float s = cast(float)pack[1].hsv / 100.0f;
+        float v = cast(float)pack[2].hsv / 100.0f;
+    }
+
+    if (s <= 0.0f)
+    {
+        static if (isFloatingPoint!R)
+        {
+            pack[0].rgb = cast(R)v;
+            pack[1].rgb = cast(R)v;
+            pack[2].rgb = cast(R)v;
+        }
+        else
+        {
+            pack[0].rgb = cast(R)(v * R.max);
+            pack[1].rgb = cast(R)(v * R.max);
+            pack[2].rgb = cast(R)(v * R.max);
+        }
+        return;
+    }
+
+    if (v <= 0.0f)
+    {
+        pack[0].rgb = cast(R)0;
+        pack[1].rgb = cast(R)0;
+        pack[2].rgb = cast(R)0;
+        return;
+    }
+
+    if (h >= 360.0f)
+        h = 0.0f;
+    else
+        h /= 60.0;
+
+    auto hh = cast(int)h;
+    auto ff = h - float(hh);
+
+    p = v * (1.0f - s);
+    q = v * (1.0f - (s * ff));
+    t = v * (1.0f - (s * (1.0f - ff)));
+
+    switch (hh)
+    {
+    case 0:
+        r = v;
+        g = t;
+        b = p;
+        break;
+    case 1:
+        r = q;
+        g = v;
+        b = p;
+        break;
+    case 2:
+        r = p;
+        g = v;
+        b = t;
+        break;
+
+    case 3:
+        r = p;
+        g = q;
+        b = v;
+        break;
+    case 4:
+        r = t;
+        g = p;
+        b = v;
+        break;
+    case 5:
+    default:
+        r = v;
+        g = p;
+        b = q;
+        break;
+    }
+
+    static if (isFloatingPoint!R)
+    {
+        pack[0].rgb = cast(R)r;
+        pack[1].rgb = cast(R)g;
+        pack[2].rgb = cast(R)b;
+    }
+    else
+    {
+        pack[0].rgb = cast(R)(r * R.max);
+        pack[1].rgb = cast(R)(g * R.max);
+        pack[2].rgb = cast(R)(b * R.max);
+    }
+}
