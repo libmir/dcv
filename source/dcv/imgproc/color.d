@@ -35,7 +35,6 @@ luv2rgb -||-
 bayer2rgb -||-
 */
 
-import std.array : uninitializedArray;
 import std.traits : CommonType, isFloatingPoint, isAssignable, isNumeric;
 import std.algorithm.iteration : sum, each, reduce, map;
 import std.algorithm.mutation : copy;
@@ -171,9 +170,8 @@ Slice!(3, V*) gray2rgb(V)(Slice!(2, V*) range, Slice!(3, V*) prealloc = emptySli
     assumeSameStructure!("gray", "rgb")(range, prealloc.pack!1).ndEach!(...)
     */
 
-    if (prealloc.empty || (range.shape[0 .. 2][]).equal(prealloc.shape[0 .. 2][]) || prealloc.shape[2] != 3)
-        prealloc = uninitializedArray!(V[])(range.length!0 * range.length!1 * 3).sliced(range.length!0,
-                range.length!1, 3);
+    if (range.shape != prealloc.shape[0 .. 2])
+        prealloc = uninitializedSlice!V(range.length!0, range.length!1, 3);
 
     for (size_t r = 0; r < range.length!0; ++r)
     {
@@ -347,11 +345,8 @@ Slice!(3, V*) rgb2yuv(V)(Slice!(3, V*) range, Slice!(3, V*) prealloc = emptySlic
 
     enforce(range.length!2 == 3, "Invalid channel count.");
 
-    if (prealloc.empty || prealloc.shape[].equal(range.shape[]))
-    {
-        prealloc = uninitializedArray!(V[])(range.length!0 * range.length!1 * 3).sliced(range.length!0,
-                range.length!1, 3);
-    }
+    if (prealloc.shape != range.shape)
+        prealloc = uninitializedSlice!V(range.shape);
 
     foreach (rgb, yuv; lockstep(range.pack!1.byElement, prealloc.pack!1.byElement))
     {
@@ -392,11 +387,8 @@ Slice!(3, V*) yuv2rgb(V)(Slice!(3, V*) range, Slice!(3, V*) prealloc = emptySlic
 
     enforce(range.length!2 == 3, "Invalid channel count.");
 
-    if (prealloc.empty || prealloc.shape[].equal(range.shape[]))
-    {
-        prealloc = uninitializedArray!(V[])(range.length!0 * range.length!1 * 3).sliced(range.length!0,
-                range.length!1, 3);
-    }
+    if (prealloc.shape != range.shape)
+        prealloc = uninitializedSlice!V(range.shape);
 
     foreach (yuv, rgb; lockstep(range.pack!1.byElement, prealloc.pack!1.byElement))
     {
