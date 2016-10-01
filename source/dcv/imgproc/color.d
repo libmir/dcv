@@ -58,6 +58,12 @@ enum Rgb2GrayConvertion
     LUMINANCE_PRESERVE /// Use luminance preservation (0.2126R + 0.715G + 0.0722B). 
 }
 
+private immutable rgb2GrayMltp = [
+    [0.333333333f, 0.333333333f, 0.333333333f], // MEAN
+    [0.212642529f, 0.715143029f, 0.072214443f] // LUMINANCE_PRESERVE
+];
+
+
 /**
 Convert RGB image to grayscale.
 
@@ -76,11 +82,17 @@ Returns:
 Slice!(2, V*) rgb2gray(V)(Slice!(3, V*) range, Slice!(2, V*) prealloc = emptySlice!(2, V),
         Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
 {
+    if (prealloc.shape != range.shape[0 .. 2])
+        prealloc = uninitializedSlice!V(range.shape[0 .. 2]);
 
-    auto m = rgb2GrayMltp[conv].map!(a => cast(real)a).array;
-    m[] /= cast(real)m.sum;
-
-    return rgb2grayImpl(range, prealloc, m);
+    auto m = rgb2GrayMltp[conv];
+    auto gray = range.pack!1.ndMap!(rgb => cast(V)(rgb[0] * m[0] + rgb[1] * m[1] + rgb[2] * m[2]));
+    prealloc[] = gray[];
+    /*
+    TODO: use ndEach once assumeSameStructure is made to allow packed slices.
+    assumeSameStructure!("rgb", "gray")(range.pack!1, prealloc).ndEach!( (p) { ... }):
+    */
+    return prealloc;
 }
 
 unittest
@@ -114,12 +126,14 @@ Returns:
 Slice!(2, V*) bgr2gray(V)(Slice!(3, V*) range, Slice!(2, V*) prealloc = emptySlice!(2, V),
         Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
 {
+    if (prealloc.shape != range.shape[0 .. 2])
+        prealloc = uninitializedSlice!V(range.shape[0 .. 2]);
 
-    auto m = rgb2GrayMltp[conv].map!(a => cast(real)a).array;
-    m[] /= m.sum;
-    m[0].swap(m[2]);
+    auto m = rgb2GrayMltp[conv];
+    auto gray = range.pack!1.ndMap!(rgb => cast(V)(rgb[2] * m[0] + rgb[1] * m[1] + rgb[0] * m[2]));
+    prealloc[] = gray[];
 
-    return rgb2grayImpl(range, prealloc, m);
+    return prealloc;
 }
 
 unittest
@@ -534,44 +548,5 @@ unittest
     yuv2rgbTest(cast(ubyte[])[41, 240, 110], cast(ubyte[])[0, 0, 255]);
 }
 
-private:
 
-immutable real[][] rgb2GrayMltp = [[0.3333, 0.3333, 0.3333], [0.2126, 0.715, 0.0722]];
 
-Slice!(2, V*) rgb2grayImpl(V)(Slice!(3, V*) range, Slice!(2, V*) prealloc, in real[] m) pure nothrow
-{
-    if (prealloc.empty)
-    {
-        if (!(range.shape[0 .. 2][].equal(prealloc.shape[0 .. 2][])))
-            prealloc = uninitializedArray!(V[])(range.shape[0] * range.shape[1]).sliced(range.shape[0], range.shape[1]);
-    }
-
-    auto rp = range.pack!1;
-
-    auto rows = rp.length!0;
-    auto cols = rp.length!1;
-
-    for (size_t i = 0; i < rows; ++i)
-    {
-        auto g_row = prealloc[i, 0 .. cols];
-        auto rgb_row = rp[i, 0 .. cols];
-        size_t j = 0;
-        for (; j < cols; ++j)
-        {
-            auto rgb = rgb_row[j];
-            auto v = rgb[0] * m[0] + rgb[1] * m[1] + rgb[2] * m[2];
-            static if (isFloatingPoint!(typeof(v)) && !isFloatingPoint!V)
-            {
-                import std.math : floor;
-
-                g_row[j] = cast(V)(v + 0.5).floor;
-            }
-            else
-            {
-                g_row[j] = cast(V)v;
-            }
-        }
-    }
-
-    return prealloc;
-}
