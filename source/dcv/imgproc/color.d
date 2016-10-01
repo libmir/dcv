@@ -34,21 +34,18 @@ luv2rgb -||-
 luv2rgb -||-
 bayer2rgb -||-
 */
-
-import std.traits : CommonType, isFloatingPoint, isAssignable, isNumeric;
-import std.algorithm.iteration : sum, each, reduce, map;
-import std.algorithm.mutation : copy;
-import std.algorithm.comparison : equal;
-import std.algorithm : swap;
-import std.range : zip, array, iota;
-import std.exception : enforce;
-import std.range : lockstep;
+import std.traits : isFloatingPoint, isNumeric;
 
 import ldc.attributes : fastmath;
 
 import mir.ndslice;
 
 import dcv.core.utils;
+
+version(unittest)
+{
+    import std.algorithm.comparison : equal;
+}
 
 /**
 RGB to Grayscale convertion strategy.
@@ -340,35 +337,17 @@ YUV images in dcv are organized in the same buffer plane
 where quantity of luma and chroma values are the same (as in
 YUV444 format).
 */
-Slice!(3, V*) rgb2yuv(V)(Slice!(3, V*) range, Slice!(3, V*) prealloc = emptySlice!(3, V))
+Slice!(3, V*) rgb2yuv(V)(Slice!(3, V*) range, Slice!(3, V*) prealloc = emptySlice!(3, V)) pure nothrow
+in
 {
-
-    enforce(range.length!2 == 3, "Invalid channel count.");
-
+    assert(range.length!2 == 3, "Invalid channel count.");
+}
+body
+{
     if (prealloc.shape != range.shape)
         prealloc = uninitializedSlice!V(range.shape);
 
-    foreach (rgb, yuv; lockstep(range.pack!1.byElement, prealloc.pack!1.byElement))
-    {
-        static if (isFloatingPoint!V)
-        {
-            auto r = cast(int)rgb[0];
-            auto g = cast(int)rgb[1];
-            auto b = cast(int)rgb[2];
-            yuv[0] = clip!V((r * .257) + (g * .504) + (b * .098) + 16);
-            yuv[1] = clip!V((r * .439) + (g * .368) + (b * .071) + 128);
-            yuv[2] = clip!V(-(r * .148) - (g * .291) + (b * .439) + 128);
-        }
-        else
-        {
-            auto r = rgb[0];
-            auto g = rgb[1];
-            auto b = rgb[2];
-            yuv[0] = clip!V(((66 * (r) + 129 * (g) + 25 * (b) + 128) >> 8) + 16);
-            yuv[1] = clip!V(((-38 * (r) - 74 * (g) + 112 * (b) + 128) >> 8) + 128);
-            yuv[2] = clip!V(((112 * (r) - 94 * (g) - 18 * (b) + 128) >> 8) + 128);
-        }
-    }
+    assumeSameStructure!("rgb", "yuv")(range, prealloc).pack!1.ndEach!( p => rgb2yuvImpl!V(p));
 
     return prealloc;
 }
@@ -382,32 +361,17 @@ same amount of luma and chroma.
 TODO: 
     Separate input and output type as in rgb2hsv etc.
 */
-Slice!(3, V*) yuv2rgb(V)(Slice!(3, V*) range, Slice!(3, V*) prealloc = emptySlice!(3, V))
+Slice!(3, V*) yuv2rgb(V)(Slice!(3, V*) range, Slice!(3, V*) prealloc = emptySlice!(3, V)) pure nothrow
+in
 {
-
-    enforce(range.length!2 == 3, "Invalid channel count.");
-
+    assert(range.length!2 == 3, "Invalid channel count.");
+}
+body
+{
     if (prealloc.shape != range.shape)
         prealloc = uninitializedSlice!V(range.shape);
 
-    foreach (yuv, rgb; lockstep(range.pack!1.byElement, prealloc.pack!1.byElement))
-    {
-        auto y = cast(int)(yuv[0]) - 16;
-        auto u = cast(int)(yuv[1]) - 128;
-        auto v = cast(int)(yuv[2]) - 128;
-        static if (isFloatingPoint!V)
-        {
-            rgb[0] = clip!V(y + 1.4075 * v);
-            rgb[1] = clip!V(y - 0.3455 * u - (0.7169 * v));
-            rgb[2] = clip!V(y + 1.7790 * u);
-        }
-        else
-        {
-            rgb[0] = clip!V((298 * y + 409 * v + 128) >> 8);
-            rgb[1] = clip!V((298 * y - 100 * u - 208 * v + 128) >> 8);
-            rgb[2] = clip!V((298 * y + 516 * u + 128) >> 8);
-        }
-    }
+    assumeSameStructure!("yuv", "rgb")(range, prealloc).pack!1.ndEach!(p => yuv2rgbImpl!V(p));
 
     return prealloc;
 }
@@ -449,8 +413,9 @@ unittest
 }
 
 private:
+pure @nogc nothrow @fastmath:
 
-@nogc nothrow @fastmath private void rgb2hsvImpl(V, R, RGBHSV)(RGBHSV pack)
+void rgb2hsvImpl(V, R, RGBHSV)(RGBHSV pack)
 {
     import ldc.intrinsics : max = llvm_maxnum, min = llvm_minnum;
 
@@ -504,7 +469,7 @@ private:
     pack[2].hsv = v;
 }
 
-@nogc nothrow @fastmath private void hsv2rgbImpl(V, R, HSVRGB)(HSVRGB pack)
+void hsv2rgbImpl(V, R, HSVRGB)(HSVRGB pack)
 {
     float r, g, b, p, q, t;
 
@@ -607,3 +572,45 @@ private:
         pack[2].rgb = cast(R)(b * R.max);
     }
 }
+
+void rgb2yuvImpl(V, RGBYUV)(RGBYUV pack)
+{
+    static if (isFloatingPoint!V)
+    {
+        auto r = cast(int)pack[0].rgb;
+        auto g = cast(int)pack[1].rgb;
+        auto b = cast(int)pack[2].rgb;
+        pack[0].yuv = clip!V((r * .257) + (g * .504) + (b * .098) + 16);
+        pack[1].yuv = clip!V((r * .439) + (g * .368) + (b * .071) + 128);
+        pack[2].yuv = clip!V(-(r * .148) - (g * .291) + (b * .439) + 128);
+    }
+    else
+    {
+        auto r = pack[0].rgb;
+        auto g = pack[1].rgb;
+        auto b = pack[2].rgb;
+        pack[0].yuv = clip!V(((66 * (r) + 129 * (g) + 25 * (b) + 128) >> 8) + 16);
+        pack[1].yuv = clip!V(((-38 * (r) - 74 * (g) + 112 * (b) + 128) >> 8) + 128);
+        pack[2].yuv = clip!V(((112 * (r) - 94 * (g) - 18 * (b) + 128) >> 8) + 128);
+    }
+}
+
+void yuv2rgbImpl(V, YUVRGB)(YUVRGB pack)
+{
+    auto y = cast(int)(pack[0].yuv) - 16;
+    auto u = cast(int)(pack[1].yuv) - 128;
+    auto v = cast(int)(pack[2].yuv) - 128;
+    static if (isFloatingPoint!V)
+    {
+        pack[0].rgb = clip!V(y + 1.4075 * v);
+        pack[1].rgb = clip!V(y - 0.3455 * u - (0.7169 * v));
+        pack[2].rgb = clip!V(y + 1.7790 * u);
+    }
+    else
+    {
+        pack[0].rgb = clip!V((298 * y + 409 * v + 128) >> 8);
+        pack[1].rgb = clip!V((298 * y - 100 * u - 208 * v + 128) >> 8);
+        pack[2].rgb = clip!V((298 * y + 516 * u + 128) >> 8);
+    }
+}
+
