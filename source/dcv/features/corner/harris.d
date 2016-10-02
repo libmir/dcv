@@ -11,6 +11,8 @@ module dcv.features.corner.harris;
 
 import std.parallelism : parallel, taskPool, TaskPool;
 
+import ldc.attributes : fastmath;
+
 import mir.ndslice;
 import mir.ndslice.algorithm : ndEach, Yes;
 
@@ -135,13 +137,40 @@ unittest
     }
 }
 
+@nogc nothrow @fastmath
+{
+    void calcCornersImpl(Window, Detector)(Window window, Detector detector)
+    {
+        float[3] r = [0.0f, 0.0f, 0.0f];
+        float winSqr = float(window.length!0);
+        winSqr *= winSqr;
+
+        r = ndReduce!sumResponse(r, window);
+
+        r[0] = (r[0] / winSqr) * 0.5f;
+        r[1] /= winSqr;
+        r[2] = (r[2] / winSqr) * 0.5f;
+
+        auto rv = detector(r[0], r[1], r[2]);
+        if (rv > 0)
+            window[$ / 2, $ / 2].corners = rv;
+    }
+
+    float[3] sumResponse(Pack)(float[3] r, Pack pack)
+    {
+        auto gx = pack.fx;
+        auto gy = pack.fy;
+        return [r[0] + gx * gx, r[1] + gx * gy, r[2] + gy * gy];
+    }
+}
+
 private:
 
 struct HarrisDetector
 {
     float k;
 
-    @nogc nothrow float opCall(float r1, float r2, float r3)
+    @fastmath @nogc nothrow float opCall(float r1, float r2, float r3)
     {
         return (((r1 * r1) - (r2 * r3)) - k * ((r1 + r3) * r1 + r3));
     }
@@ -149,7 +178,7 @@ struct HarrisDetector
 
 struct ShiTomasiDetector
 {
-    @nogc nothrow float opCall(float r1, float r2, float r3)
+    @fastmath @nogc nothrow float opCall(float r1, float r2, float r3)
     {
         import std.math : sqrt;
 
@@ -173,22 +202,4 @@ Slice!(2, OutputType*) calcCorners(Detector, InputType, OutputType)(Slice!(2, In
     }
 
     return prealloc;
-}
-
-@nogc nothrow
-void calcCornersImpl(Window, Detector)(ref Window window, ref Detector detector)
-{
-    float r1 = 0.0f, r2 = 0.0f, r3 = 0.0f;
-    float winSqr = float(window.length!0);
-    winSqr *= winSqr;
-
-    window.ndEach!((pack) { auto gx = pack.fx; auto gy = pack.fy; r1 += gx * gx; r2 += gx * gy; r3 += gy * gy;  });
-
-    r1 = (r1 / winSqr) * 0.5;
-    r2 /= winSqr;
-    r3 = (r3 / winSqr) * 0.5;
-
-    auto r = detector(r1, r2, r3);
-    if (r > 0)
-        window[$ / 2, $ / 2].corners = r;
 }
