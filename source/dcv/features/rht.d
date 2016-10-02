@@ -111,12 +111,19 @@ mixin template BaseRht()
         import std.array : appender;
 
         auto points = appender!(Point[])();
-        assumeSameStructure!("index", "value")(indexSlice(image.length!0, image.length!1), image).ndEach!((p) {
-            if (p.value > 0)
+        int x, y = 0;
+
+        foreach(row; image)
+        {
+            x = 0;
+            foreach(e; row)
             {
-                points.put(Point(cast(int)p.index[1], cast(int)p.index[0]));
+                if (e > 0)
+                    points.put(Point(x, y));
+                ++x;
             }
-        });
+            ++y;
+        }
         return this.opCall(image, points.data);
     }
 
