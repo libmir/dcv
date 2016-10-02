@@ -23,6 +23,29 @@ static Slice!(N, V*) emptySlice(size_t N, V)() pure @safe nothrow
     return Slice!(N, V*)();
 }
 
+package(dcv) @nogc pure nothrow
+{
+    /**
+       Pack and unpack (N, T*) slices to (N-1, T[M]*).
+    */
+    auto staticPack(size_t CH, size_t N, T)(Slice!(N, T*) slice)
+    {
+        ulong[N-1] shape = slice.shape[0 .. N-1];
+        long[N-1] strides = [slice.structure.strides[0] / CH, slice.structure.strides[1] / CH];
+        T[CH]* ptr = cast(T[CH]*)slice.ptr;
+        return Slice!(N-1, T[CH]*)(shape, strides, ptr);
+    }
+
+    /// ditto
+    auto staticUnpack(size_t CH, size_t N, T)(Slice!(N, T[CH]*) slice)
+    {
+        ulong[N+1] shape = [slice.shape[0], slice.shape[1], CH];
+        long[N+1] strides = [slice.structure.strides[0] * CH, slice.structure.strides[1] * CH, 1];
+        T* ptr = cast(T*)slice.ptr;
+        return Slice!(N+1, T*)(shape, strides, ptr);
+    }
+}
+
 /**
 Take another typed Slice. Type conversion for the Slice object.
 
