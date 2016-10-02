@@ -36,7 +36,7 @@ Returns:
     Return a slice with newly allocated data of type O, with same
     shape as input slice.
 */
-deprecated static Slice!(N, O*) asType(O, V, size_t N)(Slice!(N, V*) inslice)
+deprecated("Use mir.ndslice.slice.as instead: e.g. mySlice.as!T.slice") static Slice!(N, O*) asType(O, V, size_t N)(Slice!(N, V*) inslice)
 {
     static if (__traits(compiles, cast(O)V.init))
     {
