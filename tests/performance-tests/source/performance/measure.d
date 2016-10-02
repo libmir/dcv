@@ -188,8 +188,10 @@ auto run_dcv_imgproc_color_rgb2hsv()
 
 auto run_dcv_imgproc_color_hsv2rgb()
 {
+    import std.random;
     auto rgb = slice!ubyte(imsize, imsize, 3);
     auto hsv = slice!float(imsize, imsize, 3);
+    hsv.ndEach!(v => v = cast(float)uniform01);
     return evalBenchmark(&hsv2rgb!(ubyte, float), hsv, rgb);
 }
 
