@@ -28,7 +28,7 @@ void main()
 
     // prepare working sliced
     auto imslice = image.sliced!ubyte;
-    auto imfslice = imslice.asType!float;
+    auto imfslice = imslice.as!float.slice;
     auto gray = imfslice.rgb2gray;
 
     // make copies to draw corners 
@@ -61,7 +61,9 @@ void visualizeCornerResponse(Slice!(2, float*) response, string windowName)
 {
     response 
         // scale values in the response matrix for easier visualization.
-        .ranged(0., 255.).asType!ubyte
+        .ranged(0., 255.)
+        .as!ubyte
+        .slice
         // Show the window
         .imshow(windowName) 
         .image

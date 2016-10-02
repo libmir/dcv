@@ -103,9 +103,9 @@ int main(string[] args)
     writeln("RHT circles took ", s.peek.msecs, "ms");
 
     // write resulting images on the filesystem.
-    blur.asType!ubyte.imwrite(ImageFormat.IF_RGB, "./result/outblur.png");
-    canny.asType!ubyte.imwrite(ImageFormat.IF_MONO, "./result/canny.png");
-    imslice.asType!ubyte.imwrite(ImageFormat.IF_RGB, "./result/rht.png");
+    blur.as!ubyte.slice.imwrite(ImageFormat.IF_RGB, "./result/outblur.png");
+    canny.as!ubyte.slice.imwrite(ImageFormat.IF_MONO, "./result/canny.png");
+    imslice.as!ubyte.slice.imwrite(ImageFormat.IF_RGB, "./result/rht.png");
 
     return 0;
 }

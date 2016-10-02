@@ -56,7 +56,7 @@ void main()
     writeln();
 
     // resize image:
-    auto image = [255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255].sliced(2, 2, 3).asType!ubyte;
+    auto image = [255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255].sliced(2, 2, 3).as!ubyte.slice;
     auto resizedImage = image.resize([300, 300]);
     resizedImage.imwrite(ImageFormat.IF_RGB, "./result/resizedImage.png");
 
