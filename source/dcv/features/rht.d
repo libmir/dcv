@@ -108,16 +108,16 @@ mixin template BaseRht()
     /// Run RHT using non-zero points in image as edge points.
     auto opCall(T)(Slice!(2, T*) image)
     {
-        Point[] points;
-        foreach (y; 0 .. image.length!0)
-            foreach (x; 0 .. image.length!1)
+        import std.array : appender;
+
+        auto points = appender!(Point[])();
+        assumeSameStructure!("index", "value")(indexSlice(image.length!0, image.length!1), image).ndEach!((p) {
+            if (p.value > 0)
             {
-                if (image[y, x] > 0)
-                {
-                    points ~= Point(cast(int)x, cast(int)y);
-                }
+                points.put(Point(cast(int)p.index[1], cast(int)p.index[0]));
             }
-        return this.opCall(image, points);
+        });
+        return this.opCall(image, points.data);
     }
 
     /// Run RHT using prepopullated array of edge points (that may be filtered beforehand).
