@@ -56,11 +56,6 @@ enum Rgb2GrayConvertion
     LUMINANCE_PRESERVE /// Use luminance preservation (0.2126R + 0.715G + 0.0722B). 
 }
 
-private immutable rgb2GrayMltp = [
-    [0.333333333f, 0.333333333f, 0.333333333f], // MEAN
-    [0.212642529f, 0.715143029f, 0.072214443f] // LUMINANCE_PRESERVE
-];
-
 /**
 Convert RGB image to grayscale.
 
@@ -79,17 +74,7 @@ Returns:
 Slice!(2, V*) rgb2gray(V)(Slice!(3, V*) range, Slice!(2, V*) prealloc = emptySlice!(2, V),
         Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
 {
-    if (prealloc.shape != range.shape[0 .. 2])
-        prealloc = uninitializedSlice!V(range.shape[0 .. 2]);
-
-    auto m = rgb2GrayMltp[conv];
-    auto gray = range.pack!1.ndMap!(rgb => cast(V)(rgb[0] * m[0] + rgb[1] * m[1] + rgb[2] * m[2]));
-    prealloc[] = gray[];
-    /*
-    TODO: use ndEach once assumeSameStructure is made to allow packed slices.
-    assumeSameStructure!("rgb", "gray")(range.pack!1, prealloc).ndEach!( (p) { ... }):
-    */
-    return prealloc;
+    return rgbbgr2gray!(false, V)(range, prealloc, conv);
 }
 
 unittest
@@ -123,14 +108,7 @@ Returns:
 Slice!(2, V*) bgr2gray(V)(Slice!(3, V*) range, Slice!(2, V*) prealloc = emptySlice!(2, V),
         Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
 {
-    if (prealloc.shape != range.shape[0 .. 2])
-        prealloc = uninitializedSlice!V(range.shape[0 .. 2]);
-
-    auto m = rgb2GrayMltp[conv];
-    auto gray = range.pack!1.ndMap!(rgb => cast(V)(rgb[2] * m[0] + rgb[1] * m[1] + rgb[0] * m[2]));
-    prealloc[] = gray[];
-
-    return prealloc;
+    return rgbbgr2gray!(true, V)(range, prealloc, conv);
 }
 
 unittest
@@ -144,6 +122,27 @@ unittest
     assert(equal!approxEqual(gray.byElement, [0, 1, 2, 3]));
 }
 
+private Slice!(2, V*) rgbbgr2gray(bool isBGR, V)(Slice!(3, V*) range, Slice!(2, V*) prealloc = emptySlice!(2, V),
+        Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
+{
+    if (prealloc.shape != range.shape[0 .. 2])
+        prealloc = uninitializedSlice!V(range.shape[0 .. 2]);
+
+    auto rgb = staticPack!3(range);
+
+    auto pack = assumeSameStructure!("rgb", "gray")(rgb, prealloc);
+    alias PT = DeepElementType!(typeof(pack));
+
+    if (conv == Rgb2GrayConvertion.MEAN)
+        pack.ndEach!(rgb2grayImplMean!PT);
+    else
+        static if (isBGR)
+            pack.ndEach!(bgr2grayImplLuminance!(PT));
+        else
+            pack.ndEach!(rgb2grayImplLuminance!(PT));
+
+    return prealloc;
+}
 /**
 Convert gray image to RGB.
 
@@ -162,26 +161,22 @@ Returns:
 */
 Slice!(3, V*) gray2rgb(V)(Slice!(2, V*) range, Slice!(3, V*) prealloc = emptySlice!(3, V)) pure nothrow
 {
-    /*
-    TODO: 
-    assumeSameStructure!("gray", "rgb")(range, prealloc.pack!1).ndEach!(...)
-    */
-
+    Slice!(2, V[3]*) rgb;
     if (range.shape != prealloc.shape[0 .. 2])
-        prealloc = uninitializedSlice!V(range.length!0, range.length!1, 3);
-
-    for (size_t r = 0; r < range.length!0; ++r)
     {
-        for (size_t c = 0; c < range.length!1; ++c)
-        {
-            immutable v = range[r, c];
-            prealloc[r, c, 0] = v;
-            prealloc[r, c, 1] = v;
-            prealloc[r, c, 2] = v;
-        }
+        rgb = uninitializedSlice!(V[3])(range.length!0, range.length!1);
+    }
+    else
+    {
+        rgb = staticPack!3(prealloc);
     }
 
-    return prealloc;
+    auto pack = assumeSameStructure!("gray", "rgb")(range, rgb);
+    alias PT = DeepElementType!(typeof(pack));
+
+    pack.ndEach!(gray2rgbImpl!PT);
+
+    return staticUnpack!3(rgb);
 }
 
 unittest
@@ -228,7 +223,8 @@ body
     if (prealloc.shape != range.shape)
         prealloc = uninitializedSlice!R(range.shape);
 
-    assumeSameStructure!("rgb", "hsv")(range, prealloc).pack!1.ndEach!((p) { rgb2hsvImpl!(V, R)(p); });
+    auto pack = assumeSameStructure!("rgb", "hsv")(range.staticPack!3, prealloc.staticPack!3);
+    pack.ndEach!(rgb2hsvImpl!(DeepElementType!(typeof(pack))));
 
     return prealloc;
 }
@@ -288,7 +284,8 @@ body
     if (prealloc.shape != range.shape)
         prealloc = uninitializedSlice!R(range.shape);
 
-    assumeSameStructure!("hsv", "rgb")(range, prealloc).pack!1.ndEach!((p) { hsv2rgbImpl!(V, R)(p); });
+    auto pack = assumeSameStructure!("hsv", "rgb")(range.staticPack!3, prealloc.staticPack!3);
+    pack.ndEach!(hsv2rgbImpl!(DeepElementType!(typeof(pack))));
 
     return prealloc;
 }
@@ -412,31 +409,67 @@ unittest
     yuv2rgbTest(cast(ubyte[])[41, 240, 110], cast(ubyte[])[0, 0, 255]);
 }
 
-private:
 pure @nogc nothrow @fastmath:
 
-void rgb2hsvImpl(V, R, RGBHSV)(RGBHSV pack)
+void rgb2grayImplMean(P)(P pack)
+{
+    alias V = typeof(pack.gray);
+    pack.gray = cast(V)((pack.rgb[0] + pack.rgb[1] + pack.rgb[2]) / 3);
+}
+
+void rgb2grayImplLuminance(RGBGRAY)(RGBGRAY pack)
+{
+    alias V = typeof(pack.gray);
+    pack.gray = cast(V)(
+            cast(float)pack.rgb[0] * 0.212642529f +
+            cast(float)pack.rgb[1] * 0.715143029f +
+            cast(float)pack.rgb[2] * 0.072214443f
+            );
+}
+
+void bgr2grayImplLuminance(RGBGRAY)(RGBGRAY pack)
+{
+    alias V = typeof(pack.gray);
+    pack.gray = cast(V)(
+            cast(float)pack.rgb[2] * 0.212642529f +
+            cast(float)pack.rgb[1] * 0.715143029f +
+            cast(float)pack.rgb[0] * 0.072214443f
+            );
+}
+
+void gray2rgbImpl(GRAYRGB)(GRAYRGB pack)
+{
+    auto v = pack.gray;
+    pack.rgb[0] = v;
+    pack.rgb[1] = v;
+    pack.rgb[2] = v;
+}
+
+void rgb2hsvImpl(RGBHSV)(RGBHSV pack)
 {
     import ldc.intrinsics : max = llvm_maxnum, min = llvm_minnum;
 
+    alias V = typeof(pack.rgb[0]);
+    alias R = typeof(pack.hsv[0]);
+
     static if (is(V == ubyte))
     {
-        auto r = cast(float)(pack[0].rgb) / 255.0f;
-        auto g = cast(float)(pack[1].rgb) / 255.0f;
-        auto b = cast(float)(pack[2].rgb) / 255.0f;
+        auto r = cast(float)(pack.rgb[0]) * (1.0f / 255.0f);
+        auto g = cast(float)(pack.rgb[1]) * (1.0f / 255.0f);
+        auto b = cast(float)(pack.rgb[2]) * (1.0f / 255.0f);
     }
     else static if (is(V == ushort))
     {
-        auto r = cast(float)(pack[0].rgb) / 65535.0f;
-        auto g = cast(float)(pack[1].rgb) / 65535.0f;
-        auto b = cast(float)(pack[2].rgb) / 65535.0f;
+        auto r = cast(float)(pack.rgb[0]) * (1.0f / 65535.0f);
+        auto g = cast(float)(pack.rgb[1]) * (1.0f / 65535.0f);
+        auto b = cast(float)(pack.rgb[2]) * (1.0f / 65535.0f);
     }
     else static if (isFloatingPoint!V)
     {
         // assumes rgb value range 0-1
-        auto r = cast(float)(pack[0].rgb);
-        auto g = cast(float)(pack[1].rgb);
-        auto b = cast(float)(pack[2].rgb);
+        auto r = cast(float)(pack.rgb[0]);
+        auto g = cast(float)(pack.rgb[1]);
+        auto b = cast(float)(pack.rgb[2]);
     }
     else
     {
@@ -464,50 +497,53 @@ void rgb2hsvImpl(V, R, RGBHSV)(RGBHSV pack)
         auto v = cast(R)(100.0 * cmax);
     }
 
-    pack[0].hsv = h;
-    pack[1].hsv = s;
-    pack[2].hsv = v;
+    pack.hsv[0] = h;
+    pack.hsv[1] = s;
+    pack.hsv[2] = v;
 }
 
-void hsv2rgbImpl(V, R, HSVRGB)(HSVRGB pack)
+void hsv2rgbImpl(HSVRGB)(HSVRGB pack)
 {
+    alias V = typeof(pack.hsv[0]);
+    alias R = typeof(pack.rgb[0]);
+
     float r, g, b, p, q, t;
 
     static if (isFloatingPoint!V)
     {
-        auto h = pack[0].hsv;
-        auto s = pack[1].hsv;
-        auto v = pack[2].hsv;
+        auto h = pack.hsv[0];
+        auto s = pack.hsv[1];
+        auto v = pack.hsv[2];
     }
     else
     {
-        float h = cast(float)pack[0].hsv;
-        float s = cast(float)pack[1].hsv / 100.0f;
-        float v = cast(float)pack[2].hsv / 100.0f;
+        float h = cast(float)pack.hsv[0];
+        float s = cast(float)pack.hsv[1] / 100.0f;
+        float v = cast(float)pack.hsv[2] / 100.0f;
     }
 
     if (s <= 0.0f)
     {
         static if (isFloatingPoint!R)
         {
-            pack[0].rgb = cast(R)v;
-            pack[1].rgb = cast(R)v;
-            pack[2].rgb = cast(R)v;
+            pack.rgb[0] = cast(R)v;
+            pack.rgb[1] = cast(R)v;
+            pack.rgb[2] = cast(R)v;
         }
         else
         {
-            pack[0].rgb = cast(R)(v * R.max);
-            pack[1].rgb = cast(R)(v * R.max);
-            pack[2].rgb = cast(R)(v * R.max);
+            pack.rgb[0] = cast(R)(v * R.max);
+            pack.rgb[1] = cast(R)(v * R.max);
+            pack.rgb[2] = cast(R)(v * R.max);
         }
         return;
     }
 
     if (v <= 0.0f)
     {
-        pack[0].rgb = cast(R)0;
-        pack[1].rgb = cast(R)0;
-        pack[2].rgb = cast(R)0;
+        pack.rgb[0] = cast(R)0;
+        pack.rgb[1] = cast(R)0;
+        pack.rgb[2] = cast(R)0;
         return;
     }
 
@@ -561,15 +597,15 @@ void hsv2rgbImpl(V, R, HSVRGB)(HSVRGB pack)
 
     static if (isFloatingPoint!R)
     {
-        pack[0].rgb = cast(R)r;
-        pack[1].rgb = cast(R)g;
-        pack[2].rgb = cast(R)b;
+        pack.rgb[0] = cast(R)r;
+        pack.rgb[1] = cast(R)g;
+        pack.rgb[2] = cast(R)b;
     }
     else
     {
-        pack[0].rgb = cast(R)(r * R.max);
-        pack[1].rgb = cast(R)(g * R.max);
-        pack[2].rgb = cast(R)(b * R.max);
+        pack.rgb[0] = cast(R)(r * R.max);
+        pack.rgb[1] = cast(R)(g * R.max);
+        pack.rgb[2] = cast(R)(b * R.max);
     }
 }
 
