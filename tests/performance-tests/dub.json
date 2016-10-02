@@ -3,6 +3,7 @@
     "description": "Performance test for DCV.",
     "targetType": "executable",
     "sourcePaths": ["source"],
+    "dflags-ldc": ["-mcpu=native"],
     "dependencies": 
     {
         "dcv:core": {"path": "../../"},
