@@ -73,7 +73,6 @@ class LucasKanadeFlow : SparseOpticalFlow
         import dcv.core.algorithm : ranged, ranged;
         import dcv.imgproc.interpolate : linear;
         import dcv.imgproc.filter;
-        import dcv.core.utils : asType;
         import dcv.core.memory;
 
         const auto rows = f1.height;
