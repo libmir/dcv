@@ -518,8 +518,8 @@ void hsv2rgbImpl(HSVRGB)(HSVRGB pack)
     else
     {
         float h = cast(float)pack.hsv[0];
-        float s = cast(float)pack.hsv[1] / 100.0f;
-        float v = cast(float)pack.hsv[2] / 100.0f;
+        float s = cast(float)pack.hsv[1] * 0.01f;
+        float v = cast(float)pack.hsv[2] * 0.01f;
     }
 
     if (s <= 0.0f)
