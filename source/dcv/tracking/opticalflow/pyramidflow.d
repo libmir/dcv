@@ -64,7 +64,6 @@ class SparsePyramidFlow : SparseOpticalFlow
     {
         import std.algorithm.iteration : each;
         import std.array : uninitializedArray;
-        import dcv.core.utils : asType;
 
         size_t[2] size = [f1.height, f1.width];
         const auto pointCount = points.length;
@@ -128,8 +127,8 @@ class SparsePyramidFlow : SparseOpticalFlow
                 next = f2s;
             }
 
-            flowAlgorithm.evaluate(current.asType!ubyte.asImage(f1.format),
-                    next.asType!ubyte.asImage(f2.format), lpoints, lsearchRegions, flow, true);
+            flowAlgorithm.evaluate(current.as!ubyte.slice.asImage(f1.format),
+                    next.as!ubyte.slice.asImage(f2.format), lpoints, lsearchRegions, flow, true);
 
             if (i < levelCount - 1)
             {
@@ -245,9 +244,8 @@ class DensePyramidFlow : DenseOpticalFlow
                 current = warp(current, flow);
             }
 
-            import dcv.core.utils : asType;
             // evaluate the flow algorithm
-            auto lflow = flowAlgorithm.evaluate(current.asType!ubyte.asImage(f1.format), next.asType!ubyte.asImage(f2.format));
+            auto lflow = flowAlgorithm.evaluate(current.as!ubyte.slice.asImage(f1.format), next.as!ubyte.slice.asImage(f2.format));
 
             // add flow calculated in this iteration to previous one.
             flow[] += lflow;
