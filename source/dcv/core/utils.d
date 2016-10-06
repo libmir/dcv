@@ -219,6 +219,9 @@ template isBoundaryCondition(alias bc)
     }
 }
 
+nothrow @nogc pure
+{
+
 /// $(LINK2 https://en.wikipedia.org/wiki/Neumann_boundary_condition, Neumann) boundary condition test
 ref T neumann(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices)
         if (allSameType!Indices && allSatisfy!(isIntegral, Indices))
@@ -241,6 +244,8 @@ ref T symmetric(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indice
 {
     static assert(indices.length == N, "Invalid index dimension");
     return slice.bcImpl!_symmetric(indices);
+}
+
 }
 
 /// Alias for generalized boundary condition test function.
@@ -282,6 +287,8 @@ unittest
 }
 
 private:
+
+nothrow @nogc pure:
 
 ref auto bcImpl(alias bcfunc, size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices)
 {
