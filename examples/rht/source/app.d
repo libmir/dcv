@@ -11,7 +11,8 @@ import std.typecons : tuple;
 
 import mir.ndslice;
 
-import dcv.core : Image, ranged, ImageFormat;
+import dcv.core.image : Image, ImageFormat;
+import dcv.core.utils : clip;
 import dcv.io : imread, imwrite;
 import dcv.imgproc;
 import dcv.features.rht;
@@ -102,9 +103,9 @@ int main(string[] args)
     writeln("RHT circles took ", s.peek.msecs, "ms");
 
     // write resulting images on the filesystem.
-    blur.ndMap!(v => cast(ubyte)v).slice.imwrite(ImageFormat.IF_RGB, "./result/outblur.png");
-    canny.ndMap!(v => cast(ubyte)v).slice.imwrite(ImageFormat.IF_MONO, "./result/canny.png");
-    imslice.ndMap!(v => cast(ubyte)v).slice.imwrite(ImageFormat.IF_RGB, "./result/rht.png");
+    blur.ndMap!(v => v.clip!ubyte).slice.imwrite(ImageFormat.IF_RGB, "./result/outblur.png");
+    canny.ndMap!(v => v.clip!ubyte).slice.imwrite(ImageFormat.IF_MONO, "./result/canny.png");
+    imslice.ndMap!(v => v.clip!ubyte).slice.imwrite(ImageFormat.IF_RGB, "./result/rht.png");
 
     return 0;
 }
