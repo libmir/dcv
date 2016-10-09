@@ -69,7 +69,7 @@ int main(string[] args)
         return 1;
     }
 
-    Slice!(3, float*) imslice = img.sliced.as!float.slice // convert Image data type from ubyte to float
+    Slice!(3, float*) imslice = img.sliced.as!float.slice; // convert Image data type from ubyte to float
 
     auto gray = imslice.rgb2gray; // convert rgb image to grayscale
 
@@ -102,9 +102,9 @@ int main(string[] args)
     writeln("RHT circles took ", s.peek.msecs, "ms");
 
     // write resulting images on the filesystem.
-    blur.as!ubyte.slice.imwrite(ImageFormat.IF_RGB, "./result/outblur.png");
-    canny.as!ubyte.slice.imwrite(ImageFormat.IF_MONO, "./result/canny.png");
-    imslice.as!ubyte.slice.imwrite(ImageFormat.IF_RGB, "./result/rht.png");
+    blur.ndMap!(v => cast(ubyte)v).slice.imwrite(ImageFormat.IF_RGB, "./result/outblur.png");
+    canny.ndMap!(v => cast(ubyte)v).slice.imwrite(ImageFormat.IF_MONO, "./result/canny.png");
+    imslice.ndMap!(v => cast(ubyte)v).slice.imwrite(ImageFormat.IF_RGB, "./result/rht.png");
 
     return 0;
 }

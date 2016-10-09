@@ -32,7 +32,7 @@ int main(string[] args)
     Slice!(3, float*) imslice = img
         .sliced // slice image data
         .as!float // convert it to float
-        .slice // make a copy.
+        .slice; // make a copy.
 
     auto gray = imslice.rgb2gray; // convert rgb image to grayscale
 
