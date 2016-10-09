@@ -134,7 +134,7 @@ Params:
 Returns:
     Returns normalized input tensor.
 */
-deprecated("Used array based division: tensor[] /= norm, or mir.ndslice.algorithm: tensor.ndEach!(v => v /= norm)")
+deprecated("Use array based division: tensor[] /= norm, or mir.ndslice.algorithm: tensor.ndEach!(v => v /= norm)")
 @nogc nothrow auto normalized(Range, size_t N)(auto ref Slice!(N, Range) tensor, NormType normType = NormType.L2)
 {
     alias T = DeepElementType!(typeof(tensor));
