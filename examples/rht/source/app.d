@@ -11,7 +11,7 @@ import std.typecons : tuple;
 
 import mir.ndslice;
 
-import dcv.core : Image, asType, ranged, ImageFormat;
+import dcv.core : Image, ranged, ImageFormat;
 import dcv.io : imread, imwrite;
 import dcv.imgproc;
 import dcv.features.rht;
@@ -69,8 +69,7 @@ int main(string[] args)
         return 1;
     }
 
-    Slice!(3, float*) imslice = img.asType!float // convert Image data type from ubyte to float
-    .sliced!float; // slice image data - calls img.data!float.sliced(img.height, img.width, img.channels)
+    Slice!(3, float*) imslice = img.sliced.as!float.slice // convert Image data type from ubyte to float
 
     auto gray = imslice.rgb2gray; // convert rgb image to grayscale
 
