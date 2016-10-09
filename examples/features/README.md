@@ -32,7 +32,7 @@ Following chunk of code prepares the data for corner extraction - slices the ima
 ```d
 // prepare working sliced
 auto imslice = image.sliced!ubyte;
-auto imfslice = imslice.asType!float;
+auto imfslice = imslice.as!float.slice;
 auto gray = imfslice.rgb2gray;
 
 // make copies to draw corners 
@@ -74,13 +74,14 @@ slice.plot(gg, windowName).image().imwrite("result/" ~ windowName ~ ".png");
 harrisResponse 
     // Scale values to fit 0-255 range,
     .byElement
-    .ranged(0., 255.).array.sliced(harrisResponse.shape).asType!ubyte
+    .ranged(0., 255.).array.sliced(harrisResponse.shape)
+    .as!ubyte
+    .slice
     // .. show the window,
     .imshow(windowName) 
     .image
     // ... but also write it to disk.
     .imwrite("result/" ~ windowName ~ ".png");
-
 ```
 
 So the response result image looks like:

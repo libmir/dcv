@@ -93,9 +93,9 @@ foreach(row; res_3d) row.writeln;
 As shown in the **3D resize** example, multi-channel (RGB) images can be resized as:
 
 ```d
-auto image = [255, 0, 0,  0, 255, 0,  0, 0, 255,  255, 255, 255].sliced(2, 2, 3).asType!ubyte;
-auto resizedImage = image.resize(300, 300);
-resizedImage.imwrite("./result/resizedImage.png");
+auto image = (cast(ubyte[])[255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255]).sliced(2, 2, 3);
+auto resizedImage = image.resize([300, 300]);
+resizedImage.imwrite(ImageFormat.IF_RGB, "./result/resizedImage.png");
 ```
 
 Output image:

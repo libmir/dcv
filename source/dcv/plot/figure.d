@@ -15,7 +15,8 @@ image.imshow("Some Image");
 // ... or do some processing, then show it in-line
 image
     .sliced
-    .asType!float
+    .as!float
+    .slice
     .conv!symmetric(gaussian!float(1.0f, 3, 3))
     .imshow;
 
@@ -110,7 +111,6 @@ version(ggplotd)
 }
 
 import dcv.core.image : Image, ImageFormat, BitDepth, asImage;
-import dcv.core.utils : asType;
 import dcv.plot.bindings;
 
 /**
@@ -617,7 +617,7 @@ class Figure
         static if (is(T == ubyte))
             showSlice = slice;
         else
-            showSlice = slice.asType!ubyte;
+            showSlice = slice.as!ubyte.slice;
 
         if (format == ImageFormat.IF_UNASSIGNED)
             draw(showSlice.asImage());

@@ -12,7 +12,7 @@ import std.algorithm.iteration : map;
 
 import mir.ndslice;
 
-import dcv.core : Image, asType, ranged, ImageFormat;
+import dcv.core : Image, ranged, ImageFormat;
 import dcv.io : imread, imwrite;
 import dcv.imgproc;
 import dcv.plot;
@@ -30,8 +30,9 @@ int main(string[] args)
     }
 
     Slice!(3, float*) imslice = img
-        .asType!float // convert Image data type from ubyte to float
-        .sliced!float; // slice image data - calls img.data!float.sliced(img.height, img.width, img.channels)
+        .sliced // slice image data
+        .as!float // convert it to float
+        .slice; // make a copy.
 
     auto gray = imslice.rgb2gray; // convert rgb image to grayscale
 

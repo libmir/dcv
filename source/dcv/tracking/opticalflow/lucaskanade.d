@@ -72,7 +72,6 @@ class LucasKanadeFlow : SparseOpticalFlow
         import dcv.core.algorithm : ranged, ranged;
         import dcv.imgproc.interpolate : linear;
         import dcv.imgproc.filter;
-        import dcv.core.utils : asType;
         import dcv.core.memory;
 
         const auto rows = f1.height;
@@ -97,12 +96,12 @@ class LucasKanadeFlow : SparseOpticalFlow
             next = f2.sliced!float.reshape(f2.height, f2.width);
             break;
         case BitDepth.BD_16:
-            current = f1.sliced!ushort.reshape(f1.height, f1.width).asType!float;
-            next = f2.sliced!ushort.reshape(f2.height, f2.width).asType!float;
+            current = f1.sliced!ushort.reshape(f1.height, f1.width).as!float.slice;
+            next = f2.sliced!ushort.reshape(f2.height, f2.width).as!float.slice;
             break;
         default:
-            current = f1.sliced.reshape(f1.height, f1.width).asType!float;
-            next = f2.sliced.reshape(f2.height, f2.width).asType!float;
+            current = f1.sliced.reshape(f1.height, f1.width).as!float.slice;
+            next = f2.sliced.reshape(f2.height, f2.width).as!float.slice;
         }
 
         float gaussMul = 1.0f / (2.0f * PI * sigma);

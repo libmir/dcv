@@ -26,8 +26,9 @@ if (img.empty) { // check if image is properly read.
 }
 
 Slice!(3, float*) imslice = img
-	.asType!float // convert Image data type from ubyte to float
-	.sliced!float; // slice image data - calls img.data!float.sliced(img.height, img.width, img.channels)
+    .sliced // slice image data
+    .as!float // convert it to float
+    .slice // make a copy.
 ```
 
 ![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/lena.png)

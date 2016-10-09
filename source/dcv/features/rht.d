@@ -11,7 +11,8 @@ Image image = imread("/path/to/image.png");
 auto edges = image
                 .sliced
                 .rgb2gray
-                .asType!float
+                .as!float
+                .slice
                 .conv(gaussian!float(1.0f, 3, 3))
                 .canny!ubyte(100);
 

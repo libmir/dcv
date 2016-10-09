@@ -88,7 +88,6 @@ class HornSchunckFlow : DenseOpticalFlow
         import std.range : lockstep, iota;
         import std.array : array;
         import std.algorithm.comparison : equal;
-        import dcv.core.utils : asType;
 
         size_t height = f1.height;
         size_t width = f1.width;
@@ -110,12 +109,12 @@ class HornSchunckFlow : DenseOpticalFlow
                 next = f2.sliced!float.reshape(f2.height, f2.width);
                 break;
             case BitDepth.BD_16:
-                current = f1.sliced!ushort.reshape(f1.height, f1.width).asType!float;
-                next = f2.sliced!ushort.reshape(f2.height, f2.width).asType!float;
+                current = f1.sliced!ushort.reshape(f1.height, f1.width).as!float.slice;
+                next = f2.sliced!ushort.reshape(f2.height, f2.width).as!float.slice;
                 break;
             default:
-                current = f1.sliced.reshape(f1.height, f1.width).asType!float;
-                next = f2.sliced.reshape(f2.height, f2.width).asType!float;
+                current = f1.sliced.reshape(f1.height, f1.width).as!float.slice;
+                next = f2.sliced.reshape(f2.height, f2.width).as!float.slice;
             }
         }
 

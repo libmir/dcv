@@ -63,7 +63,6 @@ class SparsePyramidFlow : SparseOpticalFlow
     {
         import std.algorithm.iteration : each;
         import std.array : uninitializedArray;
-        import dcv.core.utils : asType;
 
         size_t[2] size = [f1.height, f1.width];
         const auto pointCount = points.length;
@@ -111,12 +110,12 @@ class SparsePyramidFlow : SparseOpticalFlow
                 f2s = f2.sliced!float.reshape(f2.height, f2.width);
                 break;
             case BitDepth.BD_16:
-                f1s = f1.sliced!ushort.reshape(f1.height, f1.width).asType!float;
-                f2s = f2.sliced!ushort.reshape(f2.height, f2.width).asType!float;
+                f1s = f1.sliced!ushort.reshape(f1.height, f1.width).as!float.slice;
+                f2s = f2.sliced!ushort.reshape(f2.height, f2.width).as!float.slice;
                 break;
             default:
-                f1s = f1.sliced!ubyte.reshape(f1.height, f1.width).asType!float;
-                f2s = f2.sliced!ubyte.reshape(f2.height, f2.width).asType!float;
+                f1s = f1.sliced!ubyte.reshape(f1.height, f1.width).as!float.slice;
+                f2s = f2.sliced!ubyte.reshape(f2.height, f2.width).as!float.slice;
         }
 
         // calculate pyramid flow
@@ -186,8 +185,6 @@ class DensePyramidFlow : DenseOpticalFlow
     }
     body
     {
-        import dcv.core.utils : asType;
-
         size_t[2] size = [f1.height, f1.width];
         uint level = 0;
 
@@ -228,12 +225,12 @@ class DensePyramidFlow : DenseOpticalFlow
                 norig = f2.sliced!float.reshape(f2.height, f2.width);
                 break;
             case BitDepth.BD_16:
-                corig = f1.sliced!ushort.reshape(f1.height, f1.width).asType!float;
-                norig = f2.sliced!ushort.reshape(f2.height, f2.width).asType!float;
+                corig = f1.sliced!ushort.reshape(f1.height, f1.width).as!float.slice;
+                norig = f2.sliced!ushort.reshape(f2.height, f2.width).as!float.slice;
                 break;
             default:
-                corig = f1.sliced.reshape(f1.height, f1.width).asType!float;
-                norig = f2.sliced.reshape(f2.height, f2.width).asType!float;
+                corig = f1.sliced.reshape(f1.height, f1.width).as!float.slice;
+                norig = f2.sliced.reshape(f2.height, f2.width).as!float.slice;
         }
 
         // first flow used as indicator to skip the first warp.
