@@ -51,8 +51,7 @@ class SparsePyramidFlow : SparseOpticalFlow
             in float[2][] searchRegions, float[2][] flow = null, bool usePrevious = false)
     in
     {
-        assert(!f1.empty && !f2.empty && f1.size == f2.size && f1.channels == 1 && f1.depth == f2.depth
-                && f1.depth == BitDepth.BD_8);
+        assert(!f1.empty && !f2.empty && f1.size == f2.size && f1.channels == 1 && f1.depth == f2.depth);
         assert(points.length == searchRegions.length);
         if (usePrevious)
         {
@@ -100,14 +99,24 @@ class SparsePyramidFlow : SparseOpticalFlow
             flow[] = [0.0f, 0.0f];
         }
 
-        Slice!(2, float*) current;
-        Slice!(2, float*) next;
-
         auto h = f1.height;
         auto w = f1.width;
 
-        auto f1s = f1.asType!float.sliced!float.reshape(h, w);
-        auto f2s = f2.asType!float.sliced!float.reshape(h, w);
+        Slice!(2, float*) current, next, f1s, f2s;
+        switch (f1.depth) 
+        {
+            case BitDepth.BD_32:
+                f1s = f1.sliced!float.reshape(f1.height, f1.width);
+                f2s = f2.sliced!float.reshape(f2.height, f2.width);
+                break;
+            case BitDepth.BD_16:
+                f1s = f1.sliced!ushort.reshape(f1.height, f1.width).as!float.slice;
+                f2s = f2.sliced!ushort.reshape(f2.height, f2.width).as!float.slice;
+                break;
+            default:
+                f1s = f1.sliced!ubyte.reshape(f1.height, f1.width).as!float.slice;
+                f2s = f2.sliced!ubyte.reshape(f2.height, f2.width).as!float.slice;
+        }
 
         // calculate pyramid flow
         foreach (i; 0 .. levelCount)
@@ -127,8 +136,8 @@ class SparsePyramidFlow : SparseOpticalFlow
                 next = f2s;
             }
 
-            flowAlgorithm.evaluate(current.as!ubyte.slice.asImage(f1.format),
-                    next.as!ubyte.slice.asImage(f2.format), lpoints, lsearchRegions, flow, true);
+            flowAlgorithm.evaluate(current.asImage(f1.format), next.asImage(f2.format), lpoints,
+                    lsearchRegions, flow, true);
 
             if (i < levelCount - 1)
             {
@@ -176,7 +185,6 @@ class DensePyramidFlow : DenseOpticalFlow
     }
     body
     {
-
         size_t[2] size = [f1.height, f1.width];
         uint level = 0;
 
@@ -206,14 +214,24 @@ class DensePyramidFlow : DenseOpticalFlow
             flow[] = 0.0f;
         }
 
-        Slice!(2, float*) current;
-        Slice!(2, float*) next;
-
         auto h = f1.height;
         auto w = f1.width;
 
-        auto f1s = f1.asType!float.sliced!float.reshape(h, w);
-        auto f2s = f2.asType!float.sliced!float.reshape(h, w);
+        Slice!(2, float*) current, next, corig, norig;
+        switch (f1.depth) 
+        {
+            case BitDepth.BD_32:
+                corig = f1.sliced!float.reshape(f1.height, f1.width);
+                norig = f2.sliced!float.reshape(f2.height, f2.width);
+                break;
+            case BitDepth.BD_16:
+                corig = f1.sliced!ushort.reshape(f1.height, f1.width).as!float.slice;
+                norig = f2.sliced!ushort.reshape(f2.height, f2.width).as!float.slice;
+                break;
+            default:
+                corig = f1.sliced.reshape(f1.height, f1.width).as!float.slice;
+                norig = f2.sliced.reshape(f2.height, f2.width).as!float.slice;
+        }
 
         // first flow used as indicator to skip the first warp.
         bool firstFlow = usePrevious;
@@ -221,19 +239,18 @@ class DensePyramidFlow : DenseOpticalFlow
         // calculate pyramid flow
         foreach (i; 0 .. levelCount)
         {
-
             auto lh = flow.length!0;
             auto lw = flow.length!1;
 
             if (lh != h || lw != w)
             {
-                current = f1s.resize([lh, lw]);
-                next = f2s.resize([lh, lw]);
+                current = corig.resize([lh, lw]);
+                next = norig.resize([lh, lw]);
             }
             else
             {
-                current = f1s;
-                next = f2s;
+                current = corig;
+                next = norig;
             }
 
             if (!firstFlow)
@@ -245,7 +262,7 @@ class DensePyramidFlow : DenseOpticalFlow
             }
 
             // evaluate the flow algorithm
-            auto lflow = flowAlgorithm.evaluate(current.as!ubyte.slice.asImage(f1.format), next.as!ubyte.slice.asImage(f2.format));
+            auto lflow = flowAlgorithm.evaluate(current.asImage(f1.format), next.asImage(f2.format));
 
             // add flow calculated in this iteration to previous one.
             flow[] += lflow;
