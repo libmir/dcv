@@ -40,7 +40,6 @@ Horn-Schunck algorithm implementation.
 */
 class HornSchunckFlow : DenseOpticalFlow
 {
-
     private
     {
         Slice!(2, float*) current;
@@ -90,27 +89,39 @@ class HornSchunckFlow : DenseOpticalFlow
         import std.array : array;
         import std.algorithm.comparison : equal;
 
-        if (current.length!0 != f1.height || current.length!1 != f1.width)
+        size_t height = f1.height;
+        size_t width = f1.width;
+
+        if (current.shape == [height, width] && next.shape == [height, width] && f1.depth == BitDepth.BD_32)
         {
-            auto imsize = f1.width * f1.height;
-            current = new float[imsize].sliced(f1.height, f1.width);
-            next = new float[imsize].sliced(f2.height, f2.width);
+            auto f1s = f1.sliced!float.reshape(height, width);
+            auto f2s = f2.sliced!float.reshape(height, width);
+
+            current[] = f1s[];
+            next[] = f2s[];
+        }
+        else
+        {
+            switch (f1.depth)
+            {
+            case BitDepth.BD_32:
+                current = f1.sliced!float.reshape(f1.height, f1.width);
+                next = f2.sliced!float.reshape(f2.height, f2.width);
+                break;
+            case BitDepth.BD_16:
+                current = f1.sliced!ushort.reshape(f1.height, f1.width).as!float.slice;
+                next = f2.sliced!ushort.reshape(f2.height, f2.width).as!float.slice;
+                break;
+            default:
+                current = f1.sliced.reshape(f1.height, f1.width).as!float.slice;
+                next = f2.sliced.reshape(f2.height, f2.width).as!float.slice;
+            }
         }
 
-        if (!prealloc.shape[0 .. 2].array.equal(current.shape.array))
-        {
-            const auto arrayLen = current.shape.reduce!"a*b" * 2;
-            size_t[current.shape.length + 1] arrayShape;
-            arrayShape[0 .. $ - 1] = current.shape[];
-            arrayShape[$ - 1] = 2;
-            prealloc = new float[arrayLen].sliced(arrayShape);
-        }
-
-        // initialize flow
-        if (!usePrevious)
-        {
+        if (prealloc.shape[0 .. 2] != current.shape)
+            prealloc = slice!float([current.length!0, current.length!1, 2], 0.0f);
+        else if (!usePrevious)
             prealloc[] = 0.0f;
-        }
 
         // smooth images
         if (props.gaussSigma)
@@ -121,34 +132,24 @@ class HornSchunckFlow : DenseOpticalFlow
 
             auto g = gaussian!float(props.gaussSigma, props.gaussKernelSize, props.gaussKernelSize);
 
-            auto f1Slice = f1.asType!float.sliced!float.reshape(current.length!0, current.length!1);
-            auto f2Slice = f2.asType!float.sliced!float.reshape(current.length!0, current.length!1);
-
-            conv!neumann(f1Slice, g, current);
-            conv!neumann(f2Slice, g, next);
+            current = conv!neumann(current, g);
+            next = conv!neumann(next, g);
         }
 
         int iter = 0;
         float err = props.tol;
 
-        auto flow_b = new float[prealloc.shape.reduce!"a*b"].sliced(prealloc.shape);
+        auto flow_b = slice!float(prealloc.shape);
 
         auto const rows = cast(int)current.length!0;
         auto const cols = cast(int)current.length!1;
-
-        immutable div12 = (1.0f / 12.0f);
-        immutable div6 = (1.0f / 6.0f);
-
-        auto const a2 = props.alpha ^^ 2;
+        auto const a2 = props.alpha * props.alpha;
 
         while (++iter < props.iterationCount && err >= props.tol)
         {
-
             err = 0;
-
             flow_b[] = prealloc[];
-
-            hsflowImpl(rows, cols, &current[0, 0], &next[0, 0], &flow_b[0, 0, 0], &prealloc[0, 0, 0], a2, err);
+            hsflowImpl(rows, cols, current.ptr, next.ptr, flow_b.ptr, prealloc.ptr, a2, err);
         }
 
         return prealloc;
@@ -178,8 +179,8 @@ unittest
 
 private:
 
-void hsflowImpl(in int rows, in int cols, float* current, float* next, float* flow_b,
-        float* prealloc, float a2, ref float err) @nogc
+nothrow @nogc void hsflowImpl(in int rows, in int cols, float* current, float* next, float* flow_b,
+        float* prealloc, float a2, ref float err)
 {
 
     immutable div12 = (1.0f / 12.0f);

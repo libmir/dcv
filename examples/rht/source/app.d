@@ -11,7 +11,8 @@ import std.typecons : tuple;
 
 import mir.ndslice;
 
-import dcv.core : Image, asType, ranged, ImageFormat;
+import dcv.core.image : Image, ImageFormat;
+import dcv.core.utils : clip;
 import dcv.io : imread, imwrite;
 import dcv.imgproc;
 import dcv.features.rht;
@@ -69,8 +70,7 @@ int main(string[] args)
         return 1;
     }
 
-    Slice!(3, float*) imslice = img.asType!float // convert Image data type from ubyte to float
-    .sliced!float; // slice image data - calls img.data!float.sliced(img.height, img.width, img.channels)
+    Slice!(3, float*) imslice = img.sliced.as!float.slice; // convert Image data type from ubyte to float
 
     auto gray = imslice.rgb2gray; // convert rgb image to grayscale
 
@@ -103,9 +103,9 @@ int main(string[] args)
     writeln("RHT circles took ", s.peek.msecs, "ms");
 
     // write resulting images on the filesystem.
-    blur.asType!ubyte.imwrite(ImageFormat.IF_RGB, "./result/outblur.png");
-    canny.asType!ubyte.imwrite(ImageFormat.IF_MONO, "./result/canny.png");
-    imslice.asType!ubyte.imwrite(ImageFormat.IF_RGB, "./result/rht.png");
+    blur.ndMap!(v => v.clip!ubyte).slice.imwrite(ImageFormat.IF_RGB, "./result/outblur.png");
+    canny.ndMap!(v => v.clip!ubyte).slice.imwrite(ImageFormat.IF_MONO, "./result/canny.png");
+    imslice.ndMap!(v => v.clip!ubyte).slice.imwrite(ImageFormat.IF_RGB, "./result/rht.png");
 
     return 0;
 }

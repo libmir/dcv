@@ -25,13 +25,14 @@ string impath = (args.length < 2) ? "../data/img.png" : args[1];
 Image img = imread(impath); // read an image from filesystem.
 
 if (img.empty) { // check if image is properly read.
-	writeln("Cannot read image at: " ~ impath);
-	return 1;
+    writeln("Cannot read image at: " ~ impath);
+    return 1;
 }
 
 Slice!(3, float*) imslice = img
-	.asType!float // convert Image data type from ubyte to float
-	.sliced!float; // slice image data - calls img.data!float.sliced(img.height, img.width, img.channels)
+    .sliced;
+    .as!float
+    .slice;
 ```
 
 ![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/img.png)

@@ -50,8 +50,7 @@ class LucasKanadeFlow : SparseOpticalFlow
             in float[2][] searchRegions, float[2][] flow = null, bool usePrevious = false)
     in
     {
-        assert(!f1.empty && !f2.empty && f1.size == f2.size && f1.channels == 1 && f1.depth == f2.depth
-                && f1.depth == BitDepth.BD_8);
+        assert(!f1.empty && !f2.empty && f1.size == f2.size && f1.channels == 1 && f1.depth == f2.depth);
         assert(points.length == searchRegions.length);
         if (usePrevious)
         {
@@ -73,7 +72,6 @@ class LucasKanadeFlow : SparseOpticalFlow
         import dcv.core.algorithm : ranged, ranged;
         import dcv.imgproc.interpolate : linear;
         import dcv.imgproc.filter;
-        import dcv.core.utils : asType;
         import dcv.core.memory;
 
         const auto rows = f1.height;
@@ -90,12 +88,26 @@ class LucasKanadeFlow : SparseOpticalFlow
             flow[] = [0.0f, 0.0f];
         }
 
-        auto current = f1.sliced.reshape(f1.height, f1.width);
-        auto next = f2.sliced.reshape(f2.height, f2.width);
+        Slice!(2, float*) current, next;
+        switch (f1.depth)
+        {
+        case BitDepth.BD_32:
+            current = f1.sliced!float.reshape(f1.height, f1.width);
+            next = f2.sliced!float.reshape(f2.height, f2.width);
+            break;
+        case BitDepth.BD_16:
+            current = f1.sliced!ushort.reshape(f1.height, f1.width).as!float.slice;
+            next = f2.sliced!ushort.reshape(f2.height, f2.width).as!float.slice;
+            break;
+        default:
+            current = f1.sliced.reshape(f1.height, f1.width).as!float.slice;
+            next = f2.sliced.reshape(f2.height, f2.width).as!float.slice;
+        }
+
         float gaussMul = 1.0f / (2.0f * PI * sigma);
         float gaussDel = 2.0f * (sigma ^^ 2);
 
-        // Temporary buffers, used in alrithm -------------------------------
+        // Temporary buffers, used in algorithm -------------------------------
         // TODO: cache these in class, and reuse
         auto floatPool = [
             alignedAlloc!float(pixelCount), alignedAlloc!float(pixelCount),
@@ -116,13 +128,22 @@ class LucasKanadeFlow : SparseOpticalFlow
         auto fys = floatPool[3].sliced(rows, cols);
         auto fxmask = ubytePool[0].sliced(rows, cols);
         auto fymask = ubytePool[1].sliced(rows, cols);
-        auto f1d = f1.data.sliced(f1s.shape);
-        auto f2d = f2.data.sliced(f2s.shape);
 
-        assumeSameStructure!("f1s", "f2s", "f1", "f2")(f1s, f2s, f1d, f2d).ndEach!((v) {
-            v.f1s = cast(float)v.f1;
-            v.f2s = cast(float)v.f2;
-        }, Yes.vectorized);
+        if (f1.depth == BitDepth.BD_32)
+        {
+            f1s[] = current[];
+            f2s[] = next[];
+        }
+        else
+        {
+            auto f1d = f1.data.sliced(f1s.shape);
+            auto f2d = f2.data.sliced(f2s.shape);
+
+            assumeSameStructure!("f1s", "f2s", "f1", "f2")(f1s, f2s, f1d, f2d).ndEach!((v) {
+                v.f1s = cast(float)v.f1;
+                v.f2s = cast(float)v.f2;
+            }, Yes.vectorized);
+        }
 
         fxs[] = 0.0f;
         fys[] = 0.0f;

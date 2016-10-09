@@ -52,11 +52,14 @@ Take another typed Slice. Type conversion for the Slice object.
 Params:
     inslice = Input slice, to be converted to the O type.
 
+Deprecated:
+    In favor of $(LINK3 http://docs.mir.dlang.io/latest/mir_ndslice_slice.html#.as,mir.ndslice.slice.as).
+
 Returns:
     Return a slice with newly allocated data of type O, with same
     shape as input slice.
 */
-static Slice!(N, O*) asType(O, V, size_t N)(Slice!(N, V*) inslice)
+deprecated("Use mir.ndslice.slice.as instead: e.g. mySlice.as!T.slice") static Slice!(N, O*) asType(O, V, size_t N)(Slice!(N, V*) inslice)
 {
     static if (__traits(compiles, cast(O)V.init))
     {

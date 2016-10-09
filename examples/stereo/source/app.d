@@ -49,7 +49,7 @@ void main(string[] args)
         }
     }
 
-    auto acc = ndReduce!(evalAccum)(0.0f, estimate, groundTruth.asType!ushort.sliced!ushort.rgb2gray);
+    auto acc = ndReduce!(evalAccum)(0.0f, estimate, groundTruth.sliced.rgb2gray);
 
     writeln((acc / cast(float)c) * 100, "% accuracy (<=3px)");
 
