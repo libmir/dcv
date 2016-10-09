@@ -10,7 +10,8 @@
 </font><font color=blue>auto</font> edges = image
                 .sliced
                 .rgb2gray
-                .asType!<font color=blue>float</font>
+                .as!<font color=blue>float</font>
+                .slice
                 .conv(gaussian!<font color=blue>float</font>(1.0f, 3, 3))
                 .canny!<font color=blue>ubyte</font>(100);
 

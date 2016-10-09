@@ -19,7 +19,7 @@ Relja Ljubobratovic
     </dd>
 </dl><br><br>
 
-<dl><dt><big><a name="resize"></a>Slice!(N, V*) <u id="resize">resize</u>(alias interp = linear, V, size_t N, Size...)(Slice!(N, V*) <i>slice</i>, Size <i>newsize</i>) if (allSameType!Size &amp;&amp; allSatisfy!(isIntegral, Size) &amp;&amp; isInterpolationFunc!interp);
+<dl><dt><big><a name="resize"></a>Slice!(N, V*) <u id="resize">resize</u>(alias interp = linear, V, size_t N, size_t SN)(Slice!(N, V*) <i>slice</i>, size_t[SN] <i>newsize</i>, TaskPool <i>pool</i> = taskPool) if (isInterpolationFunc!interp);
 </big></dt>
 <dd>Resize array using custom interpolation function.
 <br><br>
@@ -38,16 +38,18 @@ interpolation function rules in dcv.imgproc.interpolation.
 <b>Params:</b><br>
 <table><tr><td>Slice!(N, V*) <i>slice</i></td>
 <td>Slice to an input array.</td></tr>
-<tr><td>Size <i>newsize</i></td>
+<tr><td>size_t[SN] <i>newsize</i></td>
 <td>tuple that defines new shape. New dimension has to be
     the same as input <i>slice</i> in the 1D and 2D <u id="resize">resize</u>, where in the
     3D <u id="resize">resize</u> <i>newsize</i> has to be 2D.</td></tr>
+<tr><td>TaskPool <i>pool</i></td>
+<td>Optional TaskPool instance used to parallelize computation.</td></tr>
 </table><br>
 <b>TODO:</b><br>
 consider size input as array, and add prealloc<br><br>
 
 </dd>
-<dt><big><a name="scale"></a>Slice!(N, V*) <u id="scale">scale</u>(alias interp = linear, V, size_t N, Scale...)(Slice!(N, V*) <i>slice</i>, Scale <u id="scale">scale</u>) if (allSameType!Scale &amp;&amp; allSatisfy!(isFloatingPoint, Scale) &amp;&amp; isInterpolationFunc!interp);
+<dt><big><a name="scale"></a>Slice!(N, V*) <u id="scale">scale</u>(alias interp = linear, V, ScaleValue, size_t N, size_t SN)(Slice!(N, V*) <i>slice</i>, ScaleValue[SN] <u id="scale">scale</u>, TaskPool <i>pool</i> = taskPool) if (isFloatingPoint!ScaleValue &amp;&amp; isInterpolationFunc!interp);
 </big></dt>
 <dd>Scale array size using custom interpolation function.
 <br><br>
