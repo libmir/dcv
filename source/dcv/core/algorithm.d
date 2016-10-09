@@ -63,7 +63,8 @@ Params:
 Returns:
     Calculated norm value.
 */
-deprecated @nogc pure nothrow auto norm(Range, size_t N)(auto ref Slice!(N, Range) tensor, NormType normType)
+deprecated("Use mir.glas.l1 functions: amax(INF), asum(L1), and nrm2(L2)")
+@nogc pure nothrow auto norm(Range, size_t N)(auto ref Slice!(N, Range) tensor, NormType normType)
 {
     import mir.glas.l1;
     final switch (normType)
@@ -133,7 +134,8 @@ Params:
 Returns:
     Returns normalized input tensor.
 */
-deprecated @nogc nothrow auto normalized(Range, size_t N)(auto ref Slice!(N, Range) tensor, NormType normType = NormType.L2)
+deprecated("Used array based division: tensor[] /= norm, or mir.ndslice.algorithm: tensor.ndEach!(v => v /= norm)")
+@nogc nothrow auto normalized(Range, size_t N)(auto ref Slice!(N, Range) tensor, NormType normType = NormType.L2)
 {
     alias T = DeepElementType!(typeof(tensor));
     auto n = tensor.norm(normType);
@@ -168,7 +170,8 @@ Returns:
     Scaled input tensor.
     
 */
-deprecated @nogc nothrow auto scaled(Scalar, Range, size_t N)(auto ref Slice!(N, Range) tensor, Scalar alpha = 1, Scalar beta = 0)
+deprecated("Function will be moved to Mir")
+@nogc nothrow auto scaled(Scalar, Range, size_t N)(auto ref Slice!(N, Range) tensor, Scalar alpha = 1, Scalar beta = 0)
         if (isNumeric!Scalar)
 {
     tensor.ndEach!((ref v) { v = alpha * (v) + beta; }, Yes.vectorized);
@@ -196,6 +199,7 @@ Params:
     maxValue = Maximal value output tensor should contain.
 
 */
+deprecated("Function will be moved to Mir")
 @nogc auto ranged(Scalar, Range, size_t N)(auto ref Slice!(N, Range) tensor,
         Scalar minValue = 0, Scalar maxValue = 1) if (isNumeric!Scalar)
 {
