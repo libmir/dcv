@@ -15,12 +15,12 @@ immutable ignoreList = [
 ];
 
 immutable includes = [
-    "../source", "/home/relja/.dub/packages/ffmpeg-d-2.5.0/ffmpeg-d/source",
-    "/home/relja/.dub/packages/imageformats-5.2.0/imageformats",
-    "/home/relja/.dub/packages/cairod-0.0.1-alpha.3_1.10.2/cairod/src",
-    "/home/relja/.dub/packages/painlesstraits-0.2.0/painlesstraits/source",
-    "/home/relja/.dub/packages/ggplotd-0.9.4/ggplotd/source",
-    "/home/relja/.dub/packages/mir-0.17.0-alpha6/mir/source"
+    "ffmpeg-d-2.5.1/ffmpeg-d/source",
+    "imageformats-6.1.0/imageformats",
+    "cairod-0.0.1-alpha.3_1.10.2/cairod/src",
+    "painlesstraits-0.2.0/painlesstraits/source",
+    "ggplotd-0.9.4/ggplotd/source",
+    "mir-0.18.6/mir/source"
 ];
 
 immutable setupDdoc = "export DDOCFILE=\"dcv.ddoc\"\n";
@@ -39,12 +39,14 @@ string compileDoc(string docDir, string srcDir, Module mod)
 
     string command = setupDdoc;
 
-    command ~= "dmd -c -o- -w -D";
+    command ~= "ldc2 -c -o- -w -D";
     command ~= " -Dd" ~ outPath;
 
+    auto home = environment["HOME"];
+    command ~= " -I../source/";
     foreach (i; includes)
     {
-        command ~= " -I" ~ i;
+        command ~= " -I" ~ home ~ "/.dub/packages/" ~ i;
     }
 
     string srcPath = cast(string)(chainPath(srcDir, mod.toString()).array);
