@@ -134,7 +134,7 @@ Params:
 Returns:
     Returns normalized input tensor.
 */
-deprecated("Use array based division: tensor[] /= norm, or mir.ndslice.algorithm: tensor.ndEach!(v => v /= norm)")
+deprecated("Use array based division: tensor[] /= norm, or mir.ndslice.algorithm: tensor.ndEach!( (ref v) { v /= norm; } )")
 @nogc nothrow auto normalized(Range, size_t N)(auto ref Slice!(N, Range) tensor, NormType normType = NormType.L2)
 {
     alias T = DeepElementType!(typeof(tensor));
@@ -170,7 +170,6 @@ Returns:
     Scaled input tensor.
     
 */
-deprecated("Function will be moved to Mir")
 @nogc nothrow auto scaled(Scalar, Range, size_t N)(auto ref Slice!(N, Range) tensor, Scalar alpha = 1, Scalar beta = 0)
         if (isNumeric!Scalar)
 {
@@ -199,7 +198,6 @@ Params:
     maxValue = Maximal value output tensor should contain.
 
 */
-deprecated("Function will be moved to Mir")
 @nogc auto ranged(Scalar, Range, size_t N)(auto ref Slice!(N, Range) tensor,
         Scalar minValue = 0, Scalar maxValue = 1) if (isNumeric!Scalar)
 {
