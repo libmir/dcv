@@ -39,7 +39,7 @@ string compileDoc(string docDir, string srcDir, Module mod)
 
     string command = setupDdoc;
 
-    command ~= "ldc2 -c -o- -w -D";
+    command ~= "ldc2 -c -o- -w -D -d-version=ggplotd";
     command ~= " -Dd" ~ outPath;
 
     auto home = environment["HOME"];
