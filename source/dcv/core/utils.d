@@ -274,29 +274,32 @@ template isBoundaryCondition(alias bc)
 nothrow @nogc pure
 {
 
-/// $(LINK2 https://en.wikipedia.org/wiki/Neumann_boundary_condition, Neumann) boundary condition test
-ref T neumann(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices)
-        if (allSameType!Indices && allSatisfy!(isIntegral, Indices))
-{
-    static assert(indices.length == N, "Invalid index dimension");
-    return slice.bcImpl!_neumann(indices);
-}
+    /// $(LINK2 https://en.wikipedia.org/wiki/Neumann_boundary_condition, Neumann) boundary condition test
+    auto neumann(Tensor, Indices...)(Tensor tensor, Indices indices)
+            if (isSlice!Tensor && allSameType!Indices && allSatisfy!(isIntegral, Indices))
+    {
+        immutable N = ReturnType!(Tensor.shape).length;
+        static assert(indices.length == N, "Invalid index dimension");
+        return tensor.bcImpl!_neumann(indices);
+    }
 
-/// $(LINK2 https://en.wikipedia.org/wiki/Periodic_boundary_conditions,Periodic) boundary condition test
-ref T periodic(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices)
-        if (allSameType!Indices && allSatisfy!(isIntegral, Indices))
-{
-    static assert(indices.length == N, "Invalid index dimension");
-    return slice.bcImpl!_periodic(indices);
-}
+    /// $(LINK2 https://en.wikipedia.org/wiki/Periodic_boundary_conditions,Periodic) boundary condition test
+    auto periodic(Tensor, Indices...)(Tensor tensor, Indices indices)
+            if (isSlice!Tensor && allSameType!Indices && allSatisfy!(isIntegral, Indices))
+    {
+        immutable N = ReturnType!(Tensor.shape).length;
+        static assert(indices.length == N, "Invalid index dimension");
+        return tensor.bcImpl!_periodic(indices);
+    }
 
-/// Symmetric boundary condition test
-ref T symmetric(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices)
-        if (allSameType!Indices && allSatisfy!(isIntegral, Indices))
-{
-    static assert(indices.length == N, "Invalid index dimension");
-    return slice.bcImpl!_symmetric(indices);
-}
+    /// Symmetric boundary condition test
+    auto symmetric(Tensor, Indices...)(Tensor tensor, Indices indices)
+            if (isSlice!Tensor && allSameType!Indices && allSatisfy!(isIntegral, Indices))
+    {
+        immutable N = ReturnType!(Tensor.shape).length;
+        static assert(indices.length == N, "Invalid index dimension");
+        return tensor.bcImpl!_symmetric(indices);
+    }
 
 }
 
@@ -342,30 +345,31 @@ private:
 
 nothrow @nogc pure:
 
-ref auto bcImpl(alias bcfunc, size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices)
+auto bcImpl(alias bcfunc, Tensor, Indices...)(Tensor tensor, Indices indices)
 {
+    immutable N = ReturnType!(Tensor.shape).length;
     static if (N == 1)
     {
-        return slice[bcfunc(cast(int)indices[0], cast(int)slice.length)];
+        return tensor[bcfunc(cast(int)indices[0], cast(int)tensor.length)];
     }
     else static if (N == 2)
     {
-        return slice[bcfunc(cast(int)indices[0], cast(int)slice.length!0),
-            bcfunc(cast(int)indices[1], cast(int)slice.length!1)];
+        return tensor[bcfunc(cast(int)indices[0], cast(int)tensor.length!0),
+            bcfunc(cast(int)indices[1], cast(int)tensor.length!1)];
     }
     else static if (N == 3)
     {
-        return slice[bcfunc(cast(int)indices[0], cast(int)slice.length!0),
-            bcfunc(cast(int)indices[1], cast(int)slice.length!1), bcfunc(cast(int)indices[2],
-                    cast(int)slice.length!2)];
+        return tensor[bcfunc(cast(int)indices[0], cast(int)tensor.length!0),
+            bcfunc(cast(int)indices[1], cast(int)tensor.length!1), bcfunc(cast(int)indices[2],
+                    cast(int)tensor.length!2)];
     }
     else
     {
         foreach (i, ref id; indices)
         {
-            id = bcfunc(cast(int)id, cast(int)slice.shape[i]);
+            id = bcfunc(cast(int)id, cast(int)tensor.shape[i]);
         }
-        return slice[indices];
+        return tensor[indices];
     }
 }
 
