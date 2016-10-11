@@ -36,10 +36,11 @@ import std.functional;
 import std.math;
 
 import mir.ndslice;
+import mir.ndslice.algorithm : Yes;
 
 import dcv.core;
 import dcv.core.image;
-import dcv.core.utils : emptySlice;
+import dcv.core.utils : emptySlice, clip;
 import dcv.imgproc;
 
 alias DisparityType = uint;
@@ -442,7 +443,17 @@ DisparityRefiner bilateralDisparityFilter(uint windowSize, float sigma)
 {
     void disparityRefiner(const ref StereoPipelineProperties props, DisparityMap disp)
     {
-        disp[] = bilateralFilter(disp, sigma, windowSize);
+        import std.traits : isFloatingPoint;
+        alias T = DeepElementType!DisparityMap;
+
+        static if (isFloatingPoint!T)
+        {
+            disp[] = bilateralFilter(disp, sigma, windowSize);
+        }
+        else
+        {
+            disp[] = bilateralFilter(disp.as!float, sigma, windowSize).ndMap!(v => clip!(DeepElementType!DisparityMap)(v));
+        }
     }
 
     return &disparityRefiner;
