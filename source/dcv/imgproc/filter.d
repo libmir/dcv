@@ -760,10 +760,11 @@ Slice!(N, OutputType*) bilateralFilter
      TaskPool pool = taskPool) if (N == 2)
 in
 {
+    static assert(isSlice!InputTensor, "Input tensor has to be of type mir.ndslice.slice.Slice");
     static assert(isBoundaryCondition!bc, "Invalid boundary condition test function.");
+    static assert(isFloatingPoint!(DeepElementType!InputTensor), "Input tensor value type has to be of floating point type.");
     assert(!input.empty);
     assert(kernelSize % 2);
-    static assert(isFloatingPoint!(DeepElementType!InputTensor), "Input tensor value type has to be of floating point type.");
 }
 body
 {
@@ -809,16 +810,26 @@ Slice!(N, OutputType*) bilateralFilter
     (alias bc = neumann, InputTensor, OutputType = DeepElementType!(InputTensor), size_t N = ReturnType!(InputTensor.shape).length)
     (InputTensor input, float sigma, size_t kernelSize, Slice!(N, OutputType*) prealloc = emptySlice!(N, OutputType),
      TaskPool pool = taskPool) if (N == 3)
+in
 {
-    if (prealloc.empty || prealloc.shape != slice.shape)
+    static assert(isSlice!InputTensor, "Input tensor has to be of type mir.ndslice.slice.Slice");
+    static assert(isBoundaryCondition!bc, "Invalid boundary condition test function.");
+    static assert(isFloatingPoint!(DeepElementType!InputTensor), "Input tensor value type has to be of floating point type.");
+    assert(!input.empty);
+    assert(kernelSize % 2);
+}
+body
+{
+    if (prealloc.empty || prealloc.shape != input.shape)
     {
-        prealloc = uninitializedArray!(OutputType[])(slice.elementsCount).sliced(slice.shape);
+        prealloc = uninitializedSlice!OutputType(input.shape);
     }
 
-    foreach (channel; 0 .. slice.length!2)
+    foreach (channel; 0 .. input.length!2)
     {
-        bilateralFilter!(bc, InputType, OutputType)(slice[0 .. $, 0 .. $, channel], sigma,
-                kernelSize, prealloc[0 .. $, 0 .. $, channel]);
+        auto inch = input[0 .. $, 0 .. $, channel];
+        auto prech = prealloc[0 .. $, 0 .. $, channel];
+        bilateralFilter!(bc, typeof(inch), OutputType, 2)(inch, sigma, kernelSize, prech, pool);
     }
 
     return prealloc;
