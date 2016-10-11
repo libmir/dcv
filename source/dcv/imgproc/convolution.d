@@ -34,7 +34,7 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 */
 module dcv.imgproc.convolution;
 
-import std.traits : isAssignable;
+import std.traits : isAssignable, ReturnType;
 import std.conv : to;
 import std.algorithm.comparison : equal;
 import std.parallelism : parallel, taskPool, TaskPool;
@@ -48,34 +48,43 @@ import dcv.core.memory;
 import dcv.core.utils;
 
 /**
-Perform convolution to given range, using given kernel.
-Convolution is supported for 1, 2, and 3D slices.
+Perform convolution to given tensor, using given kernel.
+Convolution is supported for 1, 2, and 3 dimensional tensors.
 
 Params:
     bc = (Template parameter) Boundary Condition function used while indexing the image matrix.
-    range = Input range slice (1D, 2D, and 3D slice supported)
-    kernel = Convolution kernel slice. For 1D range, 1D kernel is expected. 
-    For 2D range, 2D kernel is expected. For 3D range, 2D or 3D kernel is expected - 
-    if 2D kernel is given, each item in kernel matrix is applied to each value in 
-    corresponding 2D coordinate in the range.
-    prealloc = Pre-allocated array where convolution result can be stored. Default 
+    input = Input tensor.
+    kernel = Convolution kernel tensor. For 1D input, 1D kernel is expected.
+    For 2D input, 2D kernel is expected. For 3D input, 2D or 3D kernel is expected -
+    if 2D kernel is given, each item in kernel matrix is applied to each value in
+    corresponding 2D coordinate in the input.
+    prealloc = Pre-allocated buffer where convolution result can be stored. Default
     value is emptySlice, where resulting array will be newly allocated. Also if
-    prealloc is not of same shape as input range, resulting array will be newly allocated. 
-    mask = Masking range. Convolution will skip each element where mask is 0. Default value
-    is empty slice, which tells that convolution will be performed on the whole range.
+    prealloc is not of same shape as input input, resulting array will be newly allocated.
+    mask = Masking input. Convolution will skip each element where mask is 0. Default value
+    is empty slice, which tells that convolution will be performed on the whole input.
     pool = Optional TaskPool instance used to parallelize computation.
 
 Returns:
-    Slice of resulting image after convolution.
+    Resulting image after convolution, of same type as input tensor.
 */
-Slice!(N, InputType*) conv(alias bc = neumann, InputType, KernelType, MaskType = InputType, size_t N, size_t NK)(
-        Slice!(N, InputType*) range, Slice!(NK, KernelType*) kernel, Slice!(N,
-        InputType*) prealloc = emptySlice!(N, InputType), Slice!(NK,
-        MaskType*) mask = emptySlice!(NK, MaskType), TaskPool pool = taskPool)
+InputTensor conv
+    (alias bc = neumann, InputTensor, KernelTensor, MaskTensor = KernelTensor)
+    (InputTensor input, KernelTensor kernel, InputTensor prealloc = InputTensor.init,
+     MaskTensor mask = MaskTensor.init, TaskPool pool = taskPool)
 in
 {
+    static assert(isSlice!InputTensor, "Input tensor has to be of type mir.ndslice.slice.Slice");
+    static assert(isSlice!KernelTensor, "Kernel tensor has to be of type mir.ndslice.slice.Slice");
+    static assert(isSlice!MaskTensor, "Mask tensor has to be of type mir.ndslice.slice.Slice");
     static assert(isBoundaryCondition!bc, "Invalid boundary condition test function.");
-    static assert(isAssignable!(InputType, KernelType), "Uncompatible types for range and kernel");
+    static assert(isAssignable!(DeepElementType!InputTensor, DeepElementType!KernelTensor),
+            "Incompatible types for input and kernel");
+
+    immutable N = ReturnType!(InputTensor.shape).length;
+    immutable NK = ReturnType!(KernelTensor.shape).length;
+
+    static assert(ReturnType!(MaskTensor.shape).length == NK, "Mask tensor has to be of same dimension as the kernel tensor.");
 
     immutable invalidKernelMsg = "Invalid kernel dimension";
     static if (N == 1)
@@ -87,26 +96,26 @@ in
     else
         static assert(0, "Convolution not implemented for given tensor dimension.");
 
-    assert(range.ptr != prealloc.ptr, "Preallocated and input buffer cannot point to the same memory.");
+    assert(input.ptr != prealloc.ptr, "Preallocated and input buffer cannot point to the same memory.");
 
-    if (!mask.empty) 
+    if (!mask.empty)
     {
-        assert(mask.shape == range.shape, "Invalid mask size. Should be of same size as input tensor.");
-        assert(range.structure.strides == mask.structure.strides, "Input range and mask need to have same strides.");
+        assert(mask.shape == input.shape, "Invalid mask size. Should be of same size as input tensor.");
+        assert(input.structure.strides == mask.structure.strides, "Input input and mask need to have same strides.");
     }
 
     if (prealloc.empty)
-        assert(range.stride!(N-1) == 1, "Input range has to be contiguous (i.e. range.stride!(N-1) == 1).");
+        assert(input.stride!(N-1) == 1, "Input input has to be contiguous (i.e. input.stride!(N-1) == 1).");
     else
-        assert(range.structure.strides == prealloc.structure.strides,
-                "Input range and result(preallocated) buffer need to have same strides.");
+        assert(input.structure.strides == prealloc.structure.strides,
+                "Input input and result(preallocated) buffer need to have same strides.");
 }
 body
 {
-    if (prealloc.shape != range.shape)
-        prealloc = uninitializedSlice!InputType(range.shape);
+    if (prealloc.shape != input.shape)
+        prealloc = uninitializedSlice!(DeepElementType!InputTensor)(input.shape);
 
-    return mixin("conv" ~ N.to!string ~ "Impl!bc(range, kernel, prealloc, mask, pool)");
+    return convImpl!bc(input, kernel, prealloc, mask, pool);
 }
 
 unittest
@@ -142,16 +151,19 @@ nothrow @nogc @fastmath auto kapply(T)(T r, T i, T k)
 
 private:
 
-Slice!(1, InputType*) conv1Impl(alias bc, InputType, KernelType, MaskType)(Slice!(1,
-        InputType*) range, Slice!(1, KernelType*) kernel, Slice!(1, InputType*) prealloc,
-        Slice!(1, MaskType*) mask, TaskPool pool)
+auto convImpl
+    (alias bc = neumann, InputTensor, KernelTensor, MaskTensor)
+    (InputTensor input, KernelTensor kernel, InputTensor prealloc, MaskTensor mask, TaskPool pool) 
+if (ReturnType!(InputTensor.shape).length == 1)
 {
+    alias InputType = DeepElementType!InputTensor;
+
     auto kl = kernel.length;
     auto kh = kl / 2;
 
     if (mask.empty)
     {
-        auto packedWindows = assumeSameStructure!("result", "input")(prealloc, range).windows(kl);
+        auto packedWindows = assumeSameStructure!("result", "input")(prealloc, input).windows(kl);
         foreach (p; pool.parallel(packedWindows))
         {
             p[kh].result = ndReduce!(kapply!InputType, Yes.vectorized, Yes.fastmath)(0.0f,
@@ -161,7 +173,7 @@ Slice!(1, InputType*) conv1Impl(alias bc, InputType, KernelType, MaskType)(Slice
     else
     {
         // TODO: extract masked convolution as separate function?
-        auto packedWindows = assumeSameStructure!("result", "input", "mask")(prealloc, range, mask).windows(kl);
+        auto packedWindows = assumeSameStructure!("result", "input", "mask")(prealloc, input, mask).windows(kl);
         foreach (p; pool.parallel(packedWindows))
         {
             if (p[$ / 2].mask)
@@ -169,15 +181,16 @@ Slice!(1, InputType*) conv1Impl(alias bc, InputType, KernelType, MaskType)(Slice
         }
     }
 
-    handleEdgeConv1d!bc(range, prealloc, kernel, mask, 0, kl);
-    handleEdgeConv1d!bc(range, prealloc, kernel, mask, range.length - 1 - kh, range.length);
+    handleEdgeConv1d!bc(input, prealloc, kernel, mask, 0, kl);
+    handleEdgeConv1d!bc(input, prealloc, kernel, mask, input.length - 1 - kh, input.length);
 
     return prealloc;
 }
 
-Slice!(2, InputType*) conv2Impl(alias bc, InputType, KernelType, MaskType)(Slice!(2,
-        InputType*) range, Slice!(2, KernelType*) kernel, Slice!(2, InputType*) prealloc,
-        Slice!(2, MaskType*) mask, TaskPool pool)
+auto convImpl
+    (alias bc = neumann, InputTensor, KernelTensor, MaskTensor)
+    (InputTensor input, KernelTensor kernel, InputTensor prealloc, MaskTensor mask, TaskPool pool) 
+if (ReturnType!(InputTensor.shape).length == 2)
 {
     auto krs = kernel.length!0; // kernel rows
     auto kcs = kernel.length!1; // kernel rows
@@ -189,7 +202,7 @@ Slice!(2, InputType*) conv2Impl(alias bc, InputType, KernelType, MaskType)(Slice
 
     if (mask.empty)
     {
-        auto packedWindows = assumeSameStructure!("result", "input")(prealloc, range).windows(krs, kcs);
+        auto packedWindows = assumeSameStructure!("result", "input")(prealloc, input).windows(krs, kcs);
         foreach (prow; pool.parallel(packedWindows))
             foreach (p; prow)
             {
@@ -199,7 +212,7 @@ Slice!(2, InputType*) conv2Impl(alias bc, InputType, KernelType, MaskType)(Slice
     }
     else
     {
-        auto packedWindows = assumeSameStructure!("result", "input", "mask")(prealloc, range, mask).windows(krs, kcs);
+        auto packedWindows = assumeSameStructure!("result", "input", "mask")(prealloc, input, mask).windows(krs, kcs);
         foreach (prow; pool.parallel(packedWindows))
             foreach (p; prow)
             {
@@ -211,21 +224,22 @@ Slice!(2, InputType*) conv2Impl(alias bc, InputType, KernelType, MaskType)(Slice
             }
     }
 
-    handleEdgeConv2d!bc(range, prealloc, kernel, mask, [0, range.length!0], [0, kch]); // upper row
-    handleEdgeConv2d!bc(range, prealloc, kernel, mask, [0, range.length!0], [range.length!1 - kch, range.length!1]); // lower row
-    handleEdgeConv2d!bc(range, prealloc, kernel, mask, [0, krh], [0, range.length!1]); // left column
-    handleEdgeConv2d!bc(range, prealloc, kernel, mask, [range.length!0 - krh, range.length!0], [0, range.length!1]); // right column
+    handleEdgeConv2d!bc(input, prealloc, kernel, mask, [0, input.length!0], [0, kch]); // upper row
+    handleEdgeConv2d!bc(input, prealloc, kernel, mask, [0, input.length!0], [input.length!1 - kch, input.length!1]); // lower row
+    handleEdgeConv2d!bc(input, prealloc, kernel, mask, [0, krh], [0, input.length!1]); // left column
+    handleEdgeConv2d!bc(input, prealloc, kernel, mask, [input.length!0 - krh, input.length!0], [0, input.length!1]); // right column
 
     return prealloc;
 }
 
-Slice!(3, InputType*) conv3Impl(alias bc, InputType, KernelType, MaskType, size_t NK)(Slice!(3,
-        InputType*) range, Slice!(NK, KernelType*) kernel, Slice!(3, InputType*) prealloc,
-        Slice!(NK, MaskType*) mask, TaskPool pool)
+auto convImpl
+    (alias bc = neumann, InputTensor, KernelTensor, MaskTensor)
+    (InputTensor input, KernelTensor kernel, InputTensor prealloc, MaskTensor mask, TaskPool pool) 
+if (ReturnType!(InputTensor.shape).length == 3)
 {
-    foreach (i; 0 .. range.length!2)
+    foreach (i; 0 .. input.length!2)
     {
-        auto r_c = range[0 .. $, 0 .. $, i];
+        auto r_c = input[0 .. $, 0 .. $, i];
         auto p_c = prealloc[0 .. $, 0 .. $, i];
         r_c.conv(kernel, p_c, mask, pool);
     }
@@ -233,7 +247,7 @@ Slice!(3, InputType*) conv3Impl(alias bc, InputType, KernelType, MaskType, size_
     return prealloc;
 }
 
-void handleEdgeConv1d(alias bc, T, K, M)(Slice!(1, T*) range, Slice!(1, T*) prealloc, Slice!(1,
+void handleEdgeConv1d(alias bc, T, K, M)(Slice!(1, T*) input, Slice!(1, T*) prealloc, Slice!(1,
         K*) kernel, Slice!(1, M*) mask, size_t from, size_t to)
 in
 {
@@ -255,7 +269,7 @@ body
         j = -kh;
         foreach (k; kernel)
         {
-            t += bc(range, i + j) * k;
+            t += bc(input, i + j) * k;
             ++j;
         }
         p = t;
@@ -264,7 +278,7 @@ body
     }
 }
 
-void handleEdgeConv2d(alias bc, T, K, M)(Slice!(2, T*) range, Slice!(2, T*) prealloc, Slice!(2,
+void handleEdgeConv2d(alias bc, T, K, M)(Slice!(2, T*) input, Slice!(2, T*) prealloc, Slice!(2,
         K*) kernel, Slice!(2, M*) mask, size_t[2] rowRange, size_t[2] colRange)
 in
 {
@@ -297,7 +311,7 @@ body
                 j = -kch;
                 foreach (k; krow)
                 {
-                    t += bc(range, r + i, c + j) * k;
+                    t += bc(input, r + i, c + j) * k;
                     ++j;
                 }
                 ++i;
