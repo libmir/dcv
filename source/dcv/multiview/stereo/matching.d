@@ -438,11 +438,11 @@ DisparityRefiner medianDisparityFilter(size_t windowSize = 3)
 /**
 Applies a bilateral filter to the disparity map in order to correct outliers.
 */
-DisparityRefiner bilateralDisparityFilter(uint windowSize, float sigma)
+DisparityRefiner bilateralDisparityFilter(uint windowSize, float sigmaCol, float sigmaSpace)
 {
     void disparityRefiner(const ref StereoPipelineProperties props, DisparityMap disp)
     {
-        disp[] = bilateralFilter(disp, sigma, windowSize * 2, windowSize);
+        disp[] = bilateralFilter(disp, sigmaCol, sigmaSpace, windowSize);
     }
 
     return &disparityRefiner;
