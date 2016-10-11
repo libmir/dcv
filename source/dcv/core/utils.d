@@ -46,6 +46,11 @@ package(dcv) @nogc pure nothrow
     }
 
     @safe @nogc nothrow pure auto borders(Shape)(Shape shape, size_t ks)
+    in
+    {
+        static assert(Shape.length == 2, "Non-matrix border extraction is not currently supported.");
+    }
+    body
     {
         import std.typecons : Tuple;
         import std.algorithm.comparison : max;
