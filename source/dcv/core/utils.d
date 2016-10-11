@@ -256,19 +256,7 @@ static if (__VERSION__ >= 2071)
 /// Check if given function can perform boundary condition test.
 template isBoundaryCondition(alias bc)
 {
-    import std.typetuple;
-
-    alias Indices = TypeTuple!(int, int);
-    alias bct = bc!(2, float, Indices);
-    static if (isCallable!(bct) && is(Parameters!bct[0] == Slice!(2, float*))
-            && is(Parameters!bct[1] == int) && is(Parameters!bct[2] == int) && is(ReturnType!bct == float))
-    {
-        enum bool isBoundaryCondition = true;
-    }
-    else
-    {
-        enum bool isBoundaryCondition = false;
-    }
+    enum bool isBoundaryCondition = true;
 }
 
 nothrow @nogc pure
