@@ -214,7 +214,7 @@ auto run_dcv_imgproc_convolution_conv_1D_3()
     auto vector = slice!float(imsize * imsize);
     auto result = slice!float(imsize * imsize);
     auto kernel = slice!float(3);
-    return evalBenchmark(&conv!(neumann, float, float, float, 1, 1), vector, kernel, result,
+    return evalBenchmark(&conv!(neumann, typeof(vector), typeof(kernel), typeof(kernel)), vector, kernel, result,
             emptySlice!(1, float), taskPool);
 }
 
@@ -223,7 +223,7 @@ auto run_dcv_imgproc_convolution_conv_1D_5()
     auto vector = slice!float(imsize * imsize);
     auto result = slice!float(imsize * imsize);
     auto kernel = slice!float(5);
-    return evalBenchmark(&conv!(neumann, float, float, float, 1, 1), vector, kernel, result,
+    return evalBenchmark(&conv!(neumann, typeof(vector), typeof(kernel), typeof(kernel)), vector, kernel, result,
             emptySlice!(1, float), taskPool);
 }
 
@@ -232,7 +232,7 @@ auto run_dcv_imgproc_convolution_conv_1D_7()
     auto vector = slice!float(imsize * imsize);
     auto result = slice!float(imsize * imsize);
     auto kernel = slice!float(7);
-    return evalBenchmark(&conv!(neumann, float, float, float, 1, 1), vector, kernel, result,
+    return evalBenchmark(&conv!(neumann, typeof(vector), typeof(kernel), typeof(kernel)), vector, kernel, result,
             emptySlice!(1, float), taskPool);
 }
 
@@ -241,7 +241,7 @@ auto run_dcv_imgproc_convolution_conv_2D_3x3()
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
     auto kernel = slice!float(3, 3);
-    return evalBenchmark(&conv!(neumann, float, float, float, 2, 2), image, kernel, result,
+    return evalBenchmark(&conv!(neumann, typeof(image), typeof(kernel), typeof(kernel)), image, kernel, result,
             emptySlice!(2, float), taskPool);
 }
 
@@ -250,7 +250,7 @@ auto run_dcv_imgproc_convolution_conv_2D_5x5()
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
     auto kernel = slice!float(5, 5);
-    return evalBenchmark(&conv!(neumann, float, float, float, 2, 2), image, kernel, result,
+    return evalBenchmark(&conv!(neumann, typeof(image), typeof(kernel), typeof(kernel)), image, kernel, result,
             emptySlice!(2, float), taskPool);
 }
 
@@ -259,7 +259,7 @@ auto run_dcv_imgproc_convolution_conv_2D_7x7()
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
     auto kernel = slice!float(7, 7);
-    return evalBenchmark(&conv!(neumann, float, float, float, 2, 2), image, kernel, result,
+    return evalBenchmark(&conv!(neumann, typeof(image), typeof(kernel), typeof(kernel)), image, kernel, result,
             emptySlice!(2, float), taskPool);
 }
 
@@ -268,7 +268,7 @@ auto run_dcv_imgproc_convolution_conv_3D_3x3()
     auto image = slice!float(imsize, imsize, 3);
     auto result = slice!float(imsize, imsize, 3);
     auto kernel = slice!float(3, 3);
-    return evalBenchmark(&conv!(neumann, float, float, float, 3, 2), image, kernel, result,
+    return evalBenchmark(&conv!(neumann, typeof(image), typeof(kernel), typeof(kernel)), image, kernel, result,
             emptySlice!(2, float), taskPool);
 }
 
@@ -277,7 +277,7 @@ auto run_dcv_imgproc_convolution_conv_3D_5x5()
     auto image = slice!float(imsize, imsize, 3);
     auto result = slice!float(imsize, imsize, 3);
     auto kernel = slice!float(5, 5);
-    return evalBenchmark(&conv!(neumann, float, float, float, 3, 2), image, kernel, result,
+    return evalBenchmark(&conv!(neumann, typeof(image), typeof(kernel), typeof(kernel)), image, kernel, result,
             emptySlice!(2, float), taskPool);
 }
 
