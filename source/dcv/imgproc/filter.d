@@ -793,7 +793,7 @@ body
                 foreach (int kc; c - ksh .. c + ksh + 1)
                 {
                     auto ck = (c - kc) ^^ 2;
-					auto cdiff = bc(slice, kr, kc) - p_val;
+                    auto cdiff = bc(slice, kr, kc) - p_val;
                     float c_val = exp((ck + rk) / (-2.0f * sigmaSpace * sigmaSpace));
                     float s_val = exp((cdiff * cdiff) / (-2.0f * sigmaCol * sigmaCol));
                     mask[i, j] = c_val * s_val;
