@@ -328,14 +328,14 @@ auto run_dcv_imgproc_filter_bilateralFilter_3()
 {
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&bilateralFilter!(neumann, float, float, 2), image, 0.84, 3, result, taskPool);
+    return evalBenchmark(&bilateralFilter!(neumann, typeof(image), float, 2), image, 0.84, 3, result, taskPool);
 }
 
 auto run_dcv_imgproc_filter_bilateralFilter_5()
 {
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&bilateralFilter!(neumann, float, float, 2), image, 0.84, 5, result, taskPool);
+    return evalBenchmark(&bilateralFilter!(neumann, typeof(image), float, 2), image, 0.84, 5, result, taskPool);
 }
 
 auto run_dcv_imgproc_filter_medianFilter_3()
