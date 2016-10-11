@@ -52,11 +52,15 @@ import std.algorithm.comparison : max;
 import std.algorithm.mutation : copy;
 import std.array : uninitializedArray;
 import std.parallelism : parallel, taskPool, TaskPool;
+import std.traits: ReturnType;
+
+import ldc.attributes : fastmath;
 
 import dcv.core.algorithm;
 import dcv.core.utils;
 
 import mir.ndslice;
+import mir.ndslice.algorithm : ndReduce, ndEach, Yes;
 
 /**
 Box kernel creation.
@@ -750,85 +754,61 @@ Params:
 Returns:
     Slice of filtered image.
 */
-Slice!(N, OutputType*) bilateralFilter(alias bc = neumann, InputType, OutputType = InputType, size_t N)(Slice!(N,
-        InputType*) slice, float sigma, uint kernelSize, Slice!(N,
-        OutputType*) prealloc = emptySlice!(N, OutputType), TaskPool pool = taskPool) if (N == 2)
+Slice!(N, OutputType*) bilateralFilter
+    (alias bc = neumann, InputTensor, OutputType = DeepElementType!(InputTensor), size_t N = ReturnType!(InputTensor.shape).length)
+    (InputTensor input, float sigma, size_t kernelSize, Slice!(N, OutputType*) prealloc = emptySlice!(N, OutputType),
+     TaskPool pool = taskPool) if (N == 2)
 in
 {
     static assert(isBoundaryCondition!bc, "Invalid boundary condition test function.");
-    assert(!slice.empty);
+    assert(!input.empty);
     assert(kernelSize % 2);
+    static assert(isFloatingPoint!(DeepElementType!InputTensor), "Input tensor value type has to be of floating point type.");
 }
 body
 {
-    import std.algorithm.comparison : max;
-    import std.algorithm.iteration : reduce;
-    import std.math : exp, sqrt;
-    import mir.glas.l1 : asum;
+    if (prealloc.shape != input.shape)
+        prealloc = uninitializedSlice!OutputType(input.shape);
 
-    if (prealloc.empty || prealloc.shape != slice.shape)
+    auto ks = kernelSize;
+    auto kh = max(1, ks / 2);
+
+    auto inputWindows = input.windows(kernelSize, kernelSize);
+    auto innerBody = prealloc[kh .. $ - kh, kh .. $ - kh];
+    auto inShape = innerBody.shape;
+    auto shape = input.shape;
+    auto kId = indexSlice(ks, ks).ndMap!(v => [cast(int)v[0] - cast(int)kh, cast(int)v[1] - cast(int)kh]).slice;
+
+    auto threadMask = pool.workerLocalStorage(slice!float(ks, ks));
+
+    foreach(r; pool.parallel(iota(inShape[0])))
     {
-        prealloc = uninitializedArray!(OutputType[])(slice.elementsCount).sliced(slice.shape);
+        auto maskBuf = threadMask.get();
+        foreach(c; 0 .. inShape[1])
+        {
+            innerBody[r, c] = cast(OutputType)bilateralFilterImpl(inputWindows[r, c], maskBuf, sigma);
+        }
     }
 
-    int ks = cast(int)kernelSize;
-    int ksh = max(1, ks / 2);
-    int rows = cast(int)slice.length!0;
-    int cols = cast(int)slice.length!1;
-
-    foreach (r; pool.parallel(iota(rows)))
+    foreach(border; pool.parallel(input.shape.borders(ks)[]))
     {
-        auto mask = new float[ks * ks].sliced(ks, ks);
-        foreach (c; 0 .. cols)
-        {
-            auto p_val = slice[r, c];
-
-            // generate mask
-            int i = 0;
-            int j;
-            foreach (int kr; r - ksh .. r + ksh + 1)
+        auto maskBuf = threadMask.get();
+        foreach(r; border.rows)
+            foreach(c; border.cols)
             {
-                j = 0;
-                auto rk = (r - kr) ^^ 2;
-                foreach (int kc; c - ksh .. c + ksh + 1)
-                {
-                    auto ck = (c - kc) ^^ 2;
-                    float c_val = exp(-0.5f * ((sqrt(cast(float)(ck + rk)) / sigma) ^^ 2));
-                    float s_val = exp(-0.5f * ((cast(float)(bc(slice, kr, kc) - p_val) / sigma) ^^ 2));
-                    mask[i, j] = c_val * s_val;
-                    ++j;
-                }
-                ++i;
+                auto inputWindow = kId.ndMap!(v => bc(input, r - v[0], c - v[1]));
+                prealloc[r, c] = cast(OutputType)bilateralFilterImpl(inputWindow, maskBuf, sigma);
             }
-
-            // normalize mask and calculate result value.
-            float mask_sum = mask.asum;
-            float res_val = 0.0f;
-
-            i = 0;
-            foreach (kr; r - ksh .. r + ksh + 1)
-            {
-                j = 0;
-                auto rk = (r - kr) ^^ 2;
-                foreach (kc; c - ksh .. c + ksh + 1)
-                {
-                    res_val += (mask[i, j] / mask_sum) * bc(slice, kr, kc);
-                    ++j;
-                }
-                ++i;
-            }
-
-            prealloc[r, c] = cast(OutputType)res_val;
-        }
     }
 
     return prealloc;
 }
 
 /// ditto
-Slice!(N, OutputType*) bilateralFilter(alias bc = neumann, InputType, OutputType = InputType, size_t N)(Slice!(N,
-        InputType*) slice, float sigma, uint kernelSize, Slice!(N,
-        OutputType*) prealloc = emptySlice!(N, OutputType)) if (N == 3)
+Slice!(N, OutputType*) bilateralFilter
+    (alias bc = neumann, InputTensor, OutputType = DeepElementType!(InputTensor), size_t N = ReturnType!(InputTensor.shape).length)
+    (InputTensor input, float sigma, size_t kernelSize, Slice!(N, OutputType*) prealloc = emptySlice!(N, OutputType),
+     TaskPool pool = taskPool) if (N == 3)
 {
     if (prealloc.empty || prealloc.shape != slice.shape)
     {
@@ -1228,7 +1208,52 @@ Slice!(2, T*) close(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) slic
             BoundaryConditionTest)(slice, kernel, emptySlice!(2, T), pool), kernel, prealloc, pool);
 }
 
+@fastmath void calcBilateralMask(Window, Mask)(Window window, Mask mask, float sigma)
+{
+    import ldc.intrinsics : exp = llvm_exp, sqrt = llvm_sqrt;
+
+    auto in_val = window[$ / 2, $ / 2];
+    float rd, cd, c_val, s_val;
+    float i, j, wl2;
+    wl2 = -(cast(float)window.length!0 / 2.0f);
+    i = wl2;
+    sigma = 1.0 / sigma;
+    foreach (r; 0 .. window.length!0)
+    {
+        rd = i * i;
+        j = wl2;
+        foreach (c; 0 .. window.length!1)
+        {
+            cd = j * j;
+            c_val = sqrt(cd + rd) * sigma;
+            c_val = exp(-0.5f * (c_val * c_val));
+            s_val = cast(float)(window[r, c] - in_val) * sigma;
+            s_val *= s_val;
+            s_val = exp(-0.5f * s_val);
+            mask[r, c] = c_val * s_val;
+            j++;
+        }
+        i++;
+    }
+}
+
+@fastmath auto calcBilateralValue(T)(T r, T i, T m) 
+{
+    return r + i*m;
+}
+
 private:
+
+auto bilateralFilterImpl(Window, Mask)(Window window, Mask mask, float sigma)
+{
+    import mir.glas.l1 : asum;
+
+    calcBilateralMask(window, mask, sigma);
+    auto mask_norm = 1.0f / float(mask.asum);
+    mask.ndEach!( (ref v) { v *= mask_norm; }, Yes.vectorized, Yes.fastmath);
+
+    return ndReduce!(calcBilateralValue!(DeepElementType!(typeof(window))), Yes.vectorized, Yes.fastmath)(0.0f, window, mask);
+}
 
 void medianFilterImpl1(alias bc, T, O)(Slice!(1, T*) slice, Slice!(1, O*) filtered,
     size_t kernelSize, TaskPool pool)
