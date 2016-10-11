@@ -44,6 +44,49 @@ package(dcv) @nogc pure nothrow
         T* ptr = cast(T*)slice.ptr;
         return Slice!(N+1, T*)(shape, strides, ptr);
     }
+
+    @safe @nogc nothrow pure auto borders(Shape)(Shape shape, size_t ks)
+    {
+        import std.typecons : Tuple;
+        import std.algorithm.comparison : max;
+        import std.range : iota;
+        import std.traits : ReturnType;
+
+        struct Range(Iota)
+        {
+            Iota rows;
+            Iota cols;
+            @disable this();
+            this(Iota rows, Iota cols)
+            {
+                this.rows = rows;
+                this.cols = cols;
+            }
+        }
+
+        auto range(Iota)(Iota rows, Iota cols)
+        {
+            return Range!Iota(rows, cols);
+        }
+
+        // forced size_t cast...
+        auto _iota(B, E, S)(B begin, E end, S step = 1)
+        {
+            return iota(size_t(begin), size_t(end), size_t(step));
+        }
+
+        size_t kh = max(1, ks / 2);
+        alias Iota = ReturnType!(iota!(size_t, size_t, size_t));
+
+        Range!(Iota)[4] borders = [
+            range(_iota(0, shape[0]), _iota(0, kh)),
+            range(_iota(0, shape[0]), _iota(shape[1] - kh, shape[1])),
+            range(_iota(0, kh), _iota(0, shape[1])),
+            range(_iota(shape[0] - kh, shape[0]), _iota(0, shape[1]))
+        ];
+
+        return borders;
+    }
 }
 
 /**
