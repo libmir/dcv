@@ -308,7 +308,7 @@ auto run_dcv_imgproc_filter_nonMaximaSupression()
     auto mag = slice!float(imsize, imsize);
     auto orient = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&nonMaximaSupression!(float, float), mag, orient, result);
+    return evalBenchmark(&nonMaximaSupression!(typeof(mag), float), mag, orient, result);
 }
 
 auto run_dcv_imgproc_filter_canny()

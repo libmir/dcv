@@ -602,102 +602,48 @@ prealloc = Optional pre-allocated buffer for output slice.
 see:
 dcv.imgproc.filter.calcGradients, dcv.imgproc.convolution
 */
-Slice!(2, V*) nonMaximaSupression(T, V = T)(Slice!(2, T*) mag, Slice!(2, T*) orient, Slice!(2,
-        V*) prealloc = emptySlice!(2, V))
+Slice!(2, V*) nonMaximaSupression(InputTensor, V = DeepElementType!InputTensor)
+(InputTensor mag, InputTensor orient, Slice!(2, V*) prealloc = emptySlice!(2, V))
 in
 {
+    static assert(isSlice!InputTensor, "Input tensor has to be of type mir.ndslice.slice.Slice");
+    static assert(ReturnType!(InputTensor.shape).length == 2, "Input tensor has to be 2 dimensional. (matrix)");
+
     assert(!mag.empty && !orient.empty);
-    assert(mag.shape[] == orient.shape[]);
+    assert(mag.shape == orient.shape);
+    assert(mag.structure.strides == orient.structure.strides, "Magnitude and Orientation tensor strides have to be the same.");
 }
 body
 {
     import std.array : uninitializedArray;
-    import std.math : PI, abs;
+    import std.math : PI;
 
-    if (prealloc.shape[] != orient.shape[])
+    alias F = DeepElementType!InputTensor;
+
+    static if (isFloatingPoint!F)
+        import ldc.intrinsics : abs = llvm_fabs;
+    else
+        import std.math : abs;
+
+    if (prealloc.shape != orient.shape
+            || prealloc.structure.strides != mag.structure.strides)
+        prealloc = uninitializedSlice!V(mag.shape);
+
+    auto magWindows = mag.windows(3, 3);
+    auto dPack = assumeSameStructure!("result", "ang")(prealloc[1 .. $-1, 1 .. $-1], orient[1 .. $-1, 1 .. $-1]);
+
+    size_t r, c;
+
+    r = 0;
+    foreach(drow; dPack)
     {
-        prealloc = uninitializedArray!(V[])(mag.length!0 * mag.length!1).sliced(mag.shape);
-    }
-
-    size_t[2] p0;
-    size_t[2] p1;
-
-    foreach (i; 1 .. mag.length!0 - 1)
-    {
-        foreach (j; 1 .. mag.length!1 - 1)
+        c = 0;
+        foreach(p; drow)
         {
-            auto ang = orient[i, j];
-            auto aang = abs(ang);
-
-            immutable pi = 3.15;
-            immutable pi8 = pi / 8.0;
-
-            if (aang <= pi && aang > 7.0 * pi8)
-            {
-                p0[0] = j - 1;
-                p0[1] = i;
-                p1[0] = j + 1;
-                p1[1] = i;
-            }
-            else if (ang >= -7.0 * pi8 && ang < -5.0 * pi8)
-            {
-                p0[0] = j - 1;
-                p0[1] = i - 1;
-                p1[0] = j + 1;
-                p1[1] = i + 1;
-            }
-            else if (ang <= 7.0 * pi8 && ang > 5.0 * pi8)
-            {
-                p0[0] = j + 1;
-                p0[1] = i - 1;
-                p1[0] = j - 1;
-                p1[1] = i + 1;
-            }
-            else if (ang >= pi8 && ang < 3.0 * pi8)
-            {
-                p0[0] = j - 1;
-                p0[1] = i + 1;
-                p1[0] = j + 1;
-                p1[1] = i - 1;
-            }
-            else if (ang <= -pi8 && ang > -3.0 * pi8)
-            {
-                p0[0] = j + 1;
-                p0[1] = i + 1;
-                p1[0] = j - 1;
-                p1[1] = i - 1;
-            }
-            else if (ang >= -5.0 * pi8 && ang < -3.0 * pi8)
-            {
-                p0[0] = j;
-                p0[1] = i - 1;
-                p1[0] = j;
-                p1[1] = i + 1;
-            }
-            else if (ang <= 5.0 * pi8 && ang > 3.0 * pi8)
-            {
-                p0[0] = j;
-                p0[1] = i + 1;
-                p1[0] = j;
-                p1[1] = i - 1;
-            }
-            else if (aang >= 0.0 && aang < pi8)
-            {
-                p0[0] = j + 1;
-                p0[1] = i;
-                p1[0] = j - 1;
-                p1[1] = i;
-            }
-
-            if (mag[p1[1], p1[0]] <= mag[p0[1], p0[0]])
-            {
-                prealloc[i, j] = 0;
-            }
-            else
-            {
-                prealloc[i, j] = mag[i, j];
-            }
+            nonMaximaSupressionImpl(p, magWindows[r, c]);
+            ++c;
         }
+        ++r;
     }
 
     return prealloc;
@@ -1258,6 +1204,61 @@ Slice!(2, T*) close(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) slic
 }
 
 private:
+
+void nonMaximaSupressionImpl(DataPack, MagWindow)(DataPack p, MagWindow magWin)
+{
+    auto ang = p.ang;
+    auto aang = abs(ang);
+
+    auto mag = magWin[1, 1];
+    typeof(mag) mb, ma; // magnitude before and after cursor
+
+    immutable pi = 3.15f;
+    immutable pi8 = pi / 8.0f;
+
+    if (aang <= pi && aang > 7.0f * pi8)
+    {
+        mb = magWin[1, 0];
+        ma = magWin[1, 2];
+    }
+    else if (ang >= -7.0f * pi8 && ang < -5.0f * pi8)
+    {
+        mb = magWin[0, 0];
+        ma = magWin[2, 2];
+    }
+    else if (ang <= 7.0f * pi8 && ang > 5.0f * pi8)
+    {
+        mb = magWin[0, 2];
+        ma = magWin[2, 0];
+    }
+    else if (ang >= pi8 && ang < 3.0f * pi8)
+    {
+        mb = magWin[2, 0];
+        ma = magWin[0, 2];
+    }
+    else if (ang <= -pi8 && ang > -3.0f * pi8)
+    {
+        mb = magWin[2, 2];
+        ma = magWin[0, 0];
+    }
+    else if (ang >= -5.0f * pi8 && ang < -3.0f * pi8)
+    {
+        mb = magWin[0, 1];
+        ma = magWin[2, 1];
+    }
+    else if (ang <= 5.0f * pi8 && ang > 3.0f * pi8)
+    {
+        mb = magWin[2, 1];
+        ma = magWin[0, 1];
+    }
+    else if (aang >= 0.0f && aang < pi8)
+    {
+        mb = magWin[1, 2];
+        ma = magWin[1, 0];
+    }
+
+    p.result = (ma > mb) ? 0 : mag;
+}
 
 auto bilateralFilterImpl(Window, Mask)(Window window, Mask mask, float sigma)
 {
