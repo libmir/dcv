@@ -462,37 +462,35 @@ Calculate partial derivatives of an slice.
 Partial derivatives are calculated by convolving an slice with
 [-1, 1] kernel, horizontally and vertically.
 */
-void calcPartialDerivatives(T, V = T)(Slice!(2, T*) slice, ref Slice!(2, V*) fx, ref Slice!(2, V*) fy)
+void calcPartialDerivatives(InputTensor, V = DeepElementType!InputTensor)(InputTensor input, ref Slice!(2, V*) fx, ref Slice!(2, V*) fy)
         if (isFloatingPoint!V)
 in
 {
-    assert(!slice.empty);
+    static assert(isSlice!InputTensor, "Invalid input tensor type - has to be of type mir.ndslice.slice.Slice.");
+    static assert(ReturnType!(InputTensor.shape).length == 2, "Input tensor has to be 2 dimensional. (matrix)");
 }
 body
 {
-    import std.range : iota;
-    import std.array : array, uninitializedArray;
-    import std.algorithm : equal, reduce;
+    if(input.empty)
+        return;
 
-    auto itemLength = slice.elementsCount;
-    if (!fx.shape[].equal(slice.shape[]))
-        fx = uninitializedArray!(V[])(itemLength).sliced(slice.shape);
-    if (!fy.shape[].equal(slice.shape[]))
-        fy = uninitializedArray!(V[])(itemLength).sliced(slice.shape);
+    if (fx.shape != input.shape)
+        fx = uninitializedSlice!V(input.shape);
+    if (fy.shape != input.shape)
+        fy = uninitializedSlice!V(input.shape);
 
-    auto rows = slice.length!0;
-    auto cols = slice.length!1;
+    auto rows = input.length!0;
+    auto cols = input.length!1;
 
-    // calc mid-ground
-    foreach (r; 1.iota(rows))
+    foreach (r; 1 .. rows)
     {
         auto x_row = fx[r, 0 .. $];
         auto y_row = fy[r, 0 .. $];
-        foreach (c; 1.iota(cols))
+        foreach (c; 1 .. cols)
         {
-            auto imrc = slice[r, c];
-            x_row[c] = cast(V)(-1. * slice[r, c - 1] + imrc);
-            y_row[c] = cast(V)(-1. * slice[r - 1, c] + imrc);
+            auto imrc = input[r, c];
+            x_row[c] = cast(V)(-1. * input[r, c - 1] + imrc);
+            y_row[c] = cast(V)(-1. * input[r - 1, c] + imrc);
         }
     }
 
@@ -500,35 +498,35 @@ body
     auto x_row = fx[0, 0 .. $];
     auto y_row = fy[0, 0 .. $];
 
-    foreach (c; 0.iota(cols - 1))
+    foreach (c; 0 .. cols - 1)
     {
-        auto im_0c = slice[0, c];
-        x_row[c] = cast(V)(-1. * im_0c + slice[0, c + 1]);
-        y_row[c] = cast(V)(-1. * im_0c + slice[1, c]);
+        auto im_0c = input[0, c];
+        x_row[c] = cast(V)(-1. * im_0c + input[0, c + 1]);
+        y_row[c] = cast(V)(-1. * im_0c + input[1, c]);
     }
 
     auto x_col = fx[0 .. $, 0];
     auto y_col = fy[0 .. $, 0];
 
-    foreach (r; iota(rows - 1))
+    foreach (r; 0 .. rows - 1)
     {
-        auto im_r_0 = slice[r, 0];
-        x_col[r] = cast(V)(-1. * im_r_0 + slice[r, 1]);
-        y_col[r] = cast(V)(-1. * im_r_0 + slice[r + 1, 0]);
+        auto im_r_0 = input[r, 0];
+        x_col[r] = cast(V)(-1. * im_r_0 + input[r, 1]);
+        y_col[r] = cast(V)(-1. * im_r_0 + input[r + 1, 0]);
     }
 
     // edges corner pixels
-    fx[0, cols - 1] = cast(V)(-1 * slice[0, cols - 2] + slice[0, cols - 1]);
-    fy[0, cols - 1] = cast(V)(-1 * slice[0, cols - 1] + slice[1, cols - 1]);
-    fx[rows - 1, 0] = cast(V)(-1 * slice[rows - 1, 0] + slice[rows - 1, 1]);
-    fy[rows - 1, 0] = cast(V)(-1 * slice[rows - 2, 0] + slice[rows - 1, 0]);
+    fx[0, cols - 1] = cast(V)(-1 * input[0, cols - 2] + input[0, cols - 1]);
+    fy[0, cols - 1] = cast(V)(-1 * input[0, cols - 1] + input[1, cols - 1]);
+    fx[rows - 1, 0] = cast(V)(-1 * input[rows - 1, 0] + input[rows - 1, 1]);
+    fy[rows - 1, 0] = cast(V)(-1 * input[rows - 2, 0] + input[rows - 1, 0]);
 }
 
 /**
 Calculate gradient magnitude and orientation of an image slice.
 
 Params:
-    slice = Input slice of an image.
+    input = Input slice of an image.
     mag = Output magnitude value of gradients.
     orient = Orientation value of gradients in radians.
     edgeKernelType = Optional convolution kernel type to calculate partial derivatives. 
@@ -536,31 +534,27 @@ Params:
     to calculate derivatives. Other options will perform convolution with requested
     kernel type.
 */
-void calcGradients(T, V = T)(Slice!(2, T*) slice, ref Slice!(2, V*) mag, ref Slice!(2, V*) orient,
+void calcGradients(InputTensor, V = DeepElementType!InputTensor)(InputTensor input, ref Slice!(2, V*) mag, ref Slice!(2, V*) orient,
         EdgeKernel edgeKernelType = EdgeKernel.SIMPLE) if (isFloatingPoint!V)
 in
 {
-    assert(!slice.empty);
+
+    assert(!input.empty);
 }
 body
 {
-    import std.array : uninitializedArray;
     import std.math : sqrt, atan2;
 
-    if (mag.shape[] != slice.shape[])
-    {
-        mag = uninitializedArray!(V[])(slice.length!0 * slice.length!1).sliced(slice.shape);
-    }
+    if (mag.shape != input.shape)
+        mag = uninitializedSlice!V(input.shape);
 
-    if (orient.shape[] != slice.shape[])
-    {
-        orient = uninitializedArray!(V[])(slice.length!0 * slice.length!1).sliced(slice.shape);
-    }
+    if (orient.shape != input.shape)
+        orient = uninitializedSlice!V(input.shape);
 
     Slice!(2, V*) fx, fy;
     if (edgeKernelType == EdgeKernel.SIMPLE)
     {
-        calcPartialDerivatives(slice, fx, fy);
+        calcPartialDerivatives(input, fx, fy);
     }
     else
     {
@@ -569,19 +563,29 @@ body
         Slice!(2, V*) kx, ky;
         kx = edgeKernel!V(edgeKernelType, GradientDirection.DIR_X);
         ky = edgeKernel!V(edgeKernelType, GradientDirection.DIR_Y);
-        fx = slice.conv(kx);
-        fy = slice.conv(ky);
+        fx = input.conv(kx);
+        fy = input.conv(ky);
     }
 
-    foreach (i; 0 .. slice.length!0)
+    if (mag.structure.strides == orient.structure.strides &&
+            mag.structure.strides == fx.structure.strides)
     {
-        foreach (j; 0 .. slice.length!1)
-        {
-            mag[i, j] = cast(V)sqrt(fx[i, j] ^^ 2 + fy[i, j] ^^ 2);
-            orient[i, j] = cast(V)atan2(fy[i, j], fx[i, j]);
-        }
+        assumeSameStructure!("fx", "fy", "mag", "orient")(fx, fy, mag, orient).
+            ndEach!( p => calcGradientsImpl(p.fx, p.fy, p.mag, p.orient), Yes.vectorized, Yes.fastmath);
     }
+    else
+    {
+        indexSlice(input.shape)
+            .ndEach!(i => calcGradientsImpl(fx[i], fy[i], mag[i], orient[i]), Yes.vectorized, Yes.fastmath);
+    }
+}
 
+@fastmath void calcGradientsImpl(T)(T fx, T fy, ref T mag, ref T orient)
+{
+    import ldc.intrinsics : sqrt = llvm_sqrt;
+    import std.math : atan2;
+    mag = sqrt(fx*fx + fy*fy);
+    orient = atan2(fy, fx);
 }
 
 /**

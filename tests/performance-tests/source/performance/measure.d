@@ -292,7 +292,7 @@ auto run_dcv_imgproc_filter_calcPartialDerivatives()
     auto image = slice!float(imsize, imsize);
     auto fx = slice!float(imsize, imsize);
     auto fy = slice!float(imsize, imsize);
-    return evalBenchmark(&calcPartialDerivatives!float, image, fx, fy);
+    return evalBenchmark(&calcPartialDerivatives!(typeof(image), float), image, fx, fy);
 }
 
 auto run_dcv_imgproc_filter_calcGradients()
@@ -300,7 +300,7 @@ auto run_dcv_imgproc_filter_calcGradients()
     auto image = slice!float(imsize, imsize);
     auto mag = slice!float(imsize, imsize);
     auto orient = slice!float(imsize, imsize);
-    return evalBenchmark(&calcGradients!(float), image, mag, orient, EdgeKernel.SIMPLE);
+    return evalBenchmark(&calcGradients!(typeof(image), float), image, mag, orient, EdgeKernel.SIMPLE);
 }
 
 auto run_dcv_imgproc_filter_nonMaximaSupression()
