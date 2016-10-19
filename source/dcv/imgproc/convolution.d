@@ -105,7 +105,7 @@ in
     }
 
     if (prealloc.empty)
-        assert(input.stride!(N-1) == 1, "Input input has to be contiguous (i.e. input.stride!(N-1) == 1).");
+        assert(input.stride!(N-1) == 1, "Input tensor has to be contiguous (i.e. input.stride!(N-1) == 1).");
     else
         assert(input.structure.strides == prealloc.structure.strides,
                 "Input input and result(preallocated) buffer need to have same strides.");
