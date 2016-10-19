@@ -462,8 +462,8 @@ Calculate partial derivatives of an slice.
 Partial derivatives are calculated by convolving an slice with
 [-1, 1] kernel, horizontally and vertically.
 */
-void calcPartialDerivatives(InputTensor, V = DeepElementType!InputTensor)(InputTensor input, ref Slice!(2, V*) fx, ref Slice!(2, V*) fy)
-        if (isFloatingPoint!V)
+void calcPartialDerivatives(InputTensor, V = DeepElementType!InputTensor)
+    (InputTensor input, ref Slice!(2, V*) fx, ref Slice!(2, V*) fy, TaskPool pool = taskPool) if (isFloatingPoint!V)
 in
 {
     static assert(isSlice!InputTensor, "Invalid input tensor type - has to be of type mir.ndslice.slice.Slice.");
@@ -482,7 +482,7 @@ body
     auto rows = input.length!0;
     auto cols = input.length!1;
 
-    foreach (r; 1 .. rows)
+    foreach (r; pool.parallel(iota(1, rows)))
     {
         auto x_row = fx[r, 0 .. $];
         auto y_row = fy[r, 0 .. $];
@@ -498,7 +498,7 @@ body
     auto x_row = fx[0, 0 .. $];
     auto y_row = fy[0, 0 .. $];
 
-    foreach (c; 0 .. cols - 1)
+    foreach (c; pool.parallel(iota(cols - 1)))
     {
         auto im_0c = input[0, c];
         x_row[c] = cast(V)(-1. * im_0c + input[0, c + 1]);
@@ -508,7 +508,7 @@ body
     auto x_col = fx[0 .. $, 0];
     auto y_col = fy[0 .. $, 0];
 
-    foreach (r; 0 .. rows - 1)
+    foreach (r; pool.parallel(iota(rows - 1)))
     {
         auto im_r_0 = input[r, 0];
         x_col[r] = cast(V)(-1. * im_r_0 + input[r, 1]);
@@ -534,17 +534,17 @@ Params:
     to calculate derivatives. Other options will perform convolution with requested
     kernel type.
 */
-void calcGradients(InputTensor, V = DeepElementType!InputTensor)(InputTensor input, ref Slice!(2, V*) mag, ref Slice!(2, V*) orient,
-        EdgeKernel edgeKernelType = EdgeKernel.SIMPLE) if (isFloatingPoint!V)
+void calcGradients(InputTensor, V = DeepElementType!InputTensor)
+    (InputTensor input, ref Slice!(2, V*) mag, ref Slice!(2, V*) orient,
+     EdgeKernel edgeKernelType = EdgeKernel.SIMPLE, TaskPool pool = taskPool) if (isFloatingPoint!V)
 in
 {
-
+    static assert(isSlice!InputTensor, "Input tensor has to be of type mir.ndslice.slice.Slice");
+    static assert(ReturnType!(InputTensor.shape).length == 2, "Input tensor has to be 2 dimensional. (matrix)");
     assert(!input.empty);
 }
 body
 {
-    import std.math : sqrt, atan2;
-
     if (mag.shape != input.shape)
         mag = uninitializedSlice!V(input.shape);
 
@@ -554,7 +554,7 @@ body
     Slice!(2, V*) fx, fy;
     if (edgeKernelType == EdgeKernel.SIMPLE)
     {
-        calcPartialDerivatives(input, fx, fy);
+        calcPartialDerivatives(input, fx, fy, pool);
     }
     else
     {
@@ -563,20 +563,25 @@ body
         Slice!(2, V*) kx, ky;
         kx = edgeKernel!V(edgeKernelType, GradientDirection.DIR_X);
         ky = edgeKernel!V(edgeKernelType, GradientDirection.DIR_Y);
-        fx = input.conv(kx);
-        fy = input.conv(ky);
+        fx = input.conv(kx, emptySlice!(2, V), emptySlice!(2, V), pool);
+        fy = input.conv(ky, emptySlice!(2, V), emptySlice!(2, V), pool);
     }
 
     if (mag.structure.strides == orient.structure.strides &&
             mag.structure.strides == fx.structure.strides)
     {
-        assumeSameStructure!("fx", "fy", "mag", "orient")(fx, fy, mag, orient).
-            ndEach!( p => calcGradientsImpl(p.fx, p.fy, p.mag, p.orient), Yes.vectorized, Yes.fastmath);
+        auto data = assumeSameStructure!("fx", "fy", "mag", "orient")(fx, fy, mag, orient);
+        foreach(row; pool.parallel(data))
+        {
+            row.ndEach!( p => calcGradientsImpl(p.fx, p.fy, p.mag, p.orient), Yes.vectorized, Yes.fastmath);
+        }
     }
     else
     {
-        indexSlice(input.shape)
-            .ndEach!(i => calcGradientsImpl(fx[i], fy[i], mag[i], orient[i]), Yes.vectorized, Yes.fastmath);
+        foreach(row; pool.parallel(indexSlice(input.shape)))
+        {
+            row.ndEach!(i => calcGradientsImpl(fx[i], fy[i], mag[i], orient[i]), Yes.vectorized, Yes.fastmath);
+        }
     }
 }
 
@@ -589,21 +594,21 @@ body
 }
 
 /**
-Edge detection impuls non-maxima supression.
+Edge detection impulse non-maxima supression.
 
 Filtering used in canny edge detection algorithm - suppresses all 
 edge impulses (gradient values along edges normal) except the peek value.
 
 Params:
-mag = Gradient magnitude.
-orient = Gradient orientation of the same image source as magnitude.
-prealloc = Optional pre-allocated buffer for output slice.
+    mag = Gradient magnitude.
+    orient = Gradient orientation of the same image source as magnitude.
+    prealloc = Optional pre-allocated buffer for output slice.
 
 see:
-dcv.imgproc.filter.calcGradients, dcv.imgproc.convolution
+    dcv.imgproc.filter.calcGradients, dcv.imgproc.convolution
 */
 Slice!(2, V*) nonMaximaSupression(InputTensor, V = DeepElementType!InputTensor)
-(InputTensor mag, InputTensor orient, Slice!(2, V*) prealloc = emptySlice!(2, V))
+(InputTensor mag, InputTensor orient, Slice!(2, V*) prealloc = emptySlice!(2, V), TaskPool pool = taskPool)
 in
 {
     static assert(isSlice!InputTensor, "Input tensor has to be of type mir.ndslice.slice.Slice");
@@ -632,18 +637,16 @@ body
     auto magWindows = mag.windows(3, 3);
     auto dPack = assumeSameStructure!("result", "ang")(prealloc[1 .. $-1, 1 .. $-1], orient[1 .. $-1, 1 .. $-1]);
 
-    size_t r, c;
+    auto innerShape = magWindows.shape;
 
-    r = 0;
-    foreach(drow; dPack)
+    foreach(r; pool.parallel(iota(innerShape[0])))
     {
-        c = 0;
-        foreach(p; drow)
+        auto d = dPack[r];
+        auto m = magWindows[r];
+        foreach(c; 0 .. innerShape[1])
         {
-            nonMaximaSupressionImpl(p, magWindows[r, c]);
-            ++c;
+            nonMaximaSupressionImpl(d[c], m[c]);
         }
-        ++r;
     }
 
     return prealloc;
@@ -660,7 +663,8 @@ Params:
     prealloc = Optional pre-allocated buffer.
 */
 Slice!(2, V*) canny(V, T)(Slice!(2, T*) slice, T lowThresh, T upThresh,
-        EdgeKernel edgeKernelType = EdgeKernel.SOBEL, Slice!(2, V*) prealloc = emptySlice!(2, V))
+        EdgeKernel edgeKernelType = EdgeKernel.SOBEL,
+        Slice!(2, V*) prealloc = emptySlice!(2, V), TaskPool pool = taskPool)
 {
     import dcv.imgproc.threshold;
     import dcv.core.algorithm : ranged;
@@ -669,11 +673,10 @@ Slice!(2, V*) canny(V, T)(Slice!(2, T*) slice, T lowThresh, T upThresh,
 
     Slice!(2, float*) mag, orient;
     calcGradients(slice, mag, orient, edgeKernelType);
-    auto nonmax = nonMaximaSupression(mag, orient);
 
-    return nonmax
+    return nonMaximaSupression(mag, orient, emptySlice!(2, T), pool)
         .ranged(0, upval)
-        .threshold!V(lowThresh, upThresh);
+        .threshold(lowThresh, upThresh, prealloc);
 }
 
 /**
@@ -1207,6 +1210,8 @@ private:
 
 void nonMaximaSupressionImpl(DataPack, MagWindow)(DataPack p, MagWindow magWin)
 {
+    alias F = typeof(p.result);
+
     auto ang = p.ang;
     auto aang = abs(ang);
 
@@ -1257,7 +1262,7 @@ void nonMaximaSupressionImpl(DataPack, MagWindow)(DataPack p, MagWindow magWin)
         ma = magWin[1, 0];
     }
 
-    p.result = (ma > mb) ? 0 : mag;
+    p.result = cast(F)((ma > mb) ? 0 : mag);
 }
 
 auto bilateralFilterImpl(Window, Mask)(Window window, Mask mask, float sigma)

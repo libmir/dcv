@@ -292,7 +292,7 @@ auto run_dcv_imgproc_filter_calcPartialDerivatives()
     auto image = slice!float(imsize, imsize);
     auto fx = slice!float(imsize, imsize);
     auto fy = slice!float(imsize, imsize);
-    return evalBenchmark(&calcPartialDerivatives!(typeof(image), float), image, fx, fy);
+    return evalBenchmark(&calcPartialDerivatives!(typeof(image), float), image, fx, fy, taskPool);
 }
 
 auto run_dcv_imgproc_filter_calcGradients()
@@ -300,7 +300,7 @@ auto run_dcv_imgproc_filter_calcGradients()
     auto image = slice!float(imsize, imsize);
     auto mag = slice!float(imsize, imsize);
     auto orient = slice!float(imsize, imsize);
-    return evalBenchmark(&calcGradients!(typeof(image), float), image, mag, orient, EdgeKernel.SIMPLE);
+    return evalBenchmark(&calcGradients!(typeof(image), float), image, mag, orient, EdgeKernel.SIMPLE, taskPool);
 }
 
 auto run_dcv_imgproc_filter_nonMaximaSupression()
@@ -308,7 +308,7 @@ auto run_dcv_imgproc_filter_nonMaximaSupression()
     auto mag = slice!float(imsize, imsize);
     auto orient = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&nonMaximaSupression!(typeof(mag), float), mag, orient, result);
+    return evalBenchmark(&nonMaximaSupression!(typeof(mag), float), mag, orient, result, taskPool);
 }
 
 auto run_dcv_imgproc_filter_canny()
@@ -318,7 +318,7 @@ auto run_dcv_imgproc_filter_canny()
     auto result = slice!ubyte(imsize, imsize);
     auto runCanny(typeof(image) image, typeof(result) result)
     {
-        canny!ubyte(image, 0, 1, EdgeKernel.SOBEL, result);
+        canny!ubyte(image, 0, 1, EdgeKernel.SOBEL, result, taskPool);
     }
     //return evalBenchmark(&canny!(float,ubyte), image, cast(ubyte)0, cast(ubyte)1, EdgeKernel.SOBEL, result);
     return evalBenchmark(&runCanny, image, result);
