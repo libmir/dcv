@@ -751,7 +751,7 @@ Returns:
     Slice of filtered image.
 */
 Slice!(N, OutputType*) bilateralFilter(alias bc = neumann, InputType, OutputType = InputType, size_t N)(Slice!(N,
-        InputType*) slice, float sigma, uint kernelSize, Slice!(N,
+        InputType*) slice, float sigmaCol, float sigmaSpace, uint kernelSize, Slice!(N,
         OutputType*) prealloc = emptySlice!(N, OutputType), TaskPool pool = taskPool) if (N == 2)
 in
 {
@@ -793,8 +793,9 @@ body
                 foreach (int kc; c - ksh .. c + ksh + 1)
                 {
                     auto ck = (c - kc) ^^ 2;
-                    float c_val = exp(-0.5f * ((sqrt(cast(float)(ck + rk)) / sigma) ^^ 2));
-                    float s_val = exp(-0.5f * ((cast(float)(bc(slice, kr, kc) - p_val) / sigma) ^^ 2));
+                    auto cdiff = bc(slice, kr, kc) - p_val;
+                    float c_val = exp((ck + rk) / (-2.0f * sigmaSpace * sigmaSpace));
+                    float s_val = exp((cdiff * cdiff) / (-2.0f * sigmaCol * sigmaCol));
                     mask[i, j] = c_val * s_val;
                     ++j;
                 }
@@ -809,7 +810,6 @@ body
             foreach (kr; r - ksh .. r + ksh + 1)
             {
                 j = 0;
-                auto rk = (r - kr) ^^ 2;
                 foreach (kc; c - ksh .. c + ksh + 1)
                 {
                     res_val += (mask[i, j] / mask_sum) * bc(slice, kr, kc);
