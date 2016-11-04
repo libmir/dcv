@@ -1407,7 +1407,12 @@ body
 void filterNonMaximumImpl(Window)(Window window)
 {
     alias T = DeepElementType!Window;
-    auto lmsVal = T(-1);
+
+    static if (isFloatingPoint!T)
+        auto lmsVal = -T.max;
+    else
+        auto lmsVal = T.min;
+
     T *locPtr = null;
 
     foreach(row; window)
@@ -1418,9 +1423,9 @@ void filterNonMaximumImpl(Window)(Window window)
                 locPtr = &e;
                 lmsVal = e;
             }
+            e = T(0);
         }
 
-    window[] = T(0);
     if (locPtr !is null)
     {
         *locPtr = lmsVal;
