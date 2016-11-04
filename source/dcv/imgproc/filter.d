@@ -1,4 +1,4 @@
-﻿/*
+﻿/**
 Module introduces image filtering functions and utilities.
 
 Copyright: Copyright Relja Ljubobratovic 2016.
