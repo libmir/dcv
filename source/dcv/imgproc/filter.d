@@ -1,4 +1,4 @@
-﻿/**
+﻿/*
 Module introduces image filtering functions and utilities.
 
 Copyright: Copyright Relja Ljubobratovic 2016.
@@ -403,57 +403,29 @@ unittest
 /**
 Perform non-maxima filtering of the image.
 
-note: 
-proxy function, not a proper API! 
+Params:
+    input = Input matrix.
+    filterSize = Size of filtering kernel (aperture).
 
+Returns:
+    Input matrix, after filtering.
 */
-Slice!(2, T*) filterNonMaximum(T)(Slice!(2, T*) slice, size_t filterSize = 10)
+auto filterNonMaximum(Tensor)(Tensor input, size_t filterSize = 10)
+in
 {
+    assert(!input.empty && filterSize);
+}
+body
+{
+    immutable fs = filterSize;
+    immutable fsh = max(1, fs / 2);
 
-    assert(!slice.empty && filterSize);
+    input
+        .windows(fs, fs)
+        .strided!(0, 1)(fsh, fsh)
+        .ndEach!( w => filterNonMaximumImpl(w));
 
-    typeof(slice) lmsw; // local maxima search window
-    int lms_r, lms_c;
-    int win_rows, win_cols;
-    float lms_val;
-    auto rows = slice.length!0;
-    auto cols = slice.length!1;
-
-    for (int br = 0; br < rows; br += filterSize / 2)
-    {
-        for (int bc = 0; bc < cols; bc += filterSize / 2)
-        {
-            win_rows = cast(int)((br + filterSize < rows) ? filterSize : filterSize - ((br + filterSize) - rows) - 1);
-            win_cols = cast(int)((bc + filterSize < cols) ? filterSize : filterSize - ((bc + filterSize) - cols) - 1);
-
-            if (win_rows <= 0 || win_cols <= 0)
-            {
-                continue;
-            }
-
-            lmsw = slice[br .. br + win_rows, bc .. bc + win_cols];
-
-            lms_val = -1;
-            for (int r = 0; r < lmsw.length!0; r++)
-            {
-                for (int c = 0; c < lmsw.length!1; c++)
-                {
-                    if (lmsw[r, c] > lms_val)
-                    {
-                        lms_val = lmsw[r, c];
-                        lms_r = r;
-                        lms_c = c;
-                    }
-                }
-            }
-            lmsw[] = cast(T)0;
-            if (lms_val != -1)
-            {
-                lmsw[lms_r, lms_c] = cast(T)lms_val;
-            }
-        }
-    }
-    return slice;
+    return input;
 }
 
 /**
@@ -1430,5 +1402,28 @@ body
     }
 
     return prealloc;
+}
+
+void filterNonMaximumImpl(Window)(Window window)
+{
+    alias T = DeepElementType!Window;
+    auto lmsVal = T(-1);
+    T *locPtr = null;
+
+    foreach(row; window)
+        foreach(ref e; row)
+        {
+            if (e > lmsVal)
+            {
+                locPtr = &e;
+                lmsVal = e;
+            }
+        }
+
+    window[] = T(0);
+    if (locPtr !is null)
+    {
+        *locPtr = lmsVal;
+    }
 }
 
