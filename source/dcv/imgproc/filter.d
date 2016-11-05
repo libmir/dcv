@@ -410,9 +410,11 @@ Params:
 Returns:
     Input matrix, after filtering.
 */
-auto filterNonMaximum(Tensor)(Tensor input, size_t filterSize = 10)
+auto filterNonMaximum(Matrix)(Matrix input, size_t filterSize = 10)
 in
 {
+    static assert(isSlice!Matrix, "Input value should be of type mir.ndslice.slice.Slice.");
+    static assert(ReturnType!(Matrix.shape).length == 2, "Invalid Slice dimensionality - should be Matrix(2).");
     assert(!input.empty && filterSize);
 }
 body
