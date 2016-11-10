@@ -175,10 +175,11 @@ Params:
 Returns:
     Warped input image by given map.
 */
-Slice!(N, T*) warp(alias interp = linear, size_t N, T, V)(Slice!(N, T*) image, Slice!(3, V*) map,
-        Slice!(N, T*) prealloc = emptySlice!(N, T)) pure
+pure auto warp(alias interp = linear, ImageTensor, MapTensor)(ImageTensor image, MapTensor map,
+        ImageTensor prealloc = ImageTensor.init)
 {
-    return pixelWiseDisplacementImpl!(linear, warpImpl, N, T, V)(image, map, prealloc);
+    return pixelWiseDisplacement!(linear, DisplacementType.WARP, ImageTensor, MapTensor)
+        (image, map, prealloc);
 }
 
 /**
@@ -198,10 +199,11 @@ Params:
 Returns:
     Remapped input image by given map.
 */
-Slice!(N, T*) remap(alias interp = linear, size_t N, T, V)(Slice!(N, T*) image, Slice!(3,
-        V*) map, Slice!(N, T*) prealloc = emptySlice!(N, T)) pure
+pure auto remap(alias interp = linear, ImageTensor, MapTensor)(ImageTensor image, MapTensor map,
+        ImageTensor prealloc = ImageTensor.init)
 {
-    return pixelWiseDisplacementImpl!(linear, remapImpl, N, T, V)(image, map, prealloc);
+    return pixelWiseDisplacement!(linear, DisplacementType.REMAP, ImageTensor, MapTensor)
+        (image, map, prealloc);
 }
 
 /// Test if warp and remap always returns slice of corresponding format.
@@ -257,90 +259,87 @@ unittest
     assert(&remapped[0, 0] == &remappedRetVal[0, 0]);
 }
 
-private
+private enum DisplacementType
 {
+    WARP,
+    REMAP
+}
 
-    Slice!(N, T*) pixelWiseDisplacementImpl(alias interp, alias dispFunc, size_t N, T, V)(Slice!(N,
-            T*) image, Slice!(3, V*) map, Slice!(N, T*) prealloc = emptySlice!(N, T)) pure
+private pure auto pixelWiseDisplacement(alias interp, DisplacementType disp, ImageTensor, MapTensor)
+    (ImageTensor image, MapTensor map, ImageTensor prealloc)
+in
+{
+    assert(!image.empty, "Input image is empty");
+    assert(map.shape[0 .. 2] == image.shape[0 .. 2], "Invalid map size.");
+}
+body
+{
+    import std.traits : ReturnType;
+
+    static assert(isSlice!ImageTensor, "Image type has to be of type mir.ndslice.slice.Slice");
+    static assert(isSlice!MapTensor, "Map type has to be of type mir.ndslice.slice.Slice");
+    immutable N = ReturnType!(ImageTensor.shape).length;
+    static assert(ReturnType!(MapTensor.shape).length == 3,
+            "Invalid map tensor dimension - should be matrix of [x, y] displacements (3D).");
+
+    if (prealloc.shape != image.shape)
     {
-        static assert(isNumeric!T);
-        import std.algorithm.comparison : equal;
-        import std.algorithm.iteration : reduce;
-        import std.array : array, uninitializedArray;
-
-        typeof(image) warped;
-        if (prealloc.empty || !prealloc.shape.array.equal(image.shape.array))
-        {
-            warped = uninitializedArray!(T[])(image.elementsCount).sliced(image.shape);
-        }
-        else
-        {
-            enforce(&(warped.byElement.front) != &(image.byElement.front),
-                    "Invalid preallocation slice - it must not share data with input image slice");
-            warped = prealloc;
-        }
-
-        static if (N == 2)
-        {
-            dispFunc!(interp, T, V)(image, map, warped);
-        }
-        else static if (N == 3)
-        {
-            auto imp = image.pack!1;
-            foreach (i; 0 .. image.length!2)
-            {
-                dispFunc!(interp, T, V)(image[0 .. $, 0 .. $, i], map, warped[0 .. $, 0 .. $, i]);
-            }
-        }
-        else
-        {
-            import std.conv : to;
-
-            static assert(0, "Invalid slice dimension - " ~ N.to!string);
-        }
-        return warped;
+        prealloc = uninitializedSlice!(DeepElementType!ImageTensor)(image.shape);
     }
 
-    Slice!(2, T*) warpImpl(alias interp, T, V)(Slice!(2, T*) image, Slice!(3, V*) map, Slice!(2, T*) warped) pure
+    static if (N == 2)
     {
-        auto const rows = image.length!0;
-        auto const cols = image.length!1;
-        const auto rf = cast(float)rows;
-        const auto cf = cast(float)cols;
-        foreach (i; 0 .. rows)
-        {
-            foreach (j; 0 .. cols)
-            {
-                auto x = cast(float)i + map[i, j, 1];
-                auto y = cast(float)j + map[i, j, 0];
-                if (x >= 0.0f && x < rf && y >= 0.0f && y < cf)
-                {
-                    warped[i, j] = interp(image, x, y);
-                }
-            }
-        }
-        return warped;
+        displacementImpl!(interp, disp, ImageTensor, MapTensor)
+            (image, map, prealloc);
     }
-
-    Slice!(2, T*) remapImpl(alias interp, T, V)(Slice!(2, T*) image, Slice!(3, V*) map, Slice!(2, T*) remapped) pure
+    else static if (N == 3)
     {
-        auto const rows = image.length!0;
-        auto const cols = image.length!1;
-        const auto rf = cast(float)rows;
-        const auto cf = cast(float)cols;
-        foreach (i; 0 .. rows)
+        foreach (i; 0 .. image.length!2)
         {
-            foreach (j; 0 .. cols)
-            {
-                auto x = map[i, j, 1];
-                auto y = map[i, j, 0];
-                if (x >= 0.0f && x < rf && y >= 0.0f && y < cf)
-                {
-                    remapped[i, j] = interp(image, x, y);
-                }
-            }
+            auto imagec = image[0 .. $, 0 .. $, i];
+            auto resultc = prealloc[0 .. $, 0 .. $, i];
+            displacementImpl!(interp, disp, typeof(imagec), MapTensor)
+                (imagec, map, resultc);
         }
-        return remapped;
+    }
+    else
+        static assert(0, "Pixel displacement operations are supported only for 2D and 3D slices.");
+
+    return prealloc;
+}
+
+private pure void displacementImpl(alias interp, DisplacementType disp, ImageMatrix, MapTensor)
+    (ImageMatrix image, MapTensor map, ImageMatrix result)
+{
+    static if (disp == DisplacementType.WARP)
+        float r = 0.0f, c;
+    immutable rf = cast(float)image.length!0;
+    immutable cf = cast(float)image.length!1;
+    for (; !result.empty; result.popFront, map.popFront)
+    {
+        auto rrow = result.front;
+        auto mrow = map.front;
+        static if (disp == DisplacementType.WARP) c = 0.0f;
+        for (; !rrow.empty; rrow.popFront, mrow.popFront)
+        {
+            auto m = mrow.front;
+            static if (disp == DisplacementType.WARP)
+            {
+                float rr = r + m[1];
+                float cc = c + m[0];
+            }
+            else
+            {
+                float rr = m[1];
+                float cc = m[0];
+            }
+            if (rr >= 0.0f && rr < rf && cc >= 0.0f && cc < cf)
+            {
+                rrow.front = interp(image, rr, cc);
+            }
+            static if (disp == DisplacementType.WARP) ++c;
+        }
+        static if (disp == DisplacementType.WARP) ++r;
     }
 }
 
