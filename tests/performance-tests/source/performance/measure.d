@@ -284,7 +284,7 @@ auto run_dcv_imgproc_convolution_conv_3D_5x5()
 auto run_dcv_imgproc_filter_filterNonMaximum()
 {
     auto image = slice!float(imsize, imsize);
-    return evalBenchmark(&filterNonMaximum!float, image, 10);
+    return evalBenchmark(&filterNonMaximum!(typeof(image)), image, 10);
 }
 
 auto run_dcv_imgproc_filter_calcPartialDerivatives()
@@ -437,7 +437,7 @@ auto run_dcv_imgproc_imgmanip_warp()
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
     auto warpMap = slice!float(imsize, imsize, 2);
-    return evalBenchmark(&warp!(linear, 2, float, float), image, warpMap, result);
+    return evalBenchmark(&warp!(linear, typeof(image), typeof(warpMap)), image, warpMap, result);
 }
 
 auto run_dcv_imgproc_imgmanip_remap()
@@ -445,7 +445,7 @@ auto run_dcv_imgproc_imgmanip_remap()
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
     auto remapMap = slice!float(imsize, imsize, 2);
-    return evalBenchmark(&remap!(linear, 2, float, float), image, remapMap, result);
+    return evalBenchmark(&remap!(linear, typeof(image), typeof(remapMap)), image, remapMap, result);
 }
 
 auto run_dcv_imgproc_threshold_threshold()
