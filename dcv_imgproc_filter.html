@@ -234,8 +234,8 @@ Convenience function to call <u id="canny">canny</u> with same lower and upper t
 similar to dcv.imgproc.threshold.threshold.<br><br>
 
 </dd>
-<dt><big><a name="bilateralFilter"></a>Slice!(N, OutputType*) <u id="bilateralFilter">bilateralFilter</u>(alias bc = neumann, InputType, OutputType = InputType, size_t N)(Slice!(N, InputType*) <i>slice</i>, float <i>sigma</i>, uint <i>kernelSize</i>, Slice!(N, OutputType*) <i>prealloc</i> = emptySlice!(N, OutputType), TaskPool <i>pool</i> = taskPool) if (N == 2);
-<br>Slice!(N, OutputType*) <u id="bilateralFilter">bilateralFilter</u>(alias bc = neumann, InputType, OutputType = InputType, size_t N)(Slice!(N, InputType*) <i>slice</i>, float <i>sigma</i>, uint <i>kernelSize</i>, Slice!(N, OutputType*) <i>prealloc</i> = emptySlice!(N, OutputType)) if (N == 3);
+<dt><big><a name="bilateralFilter"></a>Slice!(N, OutputType*) <u id="bilateralFilter">bilateralFilter</u>(alias bc = neumann, InputType, OutputType = InputType, size_t N)(Slice!(N, InputType*) <i>slice</i>, float <i>sigmaCol</i>, float <i>sigmaSpace</i>, uint <i>kernelSize</i>, Slice!(N, OutputType*) <i>prealloc</i> = emptySlice!(N, OutputType), TaskPool <i>pool</i> = taskPool) if (N == 2);
+<br>Slice!(N, OutputType*) <u id="bilateralFilter">bilateralFilter</u>(alias bc = neumann, InputType, OutputType = InputType, size_t N)(Slice!(N, InputType*) <i>slice</i>, float <i>sigmaCol</i>, float <i>sigmaSpace</i>, uint <i>kernelSize</i>, Slice!(N, OutputType*) <i>prealloc</i> = emptySlice!(N, OutputType)) if (N == 3);
 </big></dt>
 <dd><a href="https://en.wikipedia.org/wiki/Bilateral_filter">Bilateral</a> filtering implementation.
 <br><br>
@@ -247,8 +247,10 @@ Non-linear, edge-preserving and noise-reducing smoothing filtering algorithm.
 <td>Boundary condition test used to index the image <i>slice</i>.</td></tr>
 <tr><td>Slice!(N, InputType*) <i>slice</i></td>
 <td>Slice of the input image.</td></tr>
-<tr><td>float <i>sigma</i></td>
-<td>Smoothing strength parameter.</td></tr>
+<tr><td>float <i>sigmaCol</i></td>
+<td>Color sigma value.</td></tr>
+<tr><td>float <i>sigmaSpace</i></td>
+<td>Spatial sigma value.</td></tr>
 <tr><td>uint <i>kernelSize</i></td>
 <td>Size of convolution kernel. Must be odd number.</td></tr>
 <tr><td>Slice!(N, OutputType*) <i>prealloc</i></td>
