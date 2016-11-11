@@ -742,7 +742,8 @@ Non-linear, edge-preserving and noise-reducing smoothing filtering algorithm.
 Params:
     bc = Boundary condition test used to index the image slice.
     slice = Slice of the input image.
-    sigma = Smoothing strength parameter.
+    sigmaCol = Color sigma value.
+    sigmaSpace = Spatial sigma value.
     kernelSize = Size of convolution kernel. Must be odd number.
     prealloc = Optional pre-allocated result image buffer. If not of same shape as input slice, its allocated anew.
     pool = Optional TaskPool instance used to parallelize computation.
@@ -827,7 +828,7 @@ body
 
 /// ditto
 Slice!(N, OutputType*) bilateralFilter(alias bc = neumann, InputType, OutputType = InputType, size_t N)(Slice!(N,
-        InputType*) slice, float sigma, uint kernelSize, Slice!(N,
+        InputType*) slice, float sigmaCol, float sigmaSpace, uint kernelSize, Slice!(N,
         OutputType*) prealloc = emptySlice!(N, OutputType)) if (N == 3)
 {
     if (prealloc.empty || prealloc.shape != slice.shape)
@@ -837,7 +838,7 @@ Slice!(N, OutputType*) bilateralFilter(alias bc = neumann, InputType, OutputType
 
     foreach (channel; 0 .. slice.length!2)
     {
-        bilateralFilter!(bc, InputType, OutputType)(slice[0 .. $, 0 .. $, channel], sigma,
+        bilateralFilter!(bc, InputType, OutputType)(slice[0 .. $, 0 .. $, channel], sigmaCol, sigmaSpace,
                 kernelSize, prealloc[0 .. $, 0 .. $, channel]);
     }
 
