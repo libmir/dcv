@@ -108,7 +108,7 @@ private:
 
 pure @fastmath auto linearImpl_1(T)(Slice!(1, T*) range, double pos)
 {
-    import std.math : floor;
+    import ldc.intrinsics : floor = llvm_floor;
 
     assert(pos < range.length);
 
@@ -136,7 +136,7 @@ pure @fastmath auto linearImpl_1(T)(Slice!(1, T*) range, double pos)
 
 pure @fastmath auto linearImpl_2(T)(Slice!(2, T*) range, double pos_x, double pos_y)
 {
-    import std.math : floor;
+    import ldc.intrinsics : floor = llvm_floor;
 
     assert(pos_x < range.length!0 && pos_y < range.length!1);
 
