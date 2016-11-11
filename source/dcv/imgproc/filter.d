@@ -742,7 +742,8 @@ Non-linear, edge-preserving and noise-reducing smoothing filtering algorithm.
 Params:
     bc = Boundary condition test used to index the image slice.
     slice = Slice of the input image.
-    sigma = Smoothing strength parameter.
+    sigmaCol = Color sigma value.
+    sigmaSpace = Spatial sigma value.
     kernelSize = Size of convolution kernel. Must be odd number.
     prealloc = Optional pre-allocated result image buffer. If not of same shape as input slice, its allocated anew.
     pool = Optional TaskPool instance used to parallelize computation.
@@ -751,7 +752,7 @@ Returns:
     Slice of filtered image.
 */
 Slice!(N, OutputType*) bilateralFilter(alias bc = neumann, InputType, OutputType = InputType, size_t N)(Slice!(N,
-        InputType*) slice, float sigma, uint kernelSize, Slice!(N,
+        InputType*) slice, float sigmaCol, float sigmaSpace, uint kernelSize, Slice!(N,
         OutputType*) prealloc = emptySlice!(N, OutputType), TaskPool pool = taskPool) if (N == 2)
 in
 {
@@ -793,8 +794,9 @@ body
                 foreach (int kc; c - ksh .. c + ksh + 1)
                 {
                     auto ck = (c - kc) ^^ 2;
-                    float c_val = exp(-0.5f * ((sqrt(cast(float)(ck + rk)) / sigma) ^^ 2));
-                    float s_val = exp(-0.5f * ((cast(float)(bc(slice, kr, kc) - p_val) / sigma) ^^ 2));
+                    auto cdiff = bc(slice, kr, kc) - p_val;
+                    float c_val = exp((ck + rk) / (-2.0f * sigmaSpace * sigmaSpace));
+                    float s_val = exp((cdiff * cdiff) / (-2.0f * sigmaCol * sigmaCol));
                     mask[i, j] = c_val * s_val;
                     ++j;
                 }
@@ -809,7 +811,6 @@ body
             foreach (kr; r - ksh .. r + ksh + 1)
             {
                 j = 0;
-                auto rk = (r - kr) ^^ 2;
                 foreach (kc; c - ksh .. c + ksh + 1)
                 {
                     res_val += (mask[i, j] / mask_sum) * bc(slice, kr, kc);
@@ -827,7 +828,7 @@ body
 
 /// ditto
 Slice!(N, OutputType*) bilateralFilter(alias bc = neumann, InputType, OutputType = InputType, size_t N)(Slice!(N,
-        InputType*) slice, float sigma, uint kernelSize, Slice!(N,
+        InputType*) slice, float sigmaCol, float sigmaSpace, uint kernelSize, Slice!(N,
         OutputType*) prealloc = emptySlice!(N, OutputType)) if (N == 3)
 {
     if (prealloc.empty || prealloc.shape != slice.shape)
@@ -837,7 +838,7 @@ Slice!(N, OutputType*) bilateralFilter(alias bc = neumann, InputType, OutputType
 
     foreach (channel; 0 .. slice.length!2)
     {
-        bilateralFilter!(bc, InputType, OutputType)(slice[0 .. $, 0 .. $, channel], sigma,
+        bilateralFilter!(bc, InputType, OutputType)(slice[0 .. $, 0 .. $, channel], sigmaCol, sigmaSpace,
                 kernelSize, prealloc[0 .. $, 0 .. $, channel]);
     }
 

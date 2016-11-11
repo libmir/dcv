@@ -52,7 +52,7 @@ int main(string[] args)
     auto cannyEdges = gray.canny!ubyte(75);
 
     // perform bilateral blurring
-    auto bilBlur = imslice.bilateralFilter(10.0f, 5);
+    auto bilBlur = imslice.bilateralFilter(10.0f, 10.0f, 5);
 
     // Add salt and pepper noise at input image green channel
     auto noisyImage = imslice.slice;
