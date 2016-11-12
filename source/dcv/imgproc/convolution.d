@@ -32,90 +32,93 @@ Authors: Relja Ljubobratovic
 
 License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
 */
-
 module dcv.imgproc.convolution;
 
-/*
-v0.1 norm:
-conv (done)
-separable_conv
-
-v0.1+ plans:
-1d_conv_simd
-*/
-
-import std.traits : isAssignable;
-import std.range;
+import std.traits : isAssignable, ReturnType;
+import std.conv : to;
 import std.algorithm.comparison : equal;
-
-import std.algorithm.iteration : reduce;
-import std.algorithm.comparison : max, min;
-import std.exception : enforce;
 import std.parallelism : parallel, taskPool, TaskPool;
-import std.math : abs, floor;
+
+import ldc.attributes : fastmath;
 
 import mir.ndslice;
+import mir.ndslice.algorithm : ndReduce, Yes;
 
 import dcv.core.memory;
 import dcv.core.utils;
 
 /**
-Perform convolution to given range, using given kernel.
-Convolution is supported for 1, 2, and 3D slices.
+Perform convolution to given tensor, using given kernel.
+Convolution is supported for 1, 2, and 3 dimensional tensors.
 
 Params:
     bc = (Template parameter) Boundary Condition function used while indexing the image matrix.
-    range = Input range slice (1D, 2D, and 3D slice supported)
-    kernel = Convolution kernel slice. For 1D range, 1D kernel is expected. 
-    For 2D range, 2D kernele is expected. For 3D range, 2D or 3D kernel is expected - 
-    if 2D kernel is given, each item in kernel matrix is applied to each value in 
-    corresponding 2D coordinate in the range.
-    prealloc = Pre-allocated array where convolution result can be stored. Default 
+    input = Input tensor.
+    kernel = Convolution kernel tensor. For 1D input, 1D kernel is expected.
+    For 2D input, 2D kernel is expected. For 3D input, 2D or 3D kernel is expected -
+    if 2D kernel is given, each item in kernel matrix is applied to each value in
+    corresponding 2D coordinate in the input.
+    prealloc = Pre-allocated buffer where convolution result can be stored. Default
     value is emptySlice, where resulting array will be newly allocated. Also if
-    prealloc is not of same shape as input range, resulting array will be newly allocated. 
-    mask = Masking range. Convolution will skip each element where mask is 0. Default value
-    is empty slice, which tells that convolution will be performed on the whole range.
+    prealloc is not of same shape as input input, resulting array will be newly allocated.
+    mask = Masking input. Convolution will skip each element where mask is 0. Default value
+    is empty slice, which tells that convolution will be performed on the whole input.
     pool = Optional TaskPool instance used to parallelize computation.
 
 Returns:
-    Slice of resulting image after convolution.
+    Resulting image after convolution, of same type as input tensor.
+
+Note:
+    Input, mask and pre-allocated slices' strides must be the same.
 */
-Slice!(N, InputType*) conv(alias bc = neumann, InputType, KernelType, MaskType = InputType, size_t N, size_t NK)(Slice!(N,
-        InputType*) range, Slice!(NK, KernelType*) kernel, Slice!(N,
-        InputType*) prealloc = emptySlice!(N, InputType), Slice!(NK, MaskType*) mask = emptySlice!(NK, MaskType), TaskPool pool = taskPool)
+InputTensor conv
+    (alias bc = neumann, InputTensor, KernelTensor, MaskTensor = KernelTensor)
+    (InputTensor input, KernelTensor kernel, InputTensor prealloc = InputTensor.init,
+     MaskTensor mask = MaskTensor.init, TaskPool pool = taskPool)
+in
 {
+    static assert(isSlice!InputTensor, "Input tensor has to be of type mir.ndslice.slice.Slice");
+    static assert(isSlice!KernelTensor, "Kernel tensor has to be of type mir.ndslice.slice.Slice");
+    static assert(isSlice!MaskTensor, "Mask tensor has to be of type mir.ndslice.slice.Slice");
     static assert(isBoundaryCondition!bc, "Invalid boundary condition test function.");
-    static assert(isAssignable!(InputType, KernelType), "Uncompatible types for range and kernel");
+    static assert(isAssignable!(DeepElementType!InputTensor, DeepElementType!KernelTensor),
+            "Incompatible types for input and kernel");
 
-    if (!mask.empty && !mask.shape[].equal(range.shape[]))
-    {
-        import std.conv : to;
+    immutable N = ReturnType!(InputTensor.shape).length;
+    immutable NK = ReturnType!(KernelTensor.shape).length;
 
-        throw new Exception(
-                "Invalid mask shape: " ~ mask.shape[].to!string ~ ", range shape: " ~ range.shape[].to!string);
-    }
+    static assert(ReturnType!(MaskTensor.shape).length == NK, "Mask tensor has to be of same dimension as the kernel tensor.");
 
+    immutable invalidKernelMsg = "Invalid kernel dimension";
     static if (N == 1)
-    {
-        static assert(NK == 1, "Invalid kernel dimension");
-        return conv1Impl!bc(range, kernel, prealloc, mask, pool);
-    }
+        static assert(NK == 1, invalidKernelMsg);
     else static if (N == 2)
-    {
-        static assert(NK == 2, "Invalid kernel dimension");
-        return conv2Impl!bc(range, kernel, prealloc, mask, pool);
-    }
+        static assert(NK == 2, invalidKernelMsg);
     else static if (N == 3)
-    {
-        static assert(NK == 2, "Invalid kernel dimension");
-        return conv3Impl!bc(range, kernel, prealloc, mask, pool);
-    }
+        static assert(NK == 2, invalidKernelMsg);
     else
-    {
-        import std.conv : to;
+        static assert(0, "Convolution not implemented for given tensor dimension.");
 
-        static assert(0, "Convolution over " ~ N.to!string ~ "D ranges is not implemented");
+    assert(input.ptr != prealloc.ptr, "Preallocated and input buffer cannot point to the same memory.");
+
+    if (!mask.empty)
+    {
+        assert(mask.shape == input.shape, "Invalid mask size. Should be of same size as input tensor.");
+        assert(input.structure.strides == mask.structure.strides, "Input input and mask need to have same strides.");
     }
+
+    if (prealloc.empty)
+        assert(input.stride!(N-1) == 1, "Input tensor has to be contiguous (i.e. input.stride!(N-1) == 1).");
+    else
+        assert(input.structure.strides == prealloc.structure.strides,
+                "Input input and result(preallocated) buffer need to have same strides.");
+}
+body
+{
+    if (prealloc.shape != input.shape)
+        prealloc = uninitializedSlice!(DeepElementType!InputTensor)(input.shape);
+
+    return convImpl!bc(input, kernel, prealloc, mask, pool);
 }
 
 unittest
@@ -130,119 +133,197 @@ unittest
 
 unittest
 {
-    import std.algorithm.comparison : equal;
-
-    auto image = new float[15 * 15].sliced(15, 15);
-    auto kernel = new float[3 * 3].sliced(3, 3);
+    auto image = slice!float(15, 15);
+    auto kernel = slice!float(3, 3);
     auto convres = conv(image, kernel);
-    assert(convres.shape[].equal(image.shape[]));
+    assert(convres.shape == image.shape);
 }
 
 unittest
 {
-    import std.algorithm.comparison : equal;
-
-    auto image = new float[15 * 15 * 3].sliced(15, 15, 3);
-    auto kernel = new float[3 * 3].sliced(3, 3);
+    auto image = slice!float(15, 15, 3);
+    auto kernel = slice!float(3, 3);
     auto convres = conv(image, kernel);
-    assert(convres.shape[].equal(image.shape[]));
+    assert(convres.shape == image.shape);
+}
+
+nothrow @nogc @fastmath auto kapply(T)(T r, T i, T k)
+{
+    return r + i * k;
 }
 
 private:
 
-// TODO: implement SIMD
-Slice!(1, InputType*) conv1Impl(alias bc, InputType, KernelType, MaskType)(Slice!(1, InputType*) range,
-        Slice!(1, KernelType*) kernel, Slice!(1, InputType*) prealloc, Slice!(1, MaskType*) mask, TaskPool pool)
+auto convImpl
+    (alias bc = neumann, InputTensor, KernelTensor, MaskTensor)
+    (InputTensor input, KernelTensor kernel, InputTensor prealloc, MaskTensor mask, TaskPool pool) 
+if (ReturnType!(InputTensor.shape).length == 1)
 {
+    alias InputType = DeepElementType!InputTensor;
 
-    if (prealloc.empty || prealloc.shape != range.shape)
-        prealloc = uninitializedArray!(InputType[])(cast(size_t)range.length).sliced(range.shape);
+    auto kl = kernel.length;
+    auto kh = kl / 2;
 
-    enforce(&range[0] != &prealloc[0], "Preallocated has to contain different data from that of a input range.");
-
-    auto rl = range.length;
-    int ks = cast(int)kernel.length; // kernel size
-    int kh = max(1, cast(int)(floor(cast(float)ks / 2.))); // kernel size half
-    int ke = cast(int)(ks % 2 == 0 ? kh - 1 : kh);
-    int rt = cast(int)(ks % 2 == 0 ? rl - 1 - kh : rl - kh); // range top
-
-    bool useMask = !mask.empty;
-
-    // run main (inner) loop
-    foreach (i; pool.parallel(iota(rl)))
+    if (mask.empty)
     {
-        if (useMask && !mask[i])
-            continue;
-        InputType v = 0;
-        for (int j = -kh; j < ke + 1; ++j)
+        auto packedWindows = assumeSameStructure!("result", "input")(prealloc, input).windows(kl);
+        foreach (p; pool.parallel(packedWindows))
         {
-            v += bc(range, i + j) * kernel[j + kh];
+            p[kh].result = ndReduce!(kapply!InputType, Yes.vectorized, Yes.fastmath)
+                                    (0.0f, p.ndMap!(p => p.input), kernel);
         }
-        prealloc[i] = v;
     }
+    else
+    {
+        // TODO: extract masked convolution as separate function?
+        auto packedWindows = assumeSameStructure!("result", "input", "mask")(prealloc, input, mask).windows(kl);
+        foreach (p; pool.parallel(packedWindows))
+        {
+            if (p[$ / 2].mask)
+                p[$ / 2].result = ndReduce!(kapply!InputType)
+                                           (0.0f, p.ndMap!(p => p.input), kernel);
+        }
+    }
+
+    handleEdgeConv1d!bc(input, prealloc, kernel, mask, 0, kl);
+    handleEdgeConv1d!bc(input, prealloc, kernel, mask, input.length - 1 - kh, input.length);
 
     return prealloc;
 }
 
-Slice!(2, InputType*) conv2Impl(alias bc, InputType, KernelType, MaskType)(Slice!(2, InputType*) range,
-        Slice!(2, KernelType*) kernel, Slice!(2, InputType*) prealloc, Slice!(2, MaskType*) mask, TaskPool pool)
+auto convImpl
+    (alias bc = neumann, InputTensor, KernelTensor, MaskTensor)
+    (InputTensor input, KernelTensor kernel, InputTensor prealloc, MaskTensor mask, TaskPool pool) 
+if (ReturnType!(InputTensor.shape).length == 2)
 {
+    auto krs = kernel.length!0; // kernel rows
+    auto kcs = kernel.length!1; // kernel rows
 
-    if (prealloc.empty || prealloc.shape != range.shape)
-        prealloc = uninitializedArray!(InputType[])(cast(size_t)range.elementsCount).sliced(range.shape);
+    auto krh = krs / 2;
+    auto kch = kcs / 2;
 
-    enforce(&range[0, 0] != &prealloc[0, 0], "Preallocated has to contain different data from that of a input range.");
+    auto useMask = !mask.empty;
 
-    auto rr = range.length!0; // range rows
-    auto rc = range.length!1; // range columns
-
-    int krs = cast(int)kernel.length!0; // kernel rows
-    int kcs = cast(int)kernel.length!1; // kernel rows
-
-    int krh = max(1, cast(int)(floor(cast(float)krs / 2.))); // kernel rows size half
-    int kch = max(1, cast(int)(floor(cast(float)kcs / 2.))); // kernel rows size half
-
-    bool useMask = !mask.empty;
-
-    // run inner body convolution of the matrix.
-    foreach (i; pool.parallel(iota(rr)))
+    if (mask.empty)
     {
-        auto row = prealloc[i, 0 .. rc];
-        foreach (j; iota(rc))
-        {
-            if (useMask && !mask[i, j])
-                continue;
-            InputType v = 0;
-            for (int ii = -krh; ii < krh + 1; ++ii)
+        auto packedWindows = assumeSameStructure!("result", "input")(prealloc, input).windows(krs, kcs);
+        foreach (prow; pool.parallel(packedWindows))
+            foreach (p; prow)
             {
-                for (int jj = -kch; jj < kch + 1; ++jj)
+                p[krh, kch].result = ndReduce!(kapply, Yes.vectorized, Yes.fastmath)
+                                              (0.0f, p.ndMap!(v => v.input), kernel);
+            }
+    }
+    else
+    {
+        auto packedWindows = assumeSameStructure!("result", "input", "mask")(prealloc, input, mask).windows(krs, kcs);
+        foreach (prow; pool.parallel(packedWindows))
+            foreach (p; prow)
+            {
+                if (p[krh, kch].mask)
                 {
-                    v += bc(range, i + ii, j + jj) * kernel[ii + krh, jj + kch];
+                    p[krh, kch].result = ndReduce!(kapply, Yes.vectorized, Yes.fastmath)
+                                                  (0.0f, p.ndMap!(v => v.input), kernel);
                 }
             }
-            row[j] = v;
-        }
     }
+
+    handleEdgeConv2d!bc(input, prealloc, kernel, mask, [0, input.length!0], [0, kch]); // upper row
+    handleEdgeConv2d!bc(input, prealloc, kernel, mask, [0, input.length!0], [input.length!1 - kch, input.length!1]); // lower row
+    handleEdgeConv2d!bc(input, prealloc, kernel, mask, [0, krh], [0, input.length!1]); // left column
+    handleEdgeConv2d!bc(input, prealloc, kernel, mask, [input.length!0 - krh, input.length!0], [0, input.length!1]); // right column
 
     return prealloc;
 }
 
-Slice!(3, InputType*) conv3Impl(alias bc, InputType, KernelType, MaskType, size_t NK)(Slice!(3,
-        InputType*) range, Slice!(NK, KernelType*) kernel, Slice!(3, InputType*) prealloc,
-        Slice!(NK, MaskType*) mask, TaskPool pool)
+auto convImpl
+    (alias bc = neumann, InputTensor, KernelTensor, MaskTensor)
+    (InputTensor input, KernelTensor kernel, InputTensor prealloc, MaskTensor mask, TaskPool pool) 
+if (ReturnType!(InputTensor.shape).length == 3)
 {
-    if (prealloc.empty || prealloc.shape != range.shape)
-        prealloc = uninitializedArray!(InputType[])(cast(size_t)range.elementsCount).sliced(range.shape);
-
-    enforce(&range[0, 0, 0] != &prealloc[0, 0, 0],
-            "Preallocated has to contain different data from that of a input range.");
-
-    foreach (i; iota(range.length!2))
+    foreach (i; 0 .. input.length!2)
     {
-        auto r_c = range[0 .. $, 0 .. $, i];
+        auto r_c = input[0 .. $, 0 .. $, i];
         auto p_c = prealloc[0 .. $, 0 .. $, i];
         r_c.conv(kernel, p_c, mask, pool);
     }
 
     return prealloc;
+}
+
+void handleEdgeConv1d(alias bc, T, K, M)(Slice!(1, T*) input, Slice!(1, T*) prealloc, Slice!(1,
+        K*) kernel, Slice!(1, M*) mask, size_t from, size_t to)
+in
+{
+    assert(from < to);
+}
+body
+{
+    int kl = cast(int)kernel.length;
+    int kh = kl / 2, i = cast(int)from, j;
+
+    bool useMask = !mask.empty;
+
+    T t;
+    foreach (ref p; prealloc[from .. to])
+    {
+        if (useMask && mask[i] <= 0)
+            goto loop_end;
+        t = 0;
+        j = -kh;
+        foreach (k; kernel)
+        {
+            t += bc(input, i + j) * k;
+            ++j;
+        }
+        p = t;
+    loop_end:
+        ++i;
+    }
+}
+
+void handleEdgeConv2d(alias bc, T, K, M)(Slice!(2, T*) input, Slice!(2, T*) prealloc, Slice!(2,
+        K*) kernel, Slice!(2, M*) mask, size_t[2] rowRange, size_t[2] colRange)
+in
+{
+    assert(rowRange[0] < rowRange[1]);
+    assert(colRange[0] < colRange[1]);
+}
+body
+{
+    int krl = cast(int)kernel.length!0;
+    int kcl = cast(int)kernel.length!1;
+    int krh = krl / 2, kch = kcl / 2;
+    int r = cast(int)rowRange[0], c, i, j;
+
+    bool useMask = !mask.empty;
+
+    auto roi = prealloc[rowRange[0] .. rowRange[1], colRange[0] .. colRange[1]];
+
+    T t;
+    foreach (prow; roi)
+    {
+        c = cast(int)colRange[0];
+        foreach (ref p; prow)
+        {
+            if (useMask && mask[r, c] <= 0)
+                goto loop_end;
+            t = 0;
+            i = -krh;
+            foreach (krow; kernel)
+            {
+                j = -kch;
+                foreach (k; krow)
+                {
+                    t += bc(input, r + i, c + j) * k;
+                    ++j;
+                }
+                ++i;
+            }
+            p = t;
+        loop_end:
+            ++c;
+        }
+        ++r;
+    }
 }

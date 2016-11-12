@@ -25,19 +25,21 @@ import std.traits : isNumeric, isFloatingPoint;
 import mir.ndslice.slice : Slice, sliced, DeepElementType;
 import mir.ndslice.algorithm : ndReduce, ndEach, Yes;
 
+import dcv.core.utils : isSlice;
+
 version(LDC)
 {
-    import ldc.intrinsics : sqrt = llvm_sqrt, fabs = llvm_fabs, min = llvm_minnum, max = llvm_maxnum;
+    import ldc.intrinsics : sqrt = llvm_sqrt, fabs = llvm_fabs;
 }
 else
 {
     import std.math : sqrt, fabs;
-    import std.algorithm.comparison : min, max;
 }
 
 version(unittest)
 {
     import std.math : approxEqual;
+    import ldc.intrinsics : min = llvm_minnum, max = llvm_maxnum;
 }
 
 /**
@@ -170,10 +172,14 @@ Returns:
     Scaled input tensor.
     
 */
-@nogc nothrow auto scaled(Scalar, Range, size_t N)(auto ref Slice!(N, Range) tensor, Scalar alpha = 1, Scalar beta = 0)
-        if (isNumeric!Scalar)
+nothrow @nogc auto scaled(Scalar, Tensor)(Tensor tensor, Scalar alpha = 1, Scalar beta = 0) if (isNumeric!Scalar)
+in
 {
-    tensor.ndEach!((ref v) { v = alpha * (v) + beta; }, Yes.vectorized);
+    static assert(isSlice!Tensor, "Input tensor has to be of type mir.ndslice.slice.Slice.");
+}
+body
+{
+    tensor.ndEach!((ref v) { v = cast(DeepElementType!Tensor)(alpha * (v) + beta); }, Yes.vectorized);
     return tensor;
 }
 
@@ -198,21 +204,32 @@ Params:
     maxValue = Maximal value output tensor should contain.
 
 */
-@nogc auto ranged(Scalar, Range, size_t N)(auto ref Slice!(N, Range) tensor,
+nothrow @nogc auto ranged(Scalar, Tensor)(Tensor tensor,
         Scalar minValue = 0, Scalar maxValue = 1) if (isNumeric!Scalar)
+in
 {
-    alias RangeElementType = DeepElementType!(typeof(tensor));
+    static assert(isSlice!Tensor, "Input tensor has to be of type mir.ndslice.slice.Slice.");
+}
+body
+{
+    alias T = DeepElementType!Tensor;
 
-    auto _min = ndReduce!(min, Yes.vectorized)(RangeElementType.max, tensor);
-    static if (isFloatingPoint!RangeElementType)
-        auto _max = ndReduce!(max, Yes.vectorized)(RangeElementType.min_normal, tensor);
+    static if (isFloatingPoint!T)
+    {
+        import ldc.intrinsics : min = llvm_minnum, max = llvm_maxnum;
+        auto _max = ndReduce!(max, Yes.vectorized)(T.min_normal, tensor);
+    }
     else
-        auto _max = ndReduce!(max, Yes.vectorized)(RangeElementType.min, tensor);
+    {
+        import std.algorithm.comparison : min, max;
+        auto _max = ndReduce!(max, Yes.vectorized)(T.min, tensor);
+    }
 
+    auto _min = ndReduce!(min, Yes.vectorized)(T.max, tensor);
     auto rn_val = _max - _min;
     auto sc_val = maxValue - minValue;
 
-    tensor.ndEach!((ref a) { a = sc_val * ((a - _min) / rn_val) + minValue; }, Yes.vectorized);
+    tensor.ndEach!((ref a) { a = cast(T)(sc_val * ((a - _min) / rn_val) + minValue); }, Yes.vectorized);
 
     return tensor;
 }

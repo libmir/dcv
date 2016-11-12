@@ -36,48 +36,46 @@ struct Feature
 /**
 Extract corners as array of 2D points, from response matrix.
 
-params:
-cornerResponse = Response matrix, collected as output from corner
-detection algoritms such as harrisCorners, or shiTomasiCorners.
-count = Number of corners which need to be extracted. Default is
--1 which indicate that all responses with value above the threshold
-will be returned.
-threshold = Response threshold - response values in the matrix
-larger than this are considered as valid corners.
+Params:
+    cornerResponse = Response matrix, collected as output from corner
+    detection algoritms such as harrisCorners, or shiTomasiCorners.
+    count = Number of corners which need to be extracted. Default is
+    -1 which indicate that all responses with value above the threshold
+    will be returned.
+    threshold = Response threshold - response values in the matrix
+    larger than this are considered as valid corners.
 
-return:
-Dynamic array of size_t[2], as in array of 2D points, of corner reponses 
-which fit the given criteria.
+Returns:
+    Dynamic array of size_t[2], as in array of 2D points, of corner reponses 
+    which fit the given criteria.
+
+Note:
+    Corner response slice memory has to be contiguous.
 */
-size_t[2][] extractCorners(T)(Slice!(2, T*) cornerResponse, int count = -1, T threshold = cast(T)0)@trusted pure nothrow 
-        if (isNumeric!T)
+pure nothrow auto extractCorners(T)(Slice!(2, T*) cornerResponse, int count = -1, T threshold = 0)
+    if (isNumeric!T)
 {
-    import std.algorithm : sort, map, min;
+    import std.algorithm.sorting : sort;
+    import std.algorithm.iteration : map, filter;
+    import std.range : take;
     import std.array : array;
-    import std.range : take, iota;
-
-    size_t[2][float] features;
 
     if (cornerResponse.empty)
     {
         return null;
     }
 
-    auto rows = cornerResponse.length!0;
-    auto cols = cornerResponse.length!1;
+    assert(cornerResponse.structure.strides[$-1] == 1,
+            "Corner response slice strides are not contiguous."); // TODO check other dimensions. (use isContiguous)
 
-    foreach (r; rows.iota)
-    {
-        foreach (c; cols.iota)
-        {
-            auto res = cornerResponse[r, c];
-            if (res > threshold)
-                features[res] = [r, c];
-        }
-    }
-
-    return sort!"a > b"(features.keys).take(count > 0 ? min(count, features.length) : features.length)
-        .map!(a => features[a]).array;
+    return assumeSameStructure!("indices", "value")(indexSlice(cornerResponse.shape), cornerResponse)
+        .byElement
+        .filter!(p => p.value > threshold)
+        .array
+        .sort!((a, b) => a.value > b.value)
+        .take(count)
+        .map!(p => p.indices)
+        .array;
 }
 
 unittest

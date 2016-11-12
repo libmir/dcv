@@ -34,20 +34,18 @@ luv2rgb -||-
 luv2rgb -||-
 bayer2rgb -||-
 */
+import std.traits : isFloatingPoint, isNumeric;
 
-import std.array : uninitializedArray;
-import std.traits : CommonType, isFloatingPoint, isAssignable, isNumeric;
-import std.algorithm.iteration : sum, each, reduce, map;
-import std.algorithm.mutation : copy;
-import std.algorithm.comparison : equal;
-import std.algorithm : swap;
-import std.range : zip, array, iota;
-import std.exception : enforce;
-import std.range : lockstep;
+import ldc.attributes : fastmath;
 
 import mir.ndslice;
 
 import dcv.core.utils;
+
+version(unittest)
+{
+    import std.algorithm.comparison : equal;
+}
 
 /**
 RGB to Grayscale convertion strategy.
@@ -62,9 +60,9 @@ enum Rgb2GrayConvertion
 Convert RGB image to grayscale.
 
 Params:
-    range = Input image range. Should have 3 channels, represented 
-    as R, G and B respectivelly in that order.
-    prealloc = Pre-allocated range, where grayscale image will be copied. Default
+    input = Input image. Should have 3 channels, represented as R, G and B
+        respectively in that order.
+    prealloc = Pre-allocated buffer, where grayscale image will be copied. Default
     argument is an empty slice, where new data is allocated and returned. If given 
     slice is not of corresponding shape(range.shape[0], range.shape[1]), it is 
     discarded and allocated anew.
@@ -72,15 +70,14 @@ Params:
 
 Returns:
     Returns grayscale version of the given RGB image, of the same size.
+
+Note:
+    Input and pre-allocated slices' strides must be identical.
 */
-Slice!(2, V*) rgb2gray(V)(Slice!(3, V*) range, Slice!(2, V*) prealloc = emptySlice!(2, V),
+Slice!(2, V*) rgb2gray(V)(Slice!(3, V*) input, Slice!(2, V*) prealloc = emptySlice!(2, V),
         Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
 {
-
-    auto m = rgb2GrayMltp[conv].map!(a => cast(real)a).array;
-    m[] /= cast(real)m.sum;
-
-    return rgb2grayImpl(range, prealloc, m);
+    return rgbbgr2gray!(false, V)(input, prealloc, conv);
 }
 
 unittest
@@ -100,8 +97,8 @@ Same as rgb2gray, but follows swapped channels if luminance preservation
 is chosen as convertion strategy.
 
 Params:
-    range = Input image range. Should have 3 channels, represented 
-    as B, G and R respectivelly in that order.
+    input = Input image. Should have 3 channels, represented as B, G and R
+        respectively in that order.
     prealloc = Pre-allocated range, where grayscale image will be copied. Default
     argument is an empty slice, where new data is allocated and returned. If given 
     slice is not of corresponding shape(range.shape[0], range.shape[1]), it is 
@@ -110,16 +107,14 @@ Params:
 
 Returns:
     Returns grayscale version of the given BGR image, of the same size.
+
+Note:
+    Input and pre-allocated slices' strides must be identical.
 */
-Slice!(2, V*) bgr2gray(V)(Slice!(3, V*) range, Slice!(2, V*) prealloc = emptySlice!(2, V),
+Slice!(2, V*) bgr2gray(V)(Slice!(3, V*) input, Slice!(2, V*) prealloc = emptySlice!(2, V),
         Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
 {
-
-    auto m = rgb2GrayMltp[conv].map!(a => cast(real)a).array;
-    m[] /= m.sum;
-    m[0].swap(m[2]);
-
-    return rgb2grayImpl(range, prealloc, m);
+    return rgbbgr2gray!(true, V)(input, prealloc, conv);
 }
 
 unittest
@@ -133,6 +128,36 @@ unittest
     assert(equal!approxEqual(gray.byElement, [0, 1, 2, 3]));
 }
 
+private Slice!(2, V*) rgbbgr2gray(bool isBGR, V)(Slice!(3, V*) input, Slice!(2, V*) prealloc = emptySlice!(2, V),
+        Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
+in
+{
+    assert(!input.empty, "Input image is empty.");
+}
+body
+{
+    if (prealloc.shape != input.shape[0 .. 2])
+        prealloc = uninitializedSlice!V(input.shape[0 .. 2]);
+
+    auto rgb = staticPack!3(input);
+
+    assert(rgb.structure.strides == prealloc.structure.strides,
+            "Input image and pre-allocated buffer strides are not identical.");
+
+    auto pack = assumeSameStructure!("rgb", "gray")(rgb, prealloc);
+    alias PT = DeepElementType!(typeof(pack));
+
+    if (conv == Rgb2GrayConvertion.MEAN)
+        pack.ndEach!(rgb2grayImplMean!PT);
+    else
+        static if (isBGR)
+            pack.ndEach!(bgr2grayImplLuminance!(PT));
+        else
+            pack.ndEach!(rgb2grayImplLuminance!(PT));
+
+    return prealloc;
+}
+
 /**
 Convert gray image to RGB.
 
@@ -140,7 +165,7 @@ Uses grayscale value and assigns it's value
 to each of three channels for the RGB image version.
 
 Params:
-    range = Grayscale image version, to be converted to the RGB.
+    input = Grayscale image, to be converted to the RGB.
     prealloc = Pre-allocated range, where RGB image will be copied. Default
     argument is an empty slice, where new data is allocated and returned. If given 
     slice is not of corresponding shape(range.shape[0], range.shape[1], 3), it is 
@@ -148,26 +173,31 @@ Params:
 
 Returns:
     Returns RGB version of the given grayscale image.
+
+Note:
+    Input and pre-allocated slices' strides must be identical.
 */
-Slice!(3, V*) gray2rgb(V)(Slice!(2, V*) range, Slice!(3, V*) prealloc = emptySlice!(3, V)) pure nothrow
+Slice!(3, V*) gray2rgb(V)(Slice!(2, V*) input, Slice!(3, V*) prealloc = emptySlice!(3, V)) pure nothrow
 {
-
-    if (prealloc.empty || (range.shape[0 .. 2][]).equal(prealloc.shape[0 .. 2][]) || prealloc.shape[2] != 3)
-        prealloc = uninitializedArray!(V[])(range.length!0 * range.length!1 * 3).sliced(range.length!0,
-                range.length!1, 3);
-
-    for (size_t r = 0; r < range.length!0; ++r)
+    Slice!(2, V[3]*) rgb;
+    if (input.shape != prealloc.shape[0 .. 2])
     {
-        for (size_t c = 0; c < range.length!1; ++c)
-        {
-            immutable v = range[r, c];
-            prealloc[r, c, 0] = v;
-            prealloc[r, c, 1] = v;
-            prealloc[r, c, 2] = v;
-        }
+        rgb = uninitializedSlice!(V[3])(input.length!0, input.length!1);
+    }
+    else
+    {
+        rgb = staticPack!3(prealloc);
     }
 
-    return prealloc;
+    assert(rgb.structure.strides == input.structure.strides,
+            "Input and pre-allocated slices' strides are not identical.");
+
+    auto pack = assumeSameStructure!("gray", "rgb")(input, rgb);
+    alias PT = DeepElementType!(typeof(pack));
+
+    pack.ndEach!(gray2rgbImpl!PT);
+
+    return staticUnpack!3(rgb);
 }
 
 unittest
@@ -193,7 +223,7 @@ algorithm to be ranged as 0-255 for ubyte, 0-65535 for ushort,
 and 0-1 for floating point types.
 
 Params:
-    range = RGB image version, which gets converted to HVS.
+    input = RGB image, which gets converted to HSV.
     prealloc = Pre-allocated range, where HSV image will be copied. Default
     argument is an empty slice, where new data is allocated and returned. If given 
     slice is not of corresponding shape(range.shape[0], range.shape[1], 3), it is 
@@ -201,69 +231,28 @@ Params:
 
 Returns:
     Returns HSV verion of the given RGB image.
+
+Note:
+    Input and pre-allocated slices' strides must be identical.
 */
-Slice!(3, R*) rgb2hsv(R, V)(Slice!(3, V*) range, Slice!(3, R*) prealloc = emptySlice!(3, R))
+Slice!(3, R*) rgb2hsv(R, V)(Slice!(3, V*) input, Slice!(3, R*) prealloc = emptySlice!(3, R)) pure nothrow
         if (isNumeric!R && isNumeric!V)
+in
 {
-    import std.algorithm.comparison : max, min;
-
     static assert(R.max >= 360, "Invalid output type for HSV (R.max >= 360)");
+    assert(input.length!2 == 3, "Invalid channel count.");
+}
+body
+{
+    if (prealloc.shape != input.shape)
+        prealloc = uninitializedSlice!R(input.shape);
 
-    enforce(range.length!2 == 3, "Invalid channel count.");
+    assert(input.structure.strides == prealloc.structure.strides,
+            "Input image and pre-allocated buffer strides are not identical.");
 
-    if (prealloc.empty || prealloc.shape[].equal(range.shape[]))
-    {
-        prealloc = uninitializedArray!(R[])(range.length!0 * range.length!1 * 3).sliced(range.length!0,
-                range.length!1, 3);
-    }
+    auto pack = assumeSameStructure!("rgb", "hsv")(input.staticPack!3, prealloc.staticPack!3);
+    pack.ndEach!(rgb2hsvImpl!(DeepElementType!(typeof(pack))));
 
-    foreach (rgb, hsv; lockstep(range.pack!1.byElement, prealloc.pack!1.byElement))
-    {
-        static if (is(V == ubyte))
-        {
-            auto r = cast(float)(rgb[0]) / 255.;
-            auto g = cast(float)(rgb[1]) / 255.;
-            auto b = cast(float)(rgb[2]) / 255.;
-        }
-        else static if (is(V == ushort))
-        {
-            auto r = cast(float)(rgb[0]) / 65535.;
-            auto g = cast(float)(rgb[1]) / 65535.;
-            auto b = cast(float)(rgb[2]) / 65535.;
-        }
-        else static if (isFloatingPoint!V)
-        {
-            // assumes rgb value range 0-1
-            auto r = cast(float)(rgb[0]);
-            auto g = cast(float)(rgb[1]);
-            auto b = cast(float)(rgb[2]);
-        }
-        else
-        {
-            static assert(0, "Invalid RGB input type: " ~ V.stringof);
-        }
-
-        auto cmax = max(r, max(g, b));
-        auto cmin = min(r, min(g, b));
-        auto cdelta = cmax - cmin;
-
-        hsv[0] = cast(R)((cdelta == 0) ? 0 : (cmax == r) ? 60.0f * ((g - b) / cdelta) : (cmax == g)
-                ? 60.0f * ((b - r) / cdelta + 2) : 60.0f * ((r - g) / cdelta + 4));
-
-        if (hsv[0] < 0)
-            hsv[0] += 360;
-
-        static if (isFloatingPoint!R)
-        {
-            hsv[1] = cast(R)(cmax == 0 ? 0 : cdelta / cmax);
-            hsv[2] = cast(R)(cmax);
-        }
-        else
-        {
-            hsv[1] = cast(R)(100.0 * (cmax == 0 ? 0 : cdelta / cmax));
-            hsv[2] = cast(R)(100.0 * cmax);
-        }
-    }
     return prealloc;
 }
 
@@ -302,77 +291,35 @@ range RGB values to be 0-255, ushort 0-65535, and floating types
 0.0-1.0. Other types are not supported.
 
 Params:
-    range = RGB image version, which gets converted to HVS.
-    prealloc = Pre-allocated range, where HSV image will be copied. Default
+    input = HSV image, which gets converted to RGB.
+    prealloc = Pre-allocated range, where RGB image will be copied. Default
     argument is an empty slice, where new data is allocated and returned. If given 
     slice is not of corresponding shape(range.shape[0], range.shape[1], 3), it is 
     discarded and allocated anew.
 
 Returns:
-    Returns HSV verion of the given RGB image.
+    Returns RGB verion of the given HSV image.
+
+Note:
+    Input and pre-allocated slices' strides must be identical.
 */
-Slice!(3, R*) hsv2rgb(R, V)(Slice!(3, V*) range, Slice!(3, R*) prealloc = emptySlice!(3, R))
+Slice!(3, R*) hsv2rgb(R, V)(Slice!(3, V*) input, Slice!(3, R*) prealloc = emptySlice!(3, R)) pure nothrow
         if (isNumeric!R && isNumeric!V)
+in
 {
-    import std.math : fabs, abs;
+    assert(input.length!2 == 3, "Invalid channel count.");
+}
+body
+{
+    if (prealloc.shape != input.shape)
+        prealloc = uninitializedSlice!R(input.shape);
 
-    enforce(range.length!2 == 3, "Invalid channel count.");
+    assert(input.structure.strides == prealloc.structure.strides,
+            "Input image and pre-allocated buffer strides are not identical.");
 
-    if (prealloc.empty || prealloc.shape[].equal(range.shape[]))
-    {
-        prealloc = uninitializedArray!(R[])(range.length!0 * range.length!1 * 3).sliced(range.length!0,
-                range.length!1, 3);
-    }
+    auto pack = assumeSameStructure!("hsv", "rgb")(input.staticPack!3, prealloc.staticPack!3);
+    pack.ndEach!(hsv2rgbImpl!(DeepElementType!(typeof(pack))));
 
-    float[3] _rgb;
-    immutable hhswitch = [[0, 1, 2], [1, 0, 2], [2, 0, 1], [2, 1, 0], [1, 2, 0], [0, 2, 1]];
-
-    foreach (hsv, rgb; lockstep(range.pack!1.byElement, prealloc.pack!1.byElement))
-    {
-
-        static if (isFloatingPoint!V)
-        {
-            auto h = hsv[0];
-            auto s = hsv[1];
-            auto v = hsv[2];
-        }
-        else
-        {
-            float h = cast(float)hsv[0];
-            float s = cast(float)hsv[1] / 100.0;
-            float v = cast(float)hsv[2] / 100.0;
-        }
-
-        float c = v * s;
-        float x = c * (1. - fabs((h / 60.) % 2 - 1));
-        float m = v - c;
-
-        int hh = abs(cast(int)(h / 60.) % 6);
-        _rgb = [c, x, 0.];
-
-        static if (isFloatingPoint!R)
-        {
-            rgb[0] = cast(R)((_rgb[hhswitch[hh][0]] + m));
-            rgb[1] = cast(R)((_rgb[hhswitch[hh][1]] + m));
-            rgb[2] = cast(R)((_rgb[hhswitch[hh][2]] + m));
-        }
-        else static if (is(R == ubyte))
-        {
-            rgb[0] = cast(R)((_rgb[hhswitch[hh][0]] + m) * 255.);
-            rgb[1] = cast(R)((_rgb[hhswitch[hh][1]] + m) * 255.);
-            rgb[2] = cast(R)((_rgb[hhswitch[hh][2]] + m) * 255.);
-        }
-        else static if (is(R == ushort))
-        {
-            rgb[0] = cast(R)((_rgb[hhswitch[hh][0]] + m) * 65535.);
-            rgb[1] = cast(R)((_rgb[hhswitch[hh][1]] + m) * 65535.);
-            rgb[2] = cast(R)((_rgb[hhswitch[hh][2]] + m) * 65535.);
-        }
-        else
-        {
-            static assert(0, "Output type is not supported: " ~ R.stringof);
-        }
-    }
     return prealloc;
 }
 
@@ -401,7 +348,7 @@ unittest
     hsv2rgbTest(cast(ushort[])[150, 50, 80], cast(ubyte[])[102, 204, 153]);
 
     hsv2rgbTest(cast(float[])[0.0f, 0.0f, 1.0f], cast(ubyte[])[255, 255, 255]);
-    hsv2rgbTest(cast(float[])[150.0f, 0.5f, 1.0f], cast(ubyte[])[128, 255, 191]);
+    hsv2rgbTest(cast(float[])[150.0f, 0.5f, 1.0f], cast(ubyte[])[127, 255, 191]);
     hsv2rgbTest(cast(float[])[150.0f, 0.5f, 0.8f], cast(ubyte[])[102, 204, 153]);
 
     hsv2rgbTest(cast(ushort[])[0, 0, 100], cast(ushort[])[65535, 65535, 65535]);
@@ -419,39 +366,33 @@ Convert RGB image format to YUV.
 YUV images in dcv are organized in the same buffer plane
 where quantity of luma and chroma values are the same (as in
 YUV444 format).
+
+Params:
+    input = Input RGB image.
+    prealloc = Optional pre-allocated buffer. If given, has to be
+        of same shape as input image, otherwise gets reallocated.
+
+Returns:
+    Resulting YUV image slice.
+
+Note:
+    Input and pre-allocated slices' strides must be identical.
 */
-Slice!(3, V*) rgb2yuv(V)(Slice!(3, V*) range, Slice!(3, V*) prealloc = emptySlice!(3, V))
+Slice!(3, V*) rgb2yuv(V)(Slice!(3, V*) input, Slice!(3, V*) prealloc = emptySlice!(3, V)) pure nothrow
+in
 {
+    assert(input.length!2 == 3, "Invalid channel count.");
+}
+body
+{
+    if (prealloc.shape != input.shape)
+        prealloc = uninitializedSlice!V(input.shape);
 
-    enforce(range.length!2 == 3, "Invalid channel count.");
+    assert(input.structure.strides == prealloc.structure.strides,
+            "Input image and pre-allocated buffer strides are not identical.");
 
-    if (prealloc.empty || prealloc.shape[].equal(range.shape[]))
-    {
-        prealloc = uninitializedArray!(V[])(range.length!0 * range.length!1 * 3).sliced(range.length!0,
-                range.length!1, 3);
-    }
-
-    foreach (rgb, yuv; lockstep(range.pack!1.byElement, prealloc.pack!1.byElement))
-    {
-        static if (isFloatingPoint!V)
-        {
-            auto r = cast(int)rgb[0];
-            auto g = cast(int)rgb[1];
-            auto b = cast(int)rgb[2];
-            yuv[0] = clip!V((r * .257) + (g * .504) + (b * .098) + 16);
-            yuv[1] = clip!V((r * .439) + (g * .368) + (b * .071) + 128);
-            yuv[2] = clip!V(-(r * .148) - (g * .291) + (b * .439) + 128);
-        }
-        else
-        {
-            auto r = rgb[0];
-            auto g = rgb[1];
-            auto b = rgb[2];
-            yuv[0] = clip!V(((66 * (r) + 129 * (g) + 25 * (b) + 128) >> 8) + 16);
-            yuv[1] = clip!V(((-38 * (r) - 74 * (g) + 112 * (b) + 128) >> 8) + 128);
-            yuv[2] = clip!V(((112 * (r) - 94 * (g) - 18 * (b) + 128) >> 8) + 128);
-        }
-    }
+    auto p = assumeSameStructure!("rgb", "yuv")(input, prealloc).pack!1;
+    p.ndEach!(rgb2yuvImpl!(V, DeepElementType!(typeof(p))));
 
     return prealloc;
 }
@@ -462,38 +403,32 @@ Convert YUV image to RGB.
 As in rgb2yuv conversion, YUV format is considered to have 
 same amount of luma and chroma.
 
-TODO: 
-    Separate input and output type as in rgb2hsv etc.
+Params:
+    input = Input YUV image.
+    prealloc = Optional pre-allocated buffer. If given, has to be
+        of same shape as input image, otherwise gets reallocated.
+
+Returns:
+    Resulting RGB image slice.
+
+Note:
+    Input and pre-allocated slices' strides must be identical.
 */
-Slice!(3, V*) yuv2rgb(V)(Slice!(3, V*) range, Slice!(3, V*) prealloc = emptySlice!(3, V))
+Slice!(3, V*) yuv2rgb(V)(Slice!(3, V*) input, Slice!(3, V*) prealloc = emptySlice!(3, V)) pure nothrow
+in
 {
+    assert(input.length!2 == 3, "Invalid channel count.");
+}
+body
+{
+    if (prealloc.shape != input.shape)
+        prealloc = uninitializedSlice!V(input.shape);
 
-    enforce(range.length!2 == 3, "Invalid channel count.");
+    assert(input.structure.strides == prealloc.structure.strides,
+            "Input image and pre-allocated buffer strides are not identical.");
 
-    if (prealloc.empty || prealloc.shape[].equal(range.shape[]))
-    {
-        prealloc = uninitializedArray!(V[])(range.length!0 * range.length!1 * 3).sliced(range.length!0,
-                range.length!1, 3);
-    }
-
-    foreach (yuv, rgb; lockstep(range.pack!1.byElement, prealloc.pack!1.byElement))
-    {
-        auto y = cast(int)(yuv[0]) - 16;
-        auto u = cast(int)(yuv[1]) - 128;
-        auto v = cast(int)(yuv[2]) - 128;
-        static if (isFloatingPoint!V)
-        {
-            rgb[0] = clip!V(y + 1.4075 * v);
-            rgb[1] = clip!V(y - 0.3455 * u - (0.7169 * v));
-            rgb[2] = clip!V(y + 1.7790 * u);
-        }
-        else
-        {
-            rgb[0] = clip!V((298 * y + 409 * v + 128) >> 8);
-            rgb[1] = clip!V((298 * y - 100 * u - 208 * v + 128) >> 8);
-            rgb[2] = clip!V((298 * y + 516 * u + 128) >> 8);
-        }
-    }
+    auto p = assumeSameStructure!("yuv", "rgb")(input, prealloc).pack!1;
+    p.ndEach!(yuv2rgbImpl!(V, DeepElementType!(typeof(p))));
 
     return prealloc;
 }
@@ -534,44 +469,244 @@ unittest
     yuv2rgbTest(cast(ubyte[])[41, 240, 110], cast(ubyte[])[0, 0, 255]);
 }
 
-private:
+pure @nogc nothrow @fastmath:
 
-immutable real[][] rgb2GrayMltp = [[0.3333, 0.3333, 0.3333], [0.2126, 0.715, 0.0722]];
-
-Slice!(2, V*) rgb2grayImpl(V)(Slice!(3, V*) range, Slice!(2, V*) prealloc, in real[] m) pure nothrow
+void rgb2grayImplMean(P)(P pack)
 {
-    if (prealloc.empty)
-    {
-        if (!(range.shape[0 .. 2][].equal(prealloc.shape[0 .. 2][])))
-            prealloc = uninitializedArray!(V[])(range.shape[0] * range.shape[1]).sliced(range.shape[0], range.shape[1]);
-    }
-
-    auto rp = range.pack!1;
-
-    auto rows = rp.length!0;
-    auto cols = rp.length!1;
-
-    for (size_t i = 0; i < rows; ++i)
-    {
-        auto g_row = prealloc[i, 0 .. cols];
-        auto rgb_row = rp[i, 0 .. cols];
-        size_t j = 0;
-        for (; j < cols; ++j)
-        {
-            auto rgb = rgb_row[j];
-            auto v = rgb[0] * m[0] + rgb[1] * m[1] + rgb[2] * m[2];
-            static if (isFloatingPoint!(typeof(v)) && !isFloatingPoint!V)
-            {
-                import std.math : floor;
-
-                g_row[j] = cast(V)(v + 0.5).floor;
-            }
-            else
-            {
-                g_row[j] = cast(V)v;
-            }
-        }
-    }
-
-    return prealloc;
+    alias V = typeof(pack.gray);
+    pack.gray = cast(V)((pack.rgb[0] + pack.rgb[1] + pack.rgb[2]) / 3);
 }
+
+void rgb2grayImplLuminance(RGBGRAY)(RGBGRAY pack)
+{
+    alias V = typeof(pack.gray);
+    pack.gray = cast(V)(
+            cast(float)pack.rgb[0] * 0.212642529f +
+            cast(float)pack.rgb[1] * 0.715143029f +
+            cast(float)pack.rgb[2] * 0.072214443f
+            );
+}
+
+void bgr2grayImplLuminance(RGBGRAY)(RGBGRAY pack)
+{
+    alias V = typeof(pack.gray);
+    pack.gray = cast(V)(
+            cast(float)pack.rgb[2] * 0.212642529f +
+            cast(float)pack.rgb[1] * 0.715143029f +
+            cast(float)pack.rgb[0] * 0.072214443f
+            );
+}
+
+void gray2rgbImpl(GRAYRGB)(GRAYRGB pack)
+{
+    auto v = pack.gray;
+    pack.rgb[0] = v;
+    pack.rgb[1] = v;
+    pack.rgb[2] = v;
+}
+
+void rgb2hsvImpl(RGBHSV)(RGBHSV pack)
+{
+    import ldc.intrinsics : max = llvm_maxnum, min = llvm_minnum;
+
+    alias V = typeof(pack.rgb[0]);
+    alias R = typeof(pack.hsv[0]);
+
+    static if (is(V == ubyte))
+    {
+        auto r = cast(float)(pack.rgb[0]) * (1.0f / 255.0f);
+        auto g = cast(float)(pack.rgb[1]) * (1.0f / 255.0f);
+        auto b = cast(float)(pack.rgb[2]) * (1.0f / 255.0f);
+    }
+    else static if (is(V == ushort))
+    {
+        auto r = cast(float)(pack.rgb[0]) * (1.0f / 65535.0f);
+        auto g = cast(float)(pack.rgb[1]) * (1.0f / 65535.0f);
+        auto b = cast(float)(pack.rgb[2]) * (1.0f / 65535.0f);
+    }
+    else static if (isFloatingPoint!V)
+    {
+        // assumes rgb value range 0-1
+        auto r = cast(float)(pack.rgb[0]);
+        auto g = cast(float)(pack.rgb[1]);
+        auto b = cast(float)(pack.rgb[2]);
+    }
+    else
+    {
+        static assert(0, "Invalid RGB input type: " ~ V.stringof);
+    }
+
+    auto cmax = max(r, max(g, b));
+    auto cmin = min(r, min(g, b));
+    auto cdelta = cmax - cmin;
+
+    auto h = cast(R)((cdelta == 0) ? 0 : (cmax == r) ? 60.0f * ((g - b) / cdelta) : (cmax == g)
+            ? 60.0f * ((b - r) / cdelta + 2) : 60.0f * ((r - g) / cdelta + 4));
+
+    if (h < 0)
+        h += 360;
+
+    static if (isFloatingPoint!R)
+    {
+        auto s = cast(R)(cmax == 0 ? 0 : cdelta / cmax);
+        auto v = cast(R)(cmax);
+    }
+    else
+    {
+        auto s = cast(R)(100.0 * (cmax == 0 ? 0 : cdelta / cmax));
+        auto v = cast(R)(100.0 * cmax);
+    }
+
+    pack.hsv[0] = h;
+    pack.hsv[1] = s;
+    pack.hsv[2] = v;
+}
+
+void hsv2rgbImpl(HSVRGB)(HSVRGB pack)
+{
+    alias V = typeof(pack.hsv[0]);
+    alias R = typeof(pack.rgb[0]);
+
+    float r, g, b, p, q, t;
+
+    static if (isFloatingPoint!V)
+    {
+        auto h = pack.hsv[0];
+        auto s = pack.hsv[1];
+        auto v = pack.hsv[2];
+    }
+    else
+    {
+        float h = cast(float)pack.hsv[0];
+        float s = cast(float)pack.hsv[1] * 0.01f;
+        float v = cast(float)pack.hsv[2] * 0.01f;
+    }
+
+    if (s <= 0.0f)
+    {
+        static if (isFloatingPoint!R)
+        {
+            pack.rgb[0] = cast(R)v;
+            pack.rgb[1] = cast(R)v;
+            pack.rgb[2] = cast(R)v;
+        }
+        else
+        {
+            pack.rgb[0] = cast(R)(v * R.max);
+            pack.rgb[1] = cast(R)(v * R.max);
+            pack.rgb[2] = cast(R)(v * R.max);
+        }
+        return;
+    }
+
+    if (v <= 0.0f)
+    {
+        pack.rgb[0] = cast(R)0;
+        pack.rgb[1] = cast(R)0;
+        pack.rgb[2] = cast(R)0;
+        return;
+    }
+
+    if (h >= 360.0f)
+        h = 0.0f;
+    else
+        h /= 60.0;
+
+    auto hh = cast(int)h;
+    auto ff = h - float(hh);
+
+    p = v * (1.0f - s);
+    q = v * (1.0f - (s * ff));
+    t = v * (1.0f - (s * (1.0f - ff)));
+
+    switch (hh)
+    {
+    case 0:
+        r = v;
+        g = t;
+        b = p;
+        break;
+    case 1:
+        r = q;
+        g = v;
+        b = p;
+        break;
+    case 2:
+        r = p;
+        g = v;
+        b = t;
+        break;
+
+    case 3:
+        r = p;
+        g = q;
+        b = v;
+        break;
+    case 4:
+        r = t;
+        g = p;
+        b = v;
+        break;
+    case 5:
+    default:
+        r = v;
+        g = p;
+        b = q;
+        break;
+    }
+
+    static if (isFloatingPoint!R)
+    {
+        pack.rgb[0] = cast(R)r;
+        pack.rgb[1] = cast(R)g;
+        pack.rgb[2] = cast(R)b;
+    }
+    else
+    {
+        pack.rgb[0] = cast(R)(r * R.max);
+        pack.rgb[1] = cast(R)(g * R.max);
+        pack.rgb[2] = cast(R)(b * R.max);
+    }
+}
+
+void rgb2yuvImpl(V, RGBYUV)(RGBYUV pack)
+{
+    static if (isFloatingPoint!V)
+    {
+        auto r = cast(int)pack[0].rgb;
+        auto g = cast(int)pack[1].rgb;
+        auto b = cast(int)pack[2].rgb;
+        pack[0].yuv = clip!V((r * .257) + (g * .504) + (b * .098) + 16);
+        pack[1].yuv = clip!V((r * .439) + (g * .368) + (b * .071) + 128);
+        pack[2].yuv = clip!V(-(r * .148) - (g * .291) + (b * .439) + 128);
+    }
+    else
+    {
+        auto r = pack[0].rgb;
+        auto g = pack[1].rgb;
+        auto b = pack[2].rgb;
+        pack[0].yuv = clip!V(((66 * (r) + 129 * (g) + 25 * (b) + 128) >> 8) + 16);
+        pack[1].yuv = clip!V(((-38 * (r) - 74 * (g) + 112 * (b) + 128) >> 8) + 128);
+        pack[2].yuv = clip!V(((112 * (r) - 94 * (g) - 18 * (b) + 128) >> 8) + 128);
+    }
+}
+
+void yuv2rgbImpl(V, YUVRGB)(YUVRGB pack)
+{
+    auto y = cast(int)(pack[0].yuv) - 16;
+    auto u = cast(int)(pack[1].yuv) - 128;
+    auto v = cast(int)(pack[2].yuv) - 128;
+    static if (isFloatingPoint!V)
+    {
+        pack[0].rgb = clip!V(y + 1.4075 * v);
+        pack[1].rgb = clip!V(y - 0.3455 * u - (0.7169 * v));
+        pack[2].rgb = clip!V(y + 1.7790 * u);
+    }
+    else
+    {
+        pack[0].rgb = clip!V((298 * y + 409 * v + 128) >> 8);
+        pack[1].rgb = clip!V((298 * y - 100 * u - 208 * v + 128) >> 8);
+        pack[2].rgb = clip!V((298 * y + 516 * u + 128) >> 8);
+    }
+}
+

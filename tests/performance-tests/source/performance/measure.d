@@ -93,28 +93,28 @@ auto run_dcv_features_corner_harris_harrisCorners_3()
 {
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&harrisCorners!(float, float), image, 3, 0.64, 0.84, result);
+    return evalBenchmark(&harrisCorners!(float, float), image, 3, 0.64, 0.84, result, taskPool);
 }
 
 auto run_dcv_features_corner_harris_harrisCorners_5()
 {
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&harrisCorners!(float, float), image, 5, 0.64, 0.84, result);
+    return evalBenchmark(&harrisCorners!(float, float), image, 5, 0.64, 0.84, result, taskPool);
 }
 
 auto run_dcv_features_corner_harris_shiTomasiCorners_3()
 {
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&shiTomasiCorners!(float, float), image, 3, 0.84, result);
+    return evalBenchmark(&shiTomasiCorners!(float, float), image, 3, 0.84, result, taskPool);
 }
 
 auto run_dcv_features_corner_harris_shiTomasiCorners_5()
 {
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&shiTomasiCorners!(float, float), image, 5, 0.84, result);
+    return evalBenchmark(&shiTomasiCorners!(float, float), image, 5, 0.84, result, taskPool);
 }
 
 auto run_dcv_features_corner_fast_FASTDetector()
@@ -188,8 +188,10 @@ auto run_dcv_imgproc_color_rgb2hsv()
 
 auto run_dcv_imgproc_color_hsv2rgb()
 {
+    import std.random;
     auto rgb = slice!ubyte(imsize, imsize, 3);
     auto hsv = slice!float(imsize, imsize, 3);
+    hsv.ndEach!(v => v = cast(float)uniform01);
     return evalBenchmark(&hsv2rgb!(ubyte, float), hsv, rgb);
 }
 
@@ -212,7 +214,7 @@ auto run_dcv_imgproc_convolution_conv_1D_3()
     auto vector = slice!float(imsize * imsize);
     auto result = slice!float(imsize * imsize);
     auto kernel = slice!float(3);
-    return evalBenchmark(&conv!(neumann, float, float, float, 1, 1), vector, kernel, result,
+    return evalBenchmark(&conv!(neumann, typeof(vector), typeof(kernel), typeof(kernel)), vector, kernel, result,
             emptySlice!(1, float), taskPool);
 }
 
@@ -221,7 +223,7 @@ auto run_dcv_imgproc_convolution_conv_1D_5()
     auto vector = slice!float(imsize * imsize);
     auto result = slice!float(imsize * imsize);
     auto kernel = slice!float(5);
-    return evalBenchmark(&conv!(neumann, float, float, float, 1, 1), vector, kernel, result,
+    return evalBenchmark(&conv!(neumann, typeof(vector), typeof(kernel), typeof(kernel)), vector, kernel, result,
             emptySlice!(1, float), taskPool);
 }
 
@@ -230,7 +232,7 @@ auto run_dcv_imgproc_convolution_conv_1D_7()
     auto vector = slice!float(imsize * imsize);
     auto result = slice!float(imsize * imsize);
     auto kernel = slice!float(7);
-    return evalBenchmark(&conv!(neumann, float, float, float, 1, 1), vector, kernel, result,
+    return evalBenchmark(&conv!(neumann, typeof(vector), typeof(kernel), typeof(kernel)), vector, kernel, result,
             emptySlice!(1, float), taskPool);
 }
 
@@ -239,7 +241,7 @@ auto run_dcv_imgproc_convolution_conv_2D_3x3()
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
     auto kernel = slice!float(3, 3);
-    return evalBenchmark(&conv!(neumann, float, float, float, 2, 2), image, kernel, result,
+    return evalBenchmark(&conv!(neumann, typeof(image), typeof(kernel), typeof(kernel)), image, kernel, result,
             emptySlice!(2, float), taskPool);
 }
 
@@ -248,7 +250,7 @@ auto run_dcv_imgproc_convolution_conv_2D_5x5()
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
     auto kernel = slice!float(5, 5);
-    return evalBenchmark(&conv!(neumann, float, float, float, 2, 2), image, kernel, result,
+    return evalBenchmark(&conv!(neumann, typeof(image), typeof(kernel), typeof(kernel)), image, kernel, result,
             emptySlice!(2, float), taskPool);
 }
 
@@ -257,7 +259,7 @@ auto run_dcv_imgproc_convolution_conv_2D_7x7()
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
     auto kernel = slice!float(7, 7);
-    return evalBenchmark(&conv!(neumann, float, float, float, 2, 2), image, kernel, result,
+    return evalBenchmark(&conv!(neumann, typeof(image), typeof(kernel), typeof(kernel)), image, kernel, result,
             emptySlice!(2, float), taskPool);
 }
 
@@ -266,7 +268,7 @@ auto run_dcv_imgproc_convolution_conv_3D_3x3()
     auto image = slice!float(imsize, imsize, 3);
     auto result = slice!float(imsize, imsize, 3);
     auto kernel = slice!float(3, 3);
-    return evalBenchmark(&conv!(neumann, float, float, float, 3, 2), image, kernel, result,
+    return evalBenchmark(&conv!(neumann, typeof(image), typeof(kernel), typeof(kernel)), image, kernel, result,
             emptySlice!(2, float), taskPool);
 }
 
@@ -275,14 +277,14 @@ auto run_dcv_imgproc_convolution_conv_3D_5x5()
     auto image = slice!float(imsize, imsize, 3);
     auto result = slice!float(imsize, imsize, 3);
     auto kernel = slice!float(5, 5);
-    return evalBenchmark(&conv!(neumann, float, float, float, 3, 2), image, kernel, result,
+    return evalBenchmark(&conv!(neumann, typeof(image), typeof(kernel), typeof(kernel)), image, kernel, result,
             emptySlice!(2, float), taskPool);
 }
 
 auto run_dcv_imgproc_filter_filterNonMaximum()
 {
     auto image = slice!float(imsize, imsize);
-    return evalBenchmark(&filterNonMaximum!float, image, 10);
+    return evalBenchmark(&filterNonMaximum!(typeof(image)), image, 10);
 }
 
 auto run_dcv_imgproc_filter_calcPartialDerivatives()
@@ -290,7 +292,7 @@ auto run_dcv_imgproc_filter_calcPartialDerivatives()
     auto image = slice!float(imsize, imsize);
     auto fx = slice!float(imsize, imsize);
     auto fy = slice!float(imsize, imsize);
-    return evalBenchmark(&calcPartialDerivatives!float, image, fx, fy);
+    return evalBenchmark(&calcPartialDerivatives!(typeof(image), float), image, fx, fy, taskPool);
 }
 
 auto run_dcv_imgproc_filter_calcGradients()
@@ -298,7 +300,7 @@ auto run_dcv_imgproc_filter_calcGradients()
     auto image = slice!float(imsize, imsize);
     auto mag = slice!float(imsize, imsize);
     auto orient = slice!float(imsize, imsize);
-    return evalBenchmark(&calcGradients!(float), image, mag, orient, EdgeKernel.SIMPLE);
+    return evalBenchmark(&calcGradients!(typeof(image), float), image, mag, orient, EdgeKernel.SIMPLE, taskPool);
 }
 
 auto run_dcv_imgproc_filter_nonMaximaSupression()
@@ -306,7 +308,7 @@ auto run_dcv_imgproc_filter_nonMaximaSupression()
     auto mag = slice!float(imsize, imsize);
     auto orient = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&nonMaximaSupression!(float, float), mag, orient, result);
+    return evalBenchmark(&nonMaximaSupression!(typeof(mag), float), mag, orient, result, taskPool);
 }
 
 auto run_dcv_imgproc_filter_canny()
@@ -316,7 +318,7 @@ auto run_dcv_imgproc_filter_canny()
     auto result = slice!ubyte(imsize, imsize);
     auto runCanny(typeof(image) image, typeof(result) result)
     {
-        canny!ubyte(image, 0, 1, EdgeKernel.SOBEL, result);
+        canny!ubyte(image, 0, 1, EdgeKernel.SOBEL, result, taskPool);
     }
     //return evalBenchmark(&canny!(float,ubyte), image, cast(ubyte)0, cast(ubyte)1, EdgeKernel.SOBEL, result);
     return evalBenchmark(&runCanny, image, result);
@@ -326,14 +328,14 @@ auto run_dcv_imgproc_filter_bilateralFilter_3()
 {
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&bilateralFilter!(neumann, float, float, 2), image, 0.84, 3, result, taskPool);
+    return evalBenchmark(&bilateralFilter!(neumann, typeof(image), float, 2), image, 0.84, 3, result, taskPool);
 }
 
 auto run_dcv_imgproc_filter_bilateralFilter_5()
 {
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&bilateralFilter!(neumann, float, float, 2), image, 0.84, 5, result, taskPool);
+    return evalBenchmark(&bilateralFilter!(neumann, typeof(image), float, 2), image, 0.84, 5, result, taskPool);
 }
 
 auto run_dcv_imgproc_filter_medianFilter_3()
@@ -435,7 +437,7 @@ auto run_dcv_imgproc_imgmanip_warp()
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
     auto warpMap = slice!float(imsize, imsize, 2);
-    return evalBenchmark(&warp!(linear, 2, float, float), image, warpMap, result);
+    return evalBenchmark(&warp!(linear, typeof(image), typeof(warpMap)), image, warpMap, result);
 }
 
 auto run_dcv_imgproc_imgmanip_remap()
@@ -443,7 +445,7 @@ auto run_dcv_imgproc_imgmanip_remap()
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
     auto remapMap = slice!float(imsize, imsize, 2);
-    return evalBenchmark(&remap!(linear, 2, float, float), image, remapMap, result);
+    return evalBenchmark(&remap!(linear, typeof(image), typeof(remapMap)), image, remapMap, result);
 }
 
 auto run_dcv_imgproc_threshold_threshold()

@@ -10,6 +10,7 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 module dcv.imgproc.threshold;
 
 import mir.ndslice;
+import mir.ndslice.algorithm : ndEach, Yes;
 
 import dcv.core.utils : emptySlice;
 
@@ -33,65 +34,55 @@ Params:
     lowThresh = Lower threshold value.
     highThresh = Higher threshold value.
     prealloc = Optional pre-allocated slice buffer for output.
+
+Note:
+    Input and pre-allocated buffer slice, should be of same structure
+    (i.e. have same strides). If prealloc buffer is not given, and is
+    allocated anew, input slice memory must be contiguous.
 */
-Slice!(N, OutputType*) threshold(OutputType, InputType, size_t N)(Slice!(N, InputType*) slice,
+nothrow Slice!(N, OutputType*) threshold(OutputType, InputType, size_t N)(Slice!(N, InputType*) input,
         InputType lowThresh, InputType highThresh, Slice!(N, OutputType*) prealloc = emptySlice!(N, OutputType))
 in
 {
-
     //TODO: consider leaving upper value, and not setting it to 1.
     assert(lowThresh <= highThresh);
-    assert(!slice.empty);
+    assert(!input.empty);
 }
 body
 {
-    import std.array : uninitializedArray;
-    import std.algorithm.iteration : reduce;
-    import std.range : lockstep;
     import std.math : approxEqual;
-    import std.traits : isFloatingPoint;
+    import std.traits : isFloatingPoint, isNumeric;
 
-    if (prealloc.shape[] != slice.shape[])
+    static assert(isNumeric!OutputType, "Invalid output type - has to be numeric.");
+
+    if (prealloc.shape != input.shape)
     {
-        prealloc = uninitializedArray!(OutputType[])(slice.elementsCount).sliced(slice.shape);
+        prealloc = uninitializedSlice!OutputType(input.shape);
     }
+
+    assert(input.structure.strides == prealloc.structure.strides,
+            "Input slice structure does not match with resulting buffer.");
 
     static if (isFloatingPoint!OutputType)
-    {
         OutputType upvalue = 1.0;
-    }
     else
-    {
         OutputType upvalue = OutputType.max;
-    }
 
-    pure nothrow @safe @nogc InputType cmp_l(ref InputType v)
-    {
-        return v <= lowThresh ? 0 : upvalue;
-    }
-
-    pure nothrow @safe @nogc InputType cmp_lu(ref InputType v)
-    {
-        return v >= lowThresh && v <= highThresh ? upvalue : 0;
-    }
-
-    InputType delegate(ref InputType v) pure nothrow @nogc @safe cmp;
+    auto p = assumeSameStructure!("result", "input")(prealloc, input);
 
     if (lowThresh.approxEqual(highThresh))
     {
-        cmp = &cmp_l;
+        p.ndEach!((v)
+        {
+            v.result = cast(OutputType)(v.input <= lowThresh ? 0 : upvalue);
+        }, Yes.vectorized, Yes.fastmath);
     }
     else
     {
-        cmp = &cmp_lu;
-    }
-
-    foreach (ref t, e; lockstep(prealloc.byElement, slice.byElement))
-    {
-        static if (is(InputType == OutputType))
-            t = cmp(e); //(e >= lowThresh && e <= highThresh) ? e : cast(OutputType)0;
-        else
-            t = cast(OutputType)cmp(e);
+        p.ndEach!((v)
+        {
+            v.result = cast(OutputType)(v.input >= lowThresh && v.input <= highThresh ? upvalue : 0);
+        }, Yes.vectorized, Yes.fastmath);
     }
 
     return prealloc;
@@ -106,8 +97,13 @@ Params:
     slice = Input slice.
     thresh = Threshold value - any value lower than this will be set to 0, and higher to 1.
     prealloc = Optional pre-allocated slice buffer for output.
+
+Note:
+    Input and pre-allocated buffer slice, should be of same structure
+    (i.e. have same strides). If prealloc buffer is not given, and is
+    allocated anew, input slice memory must be contiguous.
 */
-Slice!(N, OutputType*) threshold(OutputType, InputType, size_t N)(Slice!(N, InputType*) slice,
+nothrow Slice!(N, OutputType*) threshold(OutputType, InputType, size_t N)(Slice!(N, InputType*) slice,
         InputType thresh, Slice!(N, OutputType*) prealloc = emptySlice!(N, OutputType))
 {
     return threshold!(OutputType, InputType, N)(slice, thresh, thresh, prealloc);

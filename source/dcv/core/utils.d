@@ -23,6 +23,77 @@ static Slice!(N, V*) emptySlice(size_t N, V)() pure @safe nothrow
     return Slice!(N, V*)();
 }
 
+package(dcv) @nogc pure nothrow
+{
+    /**
+       Pack and unpack (N, T*) slices to (N-1, T[M]*).
+    */
+    auto staticPack(size_t CH, size_t N, T)(Slice!(N, T*) slice)
+    {
+        ulong[N-1] shape = slice.shape[0 .. N-1];
+        long[N-1] strides = [slice.structure.strides[0] / CH, slice.structure.strides[1] / CH];
+        T[CH]* ptr = cast(T[CH]*)slice.ptr;
+        return Slice!(N-1, T[CH]*)(shape, strides, ptr);
+    }
+
+    /// ditto
+    auto staticUnpack(size_t CH, size_t N, T)(Slice!(N, T[CH]*) slice)
+    {
+        ulong[N+1] shape = [slice.shape[0], slice.shape[1], CH];
+        long[N+1] strides = [slice.structure.strides[0] * CH, slice.structure.strides[1] * CH, 1];
+        T* ptr = cast(T*)slice.ptr;
+        return Slice!(N+1, T*)(shape, strides, ptr);
+    }
+
+    @safe @nogc nothrow pure auto borders(Shape)(Shape shape, size_t ks)
+    in
+    {
+        static assert(Shape.length == 2, "Non-matrix border extraction is not currently supported.");
+    }
+    body
+    {
+        import std.typecons : Tuple;
+        import std.algorithm.comparison : max;
+        import std.range : iota;
+        import std.traits : ReturnType;
+
+        struct Range(Iota)
+        {
+            Iota rows;
+            Iota cols;
+            @disable this();
+            this(Iota rows, Iota cols)
+            {
+                this.rows = rows;
+                this.cols = cols;
+            }
+        }
+
+        auto range(Iota)(Iota rows, Iota cols)
+        {
+            return Range!Iota(rows, cols);
+        }
+
+        // forced size_t cast...
+        auto _iota(B, E, S)(B begin, E end, S step = 1)
+        {
+            return iota(size_t(begin), size_t(end), size_t(step));
+        }
+
+        size_t kh = max(1, ks / 2);
+        alias Iota = ReturnType!(iota!(size_t, size_t, size_t));
+
+        Range!(Iota)[4] borders = [
+            range(_iota(0, shape[0]), _iota(0, kh)),
+            range(_iota(0, shape[0]), _iota(shape[1] - kh, shape[1])),
+            range(_iota(0, kh), _iota(0, shape[1])),
+            range(_iota(shape[0] - kh, shape[0]), _iota(0, shape[1]))
+        ];
+
+        return borders;
+    }
+}
+
 /**
 Take another typed Slice. Type conversion for the Slice object.
 
@@ -185,43 +256,39 @@ static if (__VERSION__ >= 2071)
 /// Check if given function can perform boundary condition test.
 template isBoundaryCondition(alias bc)
 {
-    import std.typetuple;
+    enum bool isBoundaryCondition = true;
+}
 
-    alias Indices = TypeTuple!(int, int);
-    alias bct = bc!(2, float, Indices);
-    static if (isCallable!(bct) && is(Parameters!bct[0] == Slice!(2, float*))
-            && is(Parameters!bct[1] == int) && is(Parameters!bct[2] == int) && is(ReturnType!bct == float))
+nothrow @nogc pure
+{
+
+    /// $(LINK2 https://en.wikipedia.org/wiki/Neumann_boundary_condition, Neumann) boundary condition test
+    auto neumann(Tensor, Indices...)(Tensor tensor, Indices indices)
+            if (isSlice!Tensor && allSameType!Indices && allSatisfy!(isIntegral, Indices))
     {
-        enum bool isBoundaryCondition = true;
+        immutable N = ReturnType!(Tensor.shape).length;
+        static assert(indices.length == N, "Invalid index dimension");
+        return tensor.bcImpl!_neumann(indices);
     }
-    else
+
+    /// $(LINK2 https://en.wikipedia.org/wiki/Periodic_boundary_conditions,Periodic) boundary condition test
+    auto periodic(Tensor, Indices...)(Tensor tensor, Indices indices)
+            if (isSlice!Tensor && allSameType!Indices && allSatisfy!(isIntegral, Indices))
     {
-        enum bool isBoundaryCondition = false;
+        immutable N = ReturnType!(Tensor.shape).length;
+        static assert(indices.length == N, "Invalid index dimension");
+        return tensor.bcImpl!_periodic(indices);
     }
-}
 
-/// $(LINK2 https://en.wikipedia.org/wiki/Neumann_boundary_condition, Neumann) boundary condition test
-ref T neumann(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices)
-        if (allSameType!Indices && allSatisfy!(isIntegral, Indices))
-{
-    static assert(indices.length == N, "Invalid index dimension");
-    return slice.bcImpl!_neumann(indices);
-}
+    /// Symmetric boundary condition test
+    auto symmetric(Tensor, Indices...)(Tensor tensor, Indices indices)
+            if (isSlice!Tensor && allSameType!Indices && allSatisfy!(isIntegral, Indices))
+    {
+        immutable N = ReturnType!(Tensor.shape).length;
+        static assert(indices.length == N, "Invalid index dimension");
+        return tensor.bcImpl!_symmetric(indices);
+    }
 
-/// $(LINK2 https://en.wikipedia.org/wiki/Periodic_boundary_conditions,Periodic) boundary condition test
-ref T periodic(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices)
-        if (allSameType!Indices && allSatisfy!(isIntegral, Indices))
-{
-    static assert(indices.length == N, "Invalid index dimension");
-    return slice.bcImpl!_periodic(indices);
-}
-
-/// Symmetric boundary condition test
-ref T symmetric(size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices)
-        if (allSameType!Indices && allSatisfy!(isIntegral, Indices))
-{
-    static assert(indices.length == N, "Invalid index dimension");
-    return slice.bcImpl!_symmetric(indices);
 }
 
 /// Alias for generalized boundary condition test function.
@@ -264,30 +331,33 @@ unittest
 
 private:
 
-ref auto bcImpl(alias bcfunc, size_t N, T, Indices...)(ref Slice!(N, T*) slice, Indices indices)
+nothrow @nogc pure:
+
+auto bcImpl(alias bcfunc, Tensor, Indices...)(Tensor tensor, Indices indices)
 {
+    immutable N = ReturnType!(Tensor.shape).length;
     static if (N == 1)
     {
-        return slice[bcfunc(cast(int)indices[0], cast(int)slice.length)];
+        return tensor[bcfunc(cast(int)indices[0], cast(int)tensor.length)];
     }
     else static if (N == 2)
     {
-        return slice[bcfunc(cast(int)indices[0], cast(int)slice.length!0),
-            bcfunc(cast(int)indices[1], cast(int)slice.length!1)];
+        return tensor[bcfunc(cast(int)indices[0], cast(int)tensor.length!0),
+            bcfunc(cast(int)indices[1], cast(int)tensor.length!1)];
     }
     else static if (N == 3)
     {
-        return slice[bcfunc(cast(int)indices[0], cast(int)slice.length!0),
-            bcfunc(cast(int)indices[1], cast(int)slice.length!1), bcfunc(cast(int)indices[2],
-                    cast(int)slice.length!2)];
+        return tensor[bcfunc(cast(int)indices[0], cast(int)tensor.length!0),
+            bcfunc(cast(int)indices[1], cast(int)tensor.length!1), bcfunc(cast(int)indices[2],
+                    cast(int)tensor.length!2)];
     }
     else
     {
         foreach (i, ref id; indices)
         {
-            id = bcfunc(cast(int)id, cast(int)slice.shape[i]);
+            id = bcfunc(cast(int)id, cast(int)tensor.shape[i]);
         }
-        return slice[indices];
+        return tensor[indices];
     }
 }
 

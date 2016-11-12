@@ -36,10 +36,11 @@ import std.functional;
 import std.math;
 
 import mir.ndslice;
+import mir.ndslice.algorithm : Yes;
 
 import dcv.core;
 import dcv.core.image;
-import dcv.core.utils : emptySlice;
+import dcv.core.utils : emptySlice, clip;
 import dcv.imgproc;
 
 alias DisparityType = uint;

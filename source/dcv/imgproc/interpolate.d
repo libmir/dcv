@@ -12,9 +12,11 @@ module dcv.imgproc.interpolate;
 import std.range : isRandomAccessRange, ElementType;
 import std.traits : isNumeric, isScalarType, isIntegral, allSameType, allSatisfy, ReturnType,
     isFloatingPoint;
-import std.exception;
+
+import ldc.attributes : fastmath;
 
 import mir.ndslice;
+
 
 /**
 Test if given function is proper form for interpolation.
@@ -59,7 +61,7 @@ Params:
 Returns:
     Interpolated resulting value.
 */
-T linear(T, size_t N, Position...)(Slice!(N, T*) slice, Position pos) pure 
+pure T linear(T, size_t N, Position...)(Slice!(N, T*) slice, Position pos)
         if (isNumeric!T && isScalarType!T && allSameType!Position && allSatisfy!(isNumeric, Position))
 {
     // TODO: document
@@ -104,9 +106,9 @@ unittest
 
 private:
 
-auto linearImpl_1(T)(Slice!(1, T*) range, double pos) pure
+pure @fastmath auto linearImpl_1(T)(Slice!(1, T*) range, double pos)
 {
-    import std.math : floor;
+    import ldc.intrinsics : floor = llvm_floor;
 
     assert(pos < range.length);
 
@@ -132,9 +134,9 @@ auto linearImpl_1(T)(Slice!(1, T*) range, double pos) pure
     return cast(T)(v1 * (1. - weight) + v2 * (weight));
 }
 
-auto linearImpl_2(T)(Slice!(2, T*) range, double pos_x, double pos_y) pure
+pure @fastmath auto linearImpl_2(T)(Slice!(2, T*) range, double pos_x, double pos_y)
 {
-    import std.math : floor;
+    import ldc.intrinsics : floor = llvm_floor;
 
     assert(pos_x < range.length!0 && pos_y < range.length!1);
 
@@ -170,3 +172,4 @@ auto linearImpl_2(T)(Slice!(2, T*) range, double pos_x, double pos_y) pure
     }
     return cast(T)(v1 * w00 + v2 * w01 + v3 * w10 + v4 * w11);
 }
+
