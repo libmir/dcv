@@ -37,33 +37,37 @@ Relja Ljubobratovic
 <b>License:</b><br>
 <a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.<br><br>
 
-<dl><dt><big><a name="conv"></a>Slice!(N, InputType*) <u id="conv">conv</u>(alias bc = neumann, InputType, KernelType, MaskType = InputType, size_t N, size_t NK)(Slice!(N, InputType*) <i>range</i>, Slice!(NK, KernelType*) <i>kernel</i>, Slice!(N, InputType*) <i>prealloc</i> = emptySlice!(N, InputType), Slice!(NK, MaskType*) <i>mask</i> = emptySlice!(NK, MaskType), TaskPool <i>pool</i> = taskPool);
+<dl><dt><big><a name="conv"></a>InputTensor <u id="conv">conv</u>(alias bc = neumann, InputTensor, KernelTensor, MaskTensor = KernelTensor)(InputTensor <i>input</i>, KernelTensor <i>kernel</i>, InputTensor <i>prealloc</i> = InputTensor.init, MaskTensor <i>mask</i> = MaskTensor.init, TaskPool <i>pool</i> = taskPool);
 </big></dt>
-<dd>Perform convolution to given <i>range</i>, using given <i>kernel</i>.
-Convolution is supported for 1, 2, and 3D slices.
+<dd>Perform convolution to given tensor, using given <i>kernel</i>.
+Convolution is supported for 1, 2, and 3 dimensional tensors.
 <br><br>
 <b>Params:</b><br>
 <table><tr><td>bc</td>
 <td>(Template parameter) Boundary Condition function used while indexing the image matrix.</td></tr>
-<tr><td>Slice!(N, InputType*) <i>range</i></td>
-<td>Input <i>range</i> slice (1D, 2D, and 3D slice supported)</td></tr>
-<tr><td>Slice!(NK, KernelType*) <i>kernel</i></td>
-<td>Convolution <i>kernel</i> slice. For 1D <i>range</i>, 1D <i>kernel</i> is expected.
-    For 2D <i>range</i>, 2D kernele is expected. For 3D <i>range</i>, 2D or 3D <i>kernel</i> is expected -
+<tr><td>InputTensor <i>input</i></td>
+<td>Input tensor.</td></tr>
+<tr><td>KernelTensor <i>kernel</i></td>
+<td>Convolution <i>kernel</i> tensor. For 1D <i>input</i>, 1D <i>kernel</i> is expected.
+    For 2D <i>input</i>, 2D <i>kernel</i> is expected. For 3D <i>input</i>, 2D or 3D <i>kernel</i> is expected -
     if 2D <i>kernel</i> is given, each item in <i>kernel</i> matrix is applied to each value in
-    corresponding 2D coordinate in the <i>range</i>.</td></tr>
-<tr><td>Slice!(N, InputType*) <i>prealloc</i></td>
-<td>Pre-allocated array where convolution result can be stored. Default
+    corresponding 2D coordinate in the <i>input</i>.</td></tr>
+<tr><td>InputTensor <i>prealloc</i></td>
+<td>Pre-allocated buffer where convolution result can be stored. Default
     value is emptySlice, where resulting array will be newly allocated. Also if
-    <i>prealloc</i> is not of same shape as input <i>range</i>, resulting array will be newly allocated.</td></tr>
-<tr><td>Slice!(NK, MaskType*) <i>mask</i></td>
-<td>Masking <i>range</i>. Convolution will skip each element where <i>mask</i> is 0. Default value
-    is empty slice, which tells that convolution will be performed on the whole <i>range</i>.</td></tr>
+    <i>prealloc</i> is not of same shape as <i>input</i> <i>input</i>, resulting array will be newly allocated.</td></tr>
+<tr><td>MaskTensor <i>mask</i></td>
+<td>Masking <i>input</i>. Convolution will skip each element where <i>mask</i> is 0. Default value
+    is empty slice, which tells that convolution will be performed on the whole <i>input</i>.</td></tr>
 <tr><td>TaskPool <i>pool</i></td>
 <td>Optional TaskPool instance used to parallelize computation.</td></tr>
 </table><br>
 <b>Returns:</b><br>
-Slice of resulting image after convolution.<br><br>
+Resulting image after convolution, of same type as <i>input</i> tensor.
+
+<br><br>
+<b>Note:</b><br>
+Input, <i>mask</i> and pre-allocated slices' strides must be the same.<br><br>
 
 </dd>
 </dl>

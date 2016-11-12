@@ -44,25 +44,29 @@ Relja Ljubobratovic
 </dd>
 </dl>
 </dd>
-<dt><big><a name="extractCorners"></a>pure nothrow @trusted size_t[2][] <u id="extractCorners">extractCorners</u>(T)(Slice!(2, T*) <i>cornerResponse</i>, int <i>count</i> = -1, T <i>threshold</i> = cast(T)0) if (isNumeric!T);
+<dt><big><a name="extractCorners"></a>pure nothrow auto <u id="extractCorners">extractCorners</u>(T)(Slice!(2, T*) <i>cornerResponse</i>, int <i>count</i> = -1, T <i>threshold</i> = 0) if (isNumeric!T);
 </big></dt>
 <dd>Extract corners as array of 2D points, from response matrix.
 <br><br>
 <b>Params:</b><br>
 <table><tr><td>Slice!(2, T*) <i>cornerResponse</i></td>
 <td>Response matrix, collected as output from corner
-detection algoritms such as harrisCorners, or shiTomasiCorners.</td></tr>
+    detection algoritms such as harrisCorners, or shiTomasiCorners.</td></tr>
 <tr><td>int <i>count</i></td>
 <td>Number of corners which need to be extracted. Default is
--1 which indicate that all responses with value above the <i>threshold</i>
-will be returned.</td></tr>
+    -1 which indicate that all responses with value above the <i>threshold</i>
+    will be returned.</td></tr>
 <tr><td>T <i>threshold</i></td>
 <td>Response <i>threshold</i> - response values in the matrix
-larger than this are considered as valid corners.</td></tr>
+    larger than this are considered as valid corners.</td></tr>
 </table><br>
-<b>return:</b><br>
+<b>Returns:</b><br>
 Dynamic array of size_t[2], as in array of 2D points, of corner reponses
-which fit the given criteria.<br><br>
+    which fit the given criteria.
+
+<br><br>
+<b>Note:</b><br>
+Corner response slice memory has to be contiguous.<br><br>
 <b>Examples:</b><br>
 <pre class="d_code">
 <font color=blue>auto</font> image = [0., 0.1, 0., 0., 0.3, 0., 0., 0.2, 0.].sliced(3, 3);

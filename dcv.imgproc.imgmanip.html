@@ -60,7 +60,7 @@ using scaled shape of the input <i>slice</i> as:
 <pre class="d_code">scaled = resize(input, input.shape*<u id="scale">scale</u>)</pre><br><br>
 
 </dd>
-<dt><big><a name="warp"></a>pure Slice!(N, T*) <u id="warp">warp</u>(alias interp = linear, size_t N, T, V)(Slice!(N, T*) <i>image</i>, Slice!(3, V*) <i>map</i>, Slice!(N, T*) <i>prealloc</i> = emptySlice!(N, T));
+<dt><big><a name="warp"></a>pure auto <u id="warp">warp</u>(alias interp = linear, ImageTensor, MapTensor)(ImageTensor <i>image</i>, MapTensor <i>map</i>, ImageTensor <i>prealloc</i> = ImageTensor.init);
 </big></dt>
 <dd>Pixel-wise warping of the <i>image</i>.
 <br><br>
@@ -70,11 +70,11 @@ Displace each pixel of an <i>image</i> by given [x, y] values.
 <b>Params:</b><br>
 <table><tr><td>interp</td>
 <td>(template parameter) Interpolation function, default linear.</td></tr>
-<tr><td>Slice!(N, T*) <i>image</i></td>
+<tr><td>ImageTensor <i>image</i></td>
 <td>Input <i>image</i>, which is warped. Single and multiple channel images are allowed.</td></tr>
-<tr><td>Slice!(3, V*) <i>map</i></td>
+<tr><td>MapTensor <i>map</i></td>
 <td>Displacement <i>map</i>, which holds [x, y] displacement for each pixel of an <i>image</i>.</td></tr>
-<tr><td>Slice!(N, T*) <i>prealloc</i></td>
+<tr><td>ImageTensor <i>prealloc</i></td>
 <td>Pre-allocated memory where resulting warped <i>image</i> is stored, if defined.
     Should be of same shape as input <i>image</i>, or an emptySlice, which implies newly allocated <i>image</i> is used.</td></tr>
 </table><br>
@@ -82,7 +82,7 @@ Displace each pixel of an <i>image</i> by given [x, y] values.
 Warped input <i>image</i> by given <i>map</i>.<br><br>
 
 </dd>
-<dt><big><a name="remap"></a>pure Slice!(N, T*) <u id="remap">remap</u>(alias interp = linear, size_t N, T, V)(Slice!(N, T*) <i>image</i>, Slice!(3, V*) <i>map</i>, Slice!(N, T*) <i>prealloc</i> = emptySlice!(N, T));
+<dt><big><a name="remap"></a>pure auto <u id="remap">remap</u>(alias interp = linear, ImageTensor, MapTensor)(ImageTensor <i>image</i>, MapTensor <i>map</i>, ImageTensor <i>prealloc</i> = ImageTensor.init);
 </big></dt>
 <dd>Pixel-wise remapping of the <i>image</i>.
 <br><br>
@@ -94,11 +94,11 @@ is absolute, rather than relative.
 <b>Params:</b><br>
 <table><tr><td>interp</td>
 <td>(template parameter) Interpolation function, default linear.</td></tr>
-<tr><td>Slice!(N, T*) <i>image</i></td>
+<tr><td>ImageTensor <i>image</i></td>
 <td>Input <i>image</i>, which is remapped. Single and multiple channel images are allowed.</td></tr>
-<tr><td>Slice!(3, V*) <i>map</i></td>
+<tr><td>MapTensor <i>map</i></td>
 <td>Target <i>map</i>, which holds [x, y] position for each pixel of an <i>image</i>.</td></tr>
-<tr><td>Slice!(N, T*) <i>prealloc</i></td>
+<tr><td>ImageTensor <i>prealloc</i></td>
 <td>Pre-allocated memory where resulting remapped <i>image</i> is stored, if defined.
     Should be of same shape as input <i>image</i>, or an emptySlice, which implies newly allocated <i>image</i> is used.</td></tr>
 </table><br>

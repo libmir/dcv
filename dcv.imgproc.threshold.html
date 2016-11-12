@@ -8,11 +8,11 @@ Relja Ljubobratovic
 <b>License:</b><br>
 <a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.<br><br>
 
-<dl><dt><big><a name="threshold"></a>Slice!(N, OutputType*) <u id="threshold">threshold</u>(OutputType, InputType, size_t N)(Slice!(N, InputType*) <i>slice</i>, InputType <i>lowThresh</i>, InputType <i>highThresh</i>, Slice!(N, OutputType*) <i>prealloc</i> = emptySlice!(N, OutputType));
+<dl><dt><big><a name="threshold"></a>nothrow Slice!(N, OutputType*) <u id="threshold">threshold</u>(OutputType, InputType, size_t N)(Slice!(N, InputType*) <i>input</i>, InputType <i>lowThresh</i>, InputType <i>highThresh</i>, Slice!(N, OutputType*) <i>prealloc</i> = emptySlice!(N, OutputType));
 </big></dt>
-<dd>Clip <i>slice</i> values by a given <u id="threshold">threshold</u> value.
+<dd>Clip slice values by a given <u id="threshold">threshold</u> value.
 <br><br>
-If any <i>slice</i> element has value in range between lower and
+If any slice element has value in range between lower and
 upper <u id="threshold">threshold</u> value, its output value is set to upper
 clipping value, otherwise to 0. If output value type is
 a floating point, upper clipping value is 1.0, otherwise
@@ -28,18 +28,22 @@ Thresholding is supported for 1D, 2D and 3D slices.
 
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Slice!(N, InputType*) <i>slice</i></td>
-<td>Input <i>slice</i>.</td></tr>
+<table><tr><td>slice</td>
+<td>Input slice.</td></tr>
 <tr><td>InputType <i>lowThresh</i></td>
 <td>Lower <u id="threshold">threshold</u> value.</td></tr>
 <tr><td>InputType <i>highThresh</i></td>
 <td>Higher <u id="threshold">threshold</u> value.</td></tr>
 <tr><td>Slice!(N, OutputType*) <i>prealloc</i></td>
-<td>Optional pre-allocated <i>slice</i> buffer for output.</td></tr>
+<td>Optional pre-allocated slice buffer for output.</td></tr>
 </table><br>
+<b>Note:</b><br>
+Input and pre-allocated buffer slice, should be of same structure
+    (i.e. have same strides). If <i>prealloc</i> buffer is not given, and is
+    allocated anew, <i>input</i> slice memory must be contiguous.<br><br>
 
 </dd>
-<dt><big><a name="threshold.2"></a>Slice!(N, OutputType*) <u id="threshold">threshold</u>(OutputType, InputType, size_t N)(Slice!(N, InputType*) <i>slice</i>, InputType <i>thresh</i>, Slice!(N, OutputType*) <i>prealloc</i> = emptySlice!(N, OutputType));
+<dt><big><a name="threshold.2"></a>nothrow Slice!(N, OutputType*) <u id="threshold">threshold</u>(OutputType, InputType, size_t N)(Slice!(N, InputType*) <i>slice</i>, InputType <i>thresh</i>, Slice!(N, OutputType*) <i>prealloc</i> = emptySlice!(N, OutputType));
 </big></dt>
 <dd>Convenience function for thresholding, where lower and upper bound values are the same.
 <br><br>
@@ -54,6 +58,10 @@ Calls <u id="threshold">threshold</u>(<i>slice</i>, <i>thresh</i>, <i>thresh</i>
 <tr><td>Slice!(N, OutputType*) <i>prealloc</i></td>
 <td>Optional pre-allocated <i>slice</i> buffer for output.</td></tr>
 </table><br>
+<b>Note:</b><br>
+Input and pre-allocated buffer <i>slice</i>, should be of same structure
+    (i.e. have same strides). If <i>prealloc</i> buffer is not given, and is
+    allocated anew, input <i>slice</i> memory must be contiguous.<br><br>
 
 </dd>
 </dl>

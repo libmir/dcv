@@ -18,6 +18,12 @@ Relja Ljubobratovic
 <dd>Convenience method to return an empty slice - used mainly as default argument in functions in library.<br><br>
 
 </dd>
+<dt><big><a name="staticPack"></a>auto <u id="staticPack">staticPack</u>(size_t CH, size_t N, T)(Slice!(N, T*) <i>slice</i>);
+<br><a name="staticUnpack"></a>auto <u id="staticUnpack">staticUnpack</u>(size_t CH, size_t N, T)(Slice!(N, T[CH]*) <i>slice</i>);
+</big></dt>
+<dd>Pack and unpack (N, T*) slices to (N-1, T[M]*).<br><br>
+
+</dd>
 <dt><big><a name="asType"></a>Slice!(N, O*) <u id="asType">asType</u>(O, V, size_t N)(Slice!(N, V*) <i>inslice</i>);
 </big></dt>
 <dd>Take another typed Slice. Type conversion for the Slice object.
@@ -70,21 +76,22 @@ For input of n Slice!(N, T*) objects, outputs Slice!(N+1, T*) object, where
  last dimension size is n.<br><br>
 
 </dd>
-<dt><big><a name="isBoundaryCondition"></a>template <u id="isBoundaryCondition">isBoundaryCondition</u>(alias bc)</big></dt>
+<dt><big><a name="isBoundaryCondition"></a>enum bool <u id="isBoundaryCondition">isBoundaryCondition</u>(alias bc);
+</big></dt>
 <dd>Check if given function can perform boundary condition test.<br><br>
 
 </dd>
-<dt><big><a name="neumann"></a>ref T <u id="neumann">neumann</u>(size_t N, T, Indices...)(ref Slice!(N, T*) <i>slice</i>, Indices <i>indices</i>) if (allSameType!Indices &amp;&amp; allSatisfy!(isIntegral, Indices));
+<dt><big><a name="neumann"></a>auto <u id="neumann">neumann</u>(Tensor, Indices...)(Tensor <i>tensor</i>, Indices <i>indices</i>) if (isSlice!Tensor &amp;&amp; allSameType!Indices &amp;&amp; allSatisfy!(isIntegral, Indices));
 </big></dt>
 <dd><a href="https://en.wikipedia.org/wiki/Neumann_boundary_condition">Neumann</a> boundary condition test<br><br>
 
 </dd>
-<dt><big><a name="periodic"></a>ref T <u id="periodic">periodic</u>(size_t N, T, Indices...)(ref Slice!(N, T*) <i>slice</i>, Indices <i>indices</i>) if (allSameType!Indices &amp;&amp; allSatisfy!(isIntegral, Indices));
+<dt><big><a name="periodic"></a>auto <u id="periodic">periodic</u>(Tensor, Indices...)(Tensor <i>tensor</i>, Indices <i>indices</i>) if (isSlice!Tensor &amp;&amp; allSameType!Indices &amp;&amp; allSatisfy!(isIntegral, Indices));
 </big></dt>
 <dd><a href="https://en.wikipedia.org/wiki/Periodic_boundary_conditions">Periodic</a> boundary condition test<br><br>
 
 </dd>
-<dt><big><a name="symmetric"></a>ref T <u id="symmetric">symmetric</u>(size_t N, T, Indices...)(ref Slice!(N, T*) <i>slice</i>, Indices <i>indices</i>) if (allSameType!Indices &amp;&amp; allSatisfy!(isIntegral, Indices));
+<dt><big><a name="symmetric"></a>auto <u id="symmetric">symmetric</u>(Tensor, Indices...)(Tensor <i>tensor</i>, Indices <i>indices</i>) if (isSlice!Tensor &amp;&amp; allSameType!Indices &amp;&amp; allSatisfy!(isIntegral, Indices));
 </big></dt>
 <dd>Symmetric boundary condition test<br><br>
 

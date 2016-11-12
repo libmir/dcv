@@ -1,34 +1,32 @@
 
 var docs = [
-    "dcv_core_algorithm.html", 
-    "dcv_core_image.html", 
-    "dcv_core_memory.html", 
-    "dcv_core_utils.html", 
-    "dcv_features_corner_fast_package.html", 
-    "dcv_features_corner_harris.html", 
-    "dcv_features_corner_package.html", 
-    "dcv_features_detector_package.html", 
-    "dcv_features_rht.html", 
-    "dcv_features_utils.html", 
-    "dcv_imgproc_color.html", 
-    "dcv_imgproc_convolution.html", 
-    "dcv_imgproc_filter.html", 
-    "dcv_imgproc_imgmanip.html", 
-    "dcv_imgproc_interpolate.html", 
-    "dcv_imgproc_threshold.html", 
-    "dcv_io_image.html", 
-    "dcv_io_package.html", 
-    "dcv_io_video_common.html", 
-    "dcv_io_video_input.html", 
-    "dcv_io_video_output.html", 
-    "dcv_multiview_stereo_matching.html", 
-    "dcv_plot_figure.html", 
-    "dcv_plot_opticalflow.html", 
-    "dcv_tracking_opticalflow_base.html", 
-    "dcv_tracking_opticalflow_hornschunck.html", 
-    "dcv_tracking_opticalflow_lucaskanade.html", 
-    "dcv_tracking_opticalflow_package.html", 
-    "dcv_tracking_opticalflow_pyramidflow.html", 
+    "dcv.core.algorithm.html",
+    "dcv.core.image.html",
+    "dcv.core.memory.html",
+    "dcv.core.utils.html",
+    "dcv.features.corner.fast.html",
+    "dcv.features.corner.harris.html",
+    "dcv.features.detector.html",
+    "dcv.features.rht.html",
+    "dcv.features.utils.html",
+    "dcv.imgproc.color.html",
+    "dcv.imgproc.convolution.html",
+    "dcv.imgproc.filter.html",
+    "dcv.imgproc.imgmanip.html",
+    "dcv.imgproc.interpolate.html",
+    "dcv.imgproc.threshold.html",
+    "dcv.io.image.html",
+    "dcv.io.video.common.html",
+    "dcv.io.video.input.html",
+    "dcv.io.video.output.html",
+    "dcv.multiview.stereo.matching.html",
+    "dcv.plot.figure.html",
+    "dcv.plot.opticalflow.html",
+    "dcv.tracking.opticalflow.base.html",
+    "dcv.tracking.opticalflow.hornschunck.html",
+    "dcv.tracking.opticalflow.lucaskanade.html",
+    "dcv.tracking.opticalflow.html",
+    "dcv.tracking.opticalflow.pyramidflow.html",
 ];
 
 var examples = [
@@ -154,7 +152,8 @@ function setupContent(contentType, showAfter) {
     else
     {
         content.forEach(function(item, index) {
-            tokens = item.replace(".html", "").split("_");
+            nohtml = item.replace(".html", "");
+            tokens = contentType == "docs" ? nohtml.split(".") : nohtml.split("_");
 
             var ul = null;
             var parentUl = document.getElementById("sourcetree");
@@ -164,7 +163,7 @@ function setupContent(contentType, showAfter) {
             for (j = 0; j < tokens.length - 1; ++j) {
 
                 if (j > 0) {
-                    uniquePath += "_";
+                    uniquePath += ".";
                 }
 
                 uniquePath += tokens[j];
