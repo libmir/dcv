@@ -985,30 +985,8 @@ body
     return prealloc;
 }
 
-/**
-Histogram Equalization.
+deprecated("Use dcv.imgproc.filter.histEqualize") alias histEqual = histEqualize;
 
-Equalize histogram of given image slice. Slice can be 2D for grayscale, and 3D for color images.
-If 3D slice is given, histogram is applied separatelly for each channel.
-
-Deprecated:
-    Renamed to histEqualize. Will be removed in v0.2.0.
-
-Params:
-    Histogram = (template parameter) Histogram type, see $(LINK2 #calcHistogram,calcHistogram) function for details.
-    slice = Input image slice.
-    histogram = Histogram values for input image slice.
-    prealloc = Optional pre-allocated buffer where equalized image is saved.
-
-Returns:
-    Copy of input image slice with its histogram values equalized.
-*/
-deprecated("Use dcv.imgproc.filter.histEqualize")
-Slice!(N, T*) histEqual(T, HistogramType, size_t N)(Slice!(N, T*) slice, HistogramType histogram,
-        Slice!(N, T*) prealloc = emptySlice!(N, T))
-{
-    return histEqualize!(T, HistogramType, N)(slice, histogram, prealloc);
-}
 /**
 Perform morphological $(LINK3 https://en.wikipedia.org/wiki/Erosion_(morphology),erosion).
 
