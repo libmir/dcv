@@ -83,12 +83,6 @@ class HornSchunckFlow : DenseOpticalFlow
     }
     body
     {
-        import std.algorithm.iteration : map, reduce;
-        import std.algorithm : copy;
-        import std.range : lockstep, iota;
-        import std.array : array;
-        import std.algorithm.comparison : equal;
-
         size_t height = f1.height;
         size_t width = f1.width;
 
