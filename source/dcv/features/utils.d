@@ -100,9 +100,9 @@ unittest
     auto res = image.extractCorners;
 
     assert(res.length == 3);
-    assert(res[0] == [1, 1]);
-    assert(res[1] == [2, 1]);
-    assert(res[2] == [0, 1]);
+    assert(res[0] == [0, 1]);
+    assert(res[1] == [1, 1]);
+    assert(res[2] == [2, 1]);
 }
 
 unittest
