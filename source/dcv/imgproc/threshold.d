@@ -34,6 +34,11 @@ Params:
     lowThresh = Lower threshold value.
     highThresh = Higher threshold value.
     prealloc = Optional pre-allocated slice buffer for output.
+
+Note:
+    Input and pre-allocated buffer slice, should be of same structure
+    (i.e. have same strides). If prealloc buffer is not given, and is
+    allocated anew, input slice memory must be contiguous.
 */
 nothrow Slice!(N, OutputType*) threshold(OutputType, InputType, size_t N)(Slice!(N, InputType*) input,
         InputType lowThresh, InputType highThresh, Slice!(N, OutputType*) prealloc = emptySlice!(N, OutputType))
@@ -54,6 +59,9 @@ body
     {
         prealloc = uninitializedSlice!OutputType(input.shape);
     }
+
+    assert(input.structure.strides == prealloc.structure.strides,
+            "Input slice structure does not match with resulting buffer.");
 
     static if (isFloatingPoint!OutputType)
         OutputType upvalue = 1.0;
@@ -89,6 +97,11 @@ Params:
     slice = Input slice.
     thresh = Threshold value - any value lower than this will be set to 0, and higher to 1.
     prealloc = Optional pre-allocated slice buffer for output.
+
+Note:
+    Input and pre-allocated buffer slice, should be of same structure
+    (i.e. have same strides). If prealloc buffer is not given, and is
+    allocated anew, input slice memory must be contiguous.
 */
 nothrow Slice!(N, OutputType*) threshold(OutputType, InputType, size_t N)(Slice!(N, InputType*) slice,
         InputType thresh, Slice!(N, OutputType*) prealloc = emptySlice!(N, OutputType))

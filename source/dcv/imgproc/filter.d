@@ -501,12 +501,18 @@ Calculate gradient magnitude and orientation of an image slice.
 
 Params:
     input = Input slice of an image.
-    mag = Output magnitude value of gradients.
-    orient = Orientation value of gradients in radians.
+    mag = Output magnitude value of gradients. If shape does not correspond to input, is
+        allocated anew.
+    orient = Orientation value of gradients in radians. If shape does not correspond to
+        input, is allocated anew.
     edgeKernelType = Optional convolution kernel type to calculate partial derivatives. 
     Default value is EdgeKernel.SIMPLE, which calls calcPartialDerivatives function
     to calculate derivatives. Other options will perform convolution with requested
     kernel type.
+
+Note:
+    Input slice's memory has to be contiguous. Magnitude and orientation slices' strides
+    have to be the identical.
 */
 void calcGradients(InputTensor, V = DeepElementType!InputTensor)
     (InputTensor input, ref Slice!(2, V*) mag, ref Slice!(2, V*) orient,
@@ -516,6 +522,7 @@ in
     static assert(isSlice!InputTensor, "Input tensor has to be of type mir.ndslice.slice.Slice");
     static assert(ReturnType!(InputTensor.shape).length == 2, "Input tensor has to be 2 dimensional. (matrix)");
     assert(!input.empty);
+    assert(input.structure.strides[$-1] == 1, "Input slice's memory has to be contiguous."); // TODO check other dimensions.
 }
 body
 {
@@ -540,6 +547,10 @@ body
         fx = input.conv(kx, emptySlice!(2, V), emptySlice!(2, V), pool);
         fy = input.conv(ky, emptySlice!(2, V), emptySlice!(2, V), pool);
     }
+
+    assert(fx.structure.strides == mag.structure.strides  ||
+            fx.structure.strides == orient.structure.strides,
+            "Magnitude and orientation slices must be contiguous.");
 
     if (mag.structure.strides == orient.structure.strides &&
             mag.structure.strides == fx.structure.strides)
@@ -578,7 +589,10 @@ Params:
     orient = Gradient orientation of the same image source as magnitude.
     prealloc = Optional pre-allocated buffer for output slice.
 
-see:
+Note:
+    Orientation and pre-allocated structures must match. If prealloc
+    buffer is not given, orient memory has to be contiguous.
+See:
     dcv.imgproc.filter.calcGradients, dcv.imgproc.convolution
 */
 Slice!(2, V*) nonMaximaSupression(InputTensor, V = DeepElementType!InputTensor)
@@ -607,6 +621,9 @@ body
     if (prealloc.shape != orient.shape
             || prealloc.structure.strides != mag.structure.strides)
         prealloc = uninitializedSlice!V(mag.shape);
+
+    assert(prealloc.structure.strides == orient.structure.strides,
+            "Orientation and preallocated slice strides do not match.");
 
     auto magWindows = mag.windows(3, 3);
     auto dPack = assumeSameStructure!("result", "ang")(prealloc[1 .. $-1, 1 .. $-1], orient[1 .. $-1, 1 .. $-1]);

@@ -67,6 +67,9 @@ Params:
 
 Returns:
     Resulting image after convolution, of same type as input tensor.
+
+Note:
+    Input, mask and pre-allocated slices' strides must be the same.
 */
 InputTensor conv
     (alias bc = neumann, InputTensor, KernelTensor, MaskTensor = KernelTensor)
@@ -166,8 +169,8 @@ if (ReturnType!(InputTensor.shape).length == 1)
         auto packedWindows = assumeSameStructure!("result", "input")(prealloc, input).windows(kl);
         foreach (p; pool.parallel(packedWindows))
         {
-            p[kh].result = ndReduce!(kapply!InputType, Yes.vectorized, Yes.fastmath)(0.0f,
-                    p.ndMap!(p => p.input), kernel);
+            p[kh].result = ndReduce!(kapply!InputType, Yes.vectorized, Yes.fastmath)
+                                    (0.0f, p.ndMap!(p => p.input), kernel);
         }
     }
     else
@@ -177,7 +180,8 @@ if (ReturnType!(InputTensor.shape).length == 1)
         foreach (p; pool.parallel(packedWindows))
         {
             if (p[$ / 2].mask)
-                p[$ / 2].result = ndReduce!(kapply!InputType)(0.0f, p.ndMap!(p => p.input), kernel);
+                p[$ / 2].result = ndReduce!(kapply!InputType)
+                                           (0.0f, p.ndMap!(p => p.input), kernel);
         }
     }
 
@@ -206,8 +210,8 @@ if (ReturnType!(InputTensor.shape).length == 2)
         foreach (prow; pool.parallel(packedWindows))
             foreach (p; prow)
             {
-                p[krh, kch].result = ndReduce!(kapply, Yes.vectorized, Yes.fastmath)(0.0f,
-                        p.ndMap!(v => v.input), kernel);
+                p[krh, kch].result = ndReduce!(kapply, Yes.vectorized, Yes.fastmath)
+                                              (0.0f, p.ndMap!(v => v.input), kernel);
             }
     }
     else
@@ -218,8 +222,8 @@ if (ReturnType!(InputTensor.shape).length == 2)
             {
                 if (p[krh, kch].mask)
                 {
-                    p[krh, kch].result = ndReduce!(kapply, Yes.vectorized, Yes.fastmath)(0.0f,
-                            p.ndMap!(v => v.input), kernel);
+                    p[krh, kch].result = ndReduce!(kapply, Yes.vectorized, Yes.fastmath)
+                                                  (0.0f, p.ndMap!(v => v.input), kernel);
                 }
             }
     }

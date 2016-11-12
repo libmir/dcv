@@ -60,9 +60,9 @@ enum Rgb2GrayConvertion
 Convert RGB image to grayscale.
 
 Params:
-    range = Input image range. Should have 3 channels, represented 
-    as R, G and B respectivelly in that order.
-    prealloc = Pre-allocated range, where grayscale image will be copied. Default
+    input = Input image. Should have 3 channels, represented as R, G and B
+        respectively in that order.
+    prealloc = Pre-allocated buffer, where grayscale image will be copied. Default
     argument is an empty slice, where new data is allocated and returned. If given 
     slice is not of corresponding shape(range.shape[0], range.shape[1]), it is 
     discarded and allocated anew.
@@ -70,11 +70,14 @@ Params:
 
 Returns:
     Returns grayscale version of the given RGB image, of the same size.
+
+Note:
+    Input and pre-allocated slices' strides must be identical.
 */
-Slice!(2, V*) rgb2gray(V)(Slice!(3, V*) range, Slice!(2, V*) prealloc = emptySlice!(2, V),
+Slice!(2, V*) rgb2gray(V)(Slice!(3, V*) input, Slice!(2, V*) prealloc = emptySlice!(2, V),
         Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
 {
-    return rgbbgr2gray!(false, V)(range, prealloc, conv);
+    return rgbbgr2gray!(false, V)(input, prealloc, conv);
 }
 
 unittest
@@ -94,8 +97,8 @@ Same as rgb2gray, but follows swapped channels if luminance preservation
 is chosen as convertion strategy.
 
 Params:
-    range = Input image range. Should have 3 channels, represented 
-    as B, G and R respectivelly in that order.
+    input = Input image. Should have 3 channels, represented as B, G and R
+        respectively in that order.
     prealloc = Pre-allocated range, where grayscale image will be copied. Default
     argument is an empty slice, where new data is allocated and returned. If given 
     slice is not of corresponding shape(range.shape[0], range.shape[1]), it is 
@@ -104,11 +107,14 @@ Params:
 
 Returns:
     Returns grayscale version of the given BGR image, of the same size.
+
+Note:
+    Input and pre-allocated slices' strides must be identical.
 */
-Slice!(2, V*) bgr2gray(V)(Slice!(3, V*) range, Slice!(2, V*) prealloc = emptySlice!(2, V),
+Slice!(2, V*) bgr2gray(V)(Slice!(3, V*) input, Slice!(2, V*) prealloc = emptySlice!(2, V),
         Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
 {
-    return rgbbgr2gray!(true, V)(range, prealloc, conv);
+    return rgbbgr2gray!(true, V)(input, prealloc, conv);
 }
 
 unittest
@@ -122,13 +128,21 @@ unittest
     assert(equal!approxEqual(gray.byElement, [0, 1, 2, 3]));
 }
 
-private Slice!(2, V*) rgbbgr2gray(bool isBGR, V)(Slice!(3, V*) range, Slice!(2, V*) prealloc = emptySlice!(2, V),
+private Slice!(2, V*) rgbbgr2gray(bool isBGR, V)(Slice!(3, V*) input, Slice!(2, V*) prealloc = emptySlice!(2, V),
         Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
+in
 {
-    if (prealloc.shape != range.shape[0 .. 2])
-        prealloc = uninitializedSlice!V(range.shape[0 .. 2]);
+    assert(!input.empty, "Input image is empty.");
+}
+body
+{
+    if (prealloc.shape != input.shape[0 .. 2])
+        prealloc = uninitializedSlice!V(input.shape[0 .. 2]);
 
-    auto rgb = staticPack!3(range);
+    auto rgb = staticPack!3(input);
+
+    assert(rgb.structure.strides == prealloc.structure.strides,
+            "Input image and pre-allocated buffer strides are not identical.");
 
     auto pack = assumeSameStructure!("rgb", "gray")(rgb, prealloc);
     alias PT = DeepElementType!(typeof(pack));
@@ -143,6 +157,7 @@ private Slice!(2, V*) rgbbgr2gray(bool isBGR, V)(Slice!(3, V*) range, Slice!(2, 
 
     return prealloc;
 }
+
 /**
 Convert gray image to RGB.
 
@@ -150,7 +165,7 @@ Uses grayscale value and assigns it's value
 to each of three channels for the RGB image version.
 
 Params:
-    range = Grayscale image version, to be converted to the RGB.
+    input = Grayscale image, to be converted to the RGB.
     prealloc = Pre-allocated range, where RGB image will be copied. Default
     argument is an empty slice, where new data is allocated and returned. If given 
     slice is not of corresponding shape(range.shape[0], range.shape[1], 3), it is 
@@ -158,20 +173,26 @@ Params:
 
 Returns:
     Returns RGB version of the given grayscale image.
+
+Note:
+    Input and pre-allocated slices' strides must be identical.
 */
-Slice!(3, V*) gray2rgb(V)(Slice!(2, V*) range, Slice!(3, V*) prealloc = emptySlice!(3, V)) pure nothrow
+Slice!(3, V*) gray2rgb(V)(Slice!(2, V*) input, Slice!(3, V*) prealloc = emptySlice!(3, V)) pure nothrow
 {
     Slice!(2, V[3]*) rgb;
-    if (range.shape != prealloc.shape[0 .. 2])
+    if (input.shape != prealloc.shape[0 .. 2])
     {
-        rgb = uninitializedSlice!(V[3])(range.length!0, range.length!1);
+        rgb = uninitializedSlice!(V[3])(input.length!0, input.length!1);
     }
     else
     {
         rgb = staticPack!3(prealloc);
     }
 
-    auto pack = assumeSameStructure!("gray", "rgb")(range, rgb);
+    assert(rgb.structure.strides == input.structure.strides,
+            "Input and pre-allocated slices' strides are not identical.");
+
+    auto pack = assumeSameStructure!("gray", "rgb")(input, rgb);
     alias PT = DeepElementType!(typeof(pack));
 
     pack.ndEach!(gray2rgbImpl!PT);
@@ -202,7 +223,7 @@ algorithm to be ranged as 0-255 for ubyte, 0-65535 for ushort,
 and 0-1 for floating point types.
 
 Params:
-    range = RGB image version, which gets converted to HVS.
+    input = RGB image, which gets converted to HSV.
     prealloc = Pre-allocated range, where HSV image will be copied. Default
     argument is an empty slice, where new data is allocated and returned. If given 
     slice is not of corresponding shape(range.shape[0], range.shape[1], 3), it is 
@@ -210,20 +231,26 @@ Params:
 
 Returns:
     Returns HSV verion of the given RGB image.
+
+Note:
+    Input and pre-allocated slices' strides must be identical.
 */
-Slice!(3, R*) rgb2hsv(R, V)(Slice!(3, V*) range, Slice!(3, R*) prealloc = emptySlice!(3, R)) pure nothrow
+Slice!(3, R*) rgb2hsv(R, V)(Slice!(3, V*) input, Slice!(3, R*) prealloc = emptySlice!(3, R)) pure nothrow
         if (isNumeric!R && isNumeric!V)
 in
 {
     static assert(R.max >= 360, "Invalid output type for HSV (R.max >= 360)");
-    assert(range.length!2 == 3, "Invalid channel count.");
+    assert(input.length!2 == 3, "Invalid channel count.");
 }
 body
 {
-    if (prealloc.shape != range.shape)
-        prealloc = uninitializedSlice!R(range.shape);
+    if (prealloc.shape != input.shape)
+        prealloc = uninitializedSlice!R(input.shape);
 
-    auto pack = assumeSameStructure!("rgb", "hsv")(range.staticPack!3, prealloc.staticPack!3);
+    assert(input.structure.strides == prealloc.structure.strides,
+            "Input image and pre-allocated buffer strides are not identical.");
+
+    auto pack = assumeSameStructure!("rgb", "hsv")(input.staticPack!3, prealloc.staticPack!3);
     pack.ndEach!(rgb2hsvImpl!(DeepElementType!(typeof(pack))));
 
     return prealloc;
@@ -264,27 +291,33 @@ range RGB values to be 0-255, ushort 0-65535, and floating types
 0.0-1.0. Other types are not supported.
 
 Params:
-    range = RGB image version, which gets converted to HVS.
-    prealloc = Pre-allocated range, where HSV image will be copied. Default
+    input = HSV image, which gets converted to RGB.
+    prealloc = Pre-allocated range, where RGB image will be copied. Default
     argument is an empty slice, where new data is allocated and returned. If given 
     slice is not of corresponding shape(range.shape[0], range.shape[1], 3), it is 
     discarded and allocated anew.
 
 Returns:
     Returns RGB verion of the given HSV image.
+
+Note:
+    Input and pre-allocated slices' strides must be identical.
 */
-Slice!(3, R*) hsv2rgb(R, V)(Slice!(3, V*) range, Slice!(3, R*) prealloc = emptySlice!(3, R)) pure nothrow
+Slice!(3, R*) hsv2rgb(R, V)(Slice!(3, V*) input, Slice!(3, R*) prealloc = emptySlice!(3, R)) pure nothrow
         if (isNumeric!R && isNumeric!V)
 in
 {
-    assert(range.length!2 == 3, "Invalid channel count.");
+    assert(input.length!2 == 3, "Invalid channel count.");
 }
 body
 {
-    if (prealloc.shape != range.shape)
-        prealloc = uninitializedSlice!R(range.shape);
+    if (prealloc.shape != input.shape)
+        prealloc = uninitializedSlice!R(input.shape);
 
-    auto pack = assumeSameStructure!("hsv", "rgb")(range.staticPack!3, prealloc.staticPack!3);
+    assert(input.structure.strides == prealloc.structure.strides,
+            "Input image and pre-allocated buffer strides are not identical.");
+
+    auto pack = assumeSameStructure!("hsv", "rgb")(input.staticPack!3, prealloc.staticPack!3);
     pack.ndEach!(hsv2rgbImpl!(DeepElementType!(typeof(pack))));
 
     return prealloc;
@@ -333,18 +366,33 @@ Convert RGB image format to YUV.
 YUV images in dcv are organized in the same buffer plane
 where quantity of luma and chroma values are the same (as in
 YUV444 format).
+
+Params:
+    input = Input RGB image.
+    prealloc = Optional pre-allocated buffer. If given, has to be
+        of same shape as input image, otherwise gets reallocated.
+
+Returns:
+    Resulting YUV image slice.
+
+Note:
+    Input and pre-allocated slices' strides must be identical.
 */
-Slice!(3, V*) rgb2yuv(V)(Slice!(3, V*) range, Slice!(3, V*) prealloc = emptySlice!(3, V)) pure nothrow
+Slice!(3, V*) rgb2yuv(V)(Slice!(3, V*) input, Slice!(3, V*) prealloc = emptySlice!(3, V)) pure nothrow
 in
 {
-    assert(range.length!2 == 3, "Invalid channel count.");
+    assert(input.length!2 == 3, "Invalid channel count.");
 }
 body
 {
-    if (prealloc.shape != range.shape)
-        prealloc = uninitializedSlice!V(range.shape);
+    if (prealloc.shape != input.shape)
+        prealloc = uninitializedSlice!V(input.shape);
 
-    assumeSameStructure!("rgb", "yuv")(range, prealloc).pack!1.ndEach!( p => rgb2yuvImpl!V(p));
+    assert(input.structure.strides == prealloc.structure.strides,
+            "Input image and pre-allocated buffer strides are not identical.");
+
+    auto p = assumeSameStructure!("rgb", "yuv")(input, prealloc).pack!1;
+    p.ndEach!(rgb2yuvImpl!(V, DeepElementType!(typeof(p))));
 
     return prealloc;
 }
@@ -355,20 +403,32 @@ Convert YUV image to RGB.
 As in rgb2yuv conversion, YUV format is considered to have 
 same amount of luma and chroma.
 
-TODO: 
-    Separate input and output type as in rgb2hsv etc.
+Params:
+    input = Input YUV image.
+    prealloc = Optional pre-allocated buffer. If given, has to be
+        of same shape as input image, otherwise gets reallocated.
+
+Returns:
+    Resulting RGB image slice.
+
+Note:
+    Input and pre-allocated slices' strides must be identical.
 */
-Slice!(3, V*) yuv2rgb(V)(Slice!(3, V*) range, Slice!(3, V*) prealloc = emptySlice!(3, V)) pure nothrow
+Slice!(3, V*) yuv2rgb(V)(Slice!(3, V*) input, Slice!(3, V*) prealloc = emptySlice!(3, V)) pure nothrow
 in
 {
-    assert(range.length!2 == 3, "Invalid channel count.");
+    assert(input.length!2 == 3, "Invalid channel count.");
 }
 body
 {
-    if (prealloc.shape != range.shape)
-        prealloc = uninitializedSlice!V(range.shape);
+    if (prealloc.shape != input.shape)
+        prealloc = uninitializedSlice!V(input.shape);
 
-    assumeSameStructure!("yuv", "rgb")(range, prealloc).pack!1.ndEach!(p => yuv2rgbImpl!V(p));
+    assert(input.structure.strides == prealloc.structure.strides,
+            "Input image and pre-allocated buffer strides are not identical.");
+
+    auto p = assumeSameStructure!("yuv", "rgb")(input, prealloc).pack!1;
+    p.ndEach!(yuv2rgbImpl!(V, DeepElementType!(typeof(p))));
 
     return prealloc;
 }

@@ -36,18 +36,21 @@ struct Feature
 /**
 Extract corners as array of 2D points, from response matrix.
 
-params:
-cornerResponse = Response matrix, collected as output from corner
-detection algoritms such as harrisCorners, or shiTomasiCorners.
-count = Number of corners which need to be extracted. Default is
--1 which indicate that all responses with value above the threshold
-will be returned.
-threshold = Response threshold - response values in the matrix
-larger than this are considered as valid corners.
+Params:
+    cornerResponse = Response matrix, collected as output from corner
+    detection algoritms such as harrisCorners, or shiTomasiCorners.
+    count = Number of corners which need to be extracted. Default is
+    -1 which indicate that all responses with value above the threshold
+    will be returned.
+    threshold = Response threshold - response values in the matrix
+    larger than this are considered as valid corners.
 
-return:
-Dynamic array of size_t[2], as in array of 2D points, of corner reponses 
-which fit the given criteria.
+Returns:
+    Dynamic array of size_t[2], as in array of 2D points, of corner reponses 
+    which fit the given criteria.
+
+Note:
+    Corner response slice memory has to be contiguous.
 */
 pure nothrow auto extractCorners(T)(Slice!(2, T*) cornerResponse, int count = -1, T threshold = 0)
     if (isNumeric!T)
@@ -61,6 +64,9 @@ pure nothrow auto extractCorners(T)(Slice!(2, T*) cornerResponse, int count = -1
     {
         return null;
     }
+
+    assert(cornerResponse.structure.strides[$-1] == 1,
+            "Corner response slice strides are not contiguous."); // TODO check other dimensions. (use isContiguous)
 
     return assumeSameStructure!("indices", "value")(indexSlice(cornerResponse.shape), cornerResponse)
         .byElement

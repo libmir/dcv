@@ -33,6 +33,9 @@ Returns:
     Response matrix the same size of the input image, where each pixel represents
     corner response value - the bigger the value, more probably it represents the
     actual corner in the image.
+
+Note:
+    If given, pre-allocated memory has to be contiguous.
  */
 Slice!(2, OutputType*) harrisCorners(InputType, OutputType = InputType)(Slice!(2,
         InputType*) image, in uint winSize = 3, in float k = 0.64f, in float gauss = 0.84f, Slice!(2,
@@ -43,6 +46,9 @@ in
     assert(winSize % 2 != 0, "Kernel window size has to be odd.");
     assert(gauss > 0.0, "Gaussian sigma value has to be greater than 0.");
     assert(k > 0.0, "K value has to be greater than 0.");
+    if (!prealloc.empty)
+        assert(prealloc.structure.strides[$-1] == 1,
+                "Pre-allocated slice memory is not contiguous.");
 }
 body
 {
@@ -68,6 +74,9 @@ Returns:
     Response matrix the same size of the input image, where each pixel represents
     corner response value - the bigger the value, more probably it represents the
     actual corner in the image.
+
+Note:
+    If given, pre-allocated memory has to be contiguous.
  */
 Slice!(2, OutputType*) shiTomasiCorners(InputType, OutputType = InputType)(Slice!(2,
         InputType*) image, in uint winSize = 3, in float gauss = 0.84f, Slice!(2,
@@ -77,6 +86,9 @@ in
     assert(!image.empty, "Empty image given.");
     assert(winSize % 2 != 0, "Kernel window size has to be odd.");
     assert(gauss > 0.0, "Gaussian sigma value has to be greater than 0.");
+    if (!prealloc.empty)
+        assert(prealloc.structure.strides[$-1] == 1,
+                "Pre-allocated slice memory is not contiguous.");
 }
 body
 {
