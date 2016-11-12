@@ -29,7 +29,7 @@ $(DL Module contains:
             $(LINK2 #bilateralFilter,bilateralFilter)
             $(LINK2 #medianFilter,medianFilter)
             $(LINK2 #calcHistogram,calcHistogram)
-            $(LINK2 #histEqual,histEqual)
+            $(LINK2 #histEqualize,histEqualize)
             $(LINK2 #erode,erode)
             $(LINK2 #dilate,dilate)
             $(LINK2 #open,open)
@@ -908,7 +908,7 @@ void main()
     Image image = imread("dcv/examples/data/lena.png");
 
     auto slice = image.sliced.rgb2gray;
-    auto equalized = slice.histEqual(slice.byElement.calcHistogram);
+    auto equalized = slice.histEqualize(slice.byElement.calcHistogram);
 
     slice.imshow("Original");
     equalized.imshow("Equalized");
@@ -937,7 +937,7 @@ Params:
 Returns:
     Copy of input image slice with its histogram values equalized.
 */
-Slice!(N, T*) histEqual(T, HistogramType, size_t N)(Slice!(N, T*) slice, HistogramType histogram,
+Slice!(N, T*) histEqualize(T, HistogramType, size_t N)(Slice!(N, T*) slice, HistogramType histogram,
         Slice!(N, T*) prealloc = emptySlice!(N, T))
 in
 {
@@ -984,6 +984,8 @@ body
 
     return prealloc;
 }
+
+deprecated("Use dcv.imgproc.filter.histEqualize") alias histEqual = histEqualize;
 
 /**
 Perform morphological $(LINK3 https://en.wikipedia.org/wiki/Erosion_(morphology),erosion).
