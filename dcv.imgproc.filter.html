@@ -29,7 +29,7 @@ Relja Ljubobratovic
             <a href="#bilateralFilter">bilateralFilter</a>
             <a href="#medianFilter">medianFilter</a>
             <a href="#calcHistogram">calcHistogram</a>
-            <a href="#histEqual">histEqual</a>
+            <a href="#histEqualize">histEqualize</a>
             <a href="#erode">erode</a>
             <a href="#dilate">dilate</a>
             <a href="#open">open</a>
@@ -312,7 +312,7 @@ Returns filtered image of same size as the input. If <i>prealloc</i> parameter i
 Histogram for given forward <i>range</i>.<br><br>
 
 </dd>
-<dt><big><a name="histEqual"></a>Slice!(N, T*) <u id="histEqual">histEqual</u>(T, HistogramType, size_t N)(Slice!(N, T*) <i>slice</i>, HistogramType <i>histogram</i>, Slice!(N, T*) <i>prealloc</i> = emptySlice!(N, T));
+<dt><big><a name="histEqualize"></a>Slice!(N, T*) <u id="histEqualize">histEqualize</u>(T, HistogramType, size_t N)(Slice!(N, T*) <i>slice</i>, HistogramType <i>histogram</i>, Slice!(N, T*) <i>prealloc</i> = emptySlice!(N, T));
 </big></dt>
 <dd>Histogram Equalization.
 <br><br>
@@ -328,7 +328,7 @@ If 3D <i>slice</i> is given, <i>histogram</i> is applied separatelly for each ch
     Image image = imread(<font color=red>"dcv/examples/data/lena.png"</font>);
 
     <font color=blue>auto</font> <i>slice</i> = image.sliced.rgb2gray;
-    <font color=blue>auto</font> equalized = <i>slice</i>.<u id="histEqual">histEqual</u>(<i>slice</i>.byElement.calcHistogram);
+    <font color=blue>auto</font> equalized = <i>slice</i>.<u id="histEqualize">histEqualize</u>(<i>slice</i>.byElement.calcHistogram);
 
     <i>slice</i>.imshow(<font color=red>"Original"</font>);
     equalized.imshow(<font color=red>"Equalized"</font>);
