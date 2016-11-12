@@ -1,4 +1,4 @@
-﻿/**
+/**
 Module for various utilities used throughout the library.
 
 Copyright: Copyright Relja Ljubobratovic 2016.
@@ -52,42 +52,22 @@ package(dcv) @nogc pure nothrow
     }
     body
     {
-        import std.typecons : Tuple;
         import std.algorithm.comparison : max;
-        import std.range : iota;
-        import std.traits : ReturnType;
 
-        struct Range(Iota)
+        static struct Range
         {
-            Iota rows;
-            Iota cols;
+            IotaSlice!1 rows;
+            IotaSlice!1 cols;
             @disable this();
-            this(Iota rows, Iota cols)
-            {
-                this.rows = rows;
-                this.cols = cols;
-            }
         }
 
-        auto range(Iota)(Iota rows, Iota cols)
-        {
-            return Range!Iota(rows, cols);
-        }
+        size_t kh = max(size_t(1), ks / 2);
 
-        // forced size_t cast...
-        auto _iota(B, E, S)(B begin, E end, S step = 1)
-        {
-            return iota(size_t(begin), size_t(end), size_t(step));
-        }
-
-        size_t kh = max(1, ks / 2);
-        alias Iota = ReturnType!(iota!(size_t, size_t, size_t));
-
-        Range!(Iota)[4] borders = [
-            range(_iota(0, shape[0]), _iota(0, kh)),
-            range(_iota(0, shape[0]), _iota(shape[1] - kh, shape[1])),
-            range(_iota(0, kh), _iota(0, shape[1])),
-            range(_iota(shape[0] - kh, shape[0]), _iota(0, shape[1]))
+        Range[4] borders = [
+            Range(iotaSlice(shape[0]), iotaSlice(kh)),
+            Range(iotaSlice(shape[0]), iotaSlice([kh], shape[1] - kh)),
+            Range(iotaSlice(kh), iotaSlice(shape[1])),
+            Range(iotaSlice([kh], shape[0] - kh), iotaSlice(shape[1])),
         ];
 
         return borders;
@@ -122,10 +102,7 @@ static Slice!(N, O*) asType(O, V, size_t N)(Slice!(N, V*) inslice)
 
 unittest
 {
-    import std.range : iota;
-    import std.array : array;
-
-    auto slice = 6.iota.array.sliced(2, 3);
+    auto slice = iotaSlice(2, 3).slice;
     auto fslice = slice.asType!float;
     assert(slice == fslice);
 }
@@ -230,12 +207,6 @@ static if (__VERSION__ >= 2071)
         return data.sliced(newShape);
     }
 
-    version (unittest)
-    {
-        import std.algorithm.comparison : equal;
-        import std.array : array;
-    }
-
     unittest
     {
         auto s1 = [1, 2, 3].sliced(3);
@@ -299,19 +270,16 @@ template BoundaryConditionTest(size_t N, T, Indices...)
 
 unittest
 {
-    import std.range : iota;
-    import std.array : array;
-
-    assert(isBoundaryCondition!neumann);
-    assert(isBoundaryCondition!periodic);
-    assert(isBoundaryCondition!symmetric);
+    static assert(isBoundaryCondition!neumann);
+    static assert(isBoundaryCondition!periodic);
+    static assert(isBoundaryCondition!symmetric);
 
     /*
      * [0, 1, 2,
      *  3, 4, 5,
      *  6, 7, 8]
      */
-    auto s = iota(9).array.sliced(3, 3);
+    auto s = iotaSlice(3, 3).slice;
 
     assert(s.neumann(-1, -1) == s[0, 0]);
     assert(s.neumann(0, -1) == s[0, 0]);
