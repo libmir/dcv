@@ -9,7 +9,6 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 */
 module dcv.imgproc.interpolate;
 
-import std.range : isRandomAccessRange, ElementType;
 import std.traits : isNumeric, isScalarType, isIntegral, allSameType, allSatisfy, ReturnType,
     isFloatingPoint;
 
