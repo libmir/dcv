@@ -55,9 +55,8 @@ Note:
 pure nothrow auto extractCorners(T)(Slice!(2, T*) cornerResponse, int count = -1, T threshold = 0)
     if (isNumeric!T)
 {
-    import std.algorithm.sorting : sort;
+    import std.algorithm.sorting : topN;
     import std.algorithm.iteration : map, filter;
-    import std.range : take;
     import std.array : array;
 
     if (cornerResponse.empty)
@@ -72,8 +71,7 @@ pure nothrow auto extractCorners(T)(Slice!(2, T*) cornerResponse, int count = -1
         .byElement
         .filter!(p => p.value > threshold)
         .array
-        .sort!((a, b) => a.value > b.value)
-        .take(count)
+        .topN!((a, b) => a.value > b.value)(count)
         .map!(p => p.indices)
         .array;
 }
