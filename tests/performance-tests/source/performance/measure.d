@@ -352,12 +352,12 @@ auto run_dcv_imgproc_filter_medianFilter_5()
     return evalBenchmark(&medianFilter!(neumann, float, float, 2), image, 5, result, taskPool);
 }
 
-auto run_dcv_imgproc_filter_histEqual()
+auto run_dcv_imgproc_filter_histEqualize()
 {
     auto image = slice!ubyte(imsize, imsize);
     auto result = slice!ubyte(imsize, imsize);
     int[256] histogram;
-    return evalBenchmark(&histEqual!(ubyte, int[256], 2), image, histogram, result);
+    return evalBenchmark(&histEqualize!(ubyte, int[256], 2), image, histogram, result);
 }
 
 auto run_dcv_imgproc_filter_erode()
