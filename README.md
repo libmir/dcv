@@ -1,6 +1,6 @@
 # ![DCV](https://github.com/libmir/dcv/raw/gh-pages/images/dcv_logo.png)
 
-[![Build Status](https://travis-ci.org/libmir/dcv.svg?branch=master)](https://travis-ci.org/libmir/dcv) [![codecov.io](https://codecov.io/github/libmir/dcv/coverage.svg?branch=master)](https://codecov.io/github/libmir/dcv?branch=master) [![Join the chat at https://gitter.im/libmir/dcv](https://badges.gitter.im/libmir/dcv.svg)](https://gitter.im/libmir/dcv?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![DUB](https://img.shields.io/dub/v/dcv.svg)](http://code.dlang.org/packages/dcv) [![DUB](https://img.shields.io/dub/dt/dcv.svg)](http://code.dlang.org/packages/dcv)
+[![Build Status](https://travis-ci.org/libmir/dcv.svg?branch=master)](https://travis-ci.org/libmir/dcv) [![codecov.io](https://codecov.io/github/libmir/dcv/coverage.svg?branch=master)](https://codecov.io/github/libmir/dcv?branch=master) [![DUB](https://img.shields.io/dub/v/dcv.svg)](http://code.dlang.org/packages/dcv) [![DUB](https://img.shields.io/dub/dt/dcv.svg)](http://code.dlang.org/packages/dcv)
 
 *Computer Vision Library for D Programming Language*
 
