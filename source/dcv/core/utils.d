@@ -58,7 +58,6 @@ package(dcv) @nogc pure nothrow
         {
             IotaSlice!1 rows;
             IotaSlice!1 cols;
-            @disable this();
         }
 
         size_t kh = max(size_t(1), ks / 2);
