@@ -87,7 +87,7 @@
                 }
             ],
             "libs": ["glfw"],
-            "lflags-linux": ["-lgl"],
+            "libs-linux": ["gl"],
             "lflags-osx": ["-framework", "OpenGL"]
         }
     ]
