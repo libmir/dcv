@@ -86,7 +86,9 @@
                     "versions": ["ggplotd"]
                 }
             ],
-            "libs": ["gl", "glfw"]
+            "libs": ["glfw"],
+            "lflags-linux": ["-lgl"],
+            "lflags-osx": ["-framework", "OpenGL"]
         }
     ]
 }
