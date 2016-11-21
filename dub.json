@@ -13,6 +13,9 @@
 
     "targetType": "library",
 
+    "sourcePaths": ["scripts"],
+    "sourceFiles": ["source/dcv/package.d"],
+
     "buildTypes": {
         "unittest-release": {
             "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
