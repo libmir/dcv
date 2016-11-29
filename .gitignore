@@ -13,3 +13,6 @@ docs/
 *.o
 *.obj
 *.lst
+__test__*
+libdcv*.a
+*.sublime-project

@@ -139,7 +139,9 @@ mixin template BaseRht()
     static struct RhtRange(T, SliceKind kind, P)
     {
     private:
-        import std.container, std.random;
+        import std.container;
+        import mir.random;
+        import mir.random.engine.xorshift;
 
         This _rht; // RHT struct with key primitives and parameters
         Slice!(T*, 2LU, kind) _image; // image with edge points
@@ -147,13 +149,13 @@ mixin template BaseRht()
         Array!P _points; // extracted edge points
         int _epouch; // current epouch of iteration
         Curve _current; // current detected curve
-        Xorshift rng;
+        Xorshift _rng = void;
         this(Range)(This rht, Slice!(T*, 2LU, kind) image, Range points)
         {
             _rht = rht;
             _image = image;
             _points = make!(Array!P)(points);
-            rng = Xorshift(unpredictableSeed);
+           _rng = Xorshift(cast(uint)unpredictableSeed);
         }
 
         void accumulate(Curve curve)
@@ -225,7 +227,7 @@ mixin template BaseRht()
                     if (_points.length < _rht.sampleSize)
                         break;
                     // TODO: avoid heap allocation
-                    auto sample = randomSample(_points[], _rht.sampleSize, &rng).array;
+                    auto sample = _points[].sample(_rng, _rht.sampleSize).array;
                     auto curve = _rht.fitCurve(_image, sample);
                     if (!isInvalidCurve(curve))
                         accumulate(curve);
