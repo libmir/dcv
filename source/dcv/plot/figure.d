@@ -651,16 +651,21 @@ class Figure
     {
         glfwMakeContextCurrent(_glfwWindow);
 
+        int fBufWidth, fBufHeight;
+        glfwGetFramebufferSize(_glfwWindow, &fBufWidth, &fBufHeight);
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glDisable(GL_DEPTH_TEST);
 
-        glViewport(0, 0, width, height);
+        glViewport(0, 0, fBufWidth, fBufHeight);
 
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
 
         glOrtho(0, width, 0, height, 0.1, 1);
-        glPixelZoom(1, -1);
+
+        glPixelZoom(fBufWidth / width, -fBufHeight / height);
+
         glRasterPos3f(0, height - 1, -0.3);
 
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);

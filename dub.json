@@ -13,6 +13,9 @@
 
     "targetType": "library",
 
+    "sourcePaths": ["scripts"],
+    "sourceFiles": ["source/dcv/package.d"],
+
     "buildTypes": {
         "unittest-release": {
             "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
@@ -83,7 +86,9 @@
                     "versions": ["ggplotd"]
                 }
             ],
-            "libs": ["gl", "glfw"]
+            "libs": ["glfw"],
+            "libs-linux": ["gl"],
+            "lflags-osx": ["-framework", "OpenGL"]
         }
     ]
 }

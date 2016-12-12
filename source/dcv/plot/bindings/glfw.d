@@ -279,6 +279,7 @@ extern (C)
     void glfwGetWindowSize(GLFWwindow* window, int* width, int* height);
     void glfwSetWindowSize(GLFWwindow* window, int width, int height);
     void glfwWindowHint(int target, int hint);
+    void glfwGetFramebufferSize (GLFWwindow * window, int *width, int *height);
 
     GLFWcharfun glfwSetCharCallback(GLFWwindow* window, GLFWcharfun cbfun);
     GLFWcharmodsfun glfwSetCharModsCallback(GLFWwindow* window, GLFWcharmodsfun cbfun);
