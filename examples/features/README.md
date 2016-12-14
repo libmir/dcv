@@ -25,7 +25,7 @@ auto image = imread("../data/building.png");
 
 So, the input image is:
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/building.png)
+![alt tag](https://github.com/libmir/dcv/blob/master/examples/data/building.png)
 
 Following chunk of code prepares the data for corner extraction - slices the image data, makes grayscale version of the image, and copies the input image where the corners will be drawn out.
 
@@ -86,8 +86,8 @@ harrisResponse
 
 So the response result image looks like:
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/features/result/harrisResponse.png)
+![alt tag](https://github.com/libmir/dcv/blob/master/examples/features/result/harrisResponse.png)
 
 And the drawn corners:
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/features/result/harrisCorners.png)
+![alt tag](https://github.com/libmir/dcv/blob/master/examples/features/result/harrisCorners.png)

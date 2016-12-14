@@ -100,7 +100,7 @@ resizedImage.imwrite(ImageFormat.IF_RGB, "./result/resizedImage.png");
 
 Output image:
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/imgmanip/result/resizedImage.png)
+![alt tag](https://github.com/libmir/dcv/blob/master/examples/imgmanip/result/resizedImage.png)
 
 ### Image Scale
 
@@ -114,7 +114,7 @@ scaledImage.imwrite("./result/scaledImage.png");
 
 Output image:
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/imgmanip/result/scaledImage.png)
+![alt tag](https://github.com/libmir/dcv/blob/master/examples/imgmanip/result/scaledImage.png)
 
 
 ## Image Transform
@@ -151,5 +151,5 @@ transformedImage.imwrite("./result/transformedImage.png");
 
 Output image:
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/imgmanip/result/transformedImage.png)
+![alt tag](https://github.com/libmir/dcv/blob/master/examples/imgmanip/result/transformedImage.png)
 

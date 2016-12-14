@@ -35,7 +35,7 @@ Slice!(3, float*) imslice = img
     .slice;
 ```
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/img.png)
+![alt tag](https://github.com/libmir/dcv/blob/master/examples/data/img.png)
 
 
 ## Gaussian Blurring
@@ -54,7 +54,7 @@ auto blur = imslice.conv(gaussianKernel);
 
 ### Result
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/rht/result/outblur.png)
+![alt tag](https://github.com/libmir/dcv/blob/master/examples/rht/result/outblur.png)
 
 
 ## Edge Detection
@@ -67,7 +67,7 @@ auto canny = blur.canny!ubyte(80);
 
 ### Result
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/rht/result/canny.png)
+![alt tag](https://github.com/libmir/dcv/blob/master/examples/rht/result/canny.png)
 
 
 ### RHT for lines
@@ -106,4 +106,4 @@ foreach(circle; circles(canny, linesRange.points[])) {
 
 ### Result
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/rht/result/rht.png)
+![alt tag](https://github.com/libmir/dcv/blob/master/examples/rht/result/rht.png)

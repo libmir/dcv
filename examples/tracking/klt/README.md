@@ -21,13 +21,13 @@ This example demonstrates usage of Pyramidal Lucas-Kanade Optical Flow algorithm
 
 ## Video Input
 
- Similarly as in the [video](https://github.com/ljubobratovicrelja/dcv/tree/master/examples/video) example, video input
+ Similarly as in the [video](https://github.com/libmir/dcv/tree/master/examples/video) example, video input
  is implemented to support file loading, as well as the web camera live streaming. **Only, please note that this implementation
  is not optimized to run in real-time yet, so web cam tracking would most probably achieve bad results.**
 
 ## Lucas-Kanade Flow
 
- With similar API as in the [dense flow](https://github.com/ljubobratovicrelja/dcv/tree/master/examples/tracking/hornschunck) 
+ With similar API as in the [dense flow](https://github.com/libmir/dcv/tree/master/examples/tracking/hornschunck) 
  we can instantiate Lucas-Kanade flow algorithm, and then instantiate Sparse Pyramidal Flow algorithm:
 
  ```d
@@ -48,4 +48,4 @@ This example demonstrates usage of Pyramidal Lucas-Kanade Optical Flow algorithm
 
  Here is the sneak preview of the tracking, performed on the *dcv/examples/data/centaur_1.mpg* file:
 
- ![alt](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/tracking/klt/result/track.gif)
+ ![alt](https://github.com/libmir/dcv/blob/master/examples/tracking/klt/result/track.gif)

@@ -31,7 +31,7 @@ Slice!(3, float*) imslice = img
     .slice // make a copy.
 ```
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/lena.png)
+![alt tag](https://github.com/libmir/dcv/blob/master/examples/data/lena.png)
 
 
 ## Filter Kernel Creation
@@ -59,7 +59,7 @@ auto blur = imslice.conv(gaussianKernel);
 
 ### Result
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/filter/result/outblur.png)
+![alt tag](https://github.com/libmir/dcv/blob/master/examples/filter/result/outblur.png)
 
 
 ## Edge Detection
@@ -100,7 +100,7 @@ Gradient direction for sobel operator can be defined with input argument:
 ```
 #### Result
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/filter/result/sobel.png)
+![alt tag](https://github.com/libmir/dcv/blob/master/examples/filter/result/sobel.png)
 
 ### Laplacian
 
@@ -122,7 +122,7 @@ Laplacian kernel function creates negative 3x3 laplacian kernel defined as:
 
 #### Result
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/filter/result/laplace.png)
+![alt tag](https://github.com/libmir/dcv/blob/master/examples/filter/result/laplace.png)
 
 ### Laplacian Of Gaussian
 
@@ -131,5 +131,5 @@ and normalize it so it's sum is 0.
 
 #### Result
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/filter/result/log.png)
+![alt tag](https://github.com/libmir/dcv/blob/master/examples/filter/result/log.png)
 
