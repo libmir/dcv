@@ -25,7 +25,7 @@ foreach(line; lines(edges)) {
 }
 ----
 
-For more elaborated module description visit the $(LINK2 https://ljubobratovicrelja.github.io/dcv/?loc=example_rht,RHT example).
+For more elaborated module description visit the $(LINK2 http://dcv.dlang.io/?loc=example_rht,RHT example).
 
 Copyright: Copyright © 2016, Dmitry Olshansky
 

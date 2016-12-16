@@ -31,7 +31,12 @@ auto thesholded = slice.threshold!ubyte(30, 60);
 
 ## Morphological Ops
 
-Following functions in DCV perform morphological operations: [erode](https://ljubobratovicrelja.github.io/dcv/?loc=dcv_imgproc_filter.html#erode), [dilate](https://ljubobratovicrelja.github.io/dcv/?loc=dcv_imgproc_filter.html#dilate), [open](https://ljubobratovicrelja.github.io/dcv/?loc=dcv_imgproc_filter.html#open), [close](https://ljubobratovicrelja.github.io/dcv/?loc=dcv_imgproc_filter.html#close). Those functions have identical API - by using given kernel, apply chosen morphological operation to given image slice. Most basic kernels used in these functions would be [boxKernel](https://ljubobratovicrelja.github.io/dcv/?loc=dcv_imgproc_filter.html#boxKernel)(or [radialKernel](https://ljubobratovicrelja.github.io/dcv/?loc=dcv_imgproc_filter.html#radialKernel) if blocky effects are obvious), but other custom shaped kernels can be provided.
+Following functions in DCV perform morphological operations: [erode](https://dcv.dlang.io/?loc=dcv.imgproc.filter.html#erode),
+[dilate](https://dcv.dlang.io/?loc=dcv.imgproc.filter.html#dilate), [open](https://dcv.dlang.io/?loc=dcv.imgproc.filter.html#open),
+[close](https://dcv.dlang.io/?loc=dcv.imgproc.filter.html#close).
+Those functions have identical API - by using given kernel, apply chosen morphological operation to given image slice.
+Most basic kernels used in these functions would be [boxKernel](https://dcv.dlang.io/?loc=dcv.imgproc.filter.html#boxKernel)(or
+[radialKernel](https://dcv.dlang.io/?loc=dcv.imgproc.filter.html#radialKernel) if blocky effects are obvious), but other custom shaped kernels can be provided.
 
 ### Erode
 
