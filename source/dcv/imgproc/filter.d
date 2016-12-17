@@ -918,11 +918,11 @@ void main()
 ----
 Example code will equalize grayscale Lena image, from this:
 
-$(IMAGE https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/lena_gray.png?raw=true)
+$(IMAGE https://github.com/libmir/dcv/blob/master/examples/data/lena_gray.png?raw=true)
 
 ... to this:
 
-$(IMAGE https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/histEqualExample.png?raw=true)
+$(IMAGE https://github.com/libmir/dcv/blob/master/examples/data/histEqualExample.png?raw=true)
 
 Note:
     For more valid color histogram equalization results, try converting image to HSV color model

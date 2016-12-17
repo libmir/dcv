@@ -3,9 +3,9 @@ Module introduces various corner detection algorithms.
 
 <big>Currently present corner detectors:</big>
 <ul>
-<li>$(LINK2 https://ljubobratovicrelja.github.io/dcv/?loc=dcv_features_corner_harris.html,Harris)</li>
-<li>$(LINK2 https://ljubobratovicrelja.github.io/dcv/?loc=dcv_features_corner_harris.html,Shi-Tomasi)</li>
-<li>$(LINK2 https://ljubobratovicrelja.github.io/dcv/?loc=dcv_features_corner_fast_package.html,FAST)</li>
+<li>$(LINK2 https://dcv.dlang.io/?loc=dcv.features.corner.harris.html,Harris)</li>
+<li>$(LINK2 https://dcv.dlang.io/?loc=dcv.features.corner.harris.html,Shi-Tomasi)</li>
+<li>$(LINK2 https://dcv.dlang.io/?loc=dcv.features.corner.fast.package.html,FAST)</li>
 </ul>
 
 Copyright: Copyright Relja Ljubobratovic 2016.

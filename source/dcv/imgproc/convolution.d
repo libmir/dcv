@@ -13,7 +13,7 @@ auto slice = lenaImage.sliced!ubyte;
 ----
 
 ... this loads the following image:<br>
-$(IMAGE https://github.com/ljubobratovicrelja/dcv/blob/master/examples/data/lena.png?raw=true)
+$(IMAGE https://github.com/libmir/dcv/blob/master/examples/data/lena.png?raw=true)
 
 ----
 blurred = slice
@@ -23,7 +23,7 @@ blurred = slice
 ----
 
 ... which give the resulting image:<br>
-$(IMAGE https://github.com/ljubobratovicrelja/dcv/blob/master/examples/filter/result/outblur.png?raw=true)
+$(IMAGE https://github.com/libmir/dcv/blob/master/examples/filter/result/outblur.png?raw=true)
 
 
 Copyright: Copyright Relja Ljubobratovic 2016.

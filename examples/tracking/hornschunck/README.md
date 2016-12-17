@@ -15,11 +15,11 @@ This example demonstrates usage of Pyramidal Horn-Schunck optical flow algorithm
 
 In this example, optical flow benchmark data set from [Middlebury University's website](http://vision.middlebury.edu/flow/data/) 
 is used to demonstrate the algorithm results. Some of this data is present in the 
-[library's example data directory](https://github.com/ljubobratovicrelja/dcv/tree/master/examples/data/optflow).
+[library's example data directory](https://github.com/libmir/dcv/tree/master/examples/data/optflow).
 
 For simple demonstaration, let's take the **Army** image pair from Middlebury:
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/tracking/hornschunck/result/0_army_example.gif)
+![alt tag](https://github.com/libmir/dcv/blob/master/examples/tracking/hornschunck/result/0_army_example.gif)
 
 The Horn-Schunck properties are stored in the `HornSchunckProperties` structure. Here is the chunck of code
 where those are initialized:
@@ -56,11 +56,11 @@ auto flowWarp = current.sliced.warp(flow);
 
 Here is the color code of computed flow for *Army* images:
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/tracking/hornschunck/result/2_flowColor.png)
+![alt tag](https://github.com/libmir/dcv/blob/master/examples/tracking/hornschunck/result/2_flowColor.png)
 
 And here is the animated result, showing differences between target image and resulting warped source image:
 
-![alt tag](https://github.com/ljubobratovicrelja/dcv/blob/master/examples/tracking/hornschunck/result/5_flowWarp.gif)
+![alt tag](https://github.com/libmir/dcv/blob/master/examples/tracking/hornschunck/result/5_flowWarp.gif)
 
 And lastly we write out these images in following order:
 

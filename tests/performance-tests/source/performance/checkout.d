@@ -30,7 +30,7 @@ auto checkout(string sha)
     if (!(cachePath ~ "/" ~ sha).exists)
     {
         cmd ~= "cd " ~ cachePath ~ "\n";
-        cmd ~= "git clone https://github.com/ljubobratovicrelja/dcv " ~ sha ~ "\n";
+        cmd ~= "git clone https://github.com/libmir/dcv " ~ sha ~ "\n";
         cmd ~= "cd " ~ sha ~ "\n";
         cmd ~= "git checkout " ~ sha ~ "\n";
     }
