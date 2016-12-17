@@ -19,16 +19,16 @@ structure <a href="https://github.com/libmir/mir/blob/master/source/mir/ndslice/
 and processing. But overall shape of the API is adopted from well known computer vision toolkits such as Matlab Image Processing 
 Toolbox, and OpenCV library, to be easily familiarized with. But it's also spiced up with D's syntactic sugar, to support pipelined calls:
 </p>
-<div><pre style="margin: 0; line-height: 125%"><a href="https://ljubobratovicrelja.github.io/dcv/?loc=dcv_core_image.html">Image</a> image = imread(<span style="color: #a31515">&quot;/path/to/image.png&quot;</span>); <span style="color: #008000">// read an image from filesystem.</span>
+<div><pre style="margin: 0; line-height: 125%"><a href="https://dcv.dlang.io/?loc=dcv.core.image.html">Image</a> image = imread(<span style="color: #a31515">&quot;/path/to/image.png&quot;</span>); <span style="color: #008000">// read an image from filesystem.</span>
 
 <span style="color: #0000ff">auto</span> slice = image.sliced; <span style="color: #008000">// slice image data (calls mir.ndslice.slice.sliced on image data)</span>
 
 slice[0..$, 0..$, 1]<span style="color: #008000"> // take only the green channel</span>
     .as!<span style="color: #2b91af">float</span><span style="color: #008000"> // convert slice data to float</span>
     .slice<span style="color: #008000"> // make a copy</span>
-    .<a href="https://ljubobratovicrelja.github.io/dcv/?loc=dcv_imgproc_convolution.html">conv</a>!symmetric(sobel!<span style="color: #2b91af">float</span>(GradientDirection.DIR_X)) <span style="color: #008000">// convolve image with horizontal Sobel kernel.</span>
-    .<a href="https://ljubobratovicrelja.github.io/dcv/?loc=dcv_core_algorithm.html#ranged">ranged</a>(0, 255) <span style="color: #008000">// scale values to fit the range between the 0 and 255</span>
-    .<a href="https://ljubobratovicrelja.github.io/dcv/?loc=dcv_plot_figure.html">imshow</a>(<span style="color: #a31515">&quot;Sobel derivatives&quot;</span>); <span style="color: #008000">// preview changes on screen.</span>
+    .<a href="https://dcv.dlang.io/?loc=dcv.imgproc.convolution.html">conv</a>!symmetric(sobel!<span style="color: #2b91af">float</span>(GradientDirection.DIR_X)) <span style="color: #008000">// convolve image with horizontal Sobel kernel.</span>
+    .<a href="https://dcv.dlang.io/?loc=dcv.core.algorithm.html#ranged">ranged</a>(0, 255) <span style="color: #008000">// scale values to fit the range between the 0 and 255</span>
+    .<a href="https://dcv.dlang.io/?loc=dcv.plot.figure.html">imshow</a>(<span style="color: #a31515">&quot;Sobel derivatives&quot;</span>); <span style="color: #008000">// preview changes on screen.</span>
 
 waitKey();
 </pre></div>
