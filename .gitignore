@@ -4,3 +4,5 @@ dub.userprefs
 *.lst
 __test__*
 libdcv*.a
+
+*.sublime-project
