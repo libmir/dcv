@@ -6,3 +6,4 @@ __test__*
 libdcv*.a
 
 *.sublime-project
+*.o
