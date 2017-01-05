@@ -39,7 +39,7 @@ import std.conv : to;
 import std.algorithm.comparison : equal;
 import std.parallelism : parallel, taskPool, TaskPool;
 
-import ldc.attributes : fastmath;
+import mir.ndslice.internal : fastmath;
 
 import mir.ndslice;
 import mir.ndslice.algorithm : ndReduce, Yes;

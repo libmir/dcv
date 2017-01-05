@@ -55,7 +55,7 @@ Params:
 TODO: consider size input as array, and add prealloc
 */
 Slice!(N, V*) resize(alias interp = linear, V, size_t N, size_t SN)(Slice!(N, V*) slice, size_t[SN] newsize, TaskPool pool = taskPool)
-        if (isInterpolationFunc!interp)
+    //if (isInterpolationFunc!interp)
 {
     static if (N == 1)
     {
@@ -74,8 +74,7 @@ Slice!(N, V*) resize(alias interp = linear, V, size_t N, size_t SN)(Slice!(N, V*
     }
     else
     {
-        import std.conv : to;
-        static assert(0, "Resize is not supported for slice with " ~ N.to!string ~ " dimensions.");
+        static assert(0, "Resize is not supported for slice with " ~ N.stringof ~ " dimensions.");
     }
 }
 

@@ -255,55 +255,55 @@ public:
     }
 
     /// Get format of an image.
-    @property format() const @safe pure
+    @property auto format() const @safe pure nothrow
     {
         return _format;
     }
     /// Get height of an image.
-    @property width() const @safe pure
+    @property auto width() const @safe pure nothrow
     {
         return _width;
     }
     /// Get height of an image.
-    @property height() const @safe pure
+    @property auto height() const @safe pure nothrow
     {
         return _height;
     }
     /// Get bit depth of the image.
-    @property depth() const @safe pure
+    @property auto depth() const @safe pure nothrow
     {
         return _depth;
     }
     /// Check if image is empty (there's no data present).
-    @property empty() const @safe pure
+    @property auto empty() const @safe pure nothrow
     {
         return _data is null;
     }
     /// Channel count of the image.
-    @property channels() const @safe pure
+    @property auto channels() const @safe pure nothrow
     {
         return imageFormatChannelCount[cast(int)format];
     }
 
     /// Number of bytes contained in one pixel of the image.
-    @property pixelSize() const @safe pure
+    @property auto pixelSize() const @safe pure nothrow
     {
         return channels * (cast(size_t)_depth / 8);
     }
     /// Number of bytes contained in the image.
-    @property byteSize() const @safe pure
+    @property auto byteSize() const @safe pure nothrow
     {
         return width * height * pixelSize;
     }
     /// Number of bytes contained in one row of the image.
-    @property rowStride() const @safe pure
+    @property auto rowStride() const @safe pure nothrow
     {
         return pixelSize * _width;
     }
 
     /// Size of the image.
     /// Returns an array of 3 sizes: [width, height, channels]
-    @property size_t[3] size() const @safe pure
+    @property size_t[3] size() const @safe pure nothrow
     {
         return [width, height, channels];
     }

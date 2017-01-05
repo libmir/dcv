@@ -39,7 +39,6 @@ else
 version(unittest)
 {
     import std.math : approxEqual;
-    import ldc.intrinsics : min = llvm_minnum, max = llvm_maxnum;
 }
 
 /**
@@ -216,16 +215,17 @@ body
 
     static if (isFloatingPoint!T)
     {
-        import ldc.intrinsics : min = llvm_minnum, max = llvm_maxnum;
-        auto _max = ndReduce!(max, Yes.vectorized)(T.min_normal, tensor);
+        import mir.math.internal : fmin, fmax;
+        auto _max = ndReduce!(fmax, Yes.vectorized)(T.min_normal, tensor);
+        auto _min = ndReduce!(fmin, Yes.vectorized)(T.max, tensor);
     }
     else
     {
-        import std.algorithm.comparison : min, max;
+        import mir.utility : min, max;
         auto _max = ndReduce!(max, Yes.vectorized)(T.min, tensor);
+        auto _min = ndReduce!(min, Yes.vectorized)(T.max, tensor);
     }
 
-    auto _min = ndReduce!(min, Yes.vectorized)(T.max, tensor);
     auto rn_val = _max - _min;
     auto sc_val = maxValue - minValue;
 

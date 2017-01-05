@@ -119,7 +119,7 @@ class FASTDetector : Detector
         import std.array : reserve;
         import std.algorithm : min;
 
-        enforce(image.depth == BitDepth.BD_8, "Invalid bit depth - FAST is supported so " "far only for 8-bit images");
+        enforce(image.depth == BitDepth.BD_8, "Invalid bit depth - FAST is supported so " ~ "far only for 8-bit images");
         enforce(image.channels == 1, "Invalid image format - has to be mono");
 
         Feature[] features; // output features

@@ -54,7 +54,7 @@ import std.array : uninitializedArray;
 import std.parallelism : parallel, taskPool, TaskPool;
 import std.traits: ReturnType;
 
-import ldc.attributes : fastmath;
+import mir.ndslice.internal : fastmath;
 
 import dcv.core.algorithm;
 import dcv.core.utils;
@@ -1167,7 +1167,7 @@ Slice!(2, T*) close(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) slic
 
 @fastmath void calcBilateralMask(Window, Mask)(Window window, Mask mask, float sigmaCol, float sigmaSpace)
 {
-    import ldc.intrinsics : exp = llvm_exp, sqrt = llvm_sqrt;
+    import mir.math.internal : exp, sqrt;
 
     auto in_val = window[$ / 2, $ / 2];
     float rd, cd, c_val, s_val;

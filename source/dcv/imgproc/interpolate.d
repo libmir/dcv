@@ -12,7 +12,7 @@ module dcv.imgproc.interpolate;
 import std.traits : isNumeric, isScalarType, isIntegral, allSameType, allSatisfy, ReturnType,
     isFloatingPoint;
 
-import ldc.attributes : fastmath;
+import mir.ndslice.internal : fastmath;
 
 import mir.ndslice;
 
@@ -135,7 +135,7 @@ pure @fastmath auto linearImpl_1(T)(Slice!(1, T*) range, double pos)
 
 pure @fastmath auto linearImpl_2(T)(Slice!(2, T*) range, double pos_x, double pos_y)
 {
-    import ldc.intrinsics : floor = llvm_floor;
+    import mir.math.internal : floor;
 
     assert(pos_x < range.length!0 && pos_y < range.length!1);
 
