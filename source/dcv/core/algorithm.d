@@ -143,7 +143,7 @@ deprecated("Use array based division: tensor[] /= norm, or mir.ndslice.algorithm
     static if (isFloatingPoint!T)
         tensor[] /= n;
     else
-        tensor.each!((ref v) { v = cast(T)(cast(real)v / n); }, Yes.vectorized);
+        tensor.each!((ref v) { v = cast(T)(cast(real)v / n); });
     return tensor;
 }
 
@@ -178,7 +178,7 @@ in
 }
 body
 {
-    tensor.each!((ref v) { v = cast(DeepElementType!Tensor)(alpha * (v) + beta); }, Yes.vectorized);
+    tensor.each!((ref v) { v = cast(DeepElementType!Tensor)(alpha * (v) + beta); });
     return tensor;
 }
 

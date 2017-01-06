@@ -68,21 +68,21 @@ body
     else
         OutputType upvalue = OutputType.max;
 
-    auto p = assumeSameStructure!("result", "input")(prealloc, input);
+    auto p = zip!true(prealloc, input);
 
     if (lowThresh.approxEqual(highThresh))
     {
         p.each!((v)
         {
-            v.result = cast(OutputType)(v.input <= lowThresh ? 0 : upvalue);
-        }, Yes.vectorized, Yes.fastmath);
+            v.a = cast(OutputType)(v.b <= lowThresh ? 0 : upvalue);
+        });
     }
     else
     {
         p.each!((v)
         {
-            v.result = cast(OutputType)(v.input >= lowThresh && v.input <= highThresh ? upvalue : 0);
-        }, Yes.vectorized, Yes.fastmath);
+            v.a = cast(OutputType)(v.b >= lowThresh && v.b <= highThresh ? upvalue : 0);
+        });
     }
 
     return prealloc;

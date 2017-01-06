@@ -523,7 +523,7 @@ in
     static assert(isSlice!InputTensor, "Input tensor has to be of type mir.ndslice.slice.Slice");
     static assert(InputTensor.init.shape.length == 2, "Input tensor has to be 2 dimensional. (matrix)");
     assert(!input.empty);
-    assert(input.structure.strides[$-1] == 1, "Input slice's memory has to be contiguous."); // TODO check other dimensions.
+    assert(input.strides[$-1] == 1, "Input slice's memory has to be contiguous."); // TODO check other dimensions.
 }
 body
 {
@@ -549,24 +549,24 @@ body
         fy = input.conv(ky, emptySlice!(2, V), emptySlice!(2, V), pool);
     }
 
-    assert(fx.structure.strides == mag.structure.strides  ||
-            fx.structure.strides == orient.structure.strides,
+    assert(fx.strides == mag.strides  ||
+            fx.strides == orient.strides,
             "Magnitude and orientation slices must be contiguous.");
 
-    if (mag.structure.strides == orient.structure.strides &&
-            mag.structure.strides == fx.structure.strides)
+    if (mag.strides == orient.strides &&
+            mag.strides == fx.strides)
     {
-        auto data = assumeSameStructure!("fx", "fy", "mag", "orient")(fx, fy, mag, orient);
+        auto data = zip!true(fx, fy, mag, orient);
         foreach(row; pool.parallel(data))
         {
-            row.each!( p => calcGradientsImpl(p.fx, p.fy, p.mag, p.orient), Yes.vectorized, Yes.fastmath);
+            row.each!(p => calcGradientsImpl(p.a, p.b, p.c, p.d));
         }
     }
     else
     {
         foreach(row; pool.parallel(ndiota(input.shape)))
         {
-            row.each!(i => calcGradientsImpl(fx[i], fy[i], mag[i], orient[i]), Yes.vectorized, Yes.fastmath);
+            row.each!(i => calcGradientsImpl(fx[i], fy[i], mag[i], orient[i]));
         }
     }
 }
@@ -605,7 +605,7 @@ in
 
     assert(!mag.empty && !orient.empty);
     assert(mag.shape == orient.shape);
-    assert(mag.structure.strides == orient.structure.strides, "Magnitude and Orientation tensor strides have to be the same.");
+    assert(mag.strides == orient.strides, "Magnitude and Orientation tensor strides have to be the same.");
 }
 body
 {
@@ -615,10 +615,10 @@ body
     alias F = DeepElementType!InputTensor;
 
     if (prealloc.shape != orient.shape
-            || prealloc.structure.strides != mag.structure.strides)
+            || prealloc.strides != mag.strides)
         prealloc = uninitializedSlice!V(mag.shape);
 
-    assert(prealloc.structure.strides == orient.structure.strides,
+    assert(prealloc.strides == orient.strides,
             "Orientation and preallocated slice strides do not match.");
 
     auto magWindows = mag.windows(3, 3);
