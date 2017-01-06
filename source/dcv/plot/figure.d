@@ -103,7 +103,7 @@ import std.string : toStringz;
 import std.exception;
 import std.conv : to;
 
-import mir.ndslice;
+import mir.ndslice.slice;
 
 version(ggplotd)
 {
@@ -880,14 +880,14 @@ Image adoptImage(Image image)
     import dcv.imgproc.color : yuv2rgb, gray2rgb;
 
     Image showImage = (image.depth != BitDepth.BD_8) ? image.asType!ubyte : image;
-
+    import mir.ndslice.topology;
     switch (showImage.format)
     {
     case ImageFormat.IF_RGB_ALPHA:
         showImage = showImage.sliced[0 .. $, 0 .. $, 0 .. 2].asImage(ImageFormat.IF_RGB);
         break;
     case ImageFormat.IF_BGR:
-        foreach (e; showImage.sliced.pack!1.byElement)
+        foreach (e; showImage.sliced.pack!1.flattened)
         {
             auto t = e[0];
             e[0] = e[2];
@@ -895,7 +895,7 @@ Image adoptImage(Image image)
         }
         break;
     case ImageFormat.IF_BGR_ALPHA:
-        foreach (e; showImage.sliced.pack!1.byElement)
+        foreach (e; showImage.sliced.pack!1.flattened)
         {
             auto t = e[0];
             e[0] = e[2];
@@ -907,7 +907,7 @@ Image adoptImage(Image image)
         showImage = showImage.sliced.yuv2rgb!ubyte.asImage(ImageFormat.IF_RGB);
         break;
     case ImageFormat.IF_MONO:
-        showImage = showImage.sliced.reshape(image.height, image.width)
+        showImage = showImage.sliced.flattened.sliced(image.height, image.width)
             .gray2rgb!ubyte.asImage(ImageFormat.IF_RGB);
         break;
     default:

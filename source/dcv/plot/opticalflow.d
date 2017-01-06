@@ -10,8 +10,8 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 
 module dcv.plot.opticalflow;
 
-import mir.ndslice.slice : Slice, sliced;
-import mir.ndslice.algorithm : Yes, ndEach;
+import mir.ndslice.slice : Slice, sliced, SliceKind;
+import mir.ndslice.algorithm;
 
 /**
  * Draw color-coded optical flow.
@@ -26,7 +26,7 @@ import mir.ndslice.algorithm : Yes, ndEach;
  * returns:
  * RGB image of color-coded optical flow.
  */
-Slice!(3, ubyte*) colorCode(Slice!(3, float*) flow, float maxSize = 0)
+Slice!(SliceKind.continuous, [3], ubyte*) colorCode(Slice!(SliceKind.continuous, [3], float*) flow, float maxSize = 0)
 {
     import std.math : sqrt;
     import std.array : array;
@@ -61,9 +61,7 @@ Slice!(3, ubyte*) colorCode(Slice!(3, float*) flow, float maxSize = 0)
         }
     }
 
-    hsv[0 .. $, 0 .. $, 1]
-        .ranged(0.0f, maxSize)
-        .ndEach!( (ref v) { v/= maxSize; }, Yes.vectorized);
+    hsv[0 .. $, 0 .. $, 1].ranged(0.0f, maxSize)[] /= maxSize;
 
     return hsv.hsv2rgb!ubyte; // Convert to RGB, and return...
 }

@@ -43,24 +43,24 @@ module dcv.imgproc.filter;
 
 import std.traits : allSameType, allSatisfy, isFloatingPoint, isNumeric, isDynamicArray,
     isStaticArray,isIntegral;
-import std.range : iota, array, lockstep, ElementType, isForwardRange;
+import std.range : array, lockstep, ElementType, isForwardRange;
 import std.exception : enforce;
-import std.math : abs, PI, floor, exp, pow;
-import std.algorithm.iteration : map, sum, each, reduce;
 import std.algorithm.sorting : topN;
-import std.algorithm.comparison : max;
-import std.algorithm.mutation : copy;
 import std.array : uninitializedArray;
 import std.parallelism : parallel, taskPool, TaskPool;
 import std.traits: ReturnType;
+import mir.utility: min, max;
 
+import mir.math.internal;
+import mir.ndslice.allocation;
 import mir.ndslice.internal : fastmath;
+import mir.ndslice.topology;
+import mir.ndslice.slice;
+import mir.ndslice.algorithm : reduce, each;
 
 import dcv.core.algorithm;
 import dcv.core.utils;
 
-import mir.ndslice;
-import mir.ndslice.algorithm : ndReduce, ndEach, Yes;
 
 /**
 Box kernel creation.
@@ -75,7 +75,7 @@ Params:
 Returns:
     Kernel of size [rows, cols], filled with given value.
 */
-Slice!(2, T*) boxKernel(T)(size_t rows, size_t cols, T value = 1)
+Slice!(kind, [2], T*) boxKernel(T)(size_t rows, size_t cols, T value = 1)
 in
 {
     assert(rows > 1 && cols > 1, "Invalid kernel size - rows, and columns have to be larger than 1.");
@@ -89,7 +89,7 @@ body
 }
 
 /// ditto
-Slice!(2, T*) boxKernel(T)(size_t size, T value = 1)
+Slice!(kind, [2], T*) boxKernel(T)(size_t size, T value = 1)
 in
 {
     assert(size > 1, "Invalid kernel size - has to be larger than 1.");
@@ -113,7 +113,7 @@ Params:
 Returns:
     Kernel of size [radius, radius], filled with given values.
 */
-Slice!(2, T*) radialKernel(T)(size_t radius, T foreground = 1, T background = 0)
+Slice!(kind, [2], T*) radialKernel(T)(size_t radius, T foreground = 1, T background = 0)
 in
 {
     assert(radius >= 3, "Radial dilation kernel has to be of larger radius than 3.");
@@ -144,7 +144,7 @@ body
 /**
 Instantiate 2D gaussian kernel.
 */
-Slice!(2, V*) gaussian(V = real)(real sigma, size_t width, size_t height) pure
+Slice!(SliceKind.continuous, [2], V*) gaussian(V = double)(V sigma, size_t width, size_t height) pure
 {
 
     static assert(isFloatingPoint!V, "Gaussian kernel can be constructed only using floating point types.");
@@ -160,19 +160,20 @@ Slice!(2, V*) gaussian(V = real)(real sigma, size_t width, size_t height) pure
     // build rows
     foreach (r; 0 .. height)
     {
-        arrv_w.iota(-arrv_w + 1).map!(e => cast(V)(e ^^ 2)).array.copy(h[r]);
+        pragma(msg, typeof(h[r]));
+        h[r][] = iota!ptrdiff_t([width], arrv_w).map!"a * a";
     }
 
     // build columns
     foreach (c; 0 .. width)
     {
-        auto cadd = arrv_h.iota(-arrv_h + 1).map!(e => cast(V)(e ^^ 2)).array;
-        h[0 .. height, c][] += cadd[];
-        h[0 .. height, c].map!((ref v) => v = (-(v) / sgm).exp).copy(h[0 .. height, c]);
+        h[0 .. height, c][] += iota([width], -arrv_h + 1).map!"a * a";
+        h[0 .. height, c].each!((ref v) => v = exp(-v / sgm));
     }
 
     // normalize
-    h[] /= h.byElement.sum;
+    import mir.math.sum: sum;
+    h[] /= h.flattened.sum;
 
     return h;
 }
@@ -204,7 +205,7 @@ Laplacian(I) =
 )
 
 */
-Slice!(2, T*) laplacian(T = real)(real a = 0.) pure nothrow if (isNumeric!T)
+Slice!(SliceKind.continuous, [2], T*) laplacian(T = double)(real a = 0.) pure nothrow if (isNumeric!T)
 in
 {
     assert(a >= 0. && a <= 1.);
@@ -244,14 +245,14 @@ Params:
     width = width of the kernel matrix
     height = height of the kernel matrix
 */
-Slice!(2, T*) laplacianOfGaussian(T = real)(real sigma, size_t width, size_t height)
+Slice!(SliceKind.continuous, [2], T*) laplacianOfGaussian(T = double)(real sigma, size_t width, size_t height)
 {
     import std.traits : isSigned;
 
     static assert(isSigned!T);
 
-    import std.algorithm.comparison : max;
-    import std.math : E;
+    import mir.utlity : max;
+    import std.math : E, PI;
 
     auto k = new T[width * height].sliced(height, width);
 
@@ -310,25 +311,25 @@ public enum EdgeKernel
 }
 
 /// Create a Sobel edge kernel.
-Slice!(2, T*) sobel(T = real)(GradientDirection direction) nothrow pure @trusted
+Slice!(SliceKind.continuous, [2], T*) sobel(T = double)(GradientDirection direction) nothrow pure @trusted
 {
     return edgeKernelImpl!(T)(direction, cast(T)1, cast(T)2);
 }
 
 /// Create a Scharr edge kernel.
-Slice!(2, T*) scharr(T = real)(GradientDirection direction) nothrow pure @trusted
+Slice!(SliceKind.continuous, [2], T*) scharr(T = double)(GradientDirection direction) nothrow pure @trusted
 {
     return edgeKernelImpl!(T)(direction, cast(T)3, cast(T)10);
 }
 
 /// Create a Prewitt edge kernel.
-Slice!(2, T*) prewitt(T = real)(GradientDirection direction) nothrow pure @trusted
+Slice!(SliceKind.continuous, [2], T*) prewitt(T = double)(GradientDirection direction) nothrow pure @trusted
 {
     return edgeKernelImpl!(T)(direction, cast(T)1, cast(T)1);
 }
 
 /// Create a kernel of given type.
-Slice!(2, T*) edgeKernel(T)(EdgeKernel kernelType, GradientDirection direction) nothrow pure @trusted
+Slice!(SliceKind.continuous, [2], T*) edgeKernel(T)(EdgeKernel kernelType, GradientDirection direction) nothrow pure @trusted
 {
     typeof(return) k;
     final switch (kernelType)
@@ -348,18 +349,18 @@ Slice!(2, T*) edgeKernel(T)(EdgeKernel kernelType, GradientDirection direction) 
     return k;
 }
 
-private Slice!(2, T*) edgeKernelImpl(T)(GradientDirection direction, T lv, T hv) nothrow pure @trusted
+private Slice!(SliceKind.continuous, [2], T*) edgeKernelImpl(T)(GradientDirection direction, T lv, T hv) nothrow pure @trusted
 {
     final switch (direction)
     {
     case GradientDirection.DIR_X:
-        return [-lv, 0, lv, -hv, 0, hv, -lv, 0, lv].map!(a => cast(T)a).array.sliced(3, 3);
+        return [-lv, 0, lv, -hv, 0, hv, -lv, 0, lv].sliced(3, 3).as!T.slice;
     case GradientDirection.DIR_Y:
-        return [-lv, -hv, -lv, 0, 0, 0, lv, hv, lv].map!(a => cast(T)a).array.sliced(3, 3);
+        return [-lv, -hv, -lv, 0, 0, 0, lv, hv, lv].sliced(3, 3).as!T.slice;
     case GradientDirection.DIAG:
-        return [-hv, -lv, 0, -lv, 0, lv, 0, lv, hv].map!(a => cast(T)a).array.sliced(3, 3);
+        return [-hv, -lv, 0, -lv, 0, lv, 0, lv, hv].sliced(3, 3).as!T.slice;
     case GradientDirection.DIAG_INV:
-        return [0, -lv, -hv, lv, 0, -lv, hv, lv, 0].map!(a => cast(T)a).array.sliced(3, 3);
+        return [0, -lv, -hv, lv, 0, -lv, hv, lv, 0].sliced(3, 3).as!T.slice;
     }
 }
 
@@ -425,7 +426,7 @@ body
     input
         .windows(fs, fs)
         .strided!(0, 1)(fsh, fsh)
-        .ndEach!( w => filterNonMaximumImpl(w));
+        .each!( w => filterNonMaximumImpl(w));
 
     return input;
 }
@@ -441,7 +442,7 @@ void calcPartialDerivatives(InputTensor, V = DeepElementType!InputTensor)
 in
 {
     static assert(isSlice!InputTensor, "Invalid input tensor type - has to be of type mir.ndslice.slice.Slice.");
-    static assert(ReturnType!(InputTensor.shape).length == 2, "Input tensor has to be 2 dimensional. (matrix)");
+    static assert(InputTensor.init.shape.length == 2, "Input tensor has to be 2 dimensional. (matrix)");
 }
 body
 {
@@ -520,7 +521,7 @@ void calcGradients(InputTensor, V = DeepElementType!InputTensor)
 in
 {
     static assert(isSlice!InputTensor, "Input tensor has to be of type mir.ndslice.slice.Slice");
-    static assert(ReturnType!(InputTensor.shape).length == 2, "Input tensor has to be 2 dimensional. (matrix)");
+    static assert(InputTensor.init.shape.length == 2, "Input tensor has to be 2 dimensional. (matrix)");
     assert(!input.empty);
     assert(input.structure.strides[$-1] == 1, "Input slice's memory has to be contiguous."); // TODO check other dimensions.
 }
@@ -558,14 +559,14 @@ body
         auto data = assumeSameStructure!("fx", "fy", "mag", "orient")(fx, fy, mag, orient);
         foreach(row; pool.parallel(data))
         {
-            row.ndEach!( p => calcGradientsImpl(p.fx, p.fy, p.mag, p.orient), Yes.vectorized, Yes.fastmath);
+            row.each!( p => calcGradientsImpl(p.fx, p.fy, p.mag, p.orient), Yes.vectorized, Yes.fastmath);
         }
     }
     else
     {
-        foreach(row; pool.parallel(indexSlice(input.shape)))
+        foreach(row; pool.parallel(ndiota(input.shape)))
         {
-            row.ndEach!(i => calcGradientsImpl(fx[i], fy[i], mag[i], orient[i]), Yes.vectorized, Yes.fastmath);
+            row.each!(i => calcGradientsImpl(fx[i], fy[i], mag[i], orient[i]), Yes.vectorized, Yes.fastmath);
         }
     }
 }
@@ -600,7 +601,7 @@ Slice!(2, V*) nonMaximaSupression(InputTensor, V = DeepElementType!InputTensor)
 in
 {
     static assert(isSlice!InputTensor, "Input tensor has to be of type mir.ndslice.slice.Slice");
-    static assert(ReturnType!(InputTensor.shape).length == 2, "Input tensor has to be 2 dimensional. (matrix)");
+    static assert(InputTensor.init.shape.length == 2, "Input tensor has to be 2 dimensional. (matrix)");
 
     assert(!mag.empty && !orient.empty);
     assert(mag.shape == orient.shape);
@@ -612,11 +613,6 @@ body
     import std.math : PI;
 
     alias F = DeepElementType!InputTensor;
-
-    static if (isFloatingPoint!F)
-        import ldc.intrinsics : abs = llvm_fabs;
-    else
-        import std.math : abs;
 
     if (prealloc.shape != orient.shape
             || prealloc.structure.strides != mag.structure.strides)
@@ -653,7 +649,7 @@ Params:
     edgeKernelType = Type of edge kernel used to calculate image gradients.
     prealloc = Optional pre-allocated buffer.
 */
-Slice!(2, V*) canny(V, T)(Slice!(2, T*) slice, T lowThresh, T upThresh,
+Slice!(2, V*) canny(V, T)(Slice!(kind, [2], T*) slice, T lowThresh, T upThresh,
         EdgeKernel edgeKernelType = EdgeKernel.SOBEL,
         Slice!(2, V*) prealloc = emptySlice!(2, V), TaskPool pool = taskPool)
 {
@@ -676,7 +672,7 @@ Perform canny filtering on an image to expose edges.
 Convenience function to call canny with same lower and upper threshold values,
 similar to dcv.imgproc.threshold.threshold.
 */
-Slice!(2, V*) canny(V, T)(Slice!(2, T*) slice, T thresh,
+Slice!(2, V*) canny(V, T)(Slice!(kind, [2], T*) slice, T thresh,
         EdgeKernel edgeKernelType = EdgeKernel.SOBEL, Slice!(2, V*) prealloc = emptySlice!(2, V))
 {
     return canny!(V, T)(slice, thresh, thresh, edgeKernelType, prealloc);
@@ -699,9 +695,9 @@ Params:
 Returns:
     Slice of filtered image.
 */
-Slice!(N, OutputType*) bilateralFilter
-    (alias bc = neumann, InputTensor, OutputType = DeepElementType!(InputTensor), size_t N = ReturnType!(InputTensor.shape).length)
-    (InputTensor input, float sigmaCol, float sigmaSpace, size_t kernelSize, Slice!(N, OutputType*) prealloc = emptySlice!(N, OutputType),
+Slice!(SliceKind.continuous, [N], OutputType*) bilateralFilter
+    (alias bc = neumann, InputTensor, OutputType = DeepElementType!(InputTensor), size_t N = InputTensor.init.shape.length)
+    (InputTensor input, float sigmaCol, float sigmaSpace, size_t kernelSize, Slice!(SliceKind.continuous, [N], OutputType*) prealloc = emptySlice!([N], OutputType),
      TaskPool pool = taskPool) if (N == 2)
 in
 {
@@ -712,17 +708,17 @@ in
 }
 body
 {
+    import mir.ndslice.allocation;
     if (prealloc.shape != input.shape)
         prealloc = uninitializedSlice!OutputType(input.shape);
 
     auto ks = kernelSize;
-    auto kh = max(1, ks / 2);
+    auto kh = max(1u, ks / 2);
 
     auto inputWindows = input.windows(kernelSize, kernelSize);
     auto innerBody = prealloc[kh .. $ - kh, kh .. $ - kh];
     auto inShape = innerBody.shape;
     auto shape = input.shape;
-    auto kId = indexSlice(ks, ks).ndMap!(v => [cast(int)v[0] - cast(int)kh, cast(int)v[1] - cast(int)kh]).slice;
 
     auto threadMask = pool.workerLocalStorage(slice!float(ks, ks));
 
@@ -741,7 +737,22 @@ body
         foreach(r; border.rows)
             foreach(c; border.cols)
             {
-                auto inputWindow = kId.ndMap!(v => bc(input, r - v[0], c - v[1]));
+                import mir.ndslice.field;
+                import mir.ndslice.iterator;
+                static struct ndIotaWithShiftField {
+                    ptrdiff_t[2] _shift;
+                    ndIotaField!2 _field;
+                    InputTensor _input;
+                    auto opIndex(ptrdiff_t index)
+                    {
+                        auto ret = _field[index];
+                        ret[0] -= _shift[0];
+                        ret[1] -= _shift[1];
+                        return bc(_input, ret[0], ret[1]);
+                    }
+                }
+                auto inputWindow = FieldIterator!ndIotaWithShiftField(0, ndIotaWithShiftField([r + kh, c + kh], ndIotaField!2.init, input))
+                    .sliced(ks, ks);
                 prealloc[r, c] = cast(OutputType)bilateralFilterImpl(inputWindow, maskBuf, sigmaCol, sigmaSpace);
             }
     }
@@ -751,8 +762,8 @@ body
 
 /// ditto
 Slice!(N, OutputType*) bilateralFilter
-    (alias bc = neumann, InputTensor, OutputType = DeepElementType!(InputTensor), size_t N = ReturnType!(InputTensor.shape).length)
-    (InputTensor input, float sigmaCol, float sigmaSpace, size_t kernelSize, Slice!(N, OutputType*) prealloc = emptySlice!(N, OutputType),
+    (alias bc = neumann, InputTensor, OutputType = DeepElementType!(InputTensor), size_t N = InputTensor.init.shape.length)
+    (InputTensor input, float sigmaCol, float sigmaSpace, size_t kernelSize, Slice!(N, OutputType*) prealloc = emptySlice!([N], OutputType),
      TaskPool pool = taskPool) if (N == 3)
 in
 {
@@ -793,8 +804,8 @@ Returns:
     of same size as input slice, return value is assigned to prealloc buffer. If not, newly allocated buffer
     is used.
 */
-Slice!(N, O*) medianFilter(alias BoundaryConditionTest = neumann, T, O = T, size_t N)(Slice!(N,
-        T*) slice, size_t kernelSize, Slice!(N, O*) prealloc = emptySlice!(N, O), TaskPool pool = taskPool)
+Slice!(SliceKind.continuous, packs, O*) medianFilter(alias BoundaryConditionTest = neumann, T, O = T, SliceKind kind, size_t[] packs)
+    (Slice!(kind, packs, T*) slice, size_t kernelSize, Slice!(SliceKind.continuous, packs, O*) prealloc = emptySlice!(packs, O), TaskPool pool = taskPool)
 in
 {
     import std.traits : isAssignable;
@@ -813,11 +824,11 @@ body
     if (prealloc.shape != slice.shape)
         prealloc = uninitializedArray!(O[])(slice.elementsCount).sliced(slice.shape);
 
-    static if (N == 1)
+    static if (packs == [1])
         alias medianFilterImpl = medianFilterImpl1;
-    else static if (N == 2)
+    else static if (packs == [2])
         alias medianFilterImpl = medianFilterImpl2;
-    else static if (N == 3)
+    else static if (packs == [3])
         alias medianFilterImpl = medianFilterImpl3;
     else
         static assert(0, "Invalid slice dimension for median filtering.");
@@ -938,7 +949,7 @@ Returns:
     Copy of input image slice with its histogram values equalized.
 */
 Slice!(N, T*) histEqualize(T, HistogramType, size_t N)(Slice!(N, T*) slice, HistogramType histogram,
-        Slice!(N, T*) prealloc = emptySlice!(N, T))
+        Slice!(N, T*) prealloc = emptySlice!([N], T))
 in
 {
     assert(!slice.empty());
@@ -1044,8 +1055,8 @@ Params:
 Returns:
     Eroded image slice, of same type as input image.
 */
-Slice!(2, T*) erode(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) slice,
-        Slice!(2, T*) kernel = radialKernel!T(3), Slice!(2, T*) prealloc = emptySlice!(2, T),
+Slice!(kind, [2], T*) erode(alias BoundaryConditionTest = neumann, T)(Slice!(kind, [2], T*) slice,
+        Slice!(kind, [2], T*) kernel = radialKernel!T(3), Slice!(kind, [2], T*) prealloc = emptySlice!(2, T),
     TaskPool pool = taskPool)
         if (isBoundaryCondition!BoundaryConditionTest)
 {
@@ -1105,8 +1116,8 @@ Params:
 Returns:
     Dilated image slice, of same type as input image.
 */
-Slice!(2, T*) dilate(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) slice,
-        Slice!(2, T*) kernel = radialKernel!T(3), Slice!(2, T*) prealloc = emptySlice!(2, T),
+Slice!(kind, [2], T*) dilate(alias BoundaryConditionTest = neumann, T)(Slice!(kind, [2], T*) slice,
+        Slice!(kind, [2], T*) kernel = radialKernel!T(3), Slice!(kind, [2], T*) prealloc = emptySlice!(2, T),
     TaskPool pool = taskPool)
         if (isBoundaryCondition!BoundaryConditionTest)
 {
@@ -1130,8 +1141,8 @@ Params:
 Returns:
     Opened image slice, of same type as input image.
 */
-Slice!(2, T*) open(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) slice,
-        Slice!(2, T*) kernel = radialKernel!T(3), Slice!(2, T*) prealloc = emptySlice!(2, T),
+Slice!(kind, [2], T*) open(alias BoundaryConditionTest = neumann, T)(Slice!(kind, [2], T*) slice,
+        Slice!(kind, [2], T*) kernel = radialKernel!T(3), Slice!(kind, [2], T*) prealloc = emptySlice!(2, T),
     TaskPool pool = taskPool)
         if (isBoundaryCondition!BoundaryConditionTest)
 {
@@ -1156,8 +1167,8 @@ Params:
 Returns:
     Closed image slice, of same type as input image.
 */
-Slice!(2, T*) close(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) slice,
-        Slice!(2, T*) kernel = radialKernel!T(3), Slice!(2, T*) prealloc = emptySlice!(2, T),
+Slice!(kind, [2], T*) close(alias BoundaryConditionTest = neumann, T)(Slice!(kind, [2], T*) slice,
+        Slice!(kind, [2], T*) kernel = radialKernel!T(3), Slice!(kind, [2], T*) prealloc = emptySlice!(2, T),
     TaskPool pool = taskPool)
         if (isBoundaryCondition!BoundaryConditionTest)
 {
@@ -1200,10 +1211,12 @@ private:
 
 void nonMaximaSupressionImpl(DataPack, MagWindow)(DataPack p, MagWindow magWin)
 {
+    import mir.math.internal;
+
     alias F = typeof(p.result);
 
     auto ang = p.ang;
-    auto aang = abs(ang);
+    auto aang = fabs(ang);
 
     auto mag = magWin[1, 1];
     typeof(mag) mb, ma; // magnitude before and after cursor
@@ -1257,19 +1270,17 @@ void nonMaximaSupressionImpl(DataPack, MagWindow)(DataPack p, MagWindow magWin)
 
 auto bilateralFilterImpl(Window, Mask)(Window window, Mask mask, float sigmaCol, float sigmaSpace)
 {
-    import mir.glas.l1 : asum;
-
+    import mir.math.internal;
     calcBilateralMask(window, mask, sigmaCol, sigmaSpace);
-    auto mask_norm = 1.0f / float(mask.asum);
-    mask.ndEach!( (ref v) { v *= mask_norm; }, Yes.vectorized, Yes.fastmath);
+    mask[] *= 1f / reduce!"a + b"(0f, mask.as!float.map!fabs);
 
     alias T = DeepElementType!Window;
     alias M = DeepElementType!Mask;
 
-    return ndReduce!(calcBilateralValue!(T, M), Yes.vectorized, Yes.fastmath)(T(0), window, mask);
+    return reduce!(calcBilateralValue!(T, M))(T(0), window, mask);
 }
 
-void medianFilterImpl1(alias bc, T, O)(Slice!(1, T*) slice, Slice!(1, O*) filtered,
+void medianFilterImpl1(alias bc, T, O)(Slice!(1, T*) slice, Slice!(SliceKind.continuous, [1], O*) filtered,
     size_t kernelSize, TaskPool pool)
 {
     import std.algorithm.sorting : topN;
@@ -1294,16 +1305,16 @@ void medianFilterImpl1(alias bc, T, O)(Slice!(1, T*) slice, Slice!(1, O*) filter
     }
 }
 
-void medianFilterImpl2(alias bc, T, O)(Slice!(2, T*) slice, Slice!(2, O*) filtered,
+void medianFilterImpl2(alias bc, T, O, SliceKind kind)(Slice!(kind, [2], T*) slice, Slice!(SliceKind.continuous, [2], O*) filtered,
     size_t kernelSize, TaskPool pool)
 {
     int kh = max(1, cast(int)kernelSize / 2);
-    int n = cast(int)kernelSize ^^ 2;
+    int n = cast(int)(kernelSize * kernelSize);
     int m = n / 2;
     int rows = cast(int)slice.length!0;
     int cols = cast(int)slice.length!1;
 
-    auto kernelStorage = pool.workerLocalStorage(new T[kernelSize ^^ 2]);
+    auto kernelStorage = pool.workerLocalStorage(new T[kernelSize * kernelSize]);
 
     foreach (r; pool.parallel(iota(rows)))
     {
@@ -1324,7 +1335,7 @@ void medianFilterImpl2(alias bc, T, O)(Slice!(2, T*) slice, Slice!(2, O*) filter
     }
 }
 
-void medianFilterImpl3(alias bc, T, O)(Slice!(3, T*) slice, Slice!(3, O*) filtered,
+void medianFilterImpl3(alias bc, T, O)(Slice!(kind, [3], T*) slice, Slice!(SliceKind.continuous, [3], O*) filtered,
     size_t kernelSize, TaskPool pool)
 {
     foreach (channel; 0 .. slice.length!2)
@@ -1333,7 +1344,7 @@ void medianFilterImpl3(alias bc, T, O)(Slice!(3, T*) slice, Slice!(3, O*) filter
     }
 }
 
-void histEqualImpl(T, Cdf)(Slice!(2, T*) slice, Cdf cdf, Slice!(2, T*) prealloc = emptySlice!(2, T))
+void histEqualImpl(T, Cdf)(Slice!(kind, [2], T*) slice, Cdf cdf, Slice!(kind, [2], T*) prealloc = emptySlice!(2, T))
 {
     import std.range : lockstep;
 
@@ -1349,9 +1360,9 @@ enum MorphologicOperation
     DILATE
 }
 
-Slice!(2, T*) morphOp(MorphologicOperation op, alias BoundaryConditionTest = neumann, T)
-    (Slice!(2, T*) slice, Slice!(2, T*) kernel, 
-     Slice!(2, T*) prealloc, TaskPool pool) if (isBoundaryCondition!BoundaryConditionTest)
+Slice!(kind, [2], T*) morphOp(MorphologicOperation op, alias BoundaryConditionTest = neumann, T)
+    (Slice!(kind, [2], T*) slice, Slice!(kind, [2], T*) kernel, 
+     Slice!(kind, [2], T*) prealloc, TaskPool pool) if (isBoundaryCondition!BoundaryConditionTest)
 in
 {
     assert(!slice.empty);

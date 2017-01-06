@@ -14,7 +14,7 @@ import std.traits : isNumeric, isScalarType, isIntegral, allSameType, allSatisfy
 
 import mir.ndslice.internal : fastmath;
 
-import mir.ndslice;
+import mir.ndslice.slice;
 
 
 /**
@@ -60,11 +60,11 @@ Params:
 Returns:
     Interpolated resulting value.
 */
-pure T linear(T, size_t N, Position...)(Slice!(N, T*) slice, Position pos)
-        if (isNumeric!T && isScalarType!T && allSameType!Position && allSatisfy!(isNumeric, Position))
+pure T linear(SliceKind kind, size_t[] packs, T, P, size_t N)(Slice!(kind, packs, T*) slice, P[N] pos...)
+    if (packs.length == 1)
 {
     // TODO: document
-    static assert(N == pos.length, "Interpolation indexing has to be of same dimension as the input slice.");
+    static assert(N == packs[0], "Interpolation indexing has to be of same dimension as the input slice.");
 
     static if (pos.length == 1)
     {
@@ -133,7 +133,7 @@ pure @fastmath auto linearImpl_1(T)(Slice!(1, T*) range, double pos)
     return cast(T)(v1 * (1. - weight) + v2 * (weight));
 }
 
-pure @fastmath auto linearImpl_2(T)(Slice!(2, T*) range, double pos_x, double pos_y)
+pure @fastmath auto linearImpl_2(SliceKind kind, size_t[] packs, T)(Slice!(kind, packs, T*) range, double pos_x, double pos_y)
 {
     import mir.math.internal : floor;
 

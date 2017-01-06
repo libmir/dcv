@@ -23,7 +23,7 @@ import std.range;
 import std.traits : isNumeric, isFloatingPoint;
 
 import mir.ndslice.slice : Slice, sliced, DeepElementType;
-import mir.ndslice.algorithm : ndReduce, ndEach, Yes;
+import mir.ndslice.algorithm : reduce, each;
 
 import dcv.core.utils : isSlice;
 
@@ -104,9 +104,9 @@ pure nothrow unittest
     t2[] /= t2.norm(NormType.L1);
     t3[] /= t3.norm(NormType.L1);
 
-    assert(approxEqual(ndReduce!"a+b"(0.0f, t1), 1.0f));
-    assert(approxEqual(ndReduce!"a+b"(0.0f, t2), 1.0f));
-    assert(approxEqual(ndReduce!"a+b"(0.0f, t3), 1.0f));
+    assert(approxEqual(reduce!"a+b"(0.0f, t1), 1.0f));
+    assert(approxEqual(reduce!"a+b"(0.0f, t2), 1.0f));
+    assert(approxEqual(reduce!"a+b"(0.0f, t3), 1.0f));
 }
 
 // Test L2 norm - test vector length == 1 after normalization
@@ -120,9 +120,9 @@ pure nothrow unittest
     t2[] /= t2.norm(NormType.L2);
     t3[] /= t3.norm(NormType.L2);
 
-    assert(approxEqual(ndReduce!( (v, n) => v + n*n)(0.0f, t1), 1.0f));
-    assert(approxEqual(ndReduce!( (v, n) => v + n*n)(0.0f, t2), 1.0f));
-    assert(approxEqual(ndReduce!( (v, n) => v + n*n)(0.0f, t3), 1.0f));
+    assert(approxEqual(reduce!( (v, n) => v + n*n)(0.0f, t1), 1.0f));
+    assert(approxEqual(reduce!( (v, n) => v + n*n)(0.0f, t2), 1.0f));
+    assert(approxEqual(reduce!( (v, n) => v + n*n)(0.0f, t3), 1.0f));
 }
 
 /**
@@ -135,7 +135,7 @@ Params:
 Returns:
     Returns normalized input tensor.
 */
-deprecated("Use array based division: tensor[] /= norm, or mir.ndslice.algorithm: tensor.ndEach!( (ref v) { v /= norm; } )")
+deprecated("Use array based division: tensor[] /= norm, or mir.ndslice.algorithm: tensor.each!( (ref v) { v /= norm; } )")
 @nogc nothrow auto normalized(Range, size_t N)(auto ref Slice!(N, Range) tensor, NormType normType = NormType.L2)
 {
     alias T = DeepElementType!(typeof(tensor));
@@ -143,7 +143,7 @@ deprecated("Use array based division: tensor[] /= norm, or mir.ndslice.algorithm
     static if (isFloatingPoint!T)
         tensor[] /= n;
     else
-        tensor.ndEach!((ref v) { v = cast(T)(cast(real)v / n); }, Yes.vectorized);
+        tensor.each!((ref v) { v = cast(T)(cast(real)v / n); }, Yes.vectorized);
     return tensor;
 }
 
@@ -178,7 +178,7 @@ in
 }
 body
 {
-    tensor.ndEach!((ref v) { v = cast(DeepElementType!Tensor)(alpha * (v) + beta); }, Yes.vectorized);
+    tensor.each!((ref v) { v = cast(DeepElementType!Tensor)(alpha * (v) + beta); }, Yes.vectorized);
     return tensor;
 }
 
@@ -216,20 +216,20 @@ body
     static if (isFloatingPoint!T)
     {
         import mir.math.internal : fmin, fmax;
-        auto _max = ndReduce!(fmax, Yes.vectorized)(T.min_normal, tensor);
-        auto _min = ndReduce!(fmin, Yes.vectorized)(T.max, tensor);
+        auto _max = reduce!fmax(T.min_normal, tensor);
+        auto _min = reduce!fmin(T.max, tensor);
     }
     else
     {
         import mir.utility : min, max;
-        auto _max = ndReduce!(max, Yes.vectorized)(T.min, tensor);
-        auto _min = ndReduce!(min, Yes.vectorized)(T.max, tensor);
+        auto _max = reduce!max(T.min, tensor);
+        auto _min = reduce!min(T.max, tensor);
     }
 
     auto rn_val = _max - _min;
     auto sc_val = maxValue - minValue;
 
-    tensor.ndEach!((ref a) { a = cast(T)(sc_val * ((a - _min) / rn_val) + minValue); }, Yes.vectorized);
+    tensor.each!((ref a) { a = cast(T)(sc_val * ((a - _min) / rn_val) + minValue); });
 
     return tensor;
 }
@@ -266,14 +266,14 @@ nothrow unittest
     auto t2r = t2.ranged(smin, smax);
     auto t3r = t3.ranged(smin, smax);
 
-    assert(approxEqual(ndReduce!min(float.max, t1r), smin));
-    assert(approxEqual(ndReduce!max(float.min_normal, t1r), smax));
+    assert(approxEqual(reduce!min(float.max, t1r), smin));
+    assert(approxEqual(reduce!max(float.min_normal, t1r), smax));
 
-    assert(approxEqual(ndReduce!min(float.max, t2r), smin));
-    assert(approxEqual(ndReduce!max(float.min_normal, t2r), smax));
+    assert(approxEqual(reduce!min(float.max, t2r), smin));
+    assert(approxEqual(reduce!max(float.min_normal, t2r), smax));
 
-    assert(approxEqual(ndReduce!min(float.max, t3r), smin));
-    assert(approxEqual(ndReduce!max(float.min_normal, t3r), smax));
+    assert(approxEqual(reduce!min(float.max, t3r), smin));
+    assert(approxEqual(reduce!max(float.min_normal, t3r), smax));
 }
 
 version (unittest)

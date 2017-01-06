@@ -12,15 +12,14 @@ module dcv.core.utils;
 import std.traits;
 import std.meta : allSatisfy;
 
-import mir.ndslice;
+import mir.ndslice.slice;
+import mir.ndslice.topology: iota;
 
-/// Check if an type is a Slice.
-enum bool isSlice(T) = is(T : Slice!(N, Range), size_t N, Range);
 
 /// Convenience method to return an empty slice - used mainly as default argument in functions in library.
-static Slice!(N, V*) emptySlice(size_t N, V)() pure @safe nothrow
+static Slice!(SliceKind.continuous, packs, V*) emptySlice(size_t[] packs, V)() pure @safe nothrow
 {
-    return Slice!(N, V*)();
+    return Slice!(SliceKind.continuous, packs, V*)();
 }
 
 package(dcv) @nogc pure nothrow
@@ -28,21 +27,27 @@ package(dcv) @nogc pure nothrow
     /**
        Pack and unpack (N, T*) slices to (N-1, T[M]*).
     */
-    auto staticPack(size_t CH, size_t N, T)(Slice!(N, T*) slice)
+    auto staticPack(size_t CH, SliceKind kind, size_t[] packs, T)(Slice!(kind, packs, T*) slice)
+        if (packs.length == 1)
     {
-        ulong[N-1] shape = slice.shape[0 .. N-1];
-        long[N-1] strides = [slice.structure.strides[0] / CH, slice.structure.strides[1] / CH];
-        T[CH]* ptr = cast(T[CH]*)slice.ptr;
-        return Slice!(N-1, T[CH]*)(shape, strides, ptr);
+        enum N = packs[0];
+        size_t[N-1] shape = slice.shape[0 .. N-1];
+        ptrdiff_t[N-1] strides = [slice.strides[0] / CH, slice.strides[1] / CH];
+        T[CH]* ptr = cast(T[CH]*)slice._iterator;
+        alias Ret = Slice!(kind, [N-1], T[CH]*);
+        return Ret(shape, strides[0 .. Ret.init._strides.length], ptr);
     }
 
     /// ditto
-    auto staticUnpack(size_t CH, size_t N, T)(Slice!(N, T[CH]*) slice)
+    auto staticUnpack(size_t CH, SliceKind kind, size_t[] packs, T)(Slice!(kind, packs, T[CH]*) slice)
+        if (packs.length == 1)
     {
-        ulong[N+1] shape = [slice.shape[0], slice.shape[1], CH];
-        long[N+1] strides = [slice.structure.strides[0] * CH, slice.structure.strides[1] * CH, 1];
-        T* ptr = cast(T*)slice.ptr;
-        return Slice!(N+1, T*)(shape, strides, ptr);
+        enum N = packs[0];
+        size_t[N+1] shape = [slice.shape[0], slice.shape[1], CH];
+        ptrdiff_t[N+1] strides = [slice.strides[0] * CH, slice.strides[1] * CH, 1];
+        T* ptr = cast(T*)slice._iterator;
+        alias Ret = Slice!(kind, [N+1], T*);
+        return Ret(shape, strides[0 .. Ret.init._strides.length], ptr);
     }
 
     @safe @nogc nothrow pure auto borders(Shape)(Shape shape, size_t ks)
@@ -56,17 +61,18 @@ package(dcv) @nogc pure nothrow
 
         static struct Range
         {
-            IotaSlice!1 rows;
-            IotaSlice!1 cols;
+            import mir.ndslice.iterator;
+            Slice!(SliceKind.continuous, [1], IotaIterator!size_t) rows;
+            Slice!(SliceKind.continuous, [1], IotaIterator!size_t) cols;
         }
 
         size_t kh = max(size_t(1), ks / 2);
 
         Range[4] borders = [
-            Range(iotaSlice(shape[0]), iotaSlice(kh)),
-            Range(iotaSlice(shape[0]), iotaSlice([kh], shape[1] - kh)),
-            Range(iotaSlice(kh), iotaSlice(shape[1])),
-            Range(iotaSlice([kh], shape[0] - kh), iotaSlice(shape[1])),
+            Range(iota(shape[0]), iota(kh)),
+            Range(iota(shape[0]), iota([kh], shape[1] - kh)),
+            Range(iota(kh), iota(shape[1])),
+            Range(iota([kh], shape[0] - kh), iota(shape[1])),
         ];
 
         return borders;
@@ -87,7 +93,7 @@ Returns:
     shape as input slice.
 */
 deprecated("Use mir.ndslice.slice.as instead: e.g. mySlice.as!T.slice")
-static Slice!(N, O*) asType(O, V, size_t N)(Slice!(N, V*) inslice)
+static Slice!(SliceKind.continuous, packs, O*) asType(O, V, size_t N)(Slice!(SliceKind.continuous, packs, V*) inslice)
 {
     static if (__traits(compiles, cast(O)V.init))
     {
@@ -101,7 +107,7 @@ static Slice!(N, O*) asType(O, V, size_t N)(Slice!(N, V*) inslice)
 
 unittest
 {
-    auto slice = iotaSlice(2, 3).slice;
+    auto slice = iota(2, 3).slice;
     auto fslice = slice.asType!float;
     assert(slice == fslice);
 }
@@ -155,7 +161,7 @@ static if (__VERSION__ >= 2071)
     /**
      * Merge multiple slices into one.
      * 
-     * By input of multiple Slice!(N, T*) objects, produces one Slice!(N+1, T*)
+     * By input of multiple Slice!(SliceKind.continuous, packs, T*) objects, produces one Slice!(N+1, T*)
      * object, where length of last dimension is number of input slices. Values
      * of input slices' elements are copied to resulting slice, where [..., i] element
      * of j-th input slice is copied to [..., i, j] element of output slice.
@@ -167,7 +173,7 @@ static if (__VERSION__ >= 2071)
      * slices = Input slices. All must by Slice object with same input template parameters.
      * 
      * Returns:
-     * For input of n Slice!(N, T*) objects, outputs Slice!(N+1, T*) object, where 
+     * For input of n Slice!(SliceKind.continuous, packs, T*) objects, outputs Slice!(N+1, T*) object, where 
      * last dimension size is n.
      */
     pure auto merge(Slices...)(Slices slices)
@@ -233,38 +239,32 @@ nothrow @nogc pure
 {
 
     /// $(LINK2 https://en.wikipedia.org/wiki/Neumann_boundary_condition, Neumann) boundary condition test
-    auto neumann(Tensor, Indices...)(Tensor tensor, Indices indices)
-            if (isSlice!Tensor && allSameType!Indices && allSatisfy!(isIntegral, Indices))
+    auto neumann(SliceKind kind, size_t[] packs, Iterator, size_t N)(Slice!(kind, packs, Iterator) tensor, size_t[N] indices...)
     {
-        immutable N = ReturnType!(Tensor.shape).length;
-        static assert(indices.length == N, "Invalid index dimension");
+        static assert(packs[0] == N, "Invalid index dimension");
         return tensor.bcImpl!_neumann(indices);
     }
 
     /// $(LINK2 https://en.wikipedia.org/wiki/Periodic_boundary_conditions,Periodic) boundary condition test
-    auto periodic(Tensor, Indices...)(Tensor tensor, Indices indices)
-            if (isSlice!Tensor && allSameType!Indices && allSatisfy!(isIntegral, Indices))
+    auto periodic(SliceKind kind, size_t[] packs, Iterator, size_t N)(Slice!(kind, packs, Iterator) tensor, size_t[N] indices...)
     {
-        immutable N = ReturnType!(Tensor.shape).length;
-        static assert(indices.length == N, "Invalid index dimension");
+        static assert(packs[0] == N, "Invalid index dimension");
         return tensor.bcImpl!_periodic(indices);
     }
 
     /// Symmetric boundary condition test
-    auto symmetric(Tensor, Indices...)(Tensor tensor, Indices indices)
-            if (isSlice!Tensor && allSameType!Indices && allSatisfy!(isIntegral, Indices))
+    auto symmetric(SliceKind kind, size_t[] packs, Iterator, size_t N)(Slice!(kind, packs, Iterator) tensor, size_t[N] indices...)
     {
-        immutable N = ReturnType!(Tensor.shape).length;
-        static assert(indices.length == N, "Invalid index dimension");
+        static assert(packs[0] == N, "Invalid index dimension");
         return tensor.bcImpl!_symmetric(indices);
     }
 
 }
 
 /// Alias for generalized boundary condition test function.
-template BoundaryConditionTest(size_t N, T, Indices...)
+template BoundaryConditionTest(SliceKind kind, size_t[] packs, T, size_t N)
 {
-    alias BoundaryConditionTest = ref T function(ref Slice!(N, T*) slice, Indices indices);
+    alias BoundaryConditionTest = ref T function(ref Slice!(kind, packs, T*) slice, size_t[N] indices...);
 }
 
 unittest
@@ -278,7 +278,7 @@ unittest
      *  3, 4, 5,
      *  6, 7, 8]
      */
-    auto s = iotaSlice(3, 3).slice;
+    auto s = iota(3, 3).slice;
 
     assert(s.neumann(-1, -1) == s[0, 0]);
     assert(s.neumann(0, -1) == s[0, 0]);
@@ -300,9 +300,8 @@ private:
 
 nothrow @nogc pure:
 
-auto bcImpl(alias bcfunc, Tensor, Indices...)(Tensor tensor, Indices indices)
+auto bcImpl(alias bcfunc, SliceKind kind, size_t[] packs, Iterator, size_t N)(Slice!(kind, packs, Iterator) tensor, size_t[N] indices...)
 {
-    immutable N = ReturnType!(Tensor.shape).length;
     static if (N == 1)
     {
         return tensor[bcfunc(cast(int)indices[0], cast(int)tensor.length)];
@@ -322,7 +321,7 @@ auto bcImpl(alias bcfunc, Tensor, Indices...)(Tensor tensor, Indices indices)
     {
         foreach (i, ref id; indices)
         {
-            id = bcfunc(cast(int)id, cast(int)tensor.shape[i]);
+            id = bcfunc(cast(int)id, cast(int)tensor._lengths[i]);
         }
         return tensor[indices];
     }

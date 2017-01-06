@@ -26,7 +26,9 @@ module dcv.core.image;
 
 import std.exception : enforce;
 
-public import mir.ndslice;
+public import mir.ndslice.slice;
+import mir.ndslice.allocation;
+
 
 /// Image (pixel) format.
 enum ImageFormat
@@ -532,25 +534,22 @@ unittest
 /**
 Convert a ndslice object to an Image, with defined image format.
 */
-Image asImage(size_t N, T)(Slice!(N, T*) slice, ImageFormat format)
+Image asImage(SliceKind kind, size_t[] packs, T)(Slice!(kind, packs, T*) slice, ImageFormat format)
 {
-    import std.conv : to;
-    import std.array : array;
-
     BitDepth depth = getDepthFromType!T;
     enforce(depth != BitDepth.BD_UNASSIGNED, "Invalid type of slice for convertion to image: ", T.stringof);
 
-    static if (N == 2)
+    static if (packs[0] == 2)
     {
-        ubyte* ptr = cast(ubyte*)slice.slice.ptr;
-        ubyte[] s_arr = ptr[0 .. slice.elementsCount * T.sizeof][];
-        enforce(format.to!int == 1, "Invalid image format - has to be single channel");
+        ubyte* _iterator = cast(ubyte*)slice.slice._iterator;
+        ubyte[] s_arr = _iterator[0 .. slice.elementsCount * T.sizeof][];
+        enforce(format == 1, "Invalid image format - has to be single channel");
         return new Image(slice.shape[1], slice.shape[0], format, depth, s_arr);
     }
-    else static if (N == 3)
+    else static if (packs[0] == 3)
     {
-        ubyte* ptr = cast(ubyte*)slice.slice.ptr;
-        ubyte[] s_arr = ptr[0 .. slice.elementsCount * T.sizeof][];
+        ubyte* _iterator = cast(ubyte*)slice.slice._iterator;
+        ubyte[] s_arr = _iterator[0 .. slice.elementsCount * T.sizeof][];
         auto ch = slice.shape[2];
         enforce(ch >= 1 && ch <= 4,
                 "Invalid slice shape - third dimension should contain from 1(grayscale) to 4(rgba) values.");

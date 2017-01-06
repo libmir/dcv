@@ -61,13 +61,11 @@ class LucasKanadeFlow : SparseOpticalFlow
     body
     {
         import std.array : uninitializedArray;
-        import std.range : lockstep, iota;
-        import std.array : array;
-        import std.algorithm.iteration : each;
         import std.parallelism : parallel;
 
-        import mir.ndslice.slice : assumeSameStructure;
-        import mir.ndslice.algorithm : ndEach, Yes;
+        import mir.ndslice.allocation;
+        import mir.ndslice.topology;
+        import mir.ndslice.algorithm : each;
 
         import dcv.core.algorithm : ranged, ranged;
         import dcv.imgproc.interpolate : linear;
@@ -88,20 +86,20 @@ class LucasKanadeFlow : SparseOpticalFlow
             flow[] = [0.0f, 0.0f];
         }
 
-        Slice!(2, float*) current, next;
+        Slice!(SliceKind.continuous, [2], float*) current, next;
         switch (f1.depth)
         {
         case BitDepth.BD_32:
-            current = f1.sliced!float.reshape(f1.height, f1.width);
-            next = f2.sliced!float.reshape(f2.height, f2.width);
+            current = f1.sliced!float.flattened.sliced(f1.height, f1.width);
+            next = f2.sliced!float.flattened.sliced(f2.height, f2.width);
             break;
         case BitDepth.BD_16:
-            current = f1.sliced!ushort.reshape(f1.height, f1.width).as!float.slice;
-            next = f2.sliced!ushort.reshape(f2.height, f2.width).as!float.slice;
+            current = f1.sliced!ushort.flattened.sliced(f1.height, f1.width).as!float.slice;
+            next = f2.sliced!ushort.flattened.sliced(f2.height, f2.width).as!float.slice;
             break;
         default:
-            current = f1.sliced.reshape(f1.height, f1.width).as!float.slice;
-            next = f2.sliced.reshape(f2.height, f2.width).as!float.slice;
+            current = f1.sliced.flattened.sliced(f1.height, f1.width).as!float.slice;
+            next = f2.sliced.flattened.sliced(f2.height, f2.width).as!float.slice;
         }
 
         float gaussMul = 1.0f / (2.0f * PI * sigma);
@@ -117,6 +115,7 @@ class LucasKanadeFlow : SparseOpticalFlow
 
         scope (exit)
         {
+            import std.algorithm.iteration : each;
             floatPool.each!(v => alignedFree(v));
             ubytePool.each!(v => alignedFree(v));
         }
@@ -139,10 +138,10 @@ class LucasKanadeFlow : SparseOpticalFlow
             auto f1d = f1.data.sliced(f1s.shape);
             auto f2d = f2.data.sliced(f2s.shape);
 
-            assumeSameStructure!("f1s", "f2s", "f1", "f2")(f1s, f2s, f1d, f2d).ndEach!((v) {
-                v.f1s = cast(float)v.f1;
-                v.f2s = cast(float)v.f2;
-            }, Yes.vectorized);
+            zip!true(f1s, f2s, f1d, f2d).each!((v) {
+                v.a = cast(float)v.c;
+                v.b = cast(float)v.d;
+            });
         }
 
         fxs[] = 0.0f;
@@ -151,6 +150,7 @@ class LucasKanadeFlow : SparseOpticalFlow
         fymask[] = ubyte(0);
 
         // Fill-in masks where points are present
+        import std.range : lockstep;
         foreach (p, r; lockstep(points, searchRegions))
         {
             auto rb = cast(int)(p[0] - r[0] / 2.0f);
@@ -158,24 +158,17 @@ class LucasKanadeFlow : SparseOpticalFlow
             auto cb = cast(int)(p[1] - r[1] / 2.0f);
             auto ce = cast(int)(p[1] + r[1] / 2.0f);
 
-            rb = rb < 1 ? 1 : rb;
-            re = re > rl ? rl : re;
-            cb = cb < 1 ? 1 : cb;
-            ce = ce > cl ? cl : ce;
+            import mir.utility : min, max;
+            rb = max(1, rb);
+            re = min(re, rl);
+            cb = max(1, cb);
+            ce = min(ce, cl);
 
             if (re - rb <= 0 || ce - cb <= 0)
-            {
                 continue;
-            }
 
-            foreach (i; rb .. re)
-            {
-                foreach (j; cb .. ce)
-                {
-                    fxmask[i, j] = cast(ubyte)1;
-                    fymask[i, j] = cast(ubyte)1;
-                }
-            }
+            fxmask[rb .. re, cb .. ce][] = ubyte(1);
+            fymask[rb .. re, cb .. ce][] = ubyte(1);
         }
 
         f1s.conv(sobel!float(GradientDirection.DIR_X), fxs, fxmask);

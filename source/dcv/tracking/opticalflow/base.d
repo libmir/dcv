@@ -9,7 +9,7 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 */
 module dcv.tracking.opticalflow.base;
 
-public import mir.ndslice : Slice;
+public import mir.ndslice.slice : Slice, SliceKind;
 
 public import dcv.core.image : Image;
 public import dcv.core.utils : emptySlice;
@@ -40,7 +40,7 @@ interface SparseOpticalFlow
 }
 
 /// Alias to a type used to define the dense optical flow field.
-alias DenseFlow = Slice!(3, float*);
+alias DenseFlow = Slice!(SliceKind.continuous, [3], float*);
 
 /**
 Dense Optical Flow algorithm interface.
@@ -59,6 +59,6 @@ interface DenseOpticalFlow
     Returns:
         Calculated flow field.
     */
-    DenseFlow evaluate(inout Image f1, inout Image f2, DenseFlow prealloc = emptySlice!(3, float),
+    DenseFlow evaluate(inout Image f1, inout Image f2, DenseFlow prealloc = emptySlice!([3], float),
             bool usePrevious = false);
 }

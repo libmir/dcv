@@ -14,7 +14,7 @@ import std.parallelism : parallel, taskPool, TaskPool;
 import mir.ndslice.internal : fastmath;
 
 import mir.ndslice;
-import mir.ndslice.algorithm : ndEach, Yes;
+import mir.ndslice.algorithm : each;
 
 import dcv.core.utils : emptySlice;
 import dcv.imgproc.filter : calcPartialDerivatives;
@@ -209,7 +209,7 @@ Slice!(2, OutputType*) calcCorners(Detector, InputType, OutputType)(Slice!(2, In
 
     foreach (windowRow; pool.parallel(windowPack))
     {
-        windowRow.ndEach!(win => calcCornersImpl(win, detector));
+        windowRow.each!(win => calcCornersImpl(win, detector));
     }
 
     return prealloc;

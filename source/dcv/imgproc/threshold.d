@@ -10,7 +10,7 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 module dcv.imgproc.threshold;
 
 import mir.ndslice;
-import mir.ndslice.algorithm : ndEach, Yes;
+import mir.ndslice.algorithm : each;
 
 import dcv.core.utils : emptySlice;
 
@@ -72,14 +72,14 @@ body
 
     if (lowThresh.approxEqual(highThresh))
     {
-        p.ndEach!((v)
+        p.each!((v)
         {
             v.result = cast(OutputType)(v.input <= lowThresh ? 0 : upvalue);
         }, Yes.vectorized, Yes.fastmath);
     }
     else
     {
-        p.ndEach!((v)
+        p.each!((v)
         {
             v.result = cast(OutputType)(v.input >= lowThresh && v.input <= highThresh ? upvalue : 0);
         }, Yes.vectorized, Yes.fastmath);

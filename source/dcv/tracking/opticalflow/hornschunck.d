@@ -42,8 +42,8 @@ class HornSchunckFlow : DenseOpticalFlow
 {
     private
     {
-        Slice!(2, float*) current;
-        Slice!(2, float*) next;
+        Slice!(SliceKind.continuous, [2], float*) current;
+        Slice!(SliceKind.continuous, [2], float*) next;
         HornSchunckProperties props;
     }
 
@@ -71,7 +71,7 @@ class HornSchunckFlow : DenseOpticalFlow
     Returns:
         Calculated flow field.
     */
-    override DenseFlow evaluate(inout Image f1, inout Image f2, DenseFlow prealloc = emptySlice!(3,
+    override DenseFlow evaluate(inout Image f1, inout Image f2, DenseFlow prealloc = emptySlice!([3],
             float), bool usePrevious = false)
     in
     {
@@ -85,11 +85,12 @@ class HornSchunckFlow : DenseOpticalFlow
     {
         size_t height = f1.height;
         size_t width = f1.width;
-
+        import mir.ndslice.allocation;
+        import mir.ndslice.topology;
         if (current.shape == [height, width] && next.shape == [height, width] && f1.depth == BitDepth.BD_32)
         {
-            auto f1s = f1.sliced!float.reshape(height, width);
-            auto f2s = f2.sliced!float.reshape(height, width);
+            auto f1s = f1.sliced!float.flattened.sliced([height, width]);
+            auto f2s = f2.sliced!float.flattened.sliced([height, width]);
 
             current[] = f1s[];
             next[] = f2s[];
@@ -99,16 +100,16 @@ class HornSchunckFlow : DenseOpticalFlow
             switch (f1.depth)
             {
             case BitDepth.BD_32:
-                current = f1.sliced!float.reshape(f1.height, f1.width);
-                next = f2.sliced!float.reshape(f2.height, f2.width);
+                current = f1.sliced!float.flattened.sliced([f1.height, f1.width]);
+                next = f2.sliced!float.flattened.sliced([f2.height, f2.width]);
                 break;
             case BitDepth.BD_16:
-                current = f1.sliced!ushort.reshape(f1.height, f1.width).as!float.slice;
-                next = f2.sliced!ushort.reshape(f2.height, f2.width).as!float.slice;
+                current = f1.sliced!ushort.flattened.sliced([f1.height, f1.width]).as!float.slice;
+                next = f2.sliced!ushort.flattened.sliced([f2.height, f2.width]).as!float.slice;
                 break;
             default:
-                current = f1.sliced.reshape(f1.height, f1.width).as!float.slice;
-                next = f2.sliced.reshape(f2.height, f2.width).as!float.slice;
+                current = f1.sliced.flattened.sliced([f1.height, f1.width]).as!float.slice;
+                next = f2.sliced.flattened.sliced([f2.height, f2.width]).as!float.slice;
             }
         }
 
@@ -143,7 +144,7 @@ class HornSchunckFlow : DenseOpticalFlow
         {
             err = 0;
             flow_b[] = prealloc[];
-            hsflowImpl(rows, cols, current.ptr, next.ptr, flow_b.ptr, prealloc.ptr, a2, err);
+            hsflowImpl(rows, cols, current._iterator, next._iterator, flow_b._iterator, prealloc._iterator, a2, err);
         }
 
         return prealloc;

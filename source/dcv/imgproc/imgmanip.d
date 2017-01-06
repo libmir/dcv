@@ -30,7 +30,7 @@ import std.range : isArray, ElementType;
 import dcv.core.utils;
 public import dcv.imgproc.interpolate;
 
-import mir.ndslice;
+import mir.ndslice.slice;
 
 /**
 Resize array using custom interpolation function.
@@ -54,20 +54,21 @@ Params:
 
 TODO: consider size input as array, and add prealloc
 */
-Slice!(N, V*) resize(alias interp = linear, V, size_t N, size_t SN)(Slice!(N, V*) slice, size_t[SN] newsize, TaskPool pool = taskPool)
+Slice!(SliceKind.continuous, packs, V*) resize(alias interp = linear, SliceKind kind, size_t[] packs, V, size_t SN)(Slice!(kind, packs, V*) slice, size_t[SN] newsize, TaskPool pool = taskPool)
+    if (packs.length == 1)
     //if (isInterpolationFunc!interp)
 {
-    static if (N == 1)
+    static if (packs[0] == 1)
     {
         static assert(SN == 1, "Invalid new-size setup - dimension does not match with input slice.");
         return resizeImpl_1!interp(slice, newsize[0], pool);
     }
-    else static if (N == 2)
+    else static if (packs[0] == 2)
     {
         static assert(SN == 2, "Invalid new-size setup - dimension does not match with input slice.");
         return resizeImpl_2!interp(slice, newsize[0], newsize[1], pool);
     }
-    else static if (N == 3)
+    else static if (packs[0] == 3)
     {
         static assert(SN == 2, "Invalid new-size setup - 3D resize is performed as 2D."); // TODO: find better way to say this...
         return resizeImpl_3!interp(slice, newsize[0], newsize[1], pool);
@@ -273,16 +274,15 @@ in
 }
 body
 {
-    import std.traits : ReturnType;
-
     static assert(isSlice!ImageTensor, "Image type has to be of type mir.ndslice.slice.Slice");
     static assert(isSlice!MapTensor, "Map type has to be of type mir.ndslice.slice.Slice");
-    immutable N = ReturnType!(ImageTensor.shape).length;
-    static assert(ReturnType!(MapTensor.shape).length == 3,
+    immutable N = isSlice!ImageTensor[0];
+    static assert(isSlice!MapTensor == [3],
             "Invalid map tensor dimension - should be matrix of [x, y] displacements (3D).");
 
     if (prealloc.shape != image.shape)
     {
+        import mir.ndslice.allocation;
         prealloc = uninitializedSlice!(DeepElementType!ImageTensor)(image.shape);
     }
 
@@ -517,7 +517,7 @@ Slice!(1, V*) resizeImpl_1(alias interp, V)(Slice!(1, V*) slice, size_t newsize,
 }
 
 // 1d resize implementation
-Slice!(2, V*) resizeImpl_2(alias interp, V)(Slice!(2, V*) slice, size_t height, size_t width, TaskPool pool)
+Slice!(SliceKind.continuous, [2], V*) resizeImpl_2(alias interp, SliceKind kind, V)(Slice!(kind, [2], V*) slice, size_t height, size_t width, TaskPool pool)
 {
 
     enforce(!slice.empty && width > 0 && height > 0);
@@ -543,7 +543,7 @@ Slice!(2, V*) resizeImpl_2(alias interp, V)(Slice!(2, V*) slice, size_t height, 
 }
 
 // 1d resize implementation
-Slice!(3, V*) resizeImpl_3(alias interp, V)(Slice!(3, V*) slice, size_t height, size_t width, TaskPool pool)
+Slice!(SliceKind.continuous, [3], V*) resizeImpl_3(alias interp, SliceKind kind, V)(Slice!(kind, [3], V*) slice, size_t height, size_t width, TaskPool pool)
 {
 
     enforce(!slice.empty && width > 0 && height > 0);
