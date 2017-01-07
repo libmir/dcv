@@ -472,27 +472,27 @@ pure @nogc nothrow @fastmath:
 
 void rgb2grayImplMean(P)(P pack)
 {
-    alias V = typeof(pack.gray);
-    pack.gray = cast(V)((pack.rgb[0] + pack.rgb[1] + pack.rgb[2]) / 3);
+    alias V = typeof(pack.b);
+    pack.b = cast(V)((pack.a[0] + pack.a[1] + pack.a[2]) / 3);
 }
 
 void rgb2grayImplLuminance(RGBGRAY)(RGBGRAY pack)
 {
-    alias V = typeof(pack.gray);
-    pack.gray = cast(V)(
-            cast(float)pack.rgb[0] * 0.212642529f +
-            cast(float)pack.rgb[1] * 0.715143029f +
-            cast(float)pack.rgb[2] * 0.072214443f
+    alias V = typeof(pack.b);
+    pack.b = cast(V)(
+            cast(float)pack.a[0] * 0.212642529f +
+            cast(float)pack.a[1] * 0.715143029f +
+            cast(float)pack.a[2] * 0.072214443f
             );
 }
 
 void bgr2grayImplLuminance(RGBGRAY)(RGBGRAY pack)
 {
-    alias V = typeof(pack.gray);
-    pack.gray = cast(V)(
-            cast(float)pack.rgb[2] * 0.212642529f +
-            cast(float)pack.rgb[1] * 0.715143029f +
-            cast(float)pack.rgb[0] * 0.072214443f
+    alias V = typeof(pack.b);
+    pack.b = cast(V)(
+            cast(float)pack.a[2] * 0.212642529f +
+            cast(float)pack.a[1] * 0.715143029f +
+            cast(float)pack.a[0] * 0.072214443f
             );
 }
 
@@ -506,38 +506,38 @@ void gray2rgbImpl(GRAYRGB)(GRAYRGB pack)
 
 void rgb2hsvImpl(RGBHSV)(RGBHSV pack)
 {
-    import ldc.intrinsics : max = llvm_maxnum, min = llvm_minnum;
+    import mir.math.internal;
 
-    alias V = typeof(pack.rgb[0]);
-    alias R = typeof(pack.hsv[0]);
+    alias V = typeof(pack.a[0]);
+    alias R = typeof(pack.b[0]);
 
     static if (is(V == ubyte))
     {
-        auto r = cast(float)(pack.rgb[0]) * (1.0f / 255.0f);
-        auto g = cast(float)(pack.rgb[1]) * (1.0f / 255.0f);
-        auto b = cast(float)(pack.rgb[2]) * (1.0f / 255.0f);
+        auto r = cast(float)(pack.a[0]) * (1.0f / 255.0f);
+        auto g = cast(float)(pack.a[1]) * (1.0f / 255.0f);
+        auto b = cast(float)(pack.a[2]) * (1.0f / 255.0f);
     }
     else static if (is(V == ushort))
     {
-        auto r = cast(float)(pack.rgb[0]) * (1.0f / 65535.0f);
-        auto g = cast(float)(pack.rgb[1]) * (1.0f / 65535.0f);
-        auto b = cast(float)(pack.rgb[2]) * (1.0f / 65535.0f);
+        auto r = cast(float)(pack.a[0]) * (1.0f / 65535.0f);
+        auto g = cast(float)(pack.a[1]) * (1.0f / 65535.0f);
+        auto b = cast(float)(pack.a[2]) * (1.0f / 65535.0f);
     }
     else static if (isFloatingPoint!V)
     {
-        // assumes rgb value range 0-1
-        auto r = cast(float)(pack.rgb[0]);
-        auto g = cast(float)(pack.rgb[1]);
-        auto b = cast(float)(pack.rgb[2]);
+        // assumes a value range 0-1
+        auto r = cast(float)(pack.a[0]);
+        auto g = cast(float)(pack.a[1]);
+        auto b = cast(float)(pack.a[2]);
     }
     else
     {
         static assert(0, "Invalid RGB input type: " ~ V.stringof);
     }
 
-    auto cmax = max(r, max(g, b));
-    auto cmin = min(r, min(g, b));
-    auto cdelta = cmax - cmin;
+    auto cmax = fmax(r, fmax(g, b));
+    auto cmin = fmin(r, fmin(g, b));
+    auto cdelta = cmax - cmin; // TODO: compute min and max in a lockstep
 
     auto h = cast(R)((cdelta == 0) ? 0 : (cmax == r) ? 60.0f * ((g - b) / cdelta) : (cmax == g)
             ? 60.0f * ((b - r) / cdelta + 2) : 60.0f * ((r - g) / cdelta + 4));
@@ -556,17 +556,15 @@ void rgb2hsvImpl(RGBHSV)(RGBHSV pack)
         auto v = cast(R)(100.0 * cmax);
     }
 
-    pack.hsv[0] = h;
-    pack.hsv[1] = s;
-    pack.hsv[2] = v;
+    pack.b[0] = h;
+    pack.b[1] = s;
+    pack.b[2] = v;
 }
 
 void hsv2rgbImpl(HSVRGB)(HSVRGB pack)
 {
     alias V = typeof(pack.a[0]);
     alias R = typeof(pack.b[0]);
-
-    float r, g, b, p, q, t;
 
     static if (isFloatingPoint!V)
     {
@@ -581,7 +579,7 @@ void hsv2rgbImpl(HSVRGB)(HSVRGB pack)
         float v = cast(float)pack.a[2] * 0.01f;
     }
 
-    if (s <= 0.0f)
+    if (s <= 0)
     {
         static if (isFloatingPoint!R)
         {
@@ -614,9 +612,13 @@ void hsv2rgbImpl(HSVRGB)(HSVRGB pack)
     auto hh = cast(int)h;
     auto ff = h - float(hh);
 
-    p = v * (1.0f - s);
-    q = v * (1.0f - (s * ff));
-    t = v * (1.0f - (s * (1.0f - ff)));
+    auto p = v * (1.0f - s);
+    auto q = v * (1.0f - (s * ff));
+    auto t = v * (1.0f - (s * (1.0f - ff)));
+
+    float r = void;
+    float g = void;
+    float b = void;
 
     switch (hh)
     {
@@ -635,7 +637,6 @@ void hsv2rgbImpl(HSVRGB)(HSVRGB pack)
         g = v;
         b = t;
         break;
-
     case 3:
         r = p;
         g = q;
@@ -656,9 +657,9 @@ void hsv2rgbImpl(HSVRGB)(HSVRGB pack)
 
     static if (isFloatingPoint!R)
     {
-        pack.b[0] = cast(R)r;
-        pack.b[1] = cast(R)g;
-        pack.b[2] = cast(R)b;
+        pack.b[0] = r;
+        pack.b[1] = g;
+        pack.b[2] = b;
     }
     else
     {
@@ -672,21 +673,21 @@ void rgb2yuvImpl(V, RGBYUV)(RGBYUV pack)
 {
     static if (isFloatingPoint!V)
     {
-        auto r = cast(int)pack[0].rgb;
-        auto g = cast(int)pack[1].rgb;
-        auto b = cast(int)pack[2].rgb;
-        pack[0].yuv = clip!V((r * .257) + (g * .504) + (b * .098) + 16);
-        pack[1].yuv = clip!V((r * .439) + (g * .368) + (b * .071) + 128);
-        pack[2].yuv = clip!V(-(r * .148) - (g * .291) + (b * .439) + 128);
+        auto r = cast(int)pack[0].a;
+        auto g = cast(int)pack[1].a;
+        auto b = cast(int)pack[2].a;
+        pack[0].b = clip!V((r * .257) + (g * .504) + (b * .098) + 16);
+        pack[1].b = clip!V((r * .439) + (g * .368) + (b * .071) + 128);
+        pack[2].b = clip!V(-(r * .148) - (g * .291) + (b * .439) + 128);
     }
     else
     {
-        auto r = pack[0].rgb;
-        auto g = pack[1].rgb;
-        auto b = pack[2].rgb;
-        pack[0].yuv = clip!V(((66 * (r) + 129 * (g) + 25 * (b) + 128) >> 8) + 16);
-        pack[1].yuv = clip!V(((-38 * (r) - 74 * (g) + 112 * (b) + 128) >> 8) + 128);
-        pack[2].yuv = clip!V(((112 * (r) - 94 * (g) - 18 * (b) + 128) >> 8) + 128);
+        auto r = pack[0].a;
+        auto g = pack[1].a;
+        auto b = pack[2].a;
+        pack[0].b = clip!V(((66 * (r) + 129 * (g) + 25 * (b) + 128) >> 8) + 16);
+        pack[1].b = clip!V(((-38 * (r) - 74 * (g) + 112 * (b) + 128) >> 8) + 128);
+        pack[2].b = clip!V(((112 * (r) - 94 * (g) - 18 * (b) + 128) >> 8) + 128);
     }
 }
 
