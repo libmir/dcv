@@ -552,8 +552,8 @@ void rgb2hsvImpl(RGBHSV)(RGBHSV pack)
     }
     else
     {
-        auto s = cast(R)(100.0 * (cmax == 0 ? 0 : cdelta / cmax));
-        auto v = cast(R)(100.0 * cmax);
+        auto s = cast(R)(100.0f * (cmax == 0 ? 0 : cdelta / cmax));
+        auto v = cast(R)(100.0f * cmax);
     }
 
     pack.b[0] = h;
