@@ -536,6 +536,8 @@ Convert a ndslice object to an Image, with defined image format.
 */
 Image asImage(SliceKind kind, size_t[] packs, T)(Slice!(kind, packs, T*) slice, ImageFormat format)
 {
+    static assert(packs.length == 1, "Packed slices are not supported.");
+
     BitDepth depth = getDepthFromType!T;
     enforce(depth != BitDepth.BD_UNASSIGNED, "Invalid type of slice for convertion to image: ", T.stringof);
 
@@ -565,8 +567,10 @@ Image asImage(SliceKind kind, size_t[] packs, T)(Slice!(kind, packs, T*) slice, 
 /**
 Convert ndslice object into an image, with default format setup, regarding to slice dimension.
 */
-Image asImage(size_t N, T)(Slice!(N, T*) slice)
+Image asImage(SliceKind kind, size_t[] packs, T)(Slice!(kind, packs, T*) slice)
 {
+    enum N = packs[0];
+
     ImageFormat format;
     static if (N == 2)
     {

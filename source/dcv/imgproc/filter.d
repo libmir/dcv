@@ -411,19 +411,21 @@ Params:
 Returns:
     Input matrix, after filtering.
 */
-auto filterNonMaximum(Matrix)(Matrix input, size_t filterSize = 10)
+auto filterNonMaximum(SliceKind kind, Iterator)(Slice!(kind, [2], Iterator) input, size_t filterSize = 10)
 in
 {
-    static assert(isSlice!Matrix, "Input value should be of type mir.ndslice.slice.Slice.");
-    static assert(ReturnType!(Matrix.shape).length == 2, "Invalid Slice dimensionality - should be Matrix(2).");
     assert(!input.empty && filterSize);
 }
 body
 {
+    import mir.ndslice.topology : universal;
+    import mir.ndslice.dynamic : strided;
+
     immutable fs = filterSize;
-    immutable fsh = max(1, fs / 2);
+    immutable fsh = max(size_t(1), fs / 2);
 
     input
+        .universal
         .windows(fs, fs)
         .strided!(0, 1)(fsh, fsh)
         .each!( w => filterNonMaximumImpl(w));
@@ -438,7 +440,8 @@ Partial derivatives are calculated by convolving an slice with
 [-1, 1] kernel, horizontally and vertically.
 */
 void calcPartialDerivatives(InputTensor, V = DeepElementType!InputTensor)
-    (InputTensor input, ref Slice!(2, V*) fx, ref Slice!(2, V*) fy, TaskPool pool = taskPool) if (isFloatingPoint!V)
+    (InputTensor input, ref Slice!(SliceKind.contiguous, [2], V*) fx,
+    ref Slice!(SliceKind.contiguous, [2], V*) fy, TaskPool pool = taskPool) if (isFloatingPoint!V)
 in
 {
     static assert(isSlice!InputTensor, "Invalid input tensor type - has to be of type mir.ndslice.slice.Slice.");
@@ -446,6 +449,8 @@ in
 }
 body
 {
+    import std.range : iota;
+
     if(input.empty)
         return;
 

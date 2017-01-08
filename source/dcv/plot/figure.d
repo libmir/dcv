@@ -174,7 +174,8 @@ Figure imshow(Image image, string title = "")
 }
 
 /// ditto
-Figure imshow(size_t N, T)(Slice!(N, T*) slice, string title = "")
+Figure imshow(SliceKind kind, size_t[] packs, Iterator)
+    (Slice!(kind, packs, Iterator) slice, string title = "")
 {
     auto f = figure(title);
     f.draw(slice, ImageFormat.IF_UNASSIGNED);
@@ -183,7 +184,8 @@ Figure imshow(size_t N, T)(Slice!(N, T*) slice, string title = "")
 }
 
 /// ditto
-Figure imshow(size_t N, T)(Slice!(N, T*) slice, ImageFormat format, string title = "")
+Figure imshow(SliceKind kind, size_t[] packs, Iterator)
+    (Slice!(kind, packs, Iterator) slice, ImageFormat format, string title = "")
 {
     auto f = figure(title);
     f.draw(slice, format);
@@ -206,7 +208,8 @@ version(ggplotd)
     }
 
     /// ditto
-    Figure plot(size_t N, T)(Slice!(N, T*) slice, GGPlotD gg, string title = "")
+    Figure plot(SliceKind kind, size_t[] packs, Iterator)
+        (Slice!(kind, packs, Iterator) slice, GGPlotD gg, string title = "")
     {
         auto f = figure(title);
         f.draw(slice, ImageFormat.IF_UNASSIGNED);
@@ -216,7 +219,8 @@ version(ggplotd)
     }
 
     /// ditto
-    Figure plot(size_t N, T)(Slice!(N, T*) slice, ImageFormat format, GGPlotD gg, string title = "")
+    Figure plot(SliceKind kind, size_t[] packs, Iterator)
+        (Slice!(kind, packs, Iterator) slice, ImageFormat format, GGPlotD gg, string title = "")
     {
         auto f = figure(title);
         f.draw(slice, format);
@@ -451,7 +455,8 @@ class Figure
     }
 
     /// Construct figure window with given title, and fill it with given image.
-    this(size_t N, T)(string title, Slice!(N, T*) slice, ImageFormat format = ImageFormat.IF_UNASSIGNED)
+    this(SliceKind kind, size_t[] packs, Iterator)
+        (string title, Slice!(kind, packs, Iterator) slice, ImageFormat format = ImageFormat.IF_UNASSIGNED)
             if (N == 2 || N == 3)
     {
         this(title, cast(int)slice.length!1, cast(int)slice.length!0);
@@ -611,20 +616,28 @@ class Figure
     }
 
     /// Draw slice of image onto figure canvas.
-    void draw(size_t N, T)(Slice!(N, T*) slice, ImageFormat format = ImageFormat.IF_UNASSIGNED)
+    void draw(SliceKind kind, size_t[] packs, Iterator)
+        (Slice!(kind, packs, Iterator) image, ImageFormat format = ImageFormat.IF_UNASSIGNED)
     {
-        Slice!(N, ubyte*) showSlice;
-        static if (is(T == ubyte))
-            showSlice = slice;
+        import std.range.primitives : ElementType;
+        import mir.ndslice.topology : as;
+        import mir.ndslice.allocation : slice;
+
+        static assert(packs.length == 1, "Cannot draw packed slices.");
+
+        alias T = ElementType!Iterator;
+
+        Slice!(SliceKind.contiguous, packs, ubyte*) showImage;
+        static if ( is(T == ubyte) )
+            showImage = image.assumeContiguous; // TODO: test if its contiguous
         else
-            showSlice = slice.as!ubyte.slice;
+            showImage = image.as!ubyte.slice;
 
         if (format == ImageFormat.IF_UNASSIGNED)
-            draw(showSlice.asImage());
+            draw( showImage.asImage() );
         else
-            draw(showSlice.asImage(format));
+            draw(showImage.asImage(format) );
     }
-
 
     /**
     Draw the GGPlotD context on this figure's canvas.

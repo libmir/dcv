@@ -33,22 +33,16 @@ Returns:
     Response matrix the same size of the input image, where each pixel represents
     corner response value - the bigger the value, more probably it represents the
     actual corner in the image.
-
-Note:
-    If given, pre-allocated memory has to be contiguous.
  */
-Slice!(2, OutputType*) harrisCorners(InputType, OutputType = InputType)(Slice!(2,
-        InputType*) image, in uint winSize = 3, in float k = 0.64f, in float gauss = 0.84f, Slice!(2,
-        OutputType*) prealloc = emptySlice!(2, OutputType), TaskPool pool = taskPool)
+Slice!(SliceKind.contiguous, [2], OutputType*) harrisCorners(InputType, SliceKind inputKind, OutputType = InputType)
+    (Slice!(inputKind, [2], InputType*) image, in uint winSize = 3, in float k = 0.64f, in float gauss = 0.84f,
+    Slice!(SliceKind.contiguous, [2], OutputType*) prealloc = emptySlice!([2], OutputType), TaskPool pool = taskPool)
 in
 {
     assert(!image.empty, "Empty image given.");
     assert(winSize % 2 != 0, "Kernel window size has to be odd.");
     assert(gauss > 0.0, "Gaussian sigma value has to be greater than 0.");
     assert(k > 0.0, "K value has to be greater than 0.");
-    if (!prealloc.empty)
-        assert(prealloc.structure.strides[$-1] == 1,
-                "Pre-allocated slice memory is not contiguous.");
 }
 body
 {
@@ -74,21 +68,15 @@ Returns:
     Response matrix the same size of the input image, where each pixel represents
     corner response value - the bigger the value, more probably it represents the
     actual corner in the image.
-
-Note:
-    If given, pre-allocated memory has to be contiguous.
  */
-Slice!(2, OutputType*) shiTomasiCorners(InputType, OutputType = InputType)(Slice!(2,
-        InputType*) image, in uint winSize = 3, in float gauss = 0.84f, Slice!(2,
-        OutputType*) prealloc = emptySlice!(2, OutputType), TaskPool pool = taskPool)
+Slice!(SliceKind.contiguous, [2], OutputType*) shiTomasiCorners(InputType, SliceKind inputKind, OutputType = InputType)
+    (Slice!(inputKind, [2], InputType*) image, in uint winSize = 3, in float gauss = 0.84f,
+    Slice!(SliceKind.contiguous, [2], OutputType*) prealloc = emptySlice!([2], OutputType), TaskPool pool = taskPool)
 in
 {
     assert(!image.empty, "Empty image given.");
     assert(winSize % 2 != 0, "Kernel window size has to be odd.");
     assert(gauss > 0.0, "Gaussian sigma value has to be greater than 0.");
-    if (!prealloc.empty)
-        assert(prealloc.structure.strides[$-1] == 1,
-                "Pre-allocated slice memory is not contiguous.");
 }
 body
 {
@@ -153,11 +141,13 @@ unittest
 {
     void calcCornersImpl(Window, Detector)(Window window, Detector detector)
     {
+        import mir.ndslice.algorithm : reduce;
+
         float[3] r = [0.0f, 0.0f, 0.0f];
         float winSqr = float(window.length!0);
         winSqr *= winSqr;
 
-        r = ndReduce!sumResponse(r, window);
+        r = reduce!sumResponse(r, window);
 
         r[0] = (r[0] / winSqr) * 0.5f;
         r[1] /= winSqr;
@@ -165,13 +155,13 @@ unittest
 
         auto rv = detector(r[0], r[1], r[2]);
         if (rv > 0)
-            window[$ / 2, $ / 2].corners = rv;
+            window[$ / 2, $ / 2].a = rv;
     }
 
     float[3] sumResponse(Pack)(float[3] r, Pack pack)
     {
-        auto gx = pack.fx;
-        auto gy = pack.fy;
+        auto gx = pack.b;
+        auto gy = pack.c;
         return [r[0] + gx * gx, r[1] + gx * gy, r[2] + gy * gy];
     }
 }
@@ -197,17 +187,20 @@ struct ShiTomasiDetector
     }
 }
 
-Slice!(2, OutputType*) calcCorners(Detector, InputType, OutputType)(Slice!(2, InputType*) image,
-        uint winSize, float gaussSigma, Slice!(2, OutputType*) prealloc, Detector detector, TaskPool pool)
+Slice!(SliceKind.contiguous, [2], OutputType*) calcCorners(Detector, InputType, SliceKind inputKind, OutputType)
+    (Slice!(inputKind, [2], InputType*) image, uint winSize, float gaussSigma,
+    Slice!(SliceKind.contiguous, [2], OutputType*) prealloc, Detector detector, TaskPool pool)
 {
+    import mir.ndslice.topology : zip;
+
     // TODO: implement gaussian weighting!
 
-    Slice!(2, InputType*) fx, fy;
+    Slice!(SliceKind.contiguous, [2], InputType*) fx, fy;
     calcPartialDerivatives(image, fx, fy);
 
-    auto windowPack = assumeSameStructure!("corners", "fx", "fy")(prealloc, fx, fy).windows(winSize, winSize);
+    auto windowPack = zip(prealloc, fx, fy).windows(winSize, winSize);
 
-    foreach (windowRow; pool.parallel(windowPack))
+    foreach (windowRow; /*pool.parallel(*/windowPack/*)*/)
     {
         windowRow.each!(win => calcCornersImpl(win, detector));
     }
