@@ -86,7 +86,7 @@ class LucasKanadeFlow : SparseOpticalFlow
             flow[] = [0.0f, 0.0f];
         }
 
-        Slice!(SliceKind.continuous, [2], float*) current, next;
+        Slice!(SliceKind.contiguous, [2], float*) current, next;
         switch (f1.depth)
         {
         case BitDepth.BD_32:

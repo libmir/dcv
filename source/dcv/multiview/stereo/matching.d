@@ -46,8 +46,8 @@ import dcv.imgproc;
 
 alias DisparityType = uint;
 alias CostType = float;
-alias DisparityMap = Slice!(SliceKind.continuous, [2], DisparityType *);
-alias CostVolume = Slice!(SliceKind.continuous, [3], CostType *);
+alias DisparityMap = Slice!(SliceKind.contiguous, [2], DisparityType *);
+alias CostVolume = Slice!(SliceKind.contiguous, [3], CostType *);
 
 /**
 Creates an empty disparity map

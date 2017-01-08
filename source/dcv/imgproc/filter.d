@@ -144,7 +144,7 @@ body
 /**
 Instantiate 2D gaussian kernel.
 */
-Slice!(SliceKind.continuous, [2], V*) gaussian(V = double)(V sigma, size_t width, size_t height) pure
+Slice!(SliceKind.contiguous, [2], V*) gaussian(V = double)(V sigma, size_t width, size_t height) pure
 {
 
     static assert(isFloatingPoint!V, "Gaussian kernel can be constructed only using floating point types.");
@@ -205,7 +205,7 @@ Laplacian(I) =
 )
 
 */
-Slice!(SliceKind.continuous, [2], T*) laplacian(T = double)(real a = 0.) pure nothrow if (isNumeric!T)
+Slice!(SliceKind.contiguous, [2], T*) laplacian(T = double)(real a = 0.) pure nothrow if (isNumeric!T)
 in
 {
     assert(a >= 0. && a <= 1.);
@@ -245,7 +245,7 @@ Params:
     width = width of the kernel matrix
     height = height of the kernel matrix
 */
-Slice!(SliceKind.continuous, [2], T*) laplacianOfGaussian(T = double)(real sigma, size_t width, size_t height)
+Slice!(SliceKind.contiguous, [2], T*) laplacianOfGaussian(T = double)(real sigma, size_t width, size_t height)
 {
     import std.traits : isSigned;
 
@@ -311,25 +311,25 @@ public enum EdgeKernel
 }
 
 /// Create a Sobel edge kernel.
-Slice!(SliceKind.continuous, [2], T*) sobel(T = double)(GradientDirection direction) nothrow pure @trusted
+Slice!(SliceKind.contiguous, [2], T*) sobel(T = double)(GradientDirection direction) nothrow pure @trusted
 {
     return edgeKernelImpl!(T)(direction, cast(T)1, cast(T)2);
 }
 
 /// Create a Scharr edge kernel.
-Slice!(SliceKind.continuous, [2], T*) scharr(T = double)(GradientDirection direction) nothrow pure @trusted
+Slice!(SliceKind.contiguous, [2], T*) scharr(T = double)(GradientDirection direction) nothrow pure @trusted
 {
     return edgeKernelImpl!(T)(direction, cast(T)3, cast(T)10);
 }
 
 /// Create a Prewitt edge kernel.
-Slice!(SliceKind.continuous, [2], T*) prewitt(T = double)(GradientDirection direction) nothrow pure @trusted
+Slice!(SliceKind.contiguous, [2], T*) prewitt(T = double)(GradientDirection direction) nothrow pure @trusted
 {
     return edgeKernelImpl!(T)(direction, cast(T)1, cast(T)1);
 }
 
 /// Create a kernel of given type.
-Slice!(SliceKind.continuous, [2], T*) edgeKernel(T)(EdgeKernel kernelType, GradientDirection direction) nothrow pure @trusted
+Slice!(SliceKind.contiguous, [2], T*) edgeKernel(T)(EdgeKernel kernelType, GradientDirection direction) nothrow pure @trusted
 {
     typeof(return) k;
     final switch (kernelType)
@@ -349,7 +349,7 @@ Slice!(SliceKind.continuous, [2], T*) edgeKernel(T)(EdgeKernel kernelType, Gradi
     return k;
 }
 
-private Slice!(SliceKind.continuous, [2], T*) edgeKernelImpl(T)(GradientDirection direction, T lv, T hv) nothrow pure @trusted
+private Slice!(SliceKind.contiguous, [2], T*) edgeKernelImpl(T)(GradientDirection direction, T lv, T hv) nothrow pure @trusted
 {
     final switch (direction)
     {
@@ -695,9 +695,9 @@ Params:
 Returns:
     Slice of filtered image.
 */
-Slice!(SliceKind.continuous, [N], OutputType*) bilateralFilter
+Slice!(SliceKind.contiguous, [N], OutputType*) bilateralFilter
     (alias bc = neumann, InputTensor, OutputType = DeepElementType!(InputTensor), size_t N = InputTensor.init.shape.length)
-    (InputTensor input, float sigmaCol, float sigmaSpace, size_t kernelSize, Slice!(SliceKind.continuous, [N], OutputType*) prealloc = emptySlice!([N], OutputType),
+    (InputTensor input, float sigmaCol, float sigmaSpace, size_t kernelSize, Slice!(SliceKind.contiguous, [N], OutputType*) prealloc = emptySlice!([N], OutputType),
      TaskPool pool = taskPool) if (N == 2)
 in
 {
@@ -804,8 +804,8 @@ Returns:
     of same size as input slice, return value is assigned to prealloc buffer. If not, newly allocated buffer
     is used.
 */
-Slice!(SliceKind.continuous, packs, O*) medianFilter(alias BoundaryConditionTest = neumann, T, O = T, SliceKind kind, size_t[] packs)
-    (Slice!(kind, packs, T*) slice, size_t kernelSize, Slice!(SliceKind.continuous, packs, O*) prealloc = emptySlice!(packs, O), TaskPool pool = taskPool)
+Slice!(SliceKind.contiguous, packs, O*) medianFilter(alias BoundaryConditionTest = neumann, T, O = T, SliceKind kind, size_t[] packs)
+    (Slice!(kind, packs, T*) slice, size_t kernelSize, Slice!(SliceKind.contiguous, packs, O*) prealloc = emptySlice!(packs, O), TaskPool pool = taskPool)
 in
 {
     import std.traits : isAssignable;
@@ -1280,7 +1280,7 @@ auto bilateralFilterImpl(Window, Mask)(Window window, Mask mask, float sigmaCol,
     return reduce!(calcBilateralValue!(T, M))(T(0), window, mask);
 }
 
-void medianFilterImpl1(alias bc, T, O)(Slice!(1, T*) slice, Slice!(SliceKind.continuous, [1], O*) filtered,
+void medianFilterImpl1(alias bc, T, O)(Slice!(1, T*) slice, Slice!(SliceKind.contiguous, [1], O*) filtered,
     size_t kernelSize, TaskPool pool)
 {
     import std.algorithm.sorting : topN;
@@ -1305,7 +1305,7 @@ void medianFilterImpl1(alias bc, T, O)(Slice!(1, T*) slice, Slice!(SliceKind.con
     }
 }
 
-void medianFilterImpl2(alias bc, T, O, SliceKind kind)(Slice!(kind, [2], T*) slice, Slice!(SliceKind.continuous, [2], O*) filtered,
+void medianFilterImpl2(alias bc, T, O, SliceKind kind)(Slice!(kind, [2], T*) slice, Slice!(SliceKind.contiguous, [2], O*) filtered,
     size_t kernelSize, TaskPool pool)
 {
     int kh = max(1, cast(int)kernelSize / 2);
@@ -1335,7 +1335,7 @@ void medianFilterImpl2(alias bc, T, O, SliceKind kind)(Slice!(kind, [2], T*) sli
     }
 }
 
-void medianFilterImpl3(alias bc, T, O)(Slice!(kind, [3], T*) slice, Slice!(SliceKind.continuous, [3], O*) filtered,
+void medianFilterImpl3(alias bc, T, O)(Slice!(kind, [3], T*) slice, Slice!(SliceKind.contiguous, [3], O*) filtered,
     size_t kernelSize, TaskPool pool)
 {
     foreach (channel; 0 .. slice.length!2)

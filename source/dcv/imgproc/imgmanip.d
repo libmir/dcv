@@ -54,7 +54,7 @@ Params:
 
 TODO: consider size input as array, and add prealloc
 */
-Slice!(SliceKind.continuous, packs, V*) resize(alias interp = linear, SliceKind kind, size_t[] packs, V, size_t SN)(Slice!(kind, packs, V*) slice, size_t[SN] newsize, TaskPool pool = taskPool)
+Slice!(SliceKind.contiguous, packs, V*) resize(alias interp = linear, SliceKind kind, size_t[] packs, V, size_t SN)(Slice!(kind, packs, V*) slice, size_t[SN] newsize, TaskPool pool = taskPool)
     if (packs.length == 1)
     //if (isInterpolationFunc!interp)
 {
@@ -517,7 +517,7 @@ Slice!(1, V*) resizeImpl_1(alias interp, V)(Slice!(1, V*) slice, size_t newsize,
 }
 
 // 1d resize implementation
-Slice!(SliceKind.continuous, [2], V*) resizeImpl_2(alias interp, SliceKind kind, V)(Slice!(kind, [2], V*) slice, size_t height, size_t width, TaskPool pool)
+Slice!(SliceKind.contiguous, [2], V*) resizeImpl_2(alias interp, SliceKind kind, V)(Slice!(kind, [2], V*) slice, size_t height, size_t width, TaskPool pool)
 {
 
     enforce(!slice.empty && width > 0 && height > 0);
@@ -543,7 +543,7 @@ Slice!(SliceKind.continuous, [2], V*) resizeImpl_2(alias interp, SliceKind kind,
 }
 
 // 1d resize implementation
-Slice!(SliceKind.continuous, [3], V*) resizeImpl_3(alias interp, SliceKind kind, V)(Slice!(kind, [3], V*) slice, size_t height, size_t width, TaskPool pool)
+Slice!(SliceKind.contiguous, [3], V*) resizeImpl_3(alias interp, SliceKind kind, V)(Slice!(kind, [3], V*) slice, size_t height, size_t width, TaskPool pool)
 {
 
     enforce(!slice.empty && width > 0 && height > 0);

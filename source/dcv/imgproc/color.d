@@ -72,7 +72,7 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(SliceKind.continuous, [2], V*) rgb2gray(V)(Slice!(SliceKind.continuous, [3], V*) input, Slice!(SliceKind.continuous, [2], V*) prealloc = emptySlice!([2], V),
+Slice!(SliceKind.contiguous, [2], V*) rgb2gray(V)(Slice!(SliceKind.contiguous, [3], V*) input, Slice!(SliceKind.contiguous, [2], V*) prealloc = emptySlice!([2], V),
         Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
 {
     return rgbbgr2gray!(false, V)(input, prealloc, conv);
@@ -109,7 +109,7 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(SliceKind.continuous, [2], V*) bgr2gray(V)(Slice!(SliceKind.continuous, [3], V*) input, Slice!(SliceKind.continuous, [2], V*) prealloc = emptySlice!([2], V),
+Slice!(SliceKind.contiguous, [2], V*) bgr2gray(V)(Slice!(SliceKind.contiguous, [3], V*) input, Slice!(SliceKind.contiguous, [2], V*) prealloc = emptySlice!([2], V),
         Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
 {
     return rgbbgr2gray!(true, V)(input, prealloc, conv);
@@ -126,7 +126,7 @@ unittest
     assert(equal!approxEqual(gray.byElement, [0, 1, 2, 3]));
 }
 
-private Slice!(SliceKind.continuous, [2], V*) rgbbgr2gray(bool isBGR, V)(Slice!(SliceKind.continuous, [3], V*) input, Slice!(SliceKind.continuous, [2], V*) prealloc = emptySlice!([2], V),
+private Slice!(SliceKind.contiguous, [2], V*) rgbbgr2gray(bool isBGR, V)(Slice!(SliceKind.contiguous, [3], V*) input, Slice!(SliceKind.contiguous, [2], V*) prealloc = emptySlice!([2], V),
         Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
 in
 {
@@ -175,9 +175,9 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(SliceKind.continuous, [3], V*) gray2rgb(V)(Slice!(SliceKind.continuous, [2], V*) input, Slice!(SliceKind.continuous, [3], V*) prealloc = emptySlice!([3], V)) pure nothrow
+Slice!(SliceKind.contiguous, [3], V*) gray2rgb(V)(Slice!(SliceKind.contiguous, [2], V*) input, Slice!(SliceKind.contiguous, [3], V*) prealloc = emptySlice!([3], V)) pure nothrow
 {
-    Slice!(SliceKind.continuous, [2], V[3]*) rgb;
+    Slice!(SliceKind.contiguous, [2], V[3]*) rgb;
     if (input.shape != prealloc.shape[0 .. 2])
     {
         rgb = uninitializedSlice!(V[3])(input.length!0, input.length!1);
@@ -233,7 +233,7 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(SliceKind.continuous, [3], R*) rgb2hsv(R, V)(Slice!(SliceKind.continuous, [3], V*) input, Slice!(SliceKind.continuous, [3], R*) prealloc = emptySlice!([3], R)) pure nothrow
+Slice!(SliceKind.contiguous, [3], R*) rgb2hsv(R, V)(Slice!(SliceKind.contiguous, [3], V*) input, Slice!(SliceKind.contiguous, [3], R*) prealloc = emptySlice!([3], R)) pure nothrow
         if (isNumeric!R && isNumeric!V)
 in
 {
@@ -301,7 +301,7 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(SliceKind.continuous, [3], R*) hsv2rgb(R, V)(Slice!(SliceKind.continuous, [3], V*) input, Slice!(SliceKind.continuous, [3], R*) prealloc = emptySlice!([3], R)) pure nothrow
+Slice!(SliceKind.contiguous, [3], R*) hsv2rgb(R, V)(Slice!(SliceKind.contiguous, [3], V*) input, Slice!(SliceKind.contiguous, [3], R*) prealloc = emptySlice!([3], R)) pure nothrow
         if (isNumeric!R && isNumeric!V)
 in
 {
@@ -376,7 +376,7 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(SliceKind.continuous, [3], V*) rgb2yuv(V)(Slice!(SliceKind.continuous, [3], V*) input, Slice!(SliceKind.continuous, [3], V*) prealloc = emptySlice!([3], V)) pure nothrow
+Slice!(SliceKind.contiguous, [3], V*) rgb2yuv(V)(Slice!(SliceKind.contiguous, [3], V*) input, Slice!(SliceKind.contiguous, [3], V*) prealloc = emptySlice!([3], V)) pure nothrow
 in
 {
     assert(input.length!2 == 3, "Invalid channel count.");
@@ -412,7 +412,7 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(SliceKind.continuous, [3], V*) yuv2rgb(V)(Slice!(SliceKind.continuous, [3], V*) input, Slice!(SliceKind.continuous, [3], V*) prealloc = emptySlice!([3], V)) pure nothrow
+Slice!(SliceKind.contiguous, [3], V*) yuv2rgb(V)(Slice!(SliceKind.contiguous, [3], V*) input, Slice!(SliceKind.contiguous, [3], V*) prealloc = emptySlice!([3], V)) pure nothrow
 in
 {
     assert(input.length!2 == 3, "Invalid channel count.");

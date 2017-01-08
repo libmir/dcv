@@ -50,7 +50,7 @@
             "dependencies":
             {
                 "mir-math": "~>0.0.1",
-                "mir-algorithm": "~>0.0.8"
+                "mir-algorithm": "~>0.0.10"
             }
         },
         {

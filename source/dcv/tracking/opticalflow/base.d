@@ -40,7 +40,7 @@ interface SparseOpticalFlow
 }
 
 /// Alias to a type used to define the dense optical flow field.
-alias DenseFlow = Slice!(SliceKind.continuous, [3], float*);
+alias DenseFlow = Slice!(SliceKind.contiguous, [3], float*);
 
 /**
 Dense Optical Flow algorithm interface.

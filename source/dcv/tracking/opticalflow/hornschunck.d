@@ -42,8 +42,8 @@ class HornSchunckFlow : DenseOpticalFlow
 {
     private
     {
-        Slice!(SliceKind.continuous, [2], float*) current;
-        Slice!(SliceKind.continuous, [2], float*) next;
+        Slice!(SliceKind.contiguous, [2], float*) current;
+        Slice!(SliceKind.contiguous, [2], float*) next;
         HornSchunckProperties props;
     }
 

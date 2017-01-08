@@ -17,9 +17,9 @@ import mir.ndslice.topology: iota;
 
 
 /// Convenience method to return an empty slice - used mainly as default argument in functions in library.
-static Slice!(SliceKind.continuous, packs, V*) emptySlice(size_t[] packs, V)() pure @safe nothrow
+static Slice!(SliceKind.contiguous, packs, V*) emptySlice(size_t[] packs, V)() pure @safe nothrow
 {
-    return Slice!(SliceKind.continuous, packs, V*)();
+    return Slice!(SliceKind.contiguous, packs, V*)();
 }
 
 package(dcv) @nogc pure nothrow
@@ -62,8 +62,8 @@ package(dcv) @nogc pure nothrow
         static struct Range
         {
             import mir.ndslice.iterator;
-            Slice!(SliceKind.continuous, [1], IotaIterator!size_t) rows;
-            Slice!(SliceKind.continuous, [1], IotaIterator!size_t) cols;
+            Slice!(SliceKind.contiguous, [1], IotaIterator!size_t) rows;
+            Slice!(SliceKind.contiguous, [1], IotaIterator!size_t) cols;
         }
 
         size_t kh = max(size_t(1), ks / 2);
@@ -93,7 +93,7 @@ Returns:
     shape as input slice.
 */
 deprecated("Use mir.ndslice.slice.as instead: e.g. mySlice.as!T.slice")
-static Slice!(SliceKind.continuous, packs, O*) asType(O, V, size_t N)(Slice!(SliceKind.continuous, packs, V*) inslice)
+static Slice!(SliceKind.contiguous, packs, O*) asType(O, V, size_t N)(Slice!(SliceKind.contiguous, packs, V*) inslice)
 {
     static if (__traits(compiles, cast(O)V.init))
     {
@@ -161,7 +161,7 @@ static if (__VERSION__ >= 2071)
     /**
      * Merge multiple slices into one.
      * 
-     * By input of multiple Slice!(SliceKind.continuous, packs, T*) objects, produces one Slice!(N+1, T*)
+     * By input of multiple Slice!(SliceKind.contiguous, packs, T*) objects, produces one Slice!(N+1, T*)
      * object, where length of last dimension is number of input slices. Values
      * of input slices' elements are copied to resulting slice, where [..., i] element
      * of j-th input slice is copied to [..., i, j] element of output slice.
@@ -173,7 +173,7 @@ static if (__VERSION__ >= 2071)
      * slices = Input slices. All must by Slice object with same input template parameters.
      * 
      * Returns:
-     * For input of n Slice!(SliceKind.continuous, packs, T*) objects, outputs Slice!(N+1, T*) object, where 
+     * For input of n Slice!(SliceKind.contiguous, packs, T*) objects, outputs Slice!(N+1, T*) object, where 
      * last dimension size is n.
      */
     pure auto merge(Slices...)(Slices slices)

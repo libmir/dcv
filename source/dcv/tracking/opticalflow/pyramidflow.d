@@ -106,7 +106,7 @@ class SparsePyramidFlow : SparseOpticalFlow
         auto h = f1.height;
         auto w = f1.width;
 
-        Slice!(SliceKind.continuous, [2], float*) current, next, f1s, f2s;
+        Slice!(SliceKind.contiguous, [2], float*) current, next, f1s, f2s;
         switch (f1.depth) 
         {
             case BitDepth.BD_32:
@@ -221,7 +221,7 @@ class DensePyramidFlow : DenseOpticalFlow
         auto h = f1.height;
         auto w = f1.width;
 
-        Slice!(SliceKind.continuous, [2], float*) current, next, corig, norig;
+        Slice!(SliceKind.contiguous, [2], float*) current, next, corig, norig;
         switch (f1.depth) 
         {
             case BitDepth.BD_32:

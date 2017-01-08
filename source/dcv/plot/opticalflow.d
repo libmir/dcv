@@ -26,7 +26,7 @@ import mir.ndslice.algorithm;
  * returns:
  * RGB image of color-coded optical flow.
  */
-Slice!(SliceKind.continuous, [3], ubyte*) colorCode(Slice!(SliceKind.continuous, [3], float*) flow, float maxSize = 0)
+Slice!(SliceKind.contiguous, [3], ubyte*) colorCode(Slice!(SliceKind.contiguous, [3], float*) flow, float maxSize = 0)
 {
     import std.math : sqrt;
     import std.array : array;
