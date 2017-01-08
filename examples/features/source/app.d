@@ -39,12 +39,12 @@ void main()
     harrisDraw[] = imslice[];
 
     // estimate corner response for each of corner algorithms by using 5x5 window.
-    auto shiTomasiResponse = shiTomasiCorners(gray, 5).filterNonMaximum;
-    auto harrisResponse = harrisCorners(gray, 5).filterNonMaximum;
+    auto shiTomasiResponse = shiTomasiCorners(gray, 5).filterNonMaximum.assumeContiguous;
+    auto harrisResponse = harrisCorners(gray, 5).filterNonMaximum.assumeContiguous;
 
     // extract corners from the response matrix ( extract 100 corners, where each response is larger than 0.)
-    auto shiTomasiCorners = extractCorners(shiTomasiResponse, 100, 0.);
-    auto harrisCorners = extractCorners(harrisResponse, 100, 0.);
+    auto shiTomasiCorners = extractCorners(shiTomasiResponse, 100, 0.0f);
+    auto harrisCorners = extractCorners(harrisResponse, 100, 0.0f);
 
     // visualize corner response, and write it to disk.
     visualizeCornerResponse(harrisResponse, "harrisResponse");
