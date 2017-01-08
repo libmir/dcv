@@ -57,7 +57,7 @@ void main()
     waitKey();
 }
 
-void visualizeCornerResponse(Slice!(2, float*) response, string windowName)
+void visualizeCornerResponse(SliceKind kind)(Slice!(kind, [2], float*) response, string windowName)
 {
     response 
         // scale values in the response matrix for easier visualization.
@@ -71,7 +71,7 @@ void visualizeCornerResponse(Slice!(2, float*) response, string windowName)
         .imwrite("result/" ~ windowName ~ ".png");
 }
 
-void cornerPlot(Slice!(3, ubyte*) slice, ulong[2][] corners, string windowName)
+void cornerPlot(SliceKind kind)(Slice!(kind, [3], ubyte*) slice, ulong[2][] corners, string windowName)
 {
     // separate coordinate values
     auto xs = corners.map!(v => v[1]);
