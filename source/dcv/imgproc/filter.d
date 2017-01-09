@@ -831,22 +831,22 @@ body
 unittest
 {
     auto imvalues = [1, 20, 3, 54, 5, 643, 7, 80, 9].sliced(9);
-    //assert(imvalues.medianFilter!neumann(3) == [1, 3, 20, 5, 54, 7, 80, 9, 9]);
+    assert(imvalues.medianFilter!neumann(3) == [1, 3, 20, 5, 54, 7, 80, 9, 9]);
 }
 
 unittest
 {
     auto imvalues = [1, 20, 3, 54, 5, 643, 7, 80, 9].sliced(3, 3);
-    //assert(imvalues.medianFilter!neumann(3).flattened == [5, 5, 5, 7, 9, 9, 7, 9, 9]);
+    assert(imvalues.medianFilter!neumann(3).flattened == [5, 5, 5, 7, 9, 9, 7, 9, 9]);
 }
 
 unittest
 {
     auto imvalues = [1, 20, 3, 43, 65, 76, 12, 5, 7, 54, 5, 643, 12, 54, 76, 15, 68, 9, 65, 87,
         17, 38, 0, 12, 21, 5, 7].sliced(3, 3, 3);
-    //assert(imvalues.medianFilter!neumann(3).flattened ==
-    //    [12, 20, 76, 12, 20, 9, 12, 54, 9, 43,
-    //        20, 17, 21, 20, 12, 15, 5, 9, 54, 54, 17, 38, 5, 12, 21, 5, 9]);
+    assert(imvalues.medianFilter!neumann(3).flattened ==
+        [12, 20, 76, 12, 20, 9, 12, 54, 9, 43,
+        20, 17, 21, 20, 12, 15, 5, 9, 54, 54, 17, 38, 5, 12, 21, 5, 9]);
 }
 
 /**
@@ -1299,10 +1299,12 @@ void medianFilterImpl1(alias bc, T, O, SliceKind kind0, SliceKind kind1)(
     Slice!(kind1, [1], O*) filtered,
     size_t kernelSize, TaskPool pool)
 {
-    import mir.utility : max;
     import std.algorithm.sorting : topN;
-
     import std.parallelism;
+    import std.range : iota;
+
+    import mir.utility : max;
+
 
     int kh = max(1, cast(int)kernelSize / 2);
     int length = cast(int)slice.length!0;
@@ -1327,6 +1329,8 @@ void medianFilterImpl2(alias bc, T, O, SliceKind kind0, SliceKind kind1)(
     Slice!(kind1, [2], O*) filtered,
     size_t kernelSize, TaskPool pool)
 {
+    import std.range : iota;
+
     int kh = max(1, cast(int)kernelSize / 2);
     int n = cast(int)(kernelSize * kernelSize);
     int m = n / 2;
@@ -1337,9 +1341,9 @@ void medianFilterImpl2(alias bc, T, O, SliceKind kind0, SliceKind kind1)(
 
     foreach (r; pool.parallel(iota(rows)))
     {
+        auto kernel = kernelStorage.get();
         foreach (c; 0 .. cols)
         {
-            auto kernel = kernelStorage.get();
             size_t i = 0;
             foreach (rr; r - kh .. r + kh + 1)
             {
