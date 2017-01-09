@@ -80,10 +80,7 @@ in
 }
 body
 {
-    import std.range : repeat, take;
-    import std.array : array;
-
-    return value.repeat.take(rows * cols).array.sliced(rows, cols);
+    return slice([rows, cols], value);
 }
 
 /// ditto
@@ -119,10 +116,7 @@ in
 }
 body
 {
-    import std.range : repeat, take;
-    import std.math : sqrt;
-
-    auto kernel = new T[radius * radius].sliced(radius, radius);
+    auto kernel = uninitializedSlice!T(radius, radius);
 
     auto rf = cast(float)radius;
     auto mid = radius / 2;
@@ -149,7 +143,7 @@ Slice!(SliceKind.contiguous, [2], V*) gaussian(V = double)(V sigma, size_t width
 
     enforce(width > 2 && height > 2 && sigma > 0, "Invalid kernel values");
 
-    auto h = new V[width * height].sliced(height, width);
+    auto h = uninitializedSlice!V(height, width);
 
     int arrv_w = -(cast(int)width - 1) / 2;
     int arrv_h = -(cast(int)height - 1) / 2;
@@ -203,14 +197,14 @@ Laplacian(I) =
 )
 
 */
-Slice!(SliceKind.contiguous, [2], T*) laplacian(T = double)(real a = 0.) pure nothrow if (isNumeric!T)
+Slice!(SliceKind.contiguous, [2], T*) laplacian(T = double)(T a = 0.) pure nothrow if (isNumeric!T)
 in
 {
     assert(a >= 0. && a <= 1.);
 }
 body
 {
-    auto k = new T[9].sliced(3, 3);
+    auto k = uninitializedSlice!T(3, 3);
     auto m = 4. / (a + 1.);
     auto e1 = (a / 4.) * m;
     auto e2 = ((1. - a) / 4.) * m;
@@ -257,8 +251,8 @@ Slice!(SliceKind.contiguous, [2], T*) laplacianOfGaussian(T = double)(T sigma, s
     auto w_h = cast(T)max(1u, width / 2);
     auto h_h = cast(T)max(1u, height / 2);
 
-    foreach (i; height.iota)
-    foreach (j; width.iota)
+    foreach (i; 0 .. height)
+    foreach (j; 0 .. width)
     {
         auto xx = (cast(T)j - w_h);
         auto yy = (cast(T)i - h_h);
@@ -435,8 +429,6 @@ in
 }
 body
 {
-    import std.range : iota;
-
     if(input.empty)
         return;
 
@@ -445,14 +437,12 @@ body
     if (fy.shape != input.shape)
         fy = uninitializedSlice!V(input.shape);
 
-    auto rows = input.length!0;
-    auto cols = input.length!1;
-
-    foreach (r; pool.parallel(iota(1, rows)))
+    if (input.length!0 > 1)
+    foreach (r; pool.parallel(iota([input.length!0 - 1], 1)))
     {
         auto x_row = fx[r, 0 .. $];
         auto y_row = fy[r, 0 .. $];
-        foreach (c; 1 .. cols)
+        foreach (c; 1 .. input.length!1)
         {
             auto imrc = input[r, c];
             x_row[c] = cast(V)(-1. * input[r, c - 1] + imrc);
@@ -464,7 +454,8 @@ body
     auto x_row = fx[0, 0 .. $];
     auto y_row = fy[0, 0 .. $];
 
-    foreach (c; pool.parallel(iota(cols - 1)))
+    if (input.length!1 > 1)
+    foreach (c; pool.parallel(iota(input.length!1 - 1)))
     {
         auto im_0c = input[0, c];
         x_row[c] = cast(V)(-1. * im_0c + input[0, c + 1]);
@@ -474,7 +465,8 @@ body
     auto x_col = fx[0 .. $, 0];
     auto y_col = fy[0 .. $, 0];
 
-    foreach (r; pool.parallel(iota(rows - 1)))
+    if (input.length!0 > 1)
+    foreach (r; pool.parallel(iota(input.length!0 - 1)))
     {
         auto im_r_0 = input[r, 0];
         x_col[r] = cast(V)(-1. * im_r_0 + input[r, 1]);
@@ -482,10 +474,10 @@ body
     }
 
     // edges corner pixels
-    fx[0, cols - 1] = cast(V)(-1 * input[0, cols - 2] + input[0, cols - 1]);
-    fy[0, cols - 1] = cast(V)(-1 * input[0, cols - 1] + input[1, cols - 1]);
-    fx[rows - 1, 0] = cast(V)(-1 * input[rows - 1, 0] + input[rows - 1, 1]);
-    fy[rows - 1, 0] = cast(V)(-1 * input[rows - 2, 0] + input[rows - 1, 0]);
+    fx[0, input.length!1 - 1] = cast(V)(-1 * input[0, input.length!1 - 2] + input[0, input.length!1 - 1]);
+    fy[0, input.length!1 - 1] = cast(V)(-1 * input[0, input.length!1 - 1] + input[1, input.length!1 - 1]);
+    fx[input.length!0 - 1, 0] = cast(V)(-1 * input[input.length!0 - 1, 0] + input[input.length!0 - 1, 1]);
+    fy[input.length!0 - 1, 0] = cast(V)(-1 * input[input.length!0 - 2, 0] + input[input.length!0 - 1, 0]);
 }
 
 /**
@@ -699,7 +691,6 @@ in
 }
 body
 {
-    import mir.ndslice.allocation;
     if (prealloc.shape != input.shape)
         prealloc = uninitializedSlice!OutputType(input.shape);
 
@@ -809,8 +800,6 @@ in
 }
 body
 {
-    import mir.ndslice.allocation : uninitializedSlice;
-
     if (prealloc.shape != slice.shape)
         prealloc = uninitializedSlice!O(slice.shape);
 
@@ -945,8 +934,6 @@ in
 }
 body
 {
-    import std.array : uninitializedArray;
-
     int n = cast(int)slice.elementsCount; // number of pixels in image.
     immutable tmax = cast(int)T.max; // maximal possible value for pixel value type.
 
@@ -960,7 +947,7 @@ body
     }
 
     if (prealloc.shape != slice.shape)
-        prealloc = uninitializedArray!(T[])(slice.elementsCount).sliced(slice.shape);
+        prealloc = uninitializedSlice!T(slice.shape);
 
     static if (N == 2)
     {
@@ -1299,19 +1286,16 @@ void medianFilterImpl1(alias bc, T, O, SliceKind kind0, SliceKind kind1)(
     Slice!(kind1, [1], O*) filtered,
     size_t kernelSize, TaskPool pool)
 {
-    import std.algorithm.sorting : topN;
     import std.parallelism;
-    import std.range : iota;
 
     import mir.utility : max;
 
 
     int kh = max(1, cast(int)kernelSize / 2);
-    int length = cast(int)slice.length!0;
 
     auto kernelStorage = pool.workerLocalStorage(new T[kernelSize]);
 
-    foreach (i; pool.parallel(length.iota))
+    foreach (i; pool.parallel(slice.length!0.iota!ptrdiff_t))
     {
         auto kernel = kernelStorage.get();
         size_t ki = 0;
@@ -1329,20 +1313,16 @@ void medianFilterImpl2(alias bc, T, O, SliceKind kind0, SliceKind kind1)(
     Slice!(kind1, [2], O*) filtered,
     size_t kernelSize, TaskPool pool)
 {
-    import std.range : iota;
-
     int kh = max(1, cast(int)kernelSize / 2);
     int n = cast(int)(kernelSize * kernelSize);
     int m = n / 2;
-    int rows = cast(int)slice.length!0;
-    int cols = cast(int)slice.length!1;
 
     auto kernelStorage = pool.workerLocalStorage(new T[kernelSize * kernelSize]);
 
-    foreach (r; pool.parallel(iota(rows)))
+    foreach (r; pool.parallel(slice.length!0.iota!ptrdiff_t))
     {
         auto kernel = kernelStorage.get();
-        foreach (c; 0 .. cols)
+        foreach (ptrdiff_t c; 0 .. slice.length!1)
         {
             size_t i = 0;
             foreach (rr; r - kh .. r + kh + 1)
@@ -1388,16 +1368,11 @@ in
 }
 body
 {
-    import std.array : uninitializedArray;
-
     if (prealloc.shape != slice.shape)
-        prealloc = uninitializedArray!(T[])(slice.elementsCount).sliced(slice.shape);
+        prealloc = uninitializedSlice!T(slice.shape);
 
-    int rows = cast(int)slice.length!0;
-    int cols = cast(int)slice.length!1;
-
-    int khr = cast(int)max(1, kernel.length!0 / 2);
-    int khc = cast(int)max(1, kernel.length!1 / 2);
+    ptrdiff_t khr = max(1, kernel.length!0 / 2);
+    ptrdiff_t khc = max(1, kernel.length!1 / 2);
 
     static if (op == MorphologicOperation.ERODE)
     {
@@ -1416,9 +1391,9 @@ body
             T value = cast(T)1.0;
     }
 
-    foreach (r; pool.parallel(iota(rows)))
+    foreach (r; pool.parallel(slice.length!0.iota!ptrdiff_t))
     {
-        foreach (c; 0 .. cols)
+        foreach (ptrdiff_t c; 0 .. slice.length!1)
         {
 
             if (mixin(checkSlice))
