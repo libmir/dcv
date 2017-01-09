@@ -50,7 +50,7 @@
             "dependencies":
             {
                 "mir-math": "~>0.0.1",
-                "mir-algorithm": "~>0.0.10"
+                "mir-algorithm": {"path" : "../mir-algorithm/"}
             }
         },
         {
@@ -60,7 +60,7 @@
                 "source/dcv/io"
             ],
             "dependencies":{
-                "dcv:core": ">=0.0.0",
+                "dcv:core": "*",
                 "imageformats": "~>6.1.0",
                 "ffmpeg-d": "~>2.5.1"
             }
@@ -72,7 +72,7 @@
                 "source/dcv/plot"
             ],
             "dependencies":{
-                "dcv:core": ">=0.0.0"
+                "dcv:core": "*"
             },
             "configurations":
             [

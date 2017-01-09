@@ -78,7 +78,7 @@ pure nothrow auto extractCorners(SliceKind kind, T)
 
 unittest
 {
-    auto res = Slice!(2, float*).init.extractCorners;
+    auto res = Slice!(SliceKind.contiguous, [2], float*).init.extractCorners;
     assert(res is null);
 }
 

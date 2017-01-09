@@ -4,11 +4,7 @@ module dcv.example.imgmanip;
  * Corner extraction example, by using Harris and Shi-Tomasi algorithms.
  */
 
-import std.stdio;
 import mir.ndslice;
-import std.array : array;
-import std.algorithm.iteration : map, reduce;
-import std.range : repeat;
 
 import dcv.core;
 import dcv.features;
@@ -33,14 +29,12 @@ void main()
 
     // make copies to draw corners 
     auto pixelSize = imslice.elementsCount;
-    auto shiTomasiDraw = new ubyte[pixelSize].sliced(imslice.shape);
-    auto harrisDraw = new ubyte[pixelSize].sliced(imslice.shape);
-    shiTomasiDraw[] = imslice[];
-    harrisDraw[] = imslice[];
+    auto shiTomasiDraw = imslice.slice;
+    auto harrisDraw = imslice.slice;
 
     // estimate corner response for each of corner algorithms by using 5x5 window.
-    auto shiTomasiResponse = shiTomasiCorners(gray, 5).filterNonMaximum.assumeContiguous;
-    auto harrisResponse = harrisCorners(gray, 5).filterNonMaximum.assumeContiguous;
+    auto shiTomasiResponse = shiTomasiCorners(gray, 5).filterNonMaximum;
+    auto harrisResponse = harrisCorners(gray, 5).filterNonMaximum;
 
     // extract corners from the response matrix ( extract 100 corners, where each response is larger than 0.)
     auto shiTomasiCorners = extractCorners(shiTomasiResponse, 100, 0.0f);
@@ -59,9 +53,9 @@ void main()
 
 void visualizeCornerResponse(SliceKind kind)(Slice!(kind, [2], float*) response, string windowName)
 {
-    response 
+    response
         // scale values in the response matrix for easier visualization.
-        .ranged(0., 255.)
+        .ranged(0f, 255f)
         .as!ubyte
         .slice
         // Show the window
@@ -74,9 +68,11 @@ void visualizeCornerResponse(SliceKind kind)(Slice!(kind, [2], float*) response,
 void cornerPlot(SliceKind kind)(Slice!(kind, [3], ubyte*) slice, ulong[2][] corners, string windowName)
 {
     // separate coordinate values
-    auto xs = corners.map!(v => v[1]);
-    auto ys = corners.map!(v => v[0]);
+    auto xs = corners.ptr.ptr.sliced(corners.length * 2).stride(2);
+    auto ys = xs;
+    xs._iterator++;
 
+    import std.array : array;
     auto aes = Aes!(typeof(xs), "x", typeof(ys), "y", bool[], "fill", string[], "colour")(xs, ys,
             false.repeat(xs.length).array, "red".repeat(xs.length).array);
 

@@ -13,7 +13,7 @@ import std.traits;
 import std.meta : allSatisfy;
 
 import mir.ndslice.slice;
-import mir.ndslice.topology: iota;
+import mir.ndslice.topology: iota, flattened;
 
 
 /// Convenience method to return an empty slice - used mainly as default argument in functions in library.
@@ -80,39 +80,6 @@ package(dcv) @nogc pure nothrow
 }
 
 /**
-Take another typed Slice. Type conversion for the Slice object.
-
-Params:
-    inslice = Input slice, to be converted to the O type.
-
-Deprecated:
-    In favor of $(LINK3 http://docs.mir.dlang.io/latest/mir_ndslice_slice.html#.as,mir.ndslice.slice.as).
-
-Returns:
-    Return a slice with newly allocated data of type O, with same
-    shape as input slice.
-*/
-deprecated("Use mir.ndslice.slice.as instead: e.g. mySlice.as!T.slice")
-static Slice!(SliceKind.contiguous, packs, O*) asType(O, V, size_t N)(Slice!(SliceKind.contiguous, packs, V*) inslice)
-{
-    static if (__traits(compiles, cast(O)V.init))
-    {
-        return inslice.ndMap!(a => cast(O)a).slice;
-    }
-    else
-    {
-        static assert(0, "Type " ~ V.stringof ~ " is not convertible to type " ~ O.stringof ~ ".");
-    }
-}
-
-unittest
-{
-    auto slice = iota(2, 3).slice;
-    auto fslice = slice.asType!float;
-    assert(slice == fslice);
-}
-
-/**
 Clip value by it's value range.
 
 Params:
@@ -156,7 +123,7 @@ pure nothrow @safe unittest
 import std.compiler;
 
 static if (__VERSION__ >= 2071)
-{ // due to undefined bug in byElement in dmd 2.070.0
+{ // due to undefined bug in flattened in dmd 2.070.0
 
     /**
      * Merge multiple slices into one.
@@ -182,8 +149,8 @@ static if (__VERSION__ >= 2071)
         import std.algorithm.iteration : map;
         import std.array : uninitializedArray;
 
-        alias ElementRange = typeof(slices[0].byElement);
-        alias T = typeof(slices[0].byElement.front);
+        alias ElementRange = typeof(slices[0].flattened);
+        alias T = typeof(slices[0].flattened.front);
 
         immutable D = slices[0].shape.length;
         const auto length = slices[0].elementsCount;
@@ -193,7 +160,7 @@ static if (__VERSION__ >= 2071)
 
         foreach (i, v; slices)
         {
-            elRange[i] = v.byElement;
+            elRange[i] = v.flattened;
         }
 
         auto i = 0;
@@ -269,6 +236,8 @@ template BoundaryConditionTest(SliceKind kind, size_t[] packs, T, size_t N)
 
 unittest
 {
+    import mir.ndslice.allocation;
+
     static assert(isBoundaryCondition!neumann);
     static assert(isBoundaryCondition!periodic);
     static assert(isBoundaryCondition!symmetric);

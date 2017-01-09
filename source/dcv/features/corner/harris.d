@@ -34,7 +34,7 @@ Returns:
     corner response value - the bigger the value, more probably it represents the
     actual corner in the image.
  */
-Slice!(SliceKind.contiguous, [2], OutputType*) harrisCorners(InputType, SliceKind inputKind, OutputType = InputType)
+Slice!(SliceKind.contiguous, [2], OutputType*) harrisCorners(InputType, OutputType = InputType, SliceKind inputKind)
     (Slice!(inputKind, [2], InputType*) image, in uint winSize = 3, in float k = 0.64f, in float gauss = 0.84f,
     Slice!(SliceKind.contiguous, [2], OutputType*) prealloc = emptySlice!([2], OutputType), TaskPool pool = taskPool)
 in
@@ -69,7 +69,7 @@ Returns:
     corner response value - the bigger the value, more probably it represents the
     actual corner in the image.
  */
-Slice!(SliceKind.contiguous, [2], OutputType*) shiTomasiCorners(InputType, SliceKind inputKind, OutputType = InputType)
+Slice!(SliceKind.contiguous, [2], OutputType*) shiTomasiCorners(InputType, OutputType = InputType, SliceKind inputKind)
     (Slice!(inputKind, [2], InputType*) image, in uint winSize = 3, in float gauss = 0.84f,
     Slice!(SliceKind.contiguous, [2], OutputType*) prealloc = emptySlice!([2], OutputType), TaskPool pool = taskPool)
 in
@@ -91,23 +91,20 @@ body
 
 unittest
 {
-    import std.algorithm.comparison : equal;
-
     auto image = new float[9].sliced(3, 3);
     auto result = harrisCorners(image, 3, 0.64, 0.84);
-    assert(result.shape[].equal(image.shape[]));
+    assert(result.shape == image.shape);
 }
 
 unittest
 {
-    import std.algorithm.comparison : equal;
     import std.range : lockstep;
 
     auto image = new float[9].sliced(3, 3);
     auto resultBuffer = new double[9].sliced(3, 3);
     auto result = harrisCorners!(float, double)(image, 3, 0.64, 0.84, resultBuffer);
-    assert(result.shape[].equal(image.shape[]));
-    foreach (ref r1, ref r2; lockstep(result.byElement, resultBuffer.byElement))
+    assert(result.shape == image.shape);
+    foreach (ref r1, ref r2; lockstep(result.flattened, resultBuffer.flattened))
     {
         assert(&r1 == &r2);
     }
@@ -131,7 +128,7 @@ unittest
     auto resultBuffer = new double[9].sliced(3, 3);
     auto result = shiTomasiCorners!(float, double)(image, 3, 0.84, resultBuffer);
     assert(result.shape[].equal(image.shape[]));
-    foreach (ref r1, ref r2; lockstep(result.byElement, resultBuffer.byElement))
+    foreach (ref r1, ref r2; lockstep(result.flattened, resultBuffer.flattened))
     {
         assert(&r1 == &r2);
     }
@@ -191,7 +188,7 @@ Slice!(SliceKind.contiguous, [2], OutputType*) calcCorners(Detector, InputType, 
     (Slice!(inputKind, [2], InputType*) image, uint winSize, float gaussSigma,
     Slice!(SliceKind.contiguous, [2], OutputType*) prealloc, Detector detector, TaskPool pool)
 {
-    import mir.ndslice.topology : zip;
+    import mir.ndslice.topology : zip, iota;
 
     // TODO: implement gaussian weighting!
 
@@ -200,10 +197,8 @@ Slice!(SliceKind.contiguous, [2], OutputType*) calcCorners(Detector, InputType, 
 
     auto windowPack = zip(prealloc, fx, fy).windows(winSize, winSize);
 
-    foreach (windowRow; /*pool.parallel(*/windowPack/*)*/)
-    {
+    foreach (windowRow; pool.parallel(windowPack))
         windowRow.each!(win => calcCornersImpl(win, detector));
-    }
 
     return prealloc;
 }

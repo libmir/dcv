@@ -29,7 +29,7 @@ import dcv.imgproc.imgmanip : warp, resize;
 import dcv.tracking.opticalflow.base;
 
 import mir.ndslice.allocation: slice;
-import mir.ndslice.topology: as, flattened;
+import mir.ndslice.topology: as, flattened, iota;
 
 /**
 Sparse pyramidal optical flow utility class.

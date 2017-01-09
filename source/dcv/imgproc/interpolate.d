@@ -105,9 +105,9 @@ unittest
 
 private:
 
-pure @fastmath auto linearImpl_1(T)(Slice!(1, T*) range, double pos)
+pure @fastmath auto linearImpl_1(T)(Slice!(SliceKind.contiguous, [1], T*) range, double pos)
 {
-    import ldc.intrinsics : floor = llvm_floor;
+    import mir.math.internal;
 
     assert(pos < range.length);
 

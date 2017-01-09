@@ -85,7 +85,7 @@ unittest
     auto rgb = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3].sliced(2, 2, 3);
 
     auto gray = rgb.rgb2gray;
-    assert(equal!approxEqual(gray.byElement, [0, 1, 2, 3]));
+    assert(gray.flattened == [0, 1, 2, 3]);
 }
 
 /**
@@ -122,8 +122,7 @@ unittest
     auto rgb = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3].sliced(2, 2, 3);
 
     auto gray = rgb.bgr2gray;
-
-    assert(equal!approxEqual(gray.byElement, [0, 1, 2, 3]));
+    assert(gray.flattened == [0, 1, 2, 3]);
 }
 
 private Slice!(SliceKind.contiguous, [2], V*) rgbbgr2gray(bool isBGR, V)(Slice!(SliceKind.contiguous, [3], V*) input, Slice!(SliceKind.contiguous, [2], V*) prealloc = emptySlice!([2], V),
@@ -206,7 +205,7 @@ unittest
 
     auto rgb = gray.gray2rgb;
 
-    assert(equal!approxEqual(rgb.byElement, [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3]));
+    assert(rgb.flattened == [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3]);
 }
 
 /**
@@ -263,7 +262,7 @@ unittest
         import std.array : array;
         import std.math : approxEqual;
 
-        assert(rgb.sliced(1, 1, 3).rgb2hsv!HSVType.byElement.array.equal!approxEqual(expectedHSV));
+        assert(rgb.sliced(1, 1, 3).rgb2hsv!HSVType.flattened.array.equal!approxEqual(expectedHSV));
     }
 
     rgb2hsvTest(cast(ubyte[])[255, 0, 0], cast(ushort[])[0, 100, 100]);
@@ -330,7 +329,7 @@ unittest
         import std.array : array;
         import std.math : approxEqual;
 
-        assert(hsv.sliced(1, 1, 3).hsv2rgb!RGBType.byElement.array.equal!approxEqual(expectedRgb));
+        assert(hsv.sliced(1, 1, 3).hsv2rgb!RGBType.flattened.array.equal!approxEqual(expectedRgb));
     }
 
     import std.random : uniform;
@@ -441,7 +440,7 @@ unittest
         import std.array : array;
         import std.math : approxEqual;
 
-        assert(rgb.sliced(1, 1, 3).rgb2yuv.byElement.array.equal!approxEqual(expectedYuv));
+        assert(rgb.sliced(1, 1, 3).rgb2yuv.flattened.array.equal!approxEqual(expectedYuv));
     }
 
     rgb2yuvTest(cast(ubyte[])[0, 0, 0], cast(ubyte[])[16, 128, 128]);
@@ -459,7 +458,7 @@ unittest
         import std.array : array;
         import std.math : approxEqual;
 
-        assert(yuv.sliced(1, 1, 3).yuv2rgb.byElement.array.equal!approxEqual(expectedRgb));
+        assert(yuv.sliced(1, 1, 3).yuv2rgb.flattened.array.equal!approxEqual(expectedRgb));
     }
 
     yuv2rgbTest(cast(ubyte[])[16, 128, 128], cast(ubyte[])[0, 0, 0]);

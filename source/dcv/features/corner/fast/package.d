@@ -75,29 +75,29 @@ class FASTDetector : Detector
     }
 
     /// Threshold for corner detection.
-    @property threshold() const
+    auto threshold() const @property @safe pure nothrow @nogc
     {
         return _threshold;
     }
     /// Threshold value setter.
-    @property threshold(uint value)
+    auto threshold(uint value) @property @safe pure nothrow @nogc
     {
         assert(value > 0);
         _threshold = value;
     }
 
     /// Type of the detector.
-    @property type() const
+    auto type() const @property @safe pure nothrow @nogc
     {
         return _type;
     }
     /// ditto
-    @property type(Type type)
+    auto type(Type type) @property @safe pure nothrow @nogc
     {
         _type = type;
     }
     /// Algorithm flags.
-    @property flags() const
+    auto flags() const @property @safe pure nothrow @nogc
     {
         return _flags;
     }

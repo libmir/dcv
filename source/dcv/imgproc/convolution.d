@@ -43,6 +43,7 @@ import mir.ndslice.internal : fastmath;
 import mir.ndslice.slice;
 import mir.ndslice.topology;
 import mir.ndslice.algorithm : reduce;
+import mir.ndslice.allocation: slice;
 
 import dcv.core.memory;
 import dcv.core.utils;
@@ -116,8 +117,10 @@ in
 body
 {
     import mir.ndslice.allocation;
-    if (prealloc.shape != input.shape)
-        prealloc = uninitializedSlice!(DeepElementType!InputTensor)(input.shape);
+
+    static if (prealloc._strides.length == 0)
+        if (prealloc.shape != input.shape)
+            prealloc = uninitializedSlice!(DeepElementType!InputTensor)(input.shape);
 
     return convImpl!bc(input, kernel, prealloc, mask, pool);
 }
@@ -245,8 +248,17 @@ if (InputTensor.init.shape.length == 3)
     return prealloc;
 }
 
-void handleEdgeConv1d(alias bc, T, K, M)(Slice!(1, T*) input, Slice!(1, T*) prealloc, Slice!(1,
-        K*) kernel, Slice!(1, M*) mask, size_t from, size_t to)
+void handleEdgeConv1d(alias bc, T, K, M,
+    SliceKind kindi,
+    SliceKind kindp,
+    SliceKind kindk,
+    SliceKind kindm,
+    )(
+    Slice!(kindi, [1], T*) input,
+    Slice!(kindp, [1], T*) prealloc,
+    Slice!(kindk, [1], K*) kernel,
+    Slice!(kindm, [1], M*) mask,
+    size_t from, size_t to)
 in
 {
     assert(from < to);
