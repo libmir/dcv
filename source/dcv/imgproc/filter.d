@@ -200,7 +200,7 @@ Laplacian(I) =
 Slice!(SliceKind.contiguous, [2], T*) laplacian(T = double)(T a = 0.) pure nothrow if (isNumeric!T)
 in
 {
-    assert(a >= 0. && a <= 1.);
+    assert(a >= 0 && a <= 1);
 }
 body
 {
