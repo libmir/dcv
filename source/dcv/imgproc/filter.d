@@ -1290,7 +1290,6 @@ void medianFilterImpl1(alias bc, T, O, SliceKind kind0, SliceKind kind1)(
 
     import mir.utility : max;
 
-
     int kh = max(1, cast(int)kernelSize / 2);
 
     auto kernelStorage = pool.workerLocalStorage(new T[kernelSize]);
