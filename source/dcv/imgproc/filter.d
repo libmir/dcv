@@ -205,9 +205,9 @@ in
 body
 {
     auto k = uninitializedSlice!T(3, 3);
-    auto m = 4. / (a + 1.);
-    auto e1 = (a / 4.) * m;
-    auto e2 = ((1. - a) / 4.) * m;
+    auto m = 4 / (a + 1);
+    auto e1 = (a / 4) * m;
+    auto e2 = ((1 - a) / 4) * m;
     k[0, 0] = e1;
     k[0, 2] = e1;
     k[2, 0] = e1;
