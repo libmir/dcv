@@ -90,12 +90,13 @@ class SparsePyramidFlow : SparseOpticalFlow
         auto lpoints = points.dup;
         auto lsearchRegions = searchRegions.dup;
 
-        lpoints.sliced.each!((ref v) => v = [v[0] / flowScale[0], v[1] / flowScale[1]]);
-        lsearchRegions.sliced.each!((ref v) => v = [v[0] / flowScale[0], v[1] / flowScale[1]]);
+        alias scale = (ref v) { v[0] /= flowScale[0]; v[1] /= flowScale[1]; };
+        lpoints.sliced.each!scale;
+        lsearchRegions.sliced.each!scale;
 
         if (usePrevious)
         {
-            flow.sliced.each!((ref v) => v = [v[0] / flowScale[0], v[1] / flowScale[1]]);
+            flow.sliced.each!scale;
         }
         else
         {
@@ -145,9 +146,10 @@ class SparsePyramidFlow : SparseOpticalFlow
 
             if (i < levelCount - 1)
             {
-                flow.sliced.each!((ref v) => v = [v[0] * 2.0f, v[1] * 2.0f]);
-                lpoints.sliced.each!((ref v) => v = [v[0] * 2, v[1] * 2]);
-                lsearchRegions.sliced.each!((ref v) => v = [v[0] * 2, v[1] * 2]);
+                alias twice = (ref v) { v[0] += v[0]; v[1] += v[1]; };
+                flow.sliced.each!twice;
+                lpoints.sliced.each!twice;
+                lsearchRegions.sliced.each!twice;
             }
         }
 
