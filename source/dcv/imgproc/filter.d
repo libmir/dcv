@@ -1301,17 +1301,15 @@ void medianFilterImpl1(alias bc, T, O, SliceKind kind0, SliceKind kind1)(
 {
     import std.algorithm.sorting : topN;
     import std.parallelism;
-    import std.range : iota;
 
     import mir.utility : max;
-
 
     int kh = max(1, cast(int)kernelSize / 2);
     int length = cast(int)slice.length!0;
 
     auto kernelStorage = pool.workerLocalStorage(new T[kernelSize]);
 
-    foreach (i; pool.parallel(length.iota))
+    foreach (i; pool.parallel(length.iota!long))
     {
         auto kernel = kernelStorage.get();
         size_t ki = 0;
@@ -1329,8 +1327,6 @@ void medianFilterImpl2(alias bc, T, O, SliceKind kind0, SliceKind kind1)(
     Slice!(kind1, [2], O*) filtered,
     size_t kernelSize, TaskPool pool)
 {
-    import std.range : iota;
-
     int kh = max(1, cast(int)kernelSize / 2);
     int n = cast(int)(kernelSize * kernelSize);
     int m = n / 2;
@@ -1339,7 +1335,7 @@ void medianFilterImpl2(alias bc, T, O, SliceKind kind0, SliceKind kind1)(
 
     auto kernelStorage = pool.workerLocalStorage(new T[kernelSize * kernelSize]);
 
-    foreach (r; pool.parallel(iota(rows)))
+    foreach (r; pool.parallel(rows.iota!long))
     {
         auto kernel = kernelStorage.get();
         foreach (c; 0 .. cols)
