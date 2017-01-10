@@ -968,8 +968,6 @@ body
     return prealloc;
 }
 
-deprecated("Use dcv.imgproc.filter.histEqualize") alias histEqual = histEqualize;
-
 /**
 Perform morphological $(LINK3 https://en.wikipedia.org/wiki/Erosion_(morphology),erosion).
 
