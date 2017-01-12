@@ -450,7 +450,7 @@ Slice!(kind, packs, V*) transformPerspective(alias interp = linear, V, Transform
     }
     else
     {
-      //static assert(0, "Invalid transform matrix type: " ~ typeof(transform).stringof);
+        static assert(0, "Invalid transform matrix type: " ~ typeof(transform).stringof);
     }
 }
 
