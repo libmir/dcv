@@ -344,57 +344,54 @@ private enum TransformType : size_t
     PERSPECTIVE_TRANSFORM = 1
 }
 
-private enum bool _isSlice(T) = is(T : Slice!(N, Range), size_t N, Range);
+private static bool isTransformMatrix(TransformMatrix)()
+{
+    // static if its float[][], or its Slice!(SliceKind.contiguous, [2], float*)
+    import std.traits : isScalarType, isPointer, TemplateArgsOf, PointerTarget;
 
-//private static bool isTransformMatrix(TransformMatrix)()
-//{
-//    // static if its float[][], or its Slice!(2, float*)
-//    import std.traits : isScalarType, isPointer, TemplateArgsOf, PointerTarget;
+    static if (isArray!TransformMatrix)
+    {
+        static if (isArray!(ElementType!TransformMatrix)
+                && isScalarType!(ElementType!(ElementType!TransformMatrix))
+                && isFloatingPoint!(ElementType!(ElementType!TransformMatrix)))
+            return true;
+        else
+            return false;
+    }
+    else static if (isSlice!TransformMatrix)
+    {
+        static if (kindOf!TransformMatrix == SliceKind.contiguous &&
+                TemplateArgsOf!(TransformMatrix)[1] == [2] &&
+                isFloatingPoint!(DeepElementType!TransformMatrix))
+            return true;
+        else
+            return false;
+    }
+    else
+    {
+        return false;
+    }
+}
 
-//    static if (isArray!TransformMatrix)
-//    {
-//        static if (isArray!(ElementType!TransformMatrix)
-//                && isScalarType!(ElementType!(ElementType!TransformMatrix))
-//                && isFloatingPoint!(ElementType!(ElementType!TransformMatrix)))
-//            return true;
-//        else
-//            return false;
-//    }
-//    else static if (_isSlice!TransformMatrix)
-//    {
-//        if ((TemplateArgsOf!TransformMatrix)[0] == 2
-//                && isPointer!((TemplateArgsOf!TransformMatrix)[1])
-//                && isFloatingPoint!(PointerTarget!((TemplateArgsOf!TransformMatrix)[1])))
-//        {
-//            return true;
-//        }
-//        else
-//        {
-//            return false;
-//        }
-//    }
-//    else
-//    {
-//        return false;
-//    }
-//}
+unittest
+{
+    static assert(isTransformMatrix!(float[][]));
+    static assert(isTransformMatrix!(double[][]));
+    static assert(isTransformMatrix!(real[][]));
+    static assert(isTransformMatrix!(real[3][3]));
+    static assert(isTransformMatrix!(Slice!(SliceKind.contiguous, [2], float*)));
+    static assert(isTransformMatrix!(Slice!(SliceKind.contiguous, [2], double*)));
+    static assert(isTransformMatrix!(Slice!(SliceKind.contiguous, [2], real*)));
 
-//unittest
-//{
-//    static assert(isTransformMatrix!(float[][]));
-//    static assert(isTransformMatrix!(double[][]));
-//    static assert(isTransformMatrix!(real[][]));
-//    static assert(isTransformMatrix!(real[3][3]));
-//    static assert(isTransformMatrix!(Slice!(2, float*)));
-//    static assert(isTransformMatrix!(Slice!(2, double*)));
-//    static assert(isTransformMatrix!(Slice!(2, real*)));
+    static assert(!isTransformMatrix!(Slice!(SliceKind.universal, [2], real*)));
+    static assert(!isTransformMatrix!(Slice!(SliceKind.canonical, [2], real*)));
 
-//    static assert(!isTransformMatrix!(int[][]));
-//    static assert(!isTransformMatrix!(real[]));
-//    static assert(!isTransformMatrix!(real[][][]));
-//    static assert(!isTransformMatrix!(Slice!(2, int*)));
-//    static assert(!isTransformMatrix!(Slice!(SliceKind.contiguous, [1], float*)));
-//}
+    static assert(!isTransformMatrix!(int[][]));
+    static assert(!isTransformMatrix!(real[]));
+    static assert(!isTransformMatrix!(real[][][]));
+    static assert(!isTransformMatrix!(Slice!(SliceKind.contiguous, [2], int*)));
+    static assert(!isTransformMatrix!(Slice!(SliceKind.contiguous, [1], float*)));
+}
 
 /**
 Transform an image by given affine transformation.
@@ -415,14 +412,14 @@ Returns:
 */
 Slice!(kind, packs, V*) transformAffine(alias interp = linear, V, TransformMatrix, SliceKind kind, size_t[] packs)(Slice!(kind, packs, V*) slice, inout TransformMatrix transform, size_t[2] outSize = [0, 0])
 {
-    //static if (isTransformMatrix!TransformMatrix)
-    //{
-        return transformImpl!(TransformType.AFFINE_TRANSFORM, interp)(slice, transform, outSize);
-    //}
-    //else
-    //{
-    //    static assert(0, "Invalid transform matrix type: " ~ typeof(transform).stringof);
-    //}
+    static if (isTransformMatrix!TransformMatrix)
+    {
+      return transformImpl!(TransformType.AFFINE_TRANSFORM, interp)(slice, transform, outSize);
+    }
+    else
+    {
+        static assert(0, "Invalid transform matrix type: " ~ typeof(transform).stringof);
+    }
 }
 
 /**
@@ -447,14 +444,14 @@ Slice!(kind, packs, V*) transformPerspective(alias interp = linear, V, Transform
     TransformMatrix transform,
     size_t[2] outSize = [0, 0])
 {
-    //static if (isTransformMatrix!TransformMatrix)
-    //{
-        return transformImpl!(TransformType.PERSPECTIVE_TRANSFORM, linear)(slice, transform, outSize);
-    //}
-    //else
-    //{
-        //static assert(0, "Invalid transform matrix type: " ~ typeof(transform).stringof);
-    //}
+    static if (isTransformMatrix!TransformMatrix)
+    {
+      return transformImpl!(TransformType.PERSPECTIVE_TRANSFORM, linear)(slice, transform, outSize);
+    }
+    else
+    {
+      //static assert(0, "Invalid transform matrix type: " ~ typeof(transform).stringof);
+    }
 }
 
 version (unittest)
