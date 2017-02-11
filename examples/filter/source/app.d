@@ -80,17 +80,22 @@ int main(string[] args)
     return 0;
 }
 
-auto saltNPepper(T, SliceKind kind)(Slice!(kind, [2], T*) slice, float saturation) 
+auto saltNPepper(T, SliceKind kind)(Slice!(kind, [2], T*) input, float saturation)
 {
     import std.range : lockstep;
     import std.random : uniform;
 
     int err;
-    ulong pixelCount = slice.length!0*slice.length!1;
+    ulong pixelCount = input.length!0*input.length!1;
     ulong noisyPixelCount = cast(typeof(pixelCount))(pixelCount * saturation);
 
-    auto noisyPixels = noisyPixelCount.iota.map!(x => uniform(0, pixelCount)).slice;
-    auto imdata = slice.reshape([pixelCount], err);
+    auto noisyPixels = slice!size_t(noisyPixelCount);
+    foreach(ref e; noisyPixels)
+    {
+        e = uniform(0, pixelCount);
+    }
+
+    auto imdata = input.reshape([pixelCount], err);
 
     assert(err == 0);
 
@@ -99,5 +104,5 @@ auto saltNPepper(T, SliceKind kind)(Slice!(kind, [2], T*) slice, float saturatio
         imdata[salt] = cast(T)255;
         imdata[pepper] = cast(T)0;
     }
-    return slice;
+    return input;
 }
