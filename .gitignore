@@ -7,3 +7,4 @@ libdcv*.a
 
 *.sublime-project
 *.o
+.DS_Store
