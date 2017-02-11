@@ -450,7 +450,7 @@ DisparityRefiner bilateralDisparityFilter(uint windowSize, float sigmaCol, float
 {
     void disparityRefiner(const ref StereoPipelineProperties props, DisparityMap disp)
     {
-        disp[] = bilateralFilter(disp, sigmaCol, sigmaSpace, windowSize);
+        disp[] = bilateralFilter!DisparityType(disp, sigmaCol, sigmaSpace, windowSize);
     }
 
     return &disparityRefiner;
