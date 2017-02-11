@@ -140,8 +140,11 @@ int main(string[] args)
         if (corners.length < (cornerCount / 2))
         {
             writeln("Search features again...");
-            auto c = shiTomasiCorners(prevFrame.sliced.reshape(h, w).as!float.slice, cast(uint)cornerW)
+            int err;
+            auto c = shiTomasiCorners(prevFrame.sliced.reshape([h, w], err).as!float.slice, cast(uint)cornerW)
                 .filterNonMaximum.extractCorners(cornerCount);
+
+            assert(err == 0);
 
             foreach (v; c)
                 corners ~= [cast(float)v[0], cast(float)v[1]];
@@ -176,7 +179,9 @@ int main(string[] args)
         }
 
         // draw tracked corners and write the image
-        auto f2c = thisFrame.sliced.reshape(h, w).gray2rgb.as!float.slice;
+        int err;
+        auto f2c = thisFrame.sliced.reshape([h, w], err).gray2rgb.as!float.slice;
+        assert(err == 0);
 
         // plot tracked points on screen.
         f2c.plot(plotPoints(corners), "KLT");

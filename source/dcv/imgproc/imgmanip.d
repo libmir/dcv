@@ -596,8 +596,8 @@ Slice!(SliceKind.contiguous, [2], float*) invertTransformMatrix(TransformMatrix)
     return result;
 }
 
-Slice!(kind, packs, V*) transformImpl(TransformType transformType, alias interp, V, TransformMatrix, SliceKind kind, size_t[] packs)(
-        Slice!(kind, packs, V*) slice, TransformMatrix transform, size_t[2] outSize)
+Slice!(kind, packs, V*) transformImpl(TransformType transformType, alias interp, V, TransformMatrix, SliceKind kind, size_t[] packs)
+    (Slice!(kind, packs, V*) slice, TransformMatrix transform, size_t[2] outSize)
 in
 {
     static assert(packs[0] == 2 || packs[0] == 3, "Unsupported slice dimension (only 2D and 3D supported)");
@@ -633,7 +633,7 @@ body
 
     static if (packs[0] == 3)
     {
-        auto sliceChannels = new Slice!(2, V*)[N];
+        auto sliceChannels = new typeof(slice[0..$, 0..$, 0])[packs[0]];
         foreach (c; iota(slice.length!2))
         {
             sliceChannels[c] = slice[0 .. $, 0 .. $, c];

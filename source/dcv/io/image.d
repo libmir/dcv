@@ -25,6 +25,8 @@ import std.path : extension;
 
 import imageformats;
 
+import mir.ndslice.topology : reshape;
+
 public import dcv.core.image;
 
 version (unittest)
@@ -176,11 +178,14 @@ path = Path where the image will be written.
 return:
 Status of the writing as bool.
 */
-bool imwrite(size_t dims, T)(Slice!(dims, T*) slice, ImageFormat format, in string path)
+bool imwrite(SliceKind kind, size_t []packs, T)(Slice!(kind, packs, T*) slice, ImageFormat format, in string path)
 {
-    static assert(dims >= 2);
+    static assert(packs.length == 1, "Packed slices are not allowed in imwrite.");
+    static assert(packs[0] == 2 || packs[0] == 3, "Slice has to be 2 or 3 dimensional.");
 
-    auto sdata = slice.reshape(slice.elementsCount).array;
+    int err;
+    auto sdata = slice.reshape([slice.elementsCount], err).array;
+    assert(err == 0, "Internal error, cannot reshape the slice."); // should never happen, right?
 
     static if (is(T == ubyte))
     {

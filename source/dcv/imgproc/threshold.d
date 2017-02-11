@@ -40,8 +40,9 @@ Note:
     (i.e. have same strides). If prealloc buffer is not given, and is
     allocated anew, input slice memory must be contiguous.
 */
-nothrow Slice!(N, OutputType*) threshold(OutputType, InputType, size_t N)(Slice!(N, InputType*) input,
-        InputType lowThresh, InputType highThresh, Slice!(N, OutputType*) prealloc = emptySlice!(N, OutputType))
+nothrow Slice!(Contiguous, packs, OutputType*) threshold(OutputType, InputType, SliceKind kind, size_t []packs)
+    (Slice!(kind, packs, InputType*) input, InputType lowThresh, InputType highThresh,
+    Slice!(Contiguous, packs, OutputType*) prealloc = emptySlice!(packs, OutputType))
 in
 {
     //TODO: consider leaving upper value, and not setting it to 1.
@@ -103,8 +104,9 @@ Note:
     (i.e. have same strides). If prealloc buffer is not given, and is
     allocated anew, input slice memory must be contiguous.
 */
-nothrow Slice!(N, OutputType*) threshold(OutputType, InputType, size_t N)(Slice!(N, InputType*) slice,
-        InputType thresh, Slice!(N, OutputType*) prealloc = emptySlice!(N, OutputType))
+nothrow Slice!(Contiguous, packs, OutputType*) threshold(OutputType, InputType, SliceKind kind, size_t []packs)
+    (Slice!(kind, packs, InputType*) input, InputType thresh,
+    Slice!(Contiguous, packs, OutputType*) prealloc = emptySlice!(packs, OutputType))
 {
     return threshold!(OutputType, InputType, N)(slice, thresh, thresh, prealloc);
 }

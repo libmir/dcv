@@ -107,7 +107,7 @@ mixin template BaseRht()
     }
 
     /// Run RHT using non-zero points in image as edge points.
-    auto opCall(T)(Slice!(2, T*) image)
+    auto opCall(T, SliceKind kind)(Slice!(kind, [2], T*) image)
     {
         import std.array : appender;
 
@@ -129,26 +129,26 @@ mixin template BaseRht()
     }
 
     /// Run RHT using prepopullated array of edge points (that may be filtered beforehand).
-    auto opCall(T, Range)(Slice!(2, T*) image, Range points) if (isInputRange!Range)
+    auto opCall(T, SliceKind kind, Range)(Slice!(kind, [2], T*) image, Range points) if (isInputRange!Range)
     {
-        auto r = RhtRange!(T, ElementType!Range)(this, image, points);
+        auto r = RhtRange!(T, kind, ElementType!Range)(this, image, points);
         r.popFront(); // prime the detection process
         return r;
     }
 
-    static struct RhtRange(T, P)
+    static struct RhtRange(T, SliceKind kind, P)
     {
     private:
         import std.container, std.random;
 
         This _rht; // RHT struct with key primitives and parameters
-        Slice!(2, T*) _image; // image with edge points
+        Slice!(kind, [2], T*) _image; // image with edge points
         Tuple!(Curve, int)[Key] _accum; // accumulator, parametrized on Key/Curve tuples
         Array!P _points; // extracted edge points
         int _epouch; // current epouch of iteration
         Curve _current; // current detected curve
         Xorshift rng;
-        this(Range)(This rht, Slice!(2, T*) image, Range points)
+        this(Range)(This rht, Slice!(kind, [2], T*) image, Range points)
         {
             _rht = rht;
             _image = image;
@@ -276,7 +276,7 @@ struct RhtLines
         return Key(rint(angle / _angleTol), rint(c.b / _interceptTol));
     }
 
-    auto fitCurve(Range, Sample)(Slice!(2, Range) image, Sample sample)
+    auto fitCurve(Range, SliceKind kind, Sample)(Slice!(kind, [2], Range) image, Sample sample)
     {
         int x1 = sample[0].x, y1 = sample[0].y;
         int x2 = sample[1].x, y2 = sample[1].y;
@@ -320,7 +320,7 @@ struct RhtCircles
         return Key(toInt(c.x / _centerTol), toInt(c.y / _centerTol), toInt(c.r / _radiusTol));
     }
 
-    auto fitCurve(Range, Sample)(Slice!(2, Range) image, Sample sample)
+    auto fitCurve(Range, SliceKind kind, Sample)(Slice!(kind, [2], Range) image, Sample sample)
     {
         import std.math : sqrt, pow;
 
@@ -369,7 +369,7 @@ struct RhtEllipses
                 toInt(c.b / _axisTol), toInt(c.phi / _phiTol));
     }
 
-    auto fitCurve(Range, Sample)(Slice!(2, Range) image, Sample sample)
+    auto fitCurve(Range, SliceKind kind, Sample)(Slice!(kind, [2], Range) image, Sample sample)
     {
         Curve c;
         //TODO:

@@ -49,12 +49,12 @@ Returns:
     Dynamic array of size_t[2], as in array of 2D points, of corner reponses 
     which fit the given criteria.
 */
-pure nothrow auto extractCorners(SliceKind kind, T)
-    (Slice!(kind, [2], T*) cornerResponse, int count = -1, T threshold = 0)
-    if ( isNumeric!T )
+pure nothrow auto extractCorners(T)
+    (Slice!(Contiguous, [2], T*) cornerResponse, int count = -1, T threshold = 0)
+if ( isNumeric!T )
 {
     import std.algorithm.sorting : topN;
-    import std.algorithm.iteration : map, filter;
+    import std.algorithm.iteration : map, filter, each;
     import std.array : array;
 
     import mir.ndslice.topology : zip, flattened, ndiota;
