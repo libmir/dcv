@@ -1,6 +1,6 @@
 module dcv.example.imgmanip;
 
-/** 
+/**
  * Corner extraction example, by using Harris and Shi-Tomasi algorithms.
  */
 
@@ -16,6 +16,7 @@ import dcv.plot;
 import ggplotd.ggplotd;
 import ggplotd.geom;
 import ggplotd.aes;
+
 
 void main()
 {
@@ -65,16 +66,17 @@ void visualizeCornerResponse(SliceKind kind)(Slice!(kind, [2], float*) response,
         .imwrite("result/" ~ windowName ~ ".png");
 }
 
-void cornerPlot(SliceKind kind)(Slice!(kind, [3], ubyte*) slice, ulong[2][] corners, string windowName)
+void cornerPlot(SliceKind kind)(Slice!(kind, [3], ubyte*) slice, size_t[2][] corners, string windowName)
 {
-    // separate coordinate values
-    auto xs = corners.ptr.ptr.sliced(corners.length * 2).stride(2);
-    auto ys = xs;
-    xs._iterator++;
-
     import std.array : array;
-    auto aes = Aes!(typeof(xs), "x", typeof(ys), "y", bool[], "fill", string[], "colour")(xs, ys,
-            false.repeat(xs.length).array, "red".repeat(xs.length).array);
+    import std.algorithm.iteration : map;
+
+    // separate coordinate values
+    auto xs = corners.map!(e => e[1]);
+    auto ys = corners.map!(e => e[0]);
+
+    auto aes = Aes!(typeof(xs), "x", typeof(ys), "y", bool[], "fill", string[], "colour")
+                   (xs, ys, false.repeat(xs.length).array, "red".repeat(xs.length).array);
 
     auto gg = GGPlotD().put(geomPoint(aes));
 
