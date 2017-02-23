@@ -199,7 +199,7 @@ Laplacian(I) =
 )
 
 */
-Slice!(SliceKind.contiguous, [2], T*) laplacian(T = double)(T a = 0.) pure nothrow if (isNumeric!T)
+Slice!(Contiguous, [2], T*) laplacian(T = double)(T a = 0.) pure nothrow if (isNumeric!T)
 in
 {
     assert(a >= 0 && a <= 1);
@@ -236,7 +236,7 @@ Params:
     width = width of the kernel matrix
     height = height of the kernel matrix
 */
-Slice!(SliceKind.contiguous, [2], T*) laplacianOfGaussian(T = double)(T sigma,
+Slice!(Contiguous, [2], T*) laplacianOfGaussian(T = double)(T sigma,
     size_t width, size_t height)
 {
     import std.traits : isFloatingPoint;
@@ -303,25 +303,25 @@ public enum EdgeKernel
 }
 
 /// Create a Sobel edge kernel.
-Slice!(SliceKind.contiguous, [2], T*) sobel(T = double)(GradientDirection direction) nothrow pure @trusted
+Slice!(Contiguous, [2], T*) sobel(T = double)(GradientDirection direction) nothrow pure @trusted
 {
     return edgeKernelImpl!(T)(direction, cast(T)1, cast(T)2);
 }
 
 /// Create a Scharr edge kernel.
-Slice!(SliceKind.contiguous, [2], T*) scharr(T = double)(GradientDirection direction) nothrow pure @trusted
+Slice!(Contiguous, [2], T*) scharr(T = double)(GradientDirection direction) nothrow pure @trusted
 {
     return edgeKernelImpl!(T)(direction, cast(T)3, cast(T)10);
 }
 
 /// Create a Prewitt edge kernel.
-Slice!(SliceKind.contiguous, [2], T*) prewitt(T = double)(GradientDirection direction) nothrow pure @trusted
+Slice!(Contiguous, [2], T*) prewitt(T = double)(GradientDirection direction) nothrow pure @trusted
 {
     return edgeKernelImpl!(T)(direction, cast(T)1, cast(T)1);
 }
 
 /// Create a kernel of given type.
-Slice!(SliceKind.contiguous, [2], T*) edgeKernel(T)(EdgeKernel kernelType,
+Slice!(Contiguous, [2], T*) edgeKernel(T)(EdgeKernel kernelType,
     GradientDirection direction) nothrow pure @trusted
 {
     typeof(return) k;
@@ -342,7 +342,7 @@ Slice!(SliceKind.contiguous, [2], T*) edgeKernel(T)(EdgeKernel kernelType,
     return k;
 }
 
-private Slice!(SliceKind.contiguous, [2], T*) edgeKernelImpl(T)(
+private Slice!(Contiguous, [2], T*) edgeKernelImpl(T)(
     GradientDirection direction, T lv, T hv) nothrow pure @trusted
 {
     final switch (direction)
@@ -423,8 +423,8 @@ Partial derivatives are calculated by convolving an slice with
 [-1, 1] kernel, horizontally and vertically.
 */
 void calcPartialDerivatives(InputTensor, V = DeepElementType!InputTensor)(
-    InputTensor input, ref Slice!(SliceKind.contiguous, [2], V*) fx,
-    ref Slice!(SliceKind.contiguous, [2], V*) fy, TaskPool pool = taskPool) if (isFloatingPoint!V)
+    InputTensor input, ref Slice!(Contiguous, [2], V*) fx,
+    ref Slice!(Contiguous, [2], V*) fy, TaskPool pool = taskPool) if (isFloatingPoint!V)
 in
 {
     static assert(isSlice!InputTensor,
@@ -690,11 +690,15 @@ Params:
 Returns:
     Slice of filtered image.
 */
-Slice!(Contiguous, packs, OutputType*) bilateralFilter(OutputType,
-    alias bc = neumann, SliceKind kind, size_t[] packs, Iterator)(Slice!(kind,
-    packs, Iterator) input, float sigmaCol, float sigmaSpace, size_t kernelSize,
+Slice!(Contiguous, packs, OutputType*) bilateralFilter(OutputType, alias bc = neumann, SliceKind kind, size_t[] packs, Iterator)
+(
+    Slice!(kind, packs, Iterator) input,
+    float sigmaCol,
+    float sigmaSpace,
+    size_t kernelSize,
     Slice!(Contiguous, packs, OutputType*) prealloc = emptySlice!(packs, OutputType),
-    TaskPool pool = taskPool)
+    TaskPool pool = taskPool
+)
 in
 {
     static assert(isBoundaryCondition!bc, "Invalid boundary condition test function.");
@@ -801,11 +805,13 @@ Returns:
     of same size as input slice, return value is assigned to prealloc buffer. If not, newly allocated buffer
     is used.
 */
-Slice!(SliceKind.contiguous, packs, O*) medianFilter(
-    alias BoundaryConditionTest = neumann, T, O = T, SliceKind kind, size_t[] packs)(
-    Slice!(kind, packs, T*) slice, size_t kernelSize,
-    Slice!(SliceKind.contiguous, packs, O*) prealloc = emptySlice!(packs, O),
-    TaskPool pool = taskPool)
+Slice!(Contiguous, packs, O*) medianFilter(alias BoundaryConditionTest = neumann, T, O = T, SliceKind kind, size_t[] packs)
+(
+    Slice!(kind, packs, T*) slice,
+    size_t kernelSize,
+    Slice!(Contiguous, packs, O*) prealloc = emptySlice!(packs, O),
+    TaskPool pool = taskPool
+)
 in
 {
     import std.traits : isAssignable;
@@ -943,10 +949,11 @@ Params:
 Returns:
     Copy of input image slice with its histogram values equalized.
 */
-Slice!(N, T*) histEqualize(T, HistogramType, size_t N)(Slice!(N, T*) slice,
-    HistogramType histogram, Slice!(N, T*) prealloc = emptySlice!([N], T))
+auto histEqualize(T, HistogramType, SliceKind kind, size_t[] packs)(Slice!(kind, packs, T*) slice,
+    HistogramType histogram, Slice!(Contiguous, packs, T*) prealloc = emptySlice!(packs, T))
 in
 {
+    static assert(packs.length == 1, "Packed slices are not allowed.");
     assert(!slice.empty());
     static if (isDynamicArray!HistogramType)
     {
@@ -955,6 +962,8 @@ in
 }
 body
 {
+    immutable N = packs[0];
+
     int n = cast(int)slice.elementsCount; // number of pixels in image.
     immutable tmax = cast(int)T.max; // maximal possible value for pixel value type.
 
@@ -1364,8 +1373,8 @@ void medianFilterImpl2(alias bc, T, O, SliceKind kind0, SliceKind kind1)(
     }
 }
 
-void medianFilterImpl3(alias bc, T, O, SliceKind kind)(Slice!(kind, [3],
-    T*) slice, Slice!(SliceKind.contiguous, [3], O*) filtered, size_t kernelSize, TaskPool pool)
+void medianFilterImpl3(alias bc, T, O, SliceKind kind)
+    (Slice!(kind, [3], T*) slice, Slice!(Contiguous, [3], O*) filtered, size_t kernelSize, TaskPool pool)
 {
     foreach (channel; 0 .. slice.length!2)
     {
@@ -1374,8 +1383,8 @@ void medianFilterImpl3(alias bc, T, O, SliceKind kind)(Slice!(kind, [3],
     }
 }
 
-void histEqualImpl(T, Cdf, SliceKind kind0, SliceKind kind1)(Slice!(kind0,
-    [2], T*) slice, Cdf cdf, Slice!(kind1, [2], T*) prealloc = emptySlice!([2], T))
+void histEqualImpl(T, Cdf, SliceKind kind0, SliceKind kind1)
+    (Slice!(kind0, [2], T*) slice, Cdf cdf, Slice!(kind1, [2], T*) prealloc = emptySlice!([2], T))
 {
     foreach (e; zip(prealloc.flattened, slice.flattened))
         e.a = cast(T)(e.b * cdf[e.b]);
@@ -1387,10 +1396,9 @@ enum MorphologicOperation
     DILATE
 }
 
-Slice!(kind, [2], T*) morphOp(MorphologicOperation op,
-    alias BoundaryConditionTest = neumann, T, SliceKind kind)(Slice!(kind,
-    [2], T*) slice, Slice!(kind, [2], T*) kernel, Slice!(kind, [2], T*) prealloc, TaskPool pool) if (
-        isBoundaryCondition!BoundaryConditionTest)
+Slice!(kind, [2], T*) morphOp(MorphologicOperation op, alias BoundaryConditionTest = neumann, T, SliceKind kind)
+    (Slice!(kind, [2], T*) slice, Slice!(kind, [2], T*) kernel, Slice!(kind, [2], T*) prealloc, TaskPool pool)
+if (isBoundaryCondition!BoundaryConditionTest)
 in
 {
     assert(!slice.empty);
