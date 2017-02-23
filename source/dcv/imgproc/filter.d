@@ -690,10 +690,11 @@ Params:
 Returns:
     Slice of filtered image.
 */
-Slice!(Contiguous, packs, OutputType*) bilateralFilter
-    (OutputType, alias bc = neumann, SliceKind kind, size_t []packs, Iterator)
-    (Slice!(kind, packs, Iterator) input, float sigmaCol, float sigmaSpace, size_t kernelSize,
-    Slice!(Contiguous, packs, OutputType*) prealloc = emptySlice!(packs, OutputType), TaskPool pool = taskPool)
+Slice!(Contiguous, packs, OutputType*) bilateralFilter(OutputType,
+    alias bc = neumann, SliceKind kind, size_t[] packs, Iterator)(Slice!(kind,
+    packs, Iterator) input, float sigmaCol, float sigmaSpace, size_t kernelSize,
+    Slice!(Contiguous, packs, OutputType*) prealloc = emptySlice!(packs, OutputType),
+    TaskPool pool = taskPool)
 in
 {
     static assert(isBoundaryCondition!bc, "Invalid boundary condition test function.");
@@ -728,9 +729,9 @@ body
     return prealloc;
 }
 
-private void bilateralFilter2
-    (OutputType, alias bc = neumann, SliceKind outputKind, SliceKind kind, Iterator)
-    (Slice!(kind, [2], Iterator) input, float sigmaCol, float sigmaSpace, size_t kernelSize,
+private void bilateralFilter2(OutputType, alias bc = neumann,
+    SliceKind outputKind, SliceKind kind, Iterator)(Slice!(kind, [2],
+    Iterator) input, float sigmaCol, float sigmaSpace, size_t kernelSize,
     Slice!(outputKind, [2], OutputType*) prealloc, TaskPool pool = taskPool)
 in
 {
@@ -749,20 +750,20 @@ body
     auto threadMask = pool.workerLocalStorage(slice!float(ks, ks));
 
     foreach (r; pool.parallel(iota(inShape[0])))
-        {
+    {
         auto maskBuf = threadMask.get();
         foreach (c; 0 .. inShape[1])
-            {
+        {
             innerBody[r, c] = bilateralFilterImpl(inputWindows[r, c], maskBuf, sigmaCol, sigmaSpace);
         }
     }
 
     foreach (border; pool.parallel(input.shape.borders(ks)[]))
-        {
+    {
         auto maskBuf = threadMask.get();
         foreach (r; border.rows)
             foreach (c; border.cols)
-                {
+            {
                 import mir.ndslice.field;
                 import mir.ndslice.iterator;
 
@@ -774,13 +775,13 @@ body
                     auto opIndex(ptrdiff_t index)
                     {
                         auto ret = _field[index];
-                        ret[0] -= _shift[0];
-                        ret[1] -= _shift[1];
-                        return bc(_input, ret[0], ret[1]);
+                        ptrdiff_t r = _shift[0] - cast(ptrdiff_t)ret[0];
+                        ptrdiff_t c = _shift[1] - cast(ptrdiff_t)ret[1];
+                        return bc(_input, r, c);
                     }
                 }
 
-                auto inputWindow = FieldIterator!ndIotaWithShiftField(0, ndIotaWithShiftField([r + kh, c + kh], ndIotaField!2.init, input)).sliced(ks, ks);
+                auto inputWindow = FieldIterator!ndIotaWithShiftField(0, ndIotaWithShiftField([r + kh, c + kh], ndIotaField!2(ks), input)).sliced(ks, ks);
                 prealloc[r, c] = bilateralFilterImpl(inputWindow, maskBuf, sigmaCol, sigmaSpace);
             }
     }
