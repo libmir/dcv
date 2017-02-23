@@ -940,13 +940,16 @@ version(ggplotd) void drawGGPlotD(GGPlotD gg,  ubyte[] data,  int width, int hei
 
     cairo.Surface surface = new cairo.ImageSurface(cairo.Format.CAIRO_FORMAT_RGB24, width, height);
     gg.drawToSurface(surface, width, height);
+
+    surface.flush();
+
     auto imSurface = cast(cairo.ImageSurface)surface; 
     auto surfData = imSurface.getData();
 
     foreach (r; iota(height))
         foreach (c; 0 .. width)
         {
-            auto pixpos = (height - r) * width * 4 + c * 4;
+            auto pixpos = (height - r - 1) * width * 4 + c * 4;
             auto dpixpos = r * width * 3 + c * 3;
             auto alpha = surfData[pixpos + 3];
             if (alpha)
