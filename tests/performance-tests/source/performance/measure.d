@@ -21,6 +21,12 @@ import dcv.multiview;
 import dcv.tracking;
 import dcv.io;
 
+import mir.ndslice;
+
+alias map = std.algorithm.iteration.map;
+alias each = std.algorithm.iteration.each;
+alias iota = std.range.iota;
+
 immutable imsize = 128;
 size_t iterations = 1_000;
 
@@ -93,28 +99,28 @@ auto run_dcv_features_corner_harris_harrisCorners_3()
 {
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&harrisCorners!(float, float), image, 3, 0.64, 0.84, result, taskPool);
+    return evalBenchmark(&harrisCorners!(float, float, Contiguous), image, 3, 0.64, 0.84, result, taskPool);
 }
 
 auto run_dcv_features_corner_harris_harrisCorners_5()
 {
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&harrisCorners!(float, float), image, 5, 0.64, 0.84, result, taskPool);
+    return evalBenchmark(&harrisCorners!(float, float, Contiguous), image, 5, 0.64, 0.84, result, taskPool);
 }
 
 auto run_dcv_features_corner_harris_shiTomasiCorners_3()
 {
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&shiTomasiCorners!(float, float), image, 3, 0.84, result, taskPool);
+    return evalBenchmark(&shiTomasiCorners!(float, float, Contiguous), image, 3, 0.84, result, taskPool);
 }
 
 auto run_dcv_features_corner_harris_shiTomasiCorners_5()
 {
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&shiTomasiCorners!(float, float), image, 5, 0.84, result, taskPool);
+    return evalBenchmark(&shiTomasiCorners!(float, float, Contiguous), image, 5, 0.84, result, taskPool);
 }
 
 auto run_dcv_features_corner_fast_FASTDetector()
@@ -135,13 +141,14 @@ auto run_dcv_features_rht_RhtLines()
     import dcv.features.rht;
 
     auto image = imread(getExampleDataPath() ~ "/img.png", ReadParams(ImageFormat.IF_MONO, BitDepth.BD_8)).sliced;
-    auto evalRht(Slice!(2, ubyte*) image)
+    auto evalRht(Slice!(Contiguous, [2], ubyte*) image)
     {
         auto lines = RhtLines().epouchs(10).iterations(10).minCurve(50);
         auto collectedLines = lines(image).array;
     }
 
-    return evalBenchmark(&evalRht, image.reshape(image.length!0, image.length!1).scale([0.15, 0.15]));
+    int err;
+    return evalBenchmark(&evalRht, image.reshape([image.length!0, image.length!1], err).scale([0.15, 0.15]));
 }
 
 auto run_dcv_features_rht_RhtCircles()
@@ -149,20 +156,22 @@ auto run_dcv_features_rht_RhtCircles()
     import dcv.features.rht;
 
     auto image = imread(getExampleDataPath() ~ "/img.png", ReadParams(ImageFormat.IF_MONO, BitDepth.BD_8)).sliced;
-    auto evalRht(Slice!(2, ubyte*) image)
+    auto evalRht(Slice!(Contiguous, [2], ubyte*) image)
     {
         auto circles = RhtCircles().epouchs(10).iterations(10).minCurve(50);
         auto collectedCircles = circles(image).array;
     }
 
-    return evalBenchmark(&evalRht, image.reshape(image.length!0, image.length!1).scale([0.15, 0.15]));
+    int err;
+    return evalBenchmark(&evalRht, image.reshape([image.length!0, image.length!1], err).scale([0.15, 0.15]));
 }
 
 auto run_dcv_features_utils_extractCorners()
 {
     auto image = imread(getExampleDataPath() ~ "/../features/result/harrisResponse.png",
             ReadParams(ImageFormat.IF_MONO, BitDepth.BD_8)).sliced;
-    return evalBenchmark(&extractCorners!ubyte, image.reshape(image.length!0, image.length!1), -1, cast(ubyte)0);
+    int err;
+    return evalBenchmark(&extractCorners!ubyte, image.reshape([image.length!0, image.length!1], err), -1, cast(ubyte)0);
 }
 
 auto run_dcv_imgproc_color_rgb2gray()
@@ -189,9 +198,10 @@ auto run_dcv_imgproc_color_rgb2hsv()
 auto run_dcv_imgproc_color_hsv2rgb()
 {
     import std.random;
+    import mir.ndslice.algorithm : each;
     auto rgb = slice!ubyte(imsize, imsize, 3);
     auto hsv = slice!float(imsize, imsize, 3);
-    hsv.ndEach!(v => v = cast(float)uniform01);
+    hsv.each!(v => v = cast(float)uniform01);
     return evalBenchmark(&hsv2rgb!(ubyte, float), hsv, rgb);
 }
 
@@ -215,7 +225,7 @@ auto run_dcv_imgproc_convolution_conv_1D_3()
     auto result = slice!float(imsize * imsize);
     auto kernel = slice!float(3);
     return evalBenchmark(&conv!(neumann, typeof(vector), typeof(kernel), typeof(kernel)), vector, kernel, result,
-            emptySlice!(1, float), taskPool);
+            emptySlice!([1], float), taskPool);
 }
 
 auto run_dcv_imgproc_convolution_conv_1D_5()
@@ -224,7 +234,7 @@ auto run_dcv_imgproc_convolution_conv_1D_5()
     auto result = slice!float(imsize * imsize);
     auto kernel = slice!float(5);
     return evalBenchmark(&conv!(neumann, typeof(vector), typeof(kernel), typeof(kernel)), vector, kernel, result,
-            emptySlice!(1, float), taskPool);
+            emptySlice!([1], float), taskPool);
 }
 
 auto run_dcv_imgproc_convolution_conv_1D_7()
@@ -233,7 +243,7 @@ auto run_dcv_imgproc_convolution_conv_1D_7()
     auto result = slice!float(imsize * imsize);
     auto kernel = slice!float(7);
     return evalBenchmark(&conv!(neumann, typeof(vector), typeof(kernel), typeof(kernel)), vector, kernel, result,
-            emptySlice!(1, float), taskPool);
+            emptySlice!([1], float), taskPool);
 }
 
 auto run_dcv_imgproc_convolution_conv_2D_3x3()
@@ -242,7 +252,7 @@ auto run_dcv_imgproc_convolution_conv_2D_3x3()
     auto result = slice!float(imsize, imsize);
     auto kernel = slice!float(3, 3);
     return evalBenchmark(&conv!(neumann, typeof(image), typeof(kernel), typeof(kernel)), image, kernel, result,
-            emptySlice!(2, float), taskPool);
+            emptySlice!([2], float), taskPool);
 }
 
 auto run_dcv_imgproc_convolution_conv_2D_5x5()
@@ -251,7 +261,7 @@ auto run_dcv_imgproc_convolution_conv_2D_5x5()
     auto result = slice!float(imsize, imsize);
     auto kernel = slice!float(5, 5);
     return evalBenchmark(&conv!(neumann, typeof(image), typeof(kernel), typeof(kernel)), image, kernel, result,
-            emptySlice!(2, float), taskPool);
+            emptySlice!([2], float), taskPool);
 }
 
 auto run_dcv_imgproc_convolution_conv_2D_7x7()
@@ -260,7 +270,7 @@ auto run_dcv_imgproc_convolution_conv_2D_7x7()
     auto result = slice!float(imsize, imsize);
     auto kernel = slice!float(7, 7);
     return evalBenchmark(&conv!(neumann, typeof(image), typeof(kernel), typeof(kernel)), image, kernel, result,
-            emptySlice!(2, float), taskPool);
+            emptySlice!([2], float), taskPool);
 }
 
 auto run_dcv_imgproc_convolution_conv_3D_3x3()
@@ -269,7 +279,7 @@ auto run_dcv_imgproc_convolution_conv_3D_3x3()
     auto result = slice!float(imsize, imsize, 3);
     auto kernel = slice!float(3, 3);
     return evalBenchmark(&conv!(neumann, typeof(image), typeof(kernel), typeof(kernel)), image, kernel, result,
-            emptySlice!(2, float), taskPool);
+            emptySlice!([2], float), taskPool);
 }
 
 auto run_dcv_imgproc_convolution_conv_3D_5x5()
@@ -278,13 +288,13 @@ auto run_dcv_imgproc_convolution_conv_3D_5x5()
     auto result = slice!float(imsize, imsize, 3);
     auto kernel = slice!float(5, 5);
     return evalBenchmark(&conv!(neumann, typeof(image), typeof(kernel), typeof(kernel)), image, kernel, result,
-            emptySlice!(2, float), taskPool);
+            emptySlice!([2], float), taskPool);
 }
 
 auto run_dcv_imgproc_filter_filterNonMaximum()
 {
     auto image = slice!float(imsize, imsize);
-    return evalBenchmark(&filterNonMaximum!(typeof(image)), image, 10);
+    return evalBenchmark(&filterNonMaximum!(Contiguous, float*), image, 10);
 }
 
 auto run_dcv_imgproc_filter_calcPartialDerivatives()
@@ -328,28 +338,28 @@ auto run_dcv_imgproc_filter_bilateralFilter_3()
 {
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&bilateralFilter!(neumann, typeof(image), float, 2), image, 0.84, 0.84, 3, result, taskPool);
+    return evalBenchmark(&bilateralFilter!(float, neumann, Contiguous, [2], float*), image, 0.84, 0.84, 3, result, taskPool);
 }
 
 auto run_dcv_imgproc_filter_bilateralFilter_5()
 {
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&bilateralFilter!(neumann, typeof(image), float, 2), image, 0.84, 0.84, 5, result, taskPool);
+    return evalBenchmark(&bilateralFilter!(float, neumann, Contiguous, [2], float*), image, 0.84, 0.84, 5, result, taskPool);
 }
 
 auto run_dcv_imgproc_filter_medianFilter_3()
 {
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&medianFilter!(neumann, float, float, 2), image, 3, result, taskPool);
+    return evalBenchmark(&medianFilter!(neumann, float, float, Contiguous, [2]), image, 3, result, taskPool);
 }
 
 auto run_dcv_imgproc_filter_medianFilter_5()
 {
     auto image = slice!float(imsize, imsize);
     auto result = slice!float(imsize, imsize);
-    return evalBenchmark(&medianFilter!(neumann, float, float, 2), image, 5, result, taskPool);
+    return evalBenchmark(&medianFilter!(neumann, float, float, Contiguous, [2]), image, 5, result, taskPool);
 }
 
 auto run_dcv_imgproc_filter_histEqualize()
@@ -357,63 +367,63 @@ auto run_dcv_imgproc_filter_histEqualize()
     auto image = slice!ubyte(imsize, imsize);
     auto result = slice!ubyte(imsize, imsize);
     int[256] histogram;
-    return evalBenchmark(&histEqualize!(ubyte, int[256], 2), image, histogram, result);
+    return evalBenchmark(&histEqualize!(ubyte, int[256], Contiguous, [2]), image, histogram, result);
 }
 
 auto run_dcv_imgproc_filter_erode()
 {
     auto image = slice!ubyte(imsize, imsize);
     auto result = slice!ubyte(imsize, imsize);
-    return evalBenchmark(&erode!(neumann, ubyte), image, radialKernel!ubyte(3), result, taskPool);
+    return evalBenchmark(&erode!(neumann, ubyte, Contiguous), image, radialKernel!ubyte(3), result, taskPool);
 }
 
 auto run_dcv_imgproc_filter_dilate()
 {
     auto image = slice!ubyte(imsize, imsize);
     auto result = slice!ubyte(imsize, imsize);
-    return evalBenchmark(&dilate!(neumann, ubyte), image, radialKernel!ubyte(3), result, taskPool);
+    return evalBenchmark(&dilate!(neumann, ubyte, Contiguous), image, radialKernel!ubyte(3), result, taskPool);
 }
 
 auto run_dcv_imgproc_filter_open()
 {
     auto image = slice!ubyte(imsize, imsize);
     auto result = slice!ubyte(imsize, imsize);
-    return evalBenchmark(&open!(neumann, ubyte), image, radialKernel!ubyte(3), result, taskPool);
+    return evalBenchmark(&open!(neumann, ubyte, Contiguous), image, radialKernel!ubyte(3), result, taskPool);
 }
 
 auto run_dcv_imgproc_filter_close()
 {
     auto image = slice!ubyte(imsize, imsize);
     auto result = slice!ubyte(imsize, imsize);
-    return evalBenchmark(&close!(neumann, ubyte), image, radialKernel!ubyte(3), result, taskPool);
+    return evalBenchmark(&close!(neumann, ubyte, Contiguous), image, radialKernel!ubyte(3), result, taskPool);
 }
 
 auto run_dcv_imgproc_imgmanip_resize_upsize()
 {
     auto image = slice!float(imsize, imsize);
     size_t[2] resultSize = [cast(size_t)(imsize * 1.5), cast(size_t)(imsize * 1.5f)];
-    return evalBenchmark(&resize!(linear, float, 2, 2), image, resultSize, taskPool);
+    return evalBenchmark(&resize!(linear, Contiguous, [2], float, 2), image, resultSize, taskPool);
 }
 
 auto run_dcv_imgproc_imgmanip_resize_downsize()
 {
     auto image = slice!float(imsize, imsize);
     size_t[2] resultSize = [cast(size_t)(imsize * 0.5), cast(size_t)(imsize * 0.5f)];
-    return evalBenchmark(&resize!(linear, float, 2, 2), image, resultSize, taskPool);
+    return evalBenchmark(&resize!(linear, Contiguous, [2], float, 2), image, resultSize, taskPool);
 }
 
 auto run_dcv_imgproc_imgmanip_scale_upsize()
 {
     auto image = slice!float(imsize, imsize);
     float[2] scaleFactor = [1.5f, 1.5f];
-    return evalBenchmark(&scale!(linear, float, float, 2, 2), image, scaleFactor, taskPool);
+    return evalBenchmark(&scale!(linear, float, float, Contiguous, [2], 2), image, scaleFactor, taskPool);
 }
 
 auto run_dcv_imgproc_imgmanip_scale_downsize()
 {
     auto image = slice!float(imsize, imsize);
     float[2] scaleFactor = [0.5f, 0.5f];
-    return evalBenchmark(&scale!(linear, float, float, 2, 2), image, scaleFactor, taskPool);
+    return evalBenchmark(&scale!(linear, float, float, Contiguous, [2], 2), image, scaleFactor, taskPool);
 }
 
 auto run_dcv_imgproc_imgmanip_transformAffine()
@@ -421,7 +431,7 @@ auto run_dcv_imgproc_imgmanip_transformAffine()
     auto image = slice!float(imsize, imsize);
     auto matrix = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
     size_t[2] outSize = [0, 0];
-    return evalBenchmark(&transformAffine!(linear, float, typeof(matrix), 2), image, matrix, outSize);
+    return evalBenchmark(&transformAffine!(linear, float, typeof(matrix), Contiguous, [2]), image, matrix, outSize);
 }
 
 auto run_dcv_imgproc_imgmanip_transformPerspective()
@@ -429,7 +439,7 @@ auto run_dcv_imgproc_imgmanip_transformPerspective()
     auto image = slice!float(imsize, imsize);
     auto matrix = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
     size_t[2] outSize = [0, 0];
-    return evalBenchmark(&transformPerspective!(linear, float, typeof(matrix), 2), image, matrix, outSize);
+    return evalBenchmark(&transformPerspective!(linear, float, typeof(matrix), Contiguous, [2]), image, matrix, outSize);
 }
 
 auto run_dcv_imgproc_imgmanip_warp()
@@ -469,8 +479,9 @@ auto run_dcv_multiview_stereo_matching_semiGlobalMatchingPipeline()
     auto right = imread(getExampleDataPath() ~ "/stereo/right.png", ReadParams(ImageFormat.IF_MONO, BitDepth.BD_8))
         .sliced;
 
-    auto ls = left.reshape(left.length!0, left.length!1).scale([0.25, 0.25]).asImage(ImageFormat.IF_MONO);
-    auto rs = right.reshape(left.length!0, left.length!1).scale([0.25, 0.25]).asImage(ImageFormat.IF_MONO);
+    int err;
+    auto ls = left.reshape([left.length!0, left.length!1], err).scale([0.25, 0.25]).asImage(ImageFormat.IF_MONO);
+    auto rs = right.reshape([left.length!0, left.length!1], err).scale([0.25, 0.25]).asImage(ImageFormat.IF_MONO);
 
     auto props = StereoPipelineProperties(ls.width, ls.height, ls.channels);
     auto matcher = semiGlobalMatchingPipeline(props, 2, 5, 10);
@@ -489,8 +500,9 @@ auto run_dcv_tracking_opticalflow_hornschunck_HornSchunckFlow()
     auto right = imread(getExampleDataPath() ~ "/optflow/Army/frame11.png",
             ReadParams(ImageFormat.IF_MONO, BitDepth.BD_8)).sliced;
 
-    auto ls = left.reshape(left.length!0, left.length!1).scale([0.25, 0.25]).asImage(ImageFormat.IF_MONO);
-    auto rs = right.reshape(left.length!0, left.length!1).scale([0.25, 0.25]).asImage(ImageFormat.IF_MONO);
+    int err;
+    auto ls = left.reshape([left.length!0, left.length!1], err).scale([0.25, 0.25]).asImage(ImageFormat.IF_MONO);
+    auto rs = right.reshape([left.length!0, left.length!1], err).scale([0.25, 0.25]).asImage(ImageFormat.IF_MONO);
 
     HornSchunckFlow flowAlgorithm = new HornSchunckFlow;
     auto flow = slice!float(ls.height, ls.width, 2);
@@ -510,8 +522,9 @@ auto run_dcv_tracking_opticalflow_lucaskanade_LucasKanadeFlow()
     auto right = imread(getExampleDataPath() ~ "/optflow/Army/frame11.png",
             ReadParams(ImageFormat.IF_MONO, BitDepth.BD_8)).sliced;
 
-    auto ls = left.reshape(left.length!0, left.length!1).scale([0.25, 0.25]).asImage(ImageFormat.IF_MONO);
-    auto rs = right.reshape(left.length!0, left.length!1).scale([0.25, 0.25]).asImage(ImageFormat.IF_MONO);
+    int err;
+    auto ls = left.reshape([left.length!0, left.length!1], err).scale([0.25, 0.25]).asImage(ImageFormat.IF_MONO);
+    auto rs = right.reshape([left.length!0, left.length!1], err).scale([0.25, 0.25]).asImage(ImageFormat.IF_MONO);
 
     immutable pointCount = 25;
 
@@ -545,8 +558,9 @@ auto run_dcv_tracking_opticalflow_pyramidflow_DensePyramidFlow_HornSchunckFlow()
             ReadParams(ImageFormat.IF_MONO, BitDepth.BD_8)).sliced;
     auto right = imread(getExampleDataPath() ~ "/optflow/Army/frame11.png",
             ReadParams(ImageFormat.IF_MONO, BitDepth.BD_8)).sliced;
-    auto ls = left.reshape(left.length!0, left.length!1).scale([0.25, 0.25]).asImage(ImageFormat.IF_MONO);
-    auto rs = right.reshape(left.length!0, left.length!1).scale([0.25, 0.25]).asImage(ImageFormat.IF_MONO);
+    int err;
+    auto ls = left.reshape([left.length!0, left.length!1], err).scale([0.25, 0.25]).asImage(ImageFormat.IF_MONO);
+    auto rs = right.reshape([left.length!0, left.length!1], err).scale([0.25, 0.25]).asImage(ImageFormat.IF_MONO);
     DensePyramidFlow flowAlgorithm = new DensePyramidFlow(new HornSchunckFlow, 3);
     auto flow = slice!float(ls.height, ls.width, 2);
     auto runFlow(DensePyramidFlow flowAlgorithm, Image left, Image right, DenseFlow flow)
@@ -564,8 +578,9 @@ auto run_dcv_tracking_opticalflow_pyramidflow_SparsePyramidFlow_LucasKanadeFlow(
     auto right = imread(getExampleDataPath() ~ "/optflow/Army/frame11.png",
             ReadParams(ImageFormat.IF_MONO, BitDepth.BD_8)).sliced;
 
-    auto ls = left.reshape(left.length!0, left.length!1).scale([0.25, 0.25]).asImage(ImageFormat.IF_MONO);
-    auto rs = right.reshape(left.length!0, left.length!1).scale([0.25, 0.25]).asImage(ImageFormat.IF_MONO);
+    int err;
+    auto ls = left.reshape([left.length!0, left.length!1], err).scale([0.25, 0.25]).asImage(ImageFormat.IF_MONO);
+    auto rs = right.reshape([left.length!0, left.length!1], err).scale([0.25, 0.25]).asImage(ImageFormat.IF_MONO);
 
     immutable pointCount = 25;
 
