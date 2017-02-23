@@ -128,19 +128,19 @@ static if (__VERSION__ >= 2071)
     /**
      * Merge multiple slices into one.
      * 
-     * By input of multiple Slice!(SliceKind.contiguous, packs, T*) objects, produces one Slice!(N+1, T*)
+     * By input of multiple Slice!(kind, [N], T*) objects, produces one Slice!(kind, [N+1], T*)
      * object, where length of last dimension is number of input slices. Values
      * of input slices' elements are copied to resulting slice, where [..., i] element
      * of j-th input slice is copied to [..., i, j] element of output slice.
      * 
-     * e.g. If three single channel images (Slice!(2, T*)) are merged, output will be 
-     * a three channel image (Slice!(3, T*)).
+     * e.g. If three single channel images (Slice!(kind, [2], Iterator)) are merged, output will be 
+     * a three channel image (Slice!(kind, [3], Iterator)).
      * 
      * Params:
      * slices = Input slices. All must by Slice object with same input template parameters.
      * 
      * Returns:
-     * For input of n Slice!(SliceKind.contiguous, packs, T*) objects, outputs Slice!(N+1, T*) object, where 
+     * For input of n Slice!(Contiguous, [N], T*) objects, outputs Slice!(kind, [N+1], T*) object, where 
      * last dimension size is n.
      */
     pure auto merge(Slices...)(Slices slices)

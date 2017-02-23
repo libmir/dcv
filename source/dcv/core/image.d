@@ -8,7 +8,7 @@ Example:
 ----
 Image image = new Image(32, 32, ImageFormat.IF_MONO, BitDepth.BD_32);
 
-Slice!(3, float*) slice = image.sliced!float; // slice image data, considering the data is of float type.
+Slice!(Contiguous, [3], float*) slice = image.sliced!float; // slice image data, considering the data is of float type.
 
 assert(image.height == slice.length!0 && image.width == slice.length!1);
 assert(image.channels == 1);
