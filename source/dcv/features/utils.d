@@ -48,37 +48,37 @@ Params:
 Returns:
     Dynamic array of size_t[2], as in array of 2D points, of corner reponses 
     which fit the given criteria.
-
-Note:
-    Corner response slice memory has to be contiguous.
 */
-pure nothrow auto extractCorners(T)(Slice!(2, T*) cornerResponse, int count = -1, T threshold = 0)
-    if (isNumeric!T)
+pure nothrow auto extractCorners(T)
+    (Slice!(Contiguous, [2], T*) cornerResponse, int count = -1, T threshold = 0)
+if ( isNumeric!T )
 {
     import std.algorithm.sorting : topN;
-    import std.algorithm.iteration : map, filter;
+    import std.algorithm.iteration : map, filter, each;
     import std.array : array;
+
+    import mir.ndslice.topology : zip, flattened, ndiota;
 
     if (cornerResponse.empty)
     {
         return null;
     }
 
-    assert(cornerResponse.structure.strides[$-1] == 1,
-            "Corner response slice strides are not contiguous."); // TODO check other dimensions. (use isContiguous)
+    // TODO: test if corner response is contiguous, or better yet - change
+    //       the implementation not to depend on contiguous slice.
 
-    return assumeSameStructure!("indices", "value")(indexSlice(cornerResponse.shape), cornerResponse)
-        .byElement
-        .filter!(p => p.value > threshold)
+    return zip(ndiota(cornerResponse.shape), cornerResponse)
+        .flattened
+        .filter!(p => p.b > threshold)
         .array
-        .topN!((a, b) => a.value > b.value)(count)
-        .map!(p => p.indices)
+        .topN!((a, b) => a.b > b.b)(count)
+        .map!(p => p.a)
         .array;
 }
 
 unittest
 {
-    auto res = Slice!(2, float*).init.extractCorners;
+    auto res = Slice!(SliceKind.contiguous, [2], float*).init.extractCorners;
     assert(res is null);
 }
 

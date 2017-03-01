@@ -6,9 +6,8 @@ module dcv.example.convolution;
 
 import std.stdio : writeln;
 import std.datetime : StopWatch;
-import std.math : fabs;
+import std.math : abs;
 import std.array : array;
-import std.algorithm.iteration : map;
 
 import mir.ndslice;
 
@@ -29,7 +28,7 @@ int main(string[] args)
         return 1;
     }
 
-    Slice!(3, float*) imslice = img
+    Slice!(Contiguous, [3], float*) imslice = img
         .sliced // slice image data
         .as!float // convert it to float
         .slice; // make a copy.
@@ -39,7 +38,7 @@ int main(string[] args)
     auto gaussianKernel = gaussian!float(2, 5, 5); // create gaussian convolution kernel (sigma, kernel width and height)
     auto sobelXKernel = sobel!real(GradientDirection.DIR_X); // sobel operator for horizontal (X) gradients
     auto laplacianKernel = laplacian!double; // laplacian kernel, similar to matlabs fspecial('laplacian', alpha)
-    auto logKernel = laplacianOfGaussian(1, 5, 5); // laplacian of gaussian, similar to matlabs fspecial('log', alpha, width, height)
+    auto logKernel = laplacianOfGaussian!float(1, 5, 5); // laplacian of gaussian, similar to matlabs fspecial('log', alpha, width, height)
 
     // perform convolution for each kernel
     auto blur = imslice.conv(gaussianKernel);
@@ -47,12 +46,11 @@ int main(string[] args)
     auto laplaceEdges = gray.conv(laplacianKernel);
     auto logEdges = gray.conv(logKernel);
 
-
     // calculate canny edges
     auto cannyEdges = gray.canny!ubyte(75);
 
     // perform bilateral blurring
-    auto bilBlur = imslice.bilateralFilter(10.0f, 10.0f, 5);
+    auto bilBlur = imslice.bilateralFilter!float(10.0f, 10.0f, 5);
 
     // Add salt and pepper noise at input image green channel
     auto noisyImage = imslice.slice;
@@ -63,8 +61,8 @@ int main(string[] args)
     // scale values from 0 to 255 to preview gradient direction and magnitude
     xgrads.ranged(0, 255);
     // Take absolute values and range them from 0 to 255, to preview edges
-    laplaceEdges = laplaceEdges.ndMap!(a => fabs(a)).slice.ranged(0.0f, 255.0f);
-    logEdges = logEdges.ndMap!(a => fabs(a)).slice.ranged(0.0f, 255.0f);
+    laplaceEdges = laplaceEdges.map!(a => abs(a)).slice.ranged(0.0f, 255.0f);
+    logEdges = logEdges.map!(a => abs(a)).slice.ranged(0.0f, 255.0f);
 
     // Show images on screen
     img.imshow("Original");
@@ -82,20 +80,29 @@ int main(string[] args)
     return 0;
 }
 
-Slice!(2, T*) saltNPepper(T)(Slice!(2, T*) slice, float saturation) 
+auto saltNPepper(T, SliceKind kind)(Slice!(kind, [2], T*) input, float saturation)
 {
-    import std.range, std.random;
+    import std.range : lockstep;
+    import std.random : uniform;
 
-    ulong pixelCount = slice.length!0*slice.length!1;
+    int err;
+    ulong pixelCount = input.length!0*input.length!1;
     ulong noisyPixelCount = cast(typeof(pixelCount))(pixelCount * saturation);
 
-    auto noisyPixels = noisyPixelCount.iota.map!(x => uniform(0, pixelCount)).array;
-    auto imdata = slice.reshape(pixelCount);
+    auto noisyPixels = slice!size_t(noisyPixelCount);
+    foreach(ref e; noisyPixels)
+    {
+        e = uniform(0, pixelCount);
+    }
+
+    auto imdata = input.reshape([pixelCount], err);
+
+    assert(err == 0);
 
     foreach(salt, pepper; lockstep(noisyPixels[0 .. $ / 2], noisyPixels[$ / 2 .. $]))
     {
         imdata[salt] = cast(T)255;
         imdata[pepper] = cast(T)0;
     }
-    return slice;
+    return input;
 }

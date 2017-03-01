@@ -1,14 +1,10 @@
 module dcv.example.imgmanip;
 
-/** 
+/**
  * Corner extraction example, by using Harris and Shi-Tomasi algorithms.
  */
 
-import std.stdio;
 import mir.ndslice;
-import std.array : array;
-import std.algorithm.iteration : map, reduce;
-import std.range : repeat;
 
 import dcv.core;
 import dcv.features;
@@ -20,6 +16,7 @@ import dcv.plot;
 import ggplotd.ggplotd;
 import ggplotd.geom;
 import ggplotd.aes;
+
 
 void main()
 {
@@ -33,18 +30,16 @@ void main()
 
     // make copies to draw corners 
     auto pixelSize = imslice.elementsCount;
-    auto shiTomasiDraw = new ubyte[pixelSize].sliced(imslice.shape);
-    auto harrisDraw = new ubyte[pixelSize].sliced(imslice.shape);
-    shiTomasiDraw[] = imslice[];
-    harrisDraw[] = imslice[];
+    auto shiTomasiDraw = imslice.slice;
+    auto harrisDraw = imslice.slice;
 
     // estimate corner response for each of corner algorithms by using 5x5 window.
     auto shiTomasiResponse = shiTomasiCorners(gray, 5).filterNonMaximum;
     auto harrisResponse = harrisCorners(gray, 5).filterNonMaximum;
 
     // extract corners from the response matrix ( extract 100 corners, where each response is larger than 0.)
-    auto shiTomasiCorners = extractCorners(shiTomasiResponse, 100, 0.);
-    auto harrisCorners = extractCorners(harrisResponse, 100, 0.);
+    auto shiTomasiCorners = extractCorners(shiTomasiResponse, 100, 0.0f);
+    auto harrisCorners = extractCorners(harrisResponse, 100, 0.0f);
 
     // visualize corner response, and write it to disk.
     visualizeCornerResponse(harrisResponse, "harrisResponse");
@@ -57,11 +52,11 @@ void main()
     waitKey();
 }
 
-void visualizeCornerResponse(Slice!(2, float*) response, string windowName)
+void visualizeCornerResponse(SliceKind kind)(Slice!(kind, [2], float*) response, string windowName)
 {
-    response 
+    response
         // scale values in the response matrix for easier visualization.
-        .ranged(0., 255.)
+        .ranged(0f, 255f)
         .as!ubyte
         .slice
         // Show the window
@@ -71,14 +66,17 @@ void visualizeCornerResponse(Slice!(2, float*) response, string windowName)
         .imwrite("result/" ~ windowName ~ ".png");
 }
 
-void cornerPlot(Slice!(3, ubyte*) slice, ulong[2][] corners, string windowName)
+void cornerPlot(SliceKind kind)(Slice!(kind, [3], ubyte*) slice, size_t[2][] corners, string windowName)
 {
-    // separate coordinate values
-    auto xs = corners.map!(v => v[1]);
-    auto ys = corners.map!(v => v[0]);
+    import std.array : array;
+    import std.algorithm.iteration : map;
 
-    auto aes = Aes!(typeof(xs), "x", typeof(ys), "y", bool[], "fill", string[], "colour")(xs, ys,
-            false.repeat(xs.length).array, "red".repeat(xs.length).array);
+    // separate coordinate values
+    auto xs = corners.map!(e => e[1]);
+    auto ys = corners.map!(e => e[0]);
+
+    auto aes = Aes!(typeof(xs), "x", typeof(ys), "y", bool[], "fill", string[], "colour")
+                   (xs, ys, false.repeat(xs.length).array, "red".repeat(xs.length).array);
 
     auto gg = GGPlotD().put(geomPoint(aes));
 

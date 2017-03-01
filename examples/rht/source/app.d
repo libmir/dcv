@@ -17,7 +17,7 @@ import dcv.io : imread, imwrite;
 import dcv.imgproc;
 import dcv.features.rht;
 
-void plotLine(T, Line, Color)(Slice!(3, T*) img, Line line, Color color)
+void plotLine(T, Line, Color)(Slice!(Contiguous, [3], T*) img, Line line, Color color)
 {
     int height = cast(int)img.length!0;
     int width = cast(int)img.length!1;
@@ -43,7 +43,7 @@ void plotLine(T, Line, Color)(Slice!(3, T*) img, Line line, Color color)
     }
 }
 
-void plotCircle(T, Circle, Color)(Slice!(3, T*) img, Circle circle, Color color)
+void plotCircle(T, Circle, Color)(Slice!(Contiguous, [3], T*) img, Circle circle, Color color)
 {
     int height = cast(int)img.length!0;
     int width = cast(int)img.length!1;
@@ -70,7 +70,7 @@ int main(string[] args)
         return 1;
     }
 
-    Slice!(3, float*) imslice = img.sliced.as!float.slice; // convert Image data type from ubyte to float
+    Slice!(Contiguous, [3], float*) imslice = img.sliced.as!float.slice; // convert Image data type from ubyte to float
 
     auto gray = imslice.rgb2gray; // convert rgb image to grayscale
 
@@ -103,9 +103,9 @@ int main(string[] args)
     writeln("RHT circles took ", s.peek.msecs, "ms");
 
     // write resulting images on the filesystem.
-    blur.ndMap!(v => v.clip!ubyte).slice.imwrite(ImageFormat.IF_RGB, "./result/outblur.png");
-    canny.ndMap!(v => v.clip!ubyte).slice.imwrite(ImageFormat.IF_MONO, "./result/canny.png");
-    imslice.ndMap!(v => v.clip!ubyte).slice.imwrite(ImageFormat.IF_RGB, "./result/rht.png");
+    blur.map!(v => v.clip!ubyte).slice.imwrite(ImageFormat.IF_RGB, "./result/outblur.png");
+    canny.map!(v => v.clip!ubyte).slice.imwrite(ImageFormat.IF_MONO, "./result/canny.png");
+    imslice.map!(v => v.clip!ubyte).slice.imwrite(ImageFormat.IF_RGB, "./result/rht.png");
 
     return 0;
 }

@@ -111,10 +111,10 @@ public:
 
     /**
     Open the video stream.
-    
-    params:
-    path = Path to the stream. 
-    type = Stream type. 
+
+    Params:
+        filepath    = Path to the stream.
+        props       = Properties of the video.
     */
     bool open(in string filepath, in OutputDefinition props = OutputDefinition())
     {

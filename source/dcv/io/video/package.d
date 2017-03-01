@@ -12,6 +12,8 @@ unittest
     import std.file;
     import std.math : abs;
 
+    import mir.ndslice;
+
     import dcv.imgproc.color : yuv2rgb;
 
     immutable ubyte[][] frameColorMap = [[255, 255, 255], [255, 0, 0], [
@@ -61,7 +63,7 @@ unittest
         return;
     }
 
-    foreach (pixel; frameSlice.pack!1.byElement)
+    foreach (pixel; frameSlice.pack!1.flattened)
     {
         pixel[0] = cast(ubyte)0;
         pixel[1] = cast(ubyte)0;
@@ -70,7 +72,7 @@ unittest
 
     foreach (frameColor; frameColorMap)
     {
-        foreach (pixel; frameSlice.pack!1.byElement)
+        foreach (pixel; frameSlice.pack!1.flattened)
         {
             pixel[0] = frameColor[0];
             pixel[1] = frameColor[1];

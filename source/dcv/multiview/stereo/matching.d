@@ -31,12 +31,13 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 */
 module dcv.multiview.stereo.matching;
 
-import std.algorithm;
-import std.functional;
-import std.math;
+import mir.math.internal;
+import mir.math.sum;
 
-import mir.ndslice;
-import mir.ndslice.algorithm : Yes;
+import mir.ndslice.slice;
+import mir.ndslice.allocation;
+import mir.ndslice.algorithm;
+import mir.ndslice.topology;
 
 import dcv.core;
 import dcv.core.image;
@@ -45,15 +46,15 @@ import dcv.imgproc;
 
 alias DisparityType = uint;
 alias CostType = float;
-alias DisparityMap = Slice!(2, DisparityType *);
-alias CostVolume = Slice!(3, CostType *);
+alias DisparityMap = Slice!(SliceKind.contiguous, [2], DisparityType *);
+alias CostVolume = Slice!(SliceKind.contiguous, [3], CostType *);
 
 /**
 Creates an empty disparity map
 */
 DisparityMap emptyDisparityMap()
 {
-    return emptySlice!(2, DisparityType);
+    return emptySlice!([2], DisparityType);
 }
 
 /**
@@ -127,10 +128,10 @@ to the taxonomy laid out in Scharstein and Szeliski (2002).
 
 According to this taxonomy, stereo matching can be divided into four steps:
 
-1) Matching cost computation
-2) Cost aggregation
-3) Disparity computation
-4) Disparity refinement
+- Matching cost computation
+- Cost aggregation
+- Disparity computation
+- Disparity refinement
 
 Implementations of various algorithms that conform to requirements of these components
 can be found in this module, as well as several helper functions that will create
@@ -181,10 +182,10 @@ StereoCostFunction sumAbsoluteDifferences(uint windowSize = 5)
 
 	static @fastmath CostType sad(CostType a, CostType b, CostType c)
 	{
-        return a + abs(b - c);
+        return a + fabs(b - c);
 	}
 
-    return windowCost!((l, r) => ndReduce!(sad, Yes.vectorized)(CostType(0), l, r))(windowSize);
+    return windowCost!((l, r) => reduce!sad(CostType(0), l, r))(windowSize);
 }
 
 /**
@@ -201,7 +202,7 @@ StereoCostFunction normalisedCrossCorrelation(uint windowSize = 5)
         return c + a * b;
     }
 
-    alias dot = ndReduce!(fma, Yes.vectorized);
+    alias dot = reduce!fma;
 
 	static @fastmath CostType ncc(L, R)(L l, R r)
 	{
@@ -232,17 +233,17 @@ private StereoCostFunction windowCost(alias fun)(uint windowSize)
         for(size_t d = 0; d < props.disparityRange; d++)
         {
             costVol[0 .. $, 0 .. d, d] = CostType.max;
-
-            import std.typecons;
-            costVol[0 .. $, d .. $, d] = assumeSameStructure!("left", "right")(lpad[0 .. $, d .. $], rpad[0 .. $, 0 .. $ - d])
+            import mir.ndslice.dynamic;
+            costVol[0 .. $, d .. $, d] = zip!true(lpad[0 .. $, d .. $], rpad[0 .. $, 0 .. $ - d])
                                         .pack!1
                                         .windows(windowSize, windowSize)
                                         .unpack
+                                        .universal
                                         .transposed!(0, 1, 4)
                                         .pack!2
-                                        .ndMap!(x => fun(x.ndMap!(y => y.left), x.ndMap!(y => y.right)))
+                                        .map!(x => fun(x.unzip!'a', x.unzip!'b'))
                                         .pack!1
-                                        .ndMap!(x => x.sum())
+                                        .map!sum
                                         .unpack;
         }
     }
@@ -255,7 +256,9 @@ Creates a StereoCostFunction that computes the pixelwise absolute difference bet
 */
 StereoCostFunction absoluteDifference()
 { 
-    return toDelegate(&pointwiseCost!(x => abs(x.left - x.right)));
+    import std.functional: toDelegate;
+    import mir.functional;
+    return toDelegate(&pointwiseCost!(pipe!("a - b", fabs)));
 }
 
 /**
@@ -263,7 +266,9 @@ Creates a StereoCostFunction that computes the pixelwise squared difference betw
 */
 StereoCostFunction squaredDifference()
 {
-    return toDelegate(&pointwiseCost!(x => pow(x.left - x.right, 2)));
+    import std.functional: toDelegate;
+    import mir.functional;
+    return toDelegate(&pointwiseCost!(pipe!("a - b", "a * a")));
 }
 
 /**
@@ -286,10 +291,10 @@ private void pointwiseCost(alias fun)(const ref StereoPipelineProperties propert
         costVol[0 .. $, 0 .. d, d] = CostType.max;
 
         //Compute the costs for the current disparity
-        costVol[0 .. $, d .. $, d] = assumeSameStructure!("left", "right")(l[0 .. $, d .. $], r[0 .. $, 0 .. $ - d])
-                                    .ndMap!(fun)
+        costVol[0 .. $, d .. $, d] = zip!true(l[0 .. $, d .. $], r[0 .. $, 0 .. $ - d])
+                                    .map!fun
                                     .pack!1
-                                    .ndMap!(x => x.sum())
+                                    .map!sum
                                     .unpack;
     }
 }
@@ -343,7 +348,8 @@ body
 
         foreach(path; paths[0 .. numPaths])
         {
-            CostVolume tmpCostVol = costVol;
+            auto tmpCostVol = costVol.universal;
+            import mir.ndslice.dynamic;
 
             if(path.reverseY)
             {
@@ -363,21 +369,21 @@ body
                 //Iterate over the x coordinate
                 for(int x = path.deltaX; x < width; x++)
                 {
-                    CostType minCost = pathCost[y - path.deltaY, x - path.deltaX].ndFold!min(CostType.max);
+                    CostType minCost = reduce!fmin(CostType.max, pathCost[y - path.deltaY, x - path.deltaX]);
 
                     //Iterate over each possible disparity
                     for(int d = 0; d < props.disparityRange; d++)
                     {
-                        CostType cost = min(pathCost[y - path.deltaY, x - path.deltaX, d], minCost + p2);
+                        CostType cost = fmin(pathCost[y - path.deltaY, x - path.deltaX, d], minCost + p2);
 
                         if(d > 0)
                         {
-                            cost = min(cost, pathCost[y - path.deltaY, x - path.deltaX, d - 1] + p1);
+                            cost = fmin(cost, pathCost[y - path.deltaY, x - path.deltaX, d - 1] + p1);
                         }
                         
                         if(d < props.disparityRange - 1)
                         {
-                            cost = min(cost, pathCost[y - path.deltaY, x - path.deltaX, d + 1] + p1);
+                            cost = fmin(cost, pathCost[y - path.deltaY, x - path.deltaX, d + 1] + p1);
                         }
 
                         pathCost[y, x, d] += cost - minCost;
@@ -385,7 +391,7 @@ body
                 }
             }
 
-            tmpCostVol = pathCost;
+            tmpCostVol = pathCost.universal;
 
             if(path.reverseY)
             {
@@ -415,9 +421,10 @@ DisparityMethod winnerTakesAll()
 {
     void disparityMethod(const ref StereoPipelineProperties props, CostVolume costVol, DisparityMap disp)
     {
+        import std.algorithm.searching: minPos;
         disp[] = costVol
                 .pack!1
-                .ndMap!(x => cast(uint)(x.length - minPos(x).length))[];
+                .map!(x => cast(uint)(x.length - minPos(x).length))[];
     }
 
     return &disparityMethod;
@@ -443,7 +450,7 @@ DisparityRefiner bilateralDisparityFilter(uint windowSize, float sigmaCol, float
 {
     void disparityRefiner(const ref StereoPipelineProperties props, DisparityMap disp)
     {
-        disp[] = bilateralFilter(disp, sigmaCol, sigmaSpace, windowSize);
+        disp[] = bilateralFilter!DisparityType(disp, sigmaCol, sigmaSpace, windowSize);
     }
 
     return &disparityRefiner;

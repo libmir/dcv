@@ -21,16 +21,15 @@ $(DL Module contains:
 module dcv.imgproc.imgmanip;
 
 import std.exception : enforce;
-import std.traits : allSatisfy, isFloatingPoint, allSameType, isNumeric, isIntegral;
-import std.algorithm : each;
-import std.range : iota;
 import std.parallelism : TaskPool, taskPool, parallel;
-import std.range : isArray, ElementType;
+import std.range.primitives : ElementType;
+import std.traits;
 
 import dcv.core.utils;
 public import dcv.imgproc.interpolate;
 
-import mir.ndslice;
+import mir.ndslice.slice;
+import mir.ndslice.topology;
 
 /**
 Resize array using custom interpolation function.
@@ -54,28 +53,28 @@ Params:
 
 TODO: consider size input as array, and add prealloc
 */
-Slice!(N, V*) resize(alias interp = linear, V, size_t N, size_t SN)(Slice!(N, V*) slice, size_t[SN] newsize, TaskPool pool = taskPool)
-        if (isInterpolationFunc!interp)
+Slice!(SliceKind.contiguous, packs, V*) resize(alias interp = linear, SliceKind kind, size_t[] packs, V, size_t SN)(Slice!(kind, packs, V*) slice, size_t[SN] newsize, TaskPool pool = taskPool)
+    if (packs.length == 1)
+    //if (isInterpolationFunc!interp)
 {
-    static if (N == 1)
+    static if (packs[0] == 1)
     {
         static assert(SN == 1, "Invalid new-size setup - dimension does not match with input slice.");
         return resizeImpl_1!interp(slice, newsize[0], pool);
     }
-    else static if (N == 2)
+    else static if (packs[0] == 2)
     {
         static assert(SN == 2, "Invalid new-size setup - dimension does not match with input slice.");
         return resizeImpl_2!interp(slice, newsize[0], newsize[1], pool);
     }
-    else static if (N == 3)
+    else static if (packs[0] == 3)
     {
         static assert(SN == 2, "Invalid new-size setup - 3D resize is performed as 2D."); // TODO: find better way to say this...
         return resizeImpl_3!interp(slice, newsize[0], newsize[1], pool);
     }
     else
     {
-        import std.conv : to;
-        static assert(0, "Resize is not supported for slice with " ~ N.to!string ~ " dimensions.");
+        static assert(0, "Resize is not supported for slice with " ~ N.stringof ~ " dimensions.");
     }
 }
 
@@ -107,27 +106,27 @@ using scaled shape of the input slice as:
 $(D_CODE scaled = resize(input, input.shape*scale))
 
  */
-Slice!(N, V*) scale(alias interp = linear, V, ScaleValue, size_t N, size_t SN)(Slice!(N, V*) slice, ScaleValue[SN] scale, TaskPool pool = taskPool)
+Slice!(kind, packs, V*) scale(alias interp = linear, V, ScaleValue, SliceKind kind, size_t[] packs, size_t SN)(Slice!(kind, packs, V*) slice, ScaleValue[SN] scale, TaskPool pool = taskPool)
         if (isFloatingPoint!ScaleValue && isInterpolationFunc!interp)
 {
     foreach (v; scale)
         assert(v > 0., "Invalid scale values (v > 0.0)");
 
-    static if (N == 1)
+    static if (packs[0] == 1)
     {
         static assert(SN == 1, "Invalid scale setup - dimension does not match with input slice.");
         size_t newsize = cast(size_t)(slice.length * scale[0]);
         enforce(newsize > 0, "Scaling value invalid - after scaling array size is zero.");
         return resizeImpl_1!interp(slice, newsize, pool);
     }
-    else static if (N == 2)
+    else static if (packs[0] == 2)
     {
         static assert(SN == 2, "Invalid scale setup - dimension does not match with input slice.");
         size_t [2]newsize = [cast(size_t)(slice.length!0 * scale[0]), cast(size_t)(slice.length!1 * scale[1])];
         enforce(newsize[0] > 0 && newsize[1] > 0, "Scaling value invalid - after scaling array size is zero.");
         return resizeImpl_2!interp(slice, newsize[0], newsize[1], pool);
     }
-    else static if (N == 3)
+    else static if (packs[0] == 3)
     {
         static assert(SN == 2, "Invalid scale setup - 3D scale is performed as 2D."); // TODO: find better way to say this...
         size_t [2]newsize = [cast(size_t)(slice.length!0 * scale[0]), cast(size_t)(slice.length!1 * scale[1])];
@@ -209,12 +208,11 @@ pure auto remap(alias interp = linear, ImageTensor, MapTensor)(ImageTensor image
 /// Test if warp and remap always returns slice of corresponding format.
 unittest
 {
-    import std.algorithm.iteration : map;
-    import std.random : uniform;
-    import std.array : array;
+    import std.random : uniform01;
+    import mir.ndslice.allocation;
 
-    auto image = 9.iota.map!(v => cast(float)v).array.sliced(3, 3);
-    auto wmap = 18.iota.map!(v => cast(float)uniform(0.0f, 1.0f)).array.sliced(3, 3, 2);
+    auto image = iota(3, 3).as!float.slice;
+    auto wmap = iota(3, 3, 2).map!(v => cast(float)uniform01).slice;
 
     auto warped = image.warp(wmap);
     assert(warped.shape == image.shape);
@@ -225,12 +223,11 @@ unittest
 
 unittest
 {
-    import std.algorithm.iteration : map;
-    import std.random : uniform;
-    import std.array : array;
+    import std.random : uniform01;
+    import mir.ndslice.allocation;
 
-    auto image = (9 * 3).iota.map!(v => cast(float)v).array.sliced(3, 3, 3);
-    auto wmap = 18.iota.map!(v => cast(float)uniform(0.0f, 1.0f)).array.sliced(3, 3, 2);
+    auto image = iota(3, 3, 3).as!float.slice;
+    auto wmap = iota(3, 3, 2).map!(v => cast(float)uniform01).slice;
     auto warped = image.warp(wmap);
     assert(warped.shape == image.shape);
 
@@ -240,14 +237,13 @@ unittest
 
 unittest
 {
-    import std.algorithm.iteration : map;
-    import std.random : uniform;
-    import std.array : array;
+    import std.random : uniform01;
+    import mir.ndslice.allocation;
 
-    auto image = 9.iota.map!(v => cast(float)v).array.sliced(3, 3);
-    auto warped = new float[9].sliced(3, 3);
-    auto remapped = new float[9].sliced(3, 3);
-    auto wmap = 18.iota.map!(v => cast(float)uniform(0.0f, 1.0f)).array.sliced(3, 3, 2);
+    auto image = iota(3, 3).as!float.slice;
+    auto warped = slice!float(3, 3);
+    auto remapped = slice!float(3, 3);
+    auto wmap = iota(3, 3, 2).map!(v => cast(float)uniform01).slice;
     auto warpedRetVal = image.warp(wmap, warped);
     assert(warped.shape == image.shape);
     assert(warpedRetVal.shape == image.shape);
@@ -274,16 +270,15 @@ in
 }
 body
 {
-    import std.traits : ReturnType;
-
     static assert(isSlice!ImageTensor, "Image type has to be of type mir.ndslice.slice.Slice");
     static assert(isSlice!MapTensor, "Map type has to be of type mir.ndslice.slice.Slice");
-    immutable N = ReturnType!(ImageTensor.shape).length;
-    static assert(ReturnType!(MapTensor.shape).length == 3,
+    immutable N = isSlice!ImageTensor[0];
+    static assert(isSlice!MapTensor == [3],
             "Invalid map tensor dimension - should be matrix of [x, y] displacements (3D).");
 
     if (prealloc.shape != image.shape)
     {
+        import mir.ndslice.allocation;
         prealloc = uninitializedSlice!(DeepElementType!ImageTensor)(image.shape);
     }
 
@@ -349,11 +344,9 @@ private enum TransformType : size_t
     PERSPECTIVE_TRANSFORM = 1
 }
 
-private enum bool _isSlice(T) = is(T : Slice!(N, Range), size_t N, Range);
-
 private static bool isTransformMatrix(TransformMatrix)()
 {
-    // static if its float[][], or its Slice!(2, float*)
+    // static if its float[][], or its Slice!(SliceKind.contiguous, [2], float*)
     import std.traits : isScalarType, isPointer, TemplateArgsOf, PointerTarget;
 
     static if (isArray!TransformMatrix)
@@ -365,18 +358,14 @@ private static bool isTransformMatrix(TransformMatrix)()
         else
             return false;
     }
-    else static if (_isSlice!TransformMatrix)
+    else static if (isSlice!TransformMatrix)
     {
-        if ((TemplateArgsOf!TransformMatrix)[0] == 2
-                && isPointer!((TemplateArgsOf!TransformMatrix)[1])
-                && isFloatingPoint!(PointerTarget!((TemplateArgsOf!TransformMatrix)[1])))
-        {
+        static if (kindOf!TransformMatrix == SliceKind.contiguous &&
+                TemplateArgsOf!(TransformMatrix)[1] == [2] &&
+                isFloatingPoint!(DeepElementType!TransformMatrix))
             return true;
-        }
         else
-        {
             return false;
-        }
     }
     else
     {
@@ -390,15 +379,18 @@ unittest
     static assert(isTransformMatrix!(double[][]));
     static assert(isTransformMatrix!(real[][]));
     static assert(isTransformMatrix!(real[3][3]));
-    static assert(isTransformMatrix!(Slice!(2, float*)));
-    static assert(isTransformMatrix!(Slice!(2, double*)));
-    static assert(isTransformMatrix!(Slice!(2, real*)));
+    static assert(isTransformMatrix!(Slice!(SliceKind.contiguous, [2], float*)));
+    static assert(isTransformMatrix!(Slice!(SliceKind.contiguous, [2], double*)));
+    static assert(isTransformMatrix!(Slice!(SliceKind.contiguous, [2], real*)));
+
+    static assert(!isTransformMatrix!(Slice!(SliceKind.universal, [2], real*)));
+    static assert(!isTransformMatrix!(Slice!(SliceKind.canonical, [2], real*)));
 
     static assert(!isTransformMatrix!(int[][]));
     static assert(!isTransformMatrix!(real[]));
     static assert(!isTransformMatrix!(real[][][]));
-    static assert(!isTransformMatrix!(Slice!(2, int*)));
-    static assert(!isTransformMatrix!(Slice!(1, float*)));
+    static assert(!isTransformMatrix!(Slice!(SliceKind.contiguous, [2], int*)));
+    static assert(!isTransformMatrix!(Slice!(SliceKind.contiguous, [1], float*)));
 }
 
 /**
@@ -418,12 +410,11 @@ Note:
 Returns:
     Transformed image.
 */
-Slice!(N, V*) transformAffine(alias interp = linear, V, TransformMatrix, size_t N)(Slice!(N,
-        V*) slice, inout TransformMatrix transform, size_t[2] outSize = [0, 0])
+Slice!(kind, packs, V*) transformAffine(alias interp = linear, V, TransformMatrix, SliceKind kind, size_t[] packs)(Slice!(kind, packs, V*) slice, inout TransformMatrix transform, size_t[2] outSize = [0, 0])
 {
     static if (isTransformMatrix!TransformMatrix)
     {
-        return transformImpl!(TransformType.AFFINE_TRANSFORM, interp)(slice, transform, outSize);
+      return transformImpl!(TransformType.AFFINE_TRANSFORM, interp)(slice, transform, outSize);
     }
     else
     {
@@ -448,12 +439,14 @@ Note:
 Returns:
     Transformed image.
 */
-Slice!(N, V*) transformPerspective(alias interp = linear, V, TransformMatrix, size_t N)(Slice!(N,
-        V*) slice, inout TransformMatrix transform, size_t[2] outSize = [0, 0])
+Slice!(kind, packs, V*) transformPerspective(alias interp = linear, V, TransformMatrix, SliceKind kind, size_t[] packs)(
+    Slice!(kind, packs, V*) slice,
+    TransformMatrix transform,
+    size_t[2] outSize = [0, 0])
 {
     static if (isTransformMatrix!TransformMatrix)
     {
-        return transformImpl!(TransformType.PERSPECTIVE_TRANSFORM, linear)(slice, transform, outSize);
+      return transformImpl!(TransformType.PERSPECTIVE_TRANSFORM, linear)(slice, transform, outSize);
     }
     else
     {
@@ -469,7 +462,8 @@ version (unittest)
 unittest
 {
     // test if affine transform without outSize parameter gives out same-shaped result.
-    auto image = new float[9].sliced(3, 3);
+    import mir.ndslice.allocation;
+    auto image = slice!float(3, 3);
     auto transformed = transformAffine(image, transformMatrix);
     assert(image.shape == transformed.shape);
 }
@@ -477,7 +471,8 @@ unittest
 unittest
 {
     // test if affine transform with outSize parameter gives out proper-shaped result.
-    auto image = new float[9].sliced(3, 3);
+    import mir.ndslice.allocation;
+    auto image = slice!float(3, 3);
     auto transformed = transformAffine(image, transformMatrix, [5, 10]);
     assert(transformed.length!0 == 10 && transformed.length!1 == 5);
 }
@@ -485,7 +480,8 @@ unittest
 unittest
 {
     // test if perspective transform without outSize parameter gives out same-shaped result.
-    auto image = new float[9].sliced(3, 3);
+    import mir.ndslice.allocation;
+    auto image = slice!float(3, 3);
     auto transformed = transformPerspective(image, transformMatrix);
     assert(image.shape == transformed.shape);
 }
@@ -493,7 +489,8 @@ unittest
 unittest
 {
     // test if perspective transform with outSize parameter gives out proper-shaped result.
-    auto image = new float[9].sliced(3, 3);
+    import mir.ndslice.allocation;
+    auto image = slice!float(3, 3);
     auto transformed = transformPerspective(image, transformMatrix, [5, 10]);
     assert(transformed.length!0 == 10 && transformed.length!1 == 5);
 }
@@ -501,7 +498,7 @@ unittest
 private:
 
 // 1d resize implementation
-Slice!(1, V*) resizeImpl_1(alias interp, V)(Slice!(1, V*) slice, size_t newsize, TaskPool pool)
+Slice!(SliceKind.contiguous, [1], V*) resizeImpl_1(alias interp, V)(Slice!(SliceKind.contiguous, [1], V*) slice, size_t newsize, TaskPool pool)
 {
 
     enforce(!slice.empty && newsize > 0);
@@ -509,7 +506,7 @@ Slice!(1, V*) resizeImpl_1(alias interp, V)(Slice!(1, V*) slice, size_t newsize,
     auto retval = new V[newsize];
     auto resizeRatio = cast(float)(newsize - 1) / cast(float)(slice.length - 1);
 
-    foreach (i; pool.parallel(iota(newsize)))
+    foreach (i; pool.parallel(newsize.iota))
     {
         retval[i] = interp(slice, cast(float)i / resizeRatio);
     }
@@ -518,7 +515,7 @@ Slice!(1, V*) resizeImpl_1(alias interp, V)(Slice!(1, V*) slice, size_t newsize,
 }
 
 // 1d resize implementation
-Slice!(2, V*) resizeImpl_2(alias interp, V)(Slice!(2, V*) slice, size_t height, size_t width, TaskPool pool)
+Slice!(SliceKind.contiguous, [2], V*) resizeImpl_2(alias interp, SliceKind kind, V)(Slice!(kind, [2], V*) slice, size_t height, size_t width, TaskPool pool)
 {
 
     enforce(!slice.empty && width > 0 && height > 0);
@@ -544,7 +541,7 @@ Slice!(2, V*) resizeImpl_2(alias interp, V)(Slice!(2, V*) slice, size_t height, 
 }
 
 // 1d resize implementation
-Slice!(3, V*) resizeImpl_3(alias interp, V)(Slice!(3, V*) slice, size_t height, size_t width, TaskPool pool)
+Slice!(SliceKind.contiguous, [3], V*) resizeImpl_3(alias interp, SliceKind kind, V)(Slice!(kind, [3], V*) slice, size_t height, size_t width, TaskPool pool)
 {
 
     enforce(!slice.empty && width > 0 && height > 0);
@@ -575,8 +572,9 @@ Slice!(3, V*) resizeImpl_3(alias interp, V)(Slice!(3, V*) slice, size_t height, 
     return retval;
 }
 
-Slice!(2, float*) invertTransformMatrix(TransformMatrix)(TransformMatrix t)
+Slice!(SliceKind.contiguous, [2], float*) invertTransformMatrix(TransformMatrix)(TransformMatrix t)
 {
+    import mir.ndslice.allocation;
     auto result = slice!float(3, 3);
 
     double determinant = +t[0][0] * (t[1][1] * t[2][2] - t[2][1] * t[1][2]) - t[0][1] * (
@@ -598,11 +596,11 @@ Slice!(2, float*) invertTransformMatrix(TransformMatrix)(TransformMatrix t)
     return result;
 }
 
-Slice!(N, V*) transformImpl(TransformType transformType, alias interp, V, TransformMatrix, size_t N)(
-        Slice!(N, V*) slice, TransformMatrix transform, size_t[2] outSize)
+Slice!(kind, packs, V*) transformImpl(TransformType transformType, alias interp, V, TransformMatrix, SliceKind kind, size_t[] packs)
+    (Slice!(kind, packs, V*) slice, TransformMatrix transform, size_t[2] outSize)
 in
 {
-    static assert(N == 2 || N == 3, "Unsupported slice dimension (only 2D and 3D supported)");
+    static assert(packs[0] == 2 || packs[0] == 3, "Unsupported slice dimension (only 2D and 3D supported)");
 
     uint rcount = 0;
     foreach (r; transform)
@@ -620,7 +618,7 @@ body
     if (outSize[1] == 0)
         outSize[1] = slice.length!0;
 
-    static if (N == 2)
+    static if (packs[0] == 2)
     {
         auto tSlice = new V[outSize[0] * outSize[1]].sliced(outSize[1], outSize[0]);
     }
@@ -633,9 +631,9 @@ body
 
     auto t = transform.invertTransformMatrix;
 
-    static if (N == 3)
+    static if (packs[0] == 3)
     {
-        auto sliceChannels = new Slice!(2, V*)[N];
+        auto sliceChannels = new typeof(slice[0..$, 0..$, 0])[packs[0]];
         foreach (c; iota(slice.length!2))
         {
             sliceChannels[c] = slice[0 .. $, 0 .. $, c];
@@ -673,11 +671,11 @@ body
             src_y += inOffset_y;
             if (src_x >= 0 && src_x < slice.length!1 && src_y >= 0 && src_y < slice.length!0)
             {
-                static if (N == 2)
+                static if (packs[0] == 2)
                 {
                     tSlice[i, j] = interp(slice, src_y, src_x);
                 }
-                else if (N == 3)
+                else if (packs[0] == 3)
                 {
                     foreach (c; iota(slice.length!2))
                     {

@@ -10,7 +10,7 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 module dcv.imgproc.threshold;
 
 import mir.ndslice;
-import mir.ndslice.algorithm : ndEach, Yes;
+import mir.ndslice.algorithm : each;
 
 import dcv.core.utils : emptySlice;
 
@@ -30,18 +30,23 @@ values are clipped from given value to 0.
 Thresholding is supported for 1D, 2D and 3D slices.
 
 Params:
-    slice = Input slice.
-    lowThresh = Lower threshold value.
-    highThresh = Higher threshold value.
-    prealloc = Optional pre-allocated slice buffer for output.
+    input = Input slice.
+    lowThresh   = Lower threshold value.
+    highThresh  = Higher threshold value.
+    prealloc    = Optional pre-allocated slice buffer for output.
 
 Note:
     Input and pre-allocated buffer slice, should be of same structure
     (i.e. have same strides). If prealloc buffer is not given, and is
     allocated anew, input slice memory must be contiguous.
 */
-nothrow Slice!(N, OutputType*) threshold(OutputType, InputType, size_t N)(Slice!(N, InputType*) input,
-        InputType lowThresh, InputType highThresh, Slice!(N, OutputType*) prealloc = emptySlice!(N, OutputType))
+nothrow Slice!(Contiguous, packs, OutputType*) threshold(OutputType, InputType, SliceKind kind, size_t []packs)
+(
+    Slice!(kind, packs, InputType*) input,
+    InputType lowThresh,
+    InputType highThresh,
+    Slice!(Contiguous, packs, OutputType*) prealloc = emptySlice!(packs, OutputType)
+)
 in
 {
     //TODO: consider leaving upper value, and not setting it to 1.
@@ -68,21 +73,21 @@ body
     else
         OutputType upvalue = OutputType.max;
 
-    auto p = assumeSameStructure!("result", "input")(prealloc, input);
+    auto p = zip!true(prealloc, input);
 
     if (lowThresh.approxEqual(highThresh))
     {
-        p.ndEach!((v)
+        p.each!((v)
         {
-            v.result = cast(OutputType)(v.input <= lowThresh ? 0 : upvalue);
-        }, Yes.vectorized, Yes.fastmath);
+            v.a = cast(OutputType)(v.b <= lowThresh ? 0 : upvalue);
+        });
     }
     else
     {
-        p.ndEach!((v)
+        p.each!((v)
         {
-            v.result = cast(OutputType)(v.input >= lowThresh && v.input <= highThresh ? upvalue : 0);
-        }, Yes.vectorized, Yes.fastmath);
+            v.a = cast(OutputType)(v.b >= lowThresh && v.b <= highThresh ? upvalue : 0);
+        });
     }
 
     return prealloc;
@@ -94,17 +99,22 @@ Convenience function for thresholding, where lower and upper bound values are th
 Calls threshold(slice, thresh, thresh, prealloc)
 
 Params:
-    slice = Input slice.
-    thresh = Threshold value - any value lower than this will be set to 0, and higher to 1.
-    prealloc = Optional pre-allocated slice buffer for output.
+    input       = Input slice.
+    thresh      = Threshold value - any value lower than this will be set to 0, and higher to 1.
+    prealloc    = Optional pre-allocated slice buffer for output.
 
 Note:
     Input and pre-allocated buffer slice, should be of same structure
     (i.e. have same strides). If prealloc buffer is not given, and is
     allocated anew, input slice memory must be contiguous.
 */
-nothrow Slice!(N, OutputType*) threshold(OutputType, InputType, size_t N)(Slice!(N, InputType*) slice,
-        InputType thresh, Slice!(N, OutputType*) prealloc = emptySlice!(N, OutputType))
+nothrow Slice!(Contiguous, packs, OutputType*) threshold(OutputType, InputType, SliceKind kind, size_t []packs)
+(
+    Slice!(kind, packs, InputType*) input,
+    InputType thresh,
+    Slice!(Contiguous, packs, OutputType*) prealloc = emptySlice!(packs, OutputType)
+)
 {
     return threshold!(OutputType, InputType, N)(slice, thresh, thresh, prealloc);
 }
+

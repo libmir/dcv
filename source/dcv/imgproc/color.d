@@ -36,16 +36,14 @@ bayer2rgb -||-
 */
 import std.traits : isFloatingPoint, isNumeric;
 
-import ldc.attributes : fastmath;
+import mir.ndslice.internal : fastmath;
 
-import mir.ndslice;
+import mir.ndslice.slice;
+import mir.ndslice.topology;
+import mir.ndslice.algorithm;
+import mir.ndslice.allocation;
 
 import dcv.core.utils;
-
-version(unittest)
-{
-    import std.algorithm.comparison : equal;
-}
 
 /**
 RGB to Grayscale convertion strategy.
@@ -74,7 +72,7 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(2, V*) rgb2gray(V)(Slice!(3, V*) input, Slice!(2, V*) prealloc = emptySlice!(2, V),
+Slice!(SliceKind.contiguous, [2], V*) rgb2gray(V)(Slice!(SliceKind.contiguous, [3], V*) input, Slice!(SliceKind.contiguous, [2], V*) prealloc = emptySlice!([2], V),
         Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
 {
     return rgbbgr2gray!(false, V)(input, prealloc, conv);
@@ -87,7 +85,7 @@ unittest
     auto rgb = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3].sliced(2, 2, 3);
 
     auto gray = rgb.rgb2gray;
-    assert(equal!approxEqual(gray.byElement, [0, 1, 2, 3]));
+    assert(gray.flattened == [0, 1, 2, 3]);
 }
 
 /**
@@ -111,7 +109,7 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(2, V*) bgr2gray(V)(Slice!(3, V*) input, Slice!(2, V*) prealloc = emptySlice!(2, V),
+Slice!(SliceKind.contiguous, [2], V*) bgr2gray(V)(Slice!(SliceKind.contiguous, [3], V*) input, Slice!(SliceKind.contiguous, [2], V*) prealloc = emptySlice!([2], V),
         Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
 {
     return rgbbgr2gray!(true, V)(input, prealloc, conv);
@@ -124,11 +122,10 @@ unittest
     auto rgb = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3].sliced(2, 2, 3);
 
     auto gray = rgb.bgr2gray;
-
-    assert(equal!approxEqual(gray.byElement, [0, 1, 2, 3]));
+    assert(gray.flattened == [0, 1, 2, 3]);
 }
 
-private Slice!(2, V*) rgbbgr2gray(bool isBGR, V)(Slice!(3, V*) input, Slice!(2, V*) prealloc = emptySlice!(2, V),
+private Slice!(SliceKind.contiguous, [2], V*) rgbbgr2gray(bool isBGR, V)(Slice!(SliceKind.contiguous, [3], V*) input, Slice!(SliceKind.contiguous, [2], V*) prealloc = emptySlice!([2], V),
         Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
 in
 {
@@ -141,19 +138,19 @@ body
 
     auto rgb = staticPack!3(input);
 
-    assert(rgb.structure.strides == prealloc.structure.strides,
+    assert(rgb.strides == prealloc.strides,
             "Input image and pre-allocated buffer strides are not identical.");
 
-    auto pack = assumeSameStructure!("rgb", "gray")(rgb, prealloc);
+    auto pack = zip!true(rgb, prealloc);
     alias PT = DeepElementType!(typeof(pack));
 
     if (conv == Rgb2GrayConvertion.MEAN)
-        pack.ndEach!(rgb2grayImplMean!PT);
+        pack.each!(rgb2grayImplMean!PT);
     else
         static if (isBGR)
-            pack.ndEach!(bgr2grayImplLuminance!(PT));
+            pack.each!(bgr2grayImplLuminance!(PT));
         else
-            pack.ndEach!(rgb2grayImplLuminance!(PT));
+            pack.each!(rgb2grayImplLuminance!(PT));
 
     return prealloc;
 }
@@ -177,9 +174,9 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(3, V*) gray2rgb(V)(Slice!(2, V*) input, Slice!(3, V*) prealloc = emptySlice!(3, V)) pure nothrow
+Slice!(SliceKind.contiguous, [3], V*) gray2rgb(V)(Slice!(SliceKind.contiguous, [2], V*) input, Slice!(SliceKind.contiguous, [3], V*) prealloc = emptySlice!([3], V)) pure nothrow
 {
-    Slice!(2, V[3]*) rgb;
+    Slice!(SliceKind.contiguous, [2], V[3]*) rgb;
     if (input.shape != prealloc.shape[0 .. 2])
     {
         rgb = uninitializedSlice!(V[3])(input.length!0, input.length!1);
@@ -189,13 +186,13 @@ Slice!(3, V*) gray2rgb(V)(Slice!(2, V*) input, Slice!(3, V*) prealloc = emptySli
         rgb = staticPack!3(prealloc);
     }
 
-    assert(rgb.structure.strides == input.structure.strides,
+    assert(rgb.strides == input.strides,
             "Input and pre-allocated slices' strides are not identical.");
 
-    auto pack = assumeSameStructure!("gray", "rgb")(input, rgb);
+    auto pack = zip!true(input, rgb);
     alias PT = DeepElementType!(typeof(pack));
 
-    pack.ndEach!(gray2rgbImpl!PT);
+    pack.each!(gray2rgbImpl!PT);
 
     return staticUnpack!3(rgb);
 }
@@ -208,7 +205,7 @@ unittest
 
     auto rgb = gray.gray2rgb;
 
-    assert(equal!approxEqual(rgb.byElement, [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3]));
+    assert(rgb.flattened == [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3]);
 }
 
 /**
@@ -235,7 +232,7 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(3, R*) rgb2hsv(R, V)(Slice!(3, V*) input, Slice!(3, R*) prealloc = emptySlice!(3, R)) pure nothrow
+Slice!(SliceKind.contiguous, [3], R*) rgb2hsv(R, V)(Slice!(SliceKind.contiguous, [3], V*) input, Slice!(SliceKind.contiguous, [3], R*) prealloc = emptySlice!([3], R)) pure nothrow
         if (isNumeric!R && isNumeric!V)
 in
 {
@@ -247,11 +244,11 @@ body
     if (prealloc.shape != input.shape)
         prealloc = uninitializedSlice!R(input.shape);
 
-    assert(input.structure.strides == prealloc.structure.strides,
+    assert(input.strides == prealloc.strides,
             "Input image and pre-allocated buffer strides are not identical.");
 
-    auto pack = assumeSameStructure!("rgb", "hsv")(input.staticPack!3, prealloc.staticPack!3);
-    pack.ndEach!(rgb2hsvImpl!(DeepElementType!(typeof(pack))));
+    auto pack = zip!true(input.staticPack!3, prealloc.staticPack!3);
+    pack.each!(rgb2hsvImpl!(DeepElementType!(typeof(pack))));
 
     return prealloc;
 }
@@ -265,7 +262,7 @@ unittest
         import std.array : array;
         import std.math : approxEqual;
 
-        assert(rgb.sliced(1, 1, 3).rgb2hsv!HSVType.byElement.array.equal!approxEqual(expectedHSV));
+        assert(rgb.sliced(1, 1, 3).rgb2hsv!HSVType.flattened.array.equal!approxEqual(expectedHSV));
     }
 
     rgb2hsvTest(cast(ubyte[])[255, 0, 0], cast(ushort[])[0, 100, 100]);
@@ -303,7 +300,7 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(3, R*) hsv2rgb(R, V)(Slice!(3, V*) input, Slice!(3, R*) prealloc = emptySlice!(3, R)) pure nothrow
+Slice!(SliceKind.contiguous, [3], R*) hsv2rgb(R, V)(Slice!(SliceKind.contiguous, [3], V*) input, Slice!(SliceKind.contiguous, [3], R*) prealloc = emptySlice!([3], R)) pure nothrow
         if (isNumeric!R && isNumeric!V)
 in
 {
@@ -314,11 +311,11 @@ body
     if (prealloc.shape != input.shape)
         prealloc = uninitializedSlice!R(input.shape);
 
-    assert(input.structure.strides == prealloc.structure.strides,
+    assert(input.strides == prealloc.strides,
             "Input image and pre-allocated buffer strides are not identical.");
 
-    auto pack = assumeSameStructure!("hsv", "rgb")(input.staticPack!3, prealloc.staticPack!3);
-    pack.ndEach!(hsv2rgbImpl!(DeepElementType!(typeof(pack))));
+    auto pack = zip!true(input.staticPack!3, prealloc.staticPack!3);
+    pack.each!(hsv2rgbImpl!(DeepElementType!(typeof(pack))));
 
     return prealloc;
 }
@@ -332,7 +329,7 @@ unittest
         import std.array : array;
         import std.math : approxEqual;
 
-        assert(hsv.sliced(1, 1, 3).hsv2rgb!RGBType.byElement.array.equal!approxEqual(expectedRgb));
+        assert(hsv.sliced(1, 1, 3).hsv2rgb!RGBType.flattened.array.equal!approxEqual(expectedRgb));
     }
 
     import std.random : uniform;
@@ -378,7 +375,7 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(3, V*) rgb2yuv(V)(Slice!(3, V*) input, Slice!(3, V*) prealloc = emptySlice!(3, V)) pure nothrow
+Slice!(SliceKind.contiguous, [3], V*) rgb2yuv(V)(Slice!(SliceKind.contiguous, [3], V*) input, Slice!(SliceKind.contiguous, [3], V*) prealloc = emptySlice!([3], V)) pure nothrow
 in
 {
     assert(input.length!2 == 3, "Invalid channel count.");
@@ -388,11 +385,11 @@ body
     if (prealloc.shape != input.shape)
         prealloc = uninitializedSlice!V(input.shape);
 
-    assert(input.structure.strides == prealloc.structure.strides,
+    assert(input.strides == prealloc.strides,
             "Input image and pre-allocated buffer strides are not identical.");
 
-    auto p = assumeSameStructure!("rgb", "yuv")(input, prealloc).pack!1;
-    p.ndEach!(rgb2yuvImpl!(V, DeepElementType!(typeof(p))));
+    auto p = zip!true(input, prealloc).pack!1;
+    p.each!(rgb2yuvImpl!(V, DeepElementType!(typeof(p))));
 
     return prealloc;
 }
@@ -414,21 +411,22 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(3, V*) yuv2rgb(V)(Slice!(3, V*) input, Slice!(3, V*) prealloc = emptySlice!(3, V)) pure nothrow
+Slice!(SliceKind.contiguous, [3], V*) yuv2rgb(V)(Slice!(SliceKind.contiguous, [3], V*) input, Slice!(SliceKind.contiguous, [3], V*) prealloc = emptySlice!([3], V)) pure nothrow
 in
 {
     assert(input.length!2 == 3, "Invalid channel count.");
 }
 body
 {
+    import mir.ndslice.allocation;
     if (prealloc.shape != input.shape)
         prealloc = uninitializedSlice!V(input.shape);
 
-    assert(input.structure.strides == prealloc.structure.strides,
+    assert(input.strides == prealloc.strides,
             "Input image and pre-allocated buffer strides are not identical.");
 
-    auto p = assumeSameStructure!("yuv", "rgb")(input, prealloc).pack!1;
-    p.ndEach!(yuv2rgbImpl!(V, DeepElementType!(typeof(p))));
+    auto p = zip!true(input, prealloc).pack!1;
+    p.each!(yuv2rgbImpl!(V, DeepElementType!(typeof(p))));
 
     return prealloc;
 }
@@ -442,7 +440,7 @@ unittest
         import std.array : array;
         import std.math : approxEqual;
 
-        assert(rgb.sliced(1, 1, 3).rgb2yuv.byElement.array.equal!approxEqual(expectedYuv));
+        assert(rgb.sliced(1, 1, 3).rgb2yuv.flattened.array.equal!approxEqual(expectedYuv));
     }
 
     rgb2yuvTest(cast(ubyte[])[0, 0, 0], cast(ubyte[])[16, 128, 128]);
@@ -460,7 +458,7 @@ unittest
         import std.array : array;
         import std.math : approxEqual;
 
-        assert(yuv.sliced(1, 1, 3).yuv2rgb.byElement.array.equal!approxEqual(expectedRgb));
+        assert(yuv.sliced(1, 1, 3).yuv2rgb.flattened.array.equal!approxEqual(expectedRgb));
     }
 
     yuv2rgbTest(cast(ubyte[])[16, 128, 128], cast(ubyte[])[0, 0, 0]);
@@ -473,72 +471,72 @@ pure @nogc nothrow @fastmath:
 
 void rgb2grayImplMean(P)(P pack)
 {
-    alias V = typeof(pack.gray);
-    pack.gray = cast(V)((pack.rgb[0] + pack.rgb[1] + pack.rgb[2]) / 3);
+    alias V = typeof(pack.b);
+    pack.b = cast(V)((pack.a[0] + pack.a[1] + pack.a[2]) / 3);
 }
 
 void rgb2grayImplLuminance(RGBGRAY)(RGBGRAY pack)
 {
-    alias V = typeof(pack.gray);
-    pack.gray = cast(V)(
-            cast(float)pack.rgb[0] * 0.212642529f +
-            cast(float)pack.rgb[1] * 0.715143029f +
-            cast(float)pack.rgb[2] * 0.072214443f
+    alias V = typeof(pack.b);
+    pack.b = cast(V)(
+            cast(float)pack.a[0] * 0.212642529f +
+            cast(float)pack.a[1] * 0.715143029f +
+            cast(float)pack.a[2] * 0.072214443f
             );
 }
 
 void bgr2grayImplLuminance(RGBGRAY)(RGBGRAY pack)
 {
-    alias V = typeof(pack.gray);
-    pack.gray = cast(V)(
-            cast(float)pack.rgb[2] * 0.212642529f +
-            cast(float)pack.rgb[1] * 0.715143029f +
-            cast(float)pack.rgb[0] * 0.072214443f
+    alias V = typeof(pack.b);
+    pack.b = cast(V)(
+            cast(float)pack.a[2] * 0.212642529f +
+            cast(float)pack.a[1] * 0.715143029f +
+            cast(float)pack.a[0] * 0.072214443f
             );
 }
 
 void gray2rgbImpl(GRAYRGB)(GRAYRGB pack)
 {
-    auto v = pack.gray;
-    pack.rgb[0] = v;
-    pack.rgb[1] = v;
-    pack.rgb[2] = v;
+    auto v = pack.a;
+    pack.b[0] = v;
+    pack.b[1] = v;
+    pack.b[2] = v;
 }
 
 void rgb2hsvImpl(RGBHSV)(RGBHSV pack)
 {
-    import ldc.intrinsics : max = llvm_maxnum, min = llvm_minnum;
+    import mir.math.internal;
 
-    alias V = typeof(pack.rgb[0]);
-    alias R = typeof(pack.hsv[0]);
+    alias V = typeof(pack.a[0]);
+    alias R = typeof(pack.b[0]);
 
     static if (is(V == ubyte))
     {
-        auto r = cast(float)(pack.rgb[0]) * (1.0f / 255.0f);
-        auto g = cast(float)(pack.rgb[1]) * (1.0f / 255.0f);
-        auto b = cast(float)(pack.rgb[2]) * (1.0f / 255.0f);
+        auto r = cast(float)(pack.a[0]) * (1.0f / 255.0f);
+        auto g = cast(float)(pack.a[1]) * (1.0f / 255.0f);
+        auto b = cast(float)(pack.a[2]) * (1.0f / 255.0f);
     }
     else static if (is(V == ushort))
     {
-        auto r = cast(float)(pack.rgb[0]) * (1.0f / 65535.0f);
-        auto g = cast(float)(pack.rgb[1]) * (1.0f / 65535.0f);
-        auto b = cast(float)(pack.rgb[2]) * (1.0f / 65535.0f);
+        auto r = cast(float)(pack.a[0]) * (1.0f / 65535.0f);
+        auto g = cast(float)(pack.a[1]) * (1.0f / 65535.0f);
+        auto b = cast(float)(pack.a[2]) * (1.0f / 65535.0f);
     }
     else static if (isFloatingPoint!V)
     {
-        // assumes rgb value range 0-1
-        auto r = cast(float)(pack.rgb[0]);
-        auto g = cast(float)(pack.rgb[1]);
-        auto b = cast(float)(pack.rgb[2]);
+        // assumes a value range 0-1
+        auto r = cast(float)(pack.a[0]);
+        auto g = cast(float)(pack.a[1]);
+        auto b = cast(float)(pack.a[2]);
     }
     else
     {
         static assert(0, "Invalid RGB input type: " ~ V.stringof);
     }
 
-    auto cmax = max(r, max(g, b));
-    auto cmin = min(r, min(g, b));
-    auto cdelta = cmax - cmin;
+    auto cmax = fmax(r, fmax(g, b));
+    auto cmin = fmin(r, fmin(g, b));
+    auto cdelta = cmax - cmin; // TODO: compute min and max in a lockstep
 
     auto h = cast(R)((cdelta == 0) ? 0 : (cmax == r) ? 60.0f * ((g - b) / cdelta) : (cmax == g)
             ? 60.0f * ((b - r) / cdelta + 2) : 60.0f * ((r - g) / cdelta + 4));
@@ -553,57 +551,55 @@ void rgb2hsvImpl(RGBHSV)(RGBHSV pack)
     }
     else
     {
-        auto s = cast(R)(100.0 * (cmax == 0 ? 0 : cdelta / cmax));
-        auto v = cast(R)(100.0 * cmax);
+        auto s = cast(R)(100.0f * (cmax == 0 ? 0 : cdelta / cmax));
+        auto v = cast(R)(100.0f * cmax);
     }
 
-    pack.hsv[0] = h;
-    pack.hsv[1] = s;
-    pack.hsv[2] = v;
+    pack.b[0] = h;
+    pack.b[1] = s;
+    pack.b[2] = v;
 }
 
 void hsv2rgbImpl(HSVRGB)(HSVRGB pack)
 {
-    alias V = typeof(pack.hsv[0]);
-    alias R = typeof(pack.rgb[0]);
-
-    float r, g, b, p, q, t;
+    alias V = typeof(pack.a[0]);
+    alias R = typeof(pack.b[0]);
 
     static if (isFloatingPoint!V)
     {
-        auto h = pack.hsv[0];
-        auto s = pack.hsv[1];
-        auto v = pack.hsv[2];
+        auto h = pack.a[0];
+        auto s = pack.a[1];
+        auto v = pack.a[2];
     }
     else
     {
-        float h = cast(float)pack.hsv[0];
-        float s = cast(float)pack.hsv[1] * 0.01f;
-        float v = cast(float)pack.hsv[2] * 0.01f;
+        float h = cast(float)pack.a[0];
+        float s = cast(float)pack.a[1] * 0.01f;
+        float v = cast(float)pack.a[2] * 0.01f;
     }
 
-    if (s <= 0.0f)
+    if (s <= 0)
     {
         static if (isFloatingPoint!R)
         {
-            pack.rgb[0] = cast(R)v;
-            pack.rgb[1] = cast(R)v;
-            pack.rgb[2] = cast(R)v;
+            pack.b[0] = cast(R)v;
+            pack.b[1] = cast(R)v;
+            pack.b[2] = cast(R)v;
         }
         else
         {
-            pack.rgb[0] = cast(R)(v * R.max);
-            pack.rgb[1] = cast(R)(v * R.max);
-            pack.rgb[2] = cast(R)(v * R.max);
+            pack.b[0] = cast(R)(v * R.max);
+            pack.b[1] = cast(R)(v * R.max);
+            pack.b[2] = cast(R)(v * R.max);
         }
         return;
     }
 
     if (v <= 0.0f)
     {
-        pack.rgb[0] = cast(R)0;
-        pack.rgb[1] = cast(R)0;
-        pack.rgb[2] = cast(R)0;
+        pack.b[0] = cast(R)0;
+        pack.b[1] = cast(R)0;
+        pack.b[2] = cast(R)0;
         return;
     }
 
@@ -615,9 +611,13 @@ void hsv2rgbImpl(HSVRGB)(HSVRGB pack)
     auto hh = cast(int)h;
     auto ff = h - float(hh);
 
-    p = v * (1.0f - s);
-    q = v * (1.0f - (s * ff));
-    t = v * (1.0f - (s * (1.0f - ff)));
+    auto p = v * (1.0f - s);
+    auto q = v * (1.0f - (s * ff));
+    auto t = v * (1.0f - (s * (1.0f - ff)));
+
+    float r = void;
+    float g = void;
+    float b = void;
 
     switch (hh)
     {
@@ -636,7 +636,6 @@ void hsv2rgbImpl(HSVRGB)(HSVRGB pack)
         g = v;
         b = t;
         break;
-
     case 3:
         r = p;
         g = q;
@@ -657,15 +656,15 @@ void hsv2rgbImpl(HSVRGB)(HSVRGB pack)
 
     static if (isFloatingPoint!R)
     {
-        pack.rgb[0] = cast(R)r;
-        pack.rgb[1] = cast(R)g;
-        pack.rgb[2] = cast(R)b;
+        pack.b[0] = r;
+        pack.b[1] = g;
+        pack.b[2] = b;
     }
     else
     {
-        pack.rgb[0] = cast(R)(r * R.max);
-        pack.rgb[1] = cast(R)(g * R.max);
-        pack.rgb[2] = cast(R)(b * R.max);
+        pack.b[0] = cast(R)(r * R.max);
+        pack.b[1] = cast(R)(g * R.max);
+        pack.b[2] = cast(R)(b * R.max);
     }
 }
 
@@ -673,40 +672,40 @@ void rgb2yuvImpl(V, RGBYUV)(RGBYUV pack)
 {
     static if (isFloatingPoint!V)
     {
-        auto r = cast(int)pack[0].rgb;
-        auto g = cast(int)pack[1].rgb;
-        auto b = cast(int)pack[2].rgb;
-        pack[0].yuv = clip!V((r * .257) + (g * .504) + (b * .098) + 16);
-        pack[1].yuv = clip!V((r * .439) + (g * .368) + (b * .071) + 128);
-        pack[2].yuv = clip!V(-(r * .148) - (g * .291) + (b * .439) + 128);
+        auto r = cast(int)pack[0].a;
+        auto g = cast(int)pack[1].a;
+        auto b = cast(int)pack[2].a;
+        pack[0].b = clip!V((r * .257) + (g * .504) + (b * .098) + 16);
+        pack[1].b = clip!V((r * .439) + (g * .368) + (b * .071) + 128);
+        pack[2].b = clip!V(-(r * .148) - (g * .291) + (b * .439) + 128);
     }
     else
     {
-        auto r = pack[0].rgb;
-        auto g = pack[1].rgb;
-        auto b = pack[2].rgb;
-        pack[0].yuv = clip!V(((66 * (r) + 129 * (g) + 25 * (b) + 128) >> 8) + 16);
-        pack[1].yuv = clip!V(((-38 * (r) - 74 * (g) + 112 * (b) + 128) >> 8) + 128);
-        pack[2].yuv = clip!V(((112 * (r) - 94 * (g) - 18 * (b) + 128) >> 8) + 128);
+        auto r = pack[0].a;
+        auto g = pack[1].a;
+        auto b = pack[2].a;
+        pack[0].b = clip!V(((66 * (r) + 129 * (g) + 25 * (b) + 128) >> 8) + 16);
+        pack[1].b = clip!V(((-38 * (r) - 74 * (g) + 112 * (b) + 128) >> 8) + 128);
+        pack[2].b = clip!V(((112 * (r) - 94 * (g) - 18 * (b) + 128) >> 8) + 128);
     }
 }
 
 void yuv2rgbImpl(V, YUVRGB)(YUVRGB pack)
 {
-    auto y = cast(int)(pack[0].yuv) - 16;
-    auto u = cast(int)(pack[1].yuv) - 128;
-    auto v = cast(int)(pack[2].yuv) - 128;
+    auto y = cast(int)(pack[0].a) - 16;
+    auto u = cast(int)(pack[1].a) - 128;
+    auto v = cast(int)(pack[2].a) - 128;
     static if (isFloatingPoint!V)
     {
-        pack[0].rgb = clip!V(y + 1.4075 * v);
-        pack[1].rgb = clip!V(y - 0.3455 * u - (0.7169 * v));
-        pack[2].rgb = clip!V(y + 1.7790 * u);
+        pack[0].b = clip!V(y + 1.4075 * v);
+        pack[1].b = clip!V(y - 0.3455 * u - (0.7169 * v));
+        pack[2].b = clip!V(y + 1.7790 * u);
     }
     else
     {
-        pack[0].rgb = clip!V((298 * y + 409 * v + 128) >> 8);
-        pack[1].rgb = clip!V((298 * y - 100 * u - 208 * v + 128) >> 8);
-        pack[2].rgb = clip!V((298 * y + 516 * u + 128) >> 8);
+        pack[0].b = clip!V((298 * y + 409 * v + 128) >> 8);
+        pack[1].b = clip!V((298 * y - 100 * u - 208 * v + 128) >> 8);
+        pack[2].b = clip!V((298 * y + 516 * u + 128) >> 8);
     }
 }
 

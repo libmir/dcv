@@ -36,13 +36,14 @@ module dcv.imgproc.convolution;
 
 import std.traits : isAssignable, ReturnType;
 import std.conv : to;
-import std.algorithm.comparison : equal;
 import std.parallelism : parallel, taskPool, TaskPool;
 
-import ldc.attributes : fastmath;
+import mir.ndslice.internal : fastmath;
 
-import mir.ndslice;
-import mir.ndslice.algorithm : ndReduce, Yes;
+import mir.ndslice.slice;
+import mir.ndslice.topology;
+import mir.ndslice.algorithm : reduce;
+import mir.ndslice.allocation: slice;
 
 import dcv.core.memory;
 import dcv.core.utils;
@@ -84,10 +85,10 @@ in
     static assert(isAssignable!(DeepElementType!InputTensor, DeepElementType!KernelTensor),
             "Incompatible types for input and kernel");
 
-    immutable N = ReturnType!(InputTensor.shape).length;
-    immutable NK = ReturnType!(KernelTensor.shape).length;
+    immutable N = InputTensor.init.shape.length;
+    immutable NK = KernelTensor.init.shape.length;
 
-    static assert(ReturnType!(MaskTensor.shape).length == NK, "Mask tensor has to be of same dimension as the kernel tensor.");
+    static assert(MaskTensor.init.shape.length == NK, "Mask tensor has to be of same dimension as the kernel tensor.");
 
     immutable invalidKernelMsg = "Invalid kernel dimension";
     static if (N == 1)
@@ -99,24 +100,27 @@ in
     else
         static assert(0, "Convolution not implemented for given tensor dimension.");
 
-    assert(input.ptr != prealloc.ptr, "Preallocated and input buffer cannot point to the same memory.");
+    assert(input._iterator != prealloc._iterator, "Preallocated and input buffer cannot point to the same memory.");
 
     if (!mask.empty)
     {
         assert(mask.shape == input.shape, "Invalid mask size. Should be of same size as input tensor.");
-        assert(input.structure.strides == mask.structure.strides, "Input input and mask need to have same strides.");
+        assert(input.strides == mask.strides, "Input input and mask need to have same strides.");
     }
 
     if (prealloc.empty)
-        assert(input.stride!(N-1) == 1, "Input tensor has to be contiguous (i.e. input.stride!(N-1) == 1).");
+        assert(input._stride!(N-1) == 1, "Input tensor has to be contiguous (i.e. input.stride!(N-1) == 1).");
     else
-        assert(input.structure.strides == prealloc.structure.strides,
+        assert(input.strides == prealloc.strides,
                 "Input input and result(preallocated) buffer need to have same strides.");
 }
 body
 {
-    if (prealloc.shape != input.shape)
-        prealloc = uninitializedSlice!(DeepElementType!InputTensor)(input.shape);
+    import mir.ndslice.allocation;
+
+    static if (prealloc._strides.length == 0)
+        if (prealloc.shape != input.shape)
+            prealloc = uninitializedSlice!(DeepElementType!InputTensor)(input.shape);
 
     return convImpl!bc(input, kernel, prealloc, mask, pool);
 }
@@ -124,6 +128,7 @@ body
 unittest
 {
     import std.math : approxEqual;
+    import std.algorithm.comparison : equal;
 
     auto r1 = [0., 1., 2., 3., 4., 5.].sliced(6);
     auto k1 = [-1., 0., 1.].sliced(3);
@@ -147,7 +152,7 @@ unittest
     assert(convres.shape == image.shape);
 }
 
-nothrow @nogc @fastmath auto kapply(T)(T r, T i, T k)
+nothrow @nogc @fastmath auto kapply(T)(const T r, const T i, const T k)
 {
     return r + i * k;
 }
@@ -157,7 +162,7 @@ private:
 auto convImpl
     (alias bc = neumann, InputTensor, KernelTensor, MaskTensor)
     (InputTensor input, KernelTensor kernel, InputTensor prealloc, MaskTensor mask, TaskPool pool) 
-if (ReturnType!(InputTensor.shape).length == 1)
+if (InputTensor.init.shape.length == 1)
 {
     alias InputType = DeepElementType!InputTensor;
 
@@ -166,22 +171,20 @@ if (ReturnType!(InputTensor.shape).length == 1)
 
     if (mask.empty)
     {
-        auto packedWindows = assumeSameStructure!("result", "input")(prealloc, input).windows(kl);
+        auto packedWindows = zip!true(prealloc, input).windows(kl);
         foreach (p; pool.parallel(packedWindows))
         {
-            p[kh].result = ndReduce!(kapply!InputType, Yes.vectorized, Yes.fastmath)
-                                    (0.0f, p.ndMap!(p => p.input), kernel);
+            p[kh].a = reduce!(kapply!InputType)(0.0f, p.unzip!'b', kernel);
         }
     }
     else
     {
         // TODO: extract masked convolution as separate function?
-        auto packedWindows = assumeSameStructure!("result", "input", "mask")(prealloc, input, mask).windows(kl);
+        auto packedWindows = zip!true(prealloc, input, mask).windows(kl);
         foreach (p; pool.parallel(packedWindows))
         {
-            if (p[$ / 2].mask)
-                p[$ / 2].result = ndReduce!(kapply!InputType)
-                                           (0.0f, p.ndMap!(p => p.input), kernel);
+            if (p[$ / 2].c)
+                p[$ / 2].a = reduce!(kapply!InputType)(0.0f, p.unzip!'b', kernel);
         }
     }
 
@@ -194,7 +197,7 @@ if (ReturnType!(InputTensor.shape).length == 1)
 auto convImpl
     (alias bc = neumann, InputTensor, KernelTensor, MaskTensor)
     (InputTensor input, KernelTensor kernel, InputTensor prealloc, MaskTensor mask, TaskPool pool) 
-if (ReturnType!(InputTensor.shape).length == 2)
+if (InputTensor.init.shape.length == 2)
 {
     auto krs = kernel.length!0; // kernel rows
     auto kcs = kernel.length!1; // kernel rows
@@ -206,26 +209,20 @@ if (ReturnType!(InputTensor.shape).length == 2)
 
     if (mask.empty)
     {
-        auto packedWindows = assumeSameStructure!("result", "input")(prealloc, input).windows(krs, kcs);
+        auto packedWindows = zip!true(prealloc, input).windows(krs, kcs);
         foreach (prow; pool.parallel(packedWindows))
             foreach (p; prow)
             {
-                p[krh, kch].result = ndReduce!(kapply, Yes.vectorized, Yes.fastmath)
-                                              (0.0f, p.ndMap!(v => v.input), kernel);
+                p[krh, kch].a = reduce!kapply(0.0f, p.unzip!'b', kernel);
             }
     }
     else
     {
-        auto packedWindows = assumeSameStructure!("result", "input", "mask")(prealloc, input, mask).windows(krs, kcs);
+        auto packedWindows = zip!true(prealloc, input, mask).windows(krs, kcs);
         foreach (prow; pool.parallel(packedWindows))
             foreach (p; prow)
-            {
-                if (p[krh, kch].mask)
-                {
-                    p[krh, kch].result = ndReduce!(kapply, Yes.vectorized, Yes.fastmath)
-                                                  (0.0f, p.ndMap!(v => v.input), kernel);
-                }
-            }
+                if (p[krh, kch].c)
+                    p[krh, kch].a = reduce!kapply(0.0f, p.unzip!'b', kernel);
     }
 
     handleEdgeConv2d!bc(input, prealloc, kernel, mask, [0, input.length!0], [0, kch]); // upper row
@@ -239,7 +236,7 @@ if (ReturnType!(InputTensor.shape).length == 2)
 auto convImpl
     (alias bc = neumann, InputTensor, KernelTensor, MaskTensor)
     (InputTensor input, KernelTensor kernel, InputTensor prealloc, MaskTensor mask, TaskPool pool) 
-if (ReturnType!(InputTensor.shape).length == 3)
+if (InputTensor.init.shape.length == 3)
 {
     foreach (i; 0 .. input.length!2)
     {
@@ -251,8 +248,17 @@ if (ReturnType!(InputTensor.shape).length == 3)
     return prealloc;
 }
 
-void handleEdgeConv1d(alias bc, T, K, M)(Slice!(1, T*) input, Slice!(1, T*) prealloc, Slice!(1,
-        K*) kernel, Slice!(1, M*) mask, size_t from, size_t to)
+void handleEdgeConv1d(alias bc, T, K, M,
+    SliceKind kindi,
+    SliceKind kindp,
+    SliceKind kindk,
+    SliceKind kindm,
+    )(
+    Slice!(kindi, [1], T*) input,
+    Slice!(kindp, [1], T*) prealloc,
+    Slice!(kindk, [1], K*) kernel,
+    Slice!(kindm, [1], M*) mask,
+    size_t from, size_t to)
 in
 {
     assert(from < to);
@@ -282,8 +288,12 @@ body
     }
 }
 
-void handleEdgeConv2d(alias bc, T, K, M)(Slice!(2, T*) input, Slice!(2, T*) prealloc, Slice!(2,
-        K*) kernel, Slice!(2, M*) mask, size_t[2] rowRange, size_t[2] colRange)
+void handleEdgeConv2d(alias bc, SliceKind kind0, SliceKind kind1, SliceKind kind2, SliceKind kind3, T, K, M)(
+    Slice!(kind0, [2], T*) input,
+    Slice!(kind1, [2], T*) prealloc,
+    Slice!(kind2, [2], K*) kernel,
+    Slice!(kind3, [2], M*) mask, 
+    size_t[2] rowRange, size_t[2] colRange)
 in
 {
     assert(rowRange[0] < rowRange[1]);

@@ -75,29 +75,29 @@ class FASTDetector : Detector
     }
 
     /// Threshold for corner detection.
-    @property threshold() const
+    auto threshold() const @property @safe pure nothrow @nogc
     {
         return _threshold;
     }
     /// Threshold value setter.
-    @property threshold(uint value)
+    auto threshold(uint value) @property @safe pure nothrow @nogc
     {
         assert(value > 0);
         _threshold = value;
     }
 
     /// Type of the detector.
-    @property type() const
+    auto type() const @property @safe pure nothrow @nogc
     {
         return _type;
     }
     /// ditto
-    @property type(Type type)
+    auto type(Type type) @property @safe pure nothrow @nogc
     {
         _type = type;
     }
     /// Algorithm flags.
-    @property flags() const
+    auto flags() const @property @safe pure nothrow @nogc
     {
         return _flags;
     }
@@ -119,7 +119,7 @@ class FASTDetector : Detector
         import std.array : reserve;
         import std.algorithm : min;
 
-        enforce(image.depth == BitDepth.BD_8, "Invalid bit depth - FAST is supported so " "far only for 8-bit images");
+        enforce(image.depth == BitDepth.BD_8, "Invalid bit depth - FAST is supported so " ~ "far only for 8-bit images");
         enforce(image.channels == 1, "Invalid image format - has to be mono");
 
         Feature[] features; // output features

@@ -103,7 +103,7 @@ import std.string : toStringz;
 import std.exception;
 import std.conv : to;
 
-import mir.ndslice;
+import mir.ndslice.slice;
 
 version(ggplotd)
 {
@@ -174,7 +174,8 @@ Figure imshow(Image image, string title = "")
 }
 
 /// ditto
-Figure imshow(size_t N, T)(Slice!(N, T*) slice, string title = "")
+Figure imshow(SliceKind kind, size_t[] packs, Iterator)
+    (Slice!(kind, packs, Iterator) slice, string title = "")
 {
     auto f = figure(title);
     f.draw(slice, ImageFormat.IF_UNASSIGNED);
@@ -183,7 +184,8 @@ Figure imshow(size_t N, T)(Slice!(N, T*) slice, string title = "")
 }
 
 /// ditto
-Figure imshow(size_t N, T)(Slice!(N, T*) slice, ImageFormat format, string title = "")
+Figure imshow(SliceKind kind, size_t[] packs, Iterator)
+    (Slice!(kind, packs, Iterator) slice, ImageFormat format, string title = "")
 {
     auto f = figure(title);
     f.draw(slice, format);
@@ -206,7 +208,8 @@ version(ggplotd)
     }
 
     /// ditto
-    Figure plot(size_t N, T)(Slice!(N, T*) slice, GGPlotD gg, string title = "")
+    Figure plot(SliceKind kind, size_t[] packs, Iterator)
+        (Slice!(kind, packs, Iterator) slice, GGPlotD gg, string title = "")
     {
         auto f = figure(title);
         f.draw(slice, ImageFormat.IF_UNASSIGNED);
@@ -216,7 +219,8 @@ version(ggplotd)
     }
 
     /// ditto
-    Figure plot(size_t N, T)(Slice!(N, T*) slice, ImageFormat format, GGPlotD gg, string title = "")
+    Figure plot(SliceKind kind, size_t[] packs, Iterator)
+        (Slice!(kind, packs, Iterator) slice, ImageFormat format, GGPlotD gg, string title = "")
     {
         auto f = figure(title);
         f.draw(slice, format);
@@ -451,7 +455,8 @@ class Figure
     }
 
     /// Construct figure window with given title, and fill it with given image.
-    this(size_t N, T)(string title, Slice!(N, T*) slice, ImageFormat format = ImageFormat.IF_UNASSIGNED)
+    this(SliceKind kind, size_t[] packs, Iterator)
+        (string title, Slice!(kind, packs, Iterator) slice, ImageFormat format = ImageFormat.IF_UNASSIGNED)
             if (N == 2 || N == 3)
     {
         this(title, cast(int)slice.length!1, cast(int)slice.length!0);
@@ -611,20 +616,28 @@ class Figure
     }
 
     /// Draw slice of image onto figure canvas.
-    void draw(size_t N, T)(Slice!(N, T*) slice, ImageFormat format = ImageFormat.IF_UNASSIGNED)
+    void draw(SliceKind kind, size_t[] packs, Iterator)
+        (Slice!(kind, packs, Iterator) image, ImageFormat format = ImageFormat.IF_UNASSIGNED)
     {
-        Slice!(N, ubyte*) showSlice;
-        static if (is(T == ubyte))
-            showSlice = slice;
+        import std.range.primitives : ElementType;
+        import mir.ndslice.topology : as;
+        import mir.ndslice.allocation : slice;
+
+        static assert(packs.length == 1, "Cannot draw packed slices.");
+
+        alias T = ElementType!Iterator;
+
+        Slice!(SliceKind.contiguous, packs, ubyte*) showImage;
+        static if ( is(T == ubyte) )
+            showImage = image.assumeContiguous; // TODO: test if its contiguous
         else
-            showSlice = slice.as!ubyte.slice;
+            showImage = image.as!ubyte.slice;
 
         if (format == ImageFormat.IF_UNASSIGNED)
-            draw(showSlice.asImage());
+            draw( showImage.asImage() );
         else
-            draw(showSlice.asImage(format));
+            draw(showImage.asImage(format) );
     }
-
 
     /**
     Draw the GGPlotD context on this figure's canvas.
@@ -880,14 +893,14 @@ Image adoptImage(Image image)
     import dcv.imgproc.color : yuv2rgb, gray2rgb;
 
     Image showImage = (image.depth != BitDepth.BD_8) ? image.asType!ubyte : image;
-
+    import mir.ndslice.topology;
     switch (showImage.format)
     {
     case ImageFormat.IF_RGB_ALPHA:
         showImage = showImage.sliced[0 .. $, 0 .. $, 0 .. 2].asImage(ImageFormat.IF_RGB);
         break;
     case ImageFormat.IF_BGR:
-        foreach (e; showImage.sliced.pack!1.byElement)
+        foreach (e; showImage.sliced.pack!1.flattened)
         {
             auto t = e[0];
             e[0] = e[2];
@@ -895,7 +908,7 @@ Image adoptImage(Image image)
         }
         break;
     case ImageFormat.IF_BGR_ALPHA:
-        foreach (e; showImage.sliced.pack!1.byElement)
+        foreach (e; showImage.sliced.pack!1.flattened)
         {
             auto t = e[0];
             e[0] = e[2];
@@ -907,7 +920,7 @@ Image adoptImage(Image image)
         showImage = showImage.sliced.yuv2rgb!ubyte.asImage(ImageFormat.IF_RGB);
         break;
     case ImageFormat.IF_MONO:
-        showImage = showImage.sliced.reshape(image.height, image.width)
+        showImage = showImage.sliced.flattened.sliced(image.height, image.width)
             .gray2rgb!ubyte.asImage(ImageFormat.IF_RGB);
         break;
     default:
@@ -927,13 +940,16 @@ version(ggplotd) void drawGGPlotD(GGPlotD gg,  ubyte[] data,  int width, int hei
 
     cairo.Surface surface = new cairo.ImageSurface(cairo.Format.CAIRO_FORMAT_RGB24, width, height);
     gg.drawToSurface(surface, width, height);
+
+    surface.flush();
+
     auto imSurface = cast(cairo.ImageSurface)surface; 
     auto surfData = imSurface.getData();
 
     foreach (r; iota(height))
         foreach (c; 0 .. width)
         {
-            auto pixpos = (height - r) * width * 4 + c * 4;
+            auto pixpos = (height - r - 1) * width * 4 + c * 4;
             auto dpixpos = r * width * 3 + c * 3;
             auto alpha = surfData[pixpos + 3];
             if (alpha)

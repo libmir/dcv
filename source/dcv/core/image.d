@@ -8,7 +8,7 @@ Example:
 ----
 Image image = new Image(32, 32, ImageFormat.IF_MONO, BitDepth.BD_32);
 
-Slice!(3, float*) slice = image.sliced!float; // slice image data, considering the data is of float type.
+Slice!(Contiguous, [3], float*) slice = image.sliced!float; // slice image data, considering the data is of float type.
 
 assert(image.height == slice.length!0 && image.width == slice.length!1);
 assert(image.channels == 1);
@@ -26,7 +26,9 @@ module dcv.core.image;
 
 import std.exception : enforce;
 
-public import mir.ndslice;
+public import mir.ndslice.slice;
+import mir.ndslice.allocation;
+
 
 /// Image (pixel) format.
 enum ImageFormat
@@ -255,55 +257,55 @@ public:
     }
 
     /// Get format of an image.
-    @property format() const @safe pure
+    @property auto format() const @safe pure nothrow
     {
         return _format;
     }
     /// Get height of an image.
-    @property width() const @safe pure
+    @property auto width() const @safe pure nothrow
     {
         return _width;
     }
     /// Get height of an image.
-    @property height() const @safe pure
+    @property auto height() const @safe pure nothrow
     {
         return _height;
     }
     /// Get bit depth of the image.
-    @property depth() const @safe pure
+    @property auto depth() const @safe pure nothrow
     {
         return _depth;
     }
     /// Check if image is empty (there's no data present).
-    @property empty() const @safe pure
+    @property auto empty() const @safe pure nothrow
     {
         return _data is null;
     }
     /// Channel count of the image.
-    @property channels() const @safe pure
+    @property auto channels() const @safe pure nothrow
     {
         return imageFormatChannelCount[cast(int)format];
     }
 
     /// Number of bytes contained in one pixel of the image.
-    @property pixelSize() const @safe pure
+    @property auto pixelSize() const @safe pure nothrow
     {
         return channels * (cast(size_t)_depth / 8);
     }
     /// Number of bytes contained in the image.
-    @property byteSize() const @safe pure
+    @property auto byteSize() const @safe pure nothrow
     {
         return width * height * pixelSize;
     }
     /// Number of bytes contained in one row of the image.
-    @property rowStride() const @safe pure
+    @property auto rowStride() const @safe pure nothrow
     {
         return pixelSize * _width;
     }
 
     /// Size of the image.
     /// Returns an array of 3 sizes: [width, height, channels]
-    @property size_t[3] size() const @safe pure
+    @property size_t[3] size() const @safe pure nothrow
     {
         return [width, height, channels];
     }
@@ -532,25 +534,24 @@ unittest
 /**
 Convert a ndslice object to an Image, with defined image format.
 */
-Image asImage(size_t N, T)(Slice!(N, T*) slice, ImageFormat format)
+Image asImage(SliceKind kind, size_t[] packs, T)(Slice!(kind, packs, T*) slice, ImageFormat format)
 {
-    import std.conv : to;
-    import std.array : array;
+    static assert(packs.length == 1, "Packed slices are not supported.");
 
     BitDepth depth = getDepthFromType!T;
     enforce(depth != BitDepth.BD_UNASSIGNED, "Invalid type of slice for convertion to image: ", T.stringof);
 
-    static if (N == 2)
+    static if (packs[0] == 2)
     {
-        ubyte* ptr = cast(ubyte*)slice.slice.ptr;
-        ubyte[] s_arr = ptr[0 .. slice.elementsCount * T.sizeof][];
-        enforce(format.to!int == 1, "Invalid image format - has to be single channel");
+        ubyte* _iterator = cast(ubyte*)slice.slice._iterator;
+        ubyte[] s_arr = _iterator[0 .. slice.elementsCount * T.sizeof][];
+        enforce(format == 1, "Invalid image format - has to be single channel");
         return new Image(slice.shape[1], slice.shape[0], format, depth, s_arr);
     }
-    else static if (N == 3)
+    else static if (packs[0] == 3)
     {
-        ubyte* ptr = cast(ubyte*)slice.slice.ptr;
-        ubyte[] s_arr = ptr[0 .. slice.elementsCount * T.sizeof][];
+        ubyte* _iterator = cast(ubyte*)slice.slice._iterator;
+        ubyte[] s_arr = _iterator[0 .. slice.elementsCount * T.sizeof][];
         auto ch = slice.shape[2];
         enforce(ch >= 1 && ch <= 4,
                 "Invalid slice shape - third dimension should contain from 1(grayscale) to 4(rgba) values.");
@@ -566,8 +567,10 @@ Image asImage(size_t N, T)(Slice!(N, T*) slice, ImageFormat format)
 /**
 Convert ndslice object into an image, with default format setup, regarding to slice dimension.
 */
-Image asImage(size_t N, T)(Slice!(N, T*) slice)
+Image asImage(SliceKind kind, size_t[] packs, T)(Slice!(kind, packs, T*) slice)
 {
+    enum N = packs[0];
+
     ImageFormat format;
     static if (N == 2)
     {

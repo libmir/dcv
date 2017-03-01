@@ -1,9 +1,10 @@
 module dcv.example.stereo;
 
-import std.algorithm;
 import std.math;
 import std.range;
 import std.stdio;
+
+import mir.ndslice.algorithm : reduce;
 
 import dcv.imgproc;
 import dcv.io.image;
@@ -49,7 +50,7 @@ void main(string[] args)
         }
     }
 
-    auto acc = ndReduce!(evalAccum)(0.0f, estimate, groundTruth.sliced.rgb2gray);
+    auto acc = reduce!(evalAccum)(0.0f, estimate, groundTruth.sliced.rgb2gray);
 
     writeln((acc / cast(float)c) * 100, "% accuracy (<=3px)");
 

@@ -21,10 +21,15 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 */
 module dcv.tracking.opticalflow.pyramidflow;
 
+import mir.ndslice.algorithm: each;
+
 import dcv.core.utils : emptySlice;
 import dcv.core.image;
 import dcv.imgproc.imgmanip : warp, resize;
 import dcv.tracking.opticalflow.base;
+
+import mir.ndslice.allocation: slice;
+import mir.ndslice.topology: as, flattened, iota;
 
 /**
 Sparse pyramidal optical flow utility class.
@@ -61,7 +66,6 @@ class SparsePyramidFlow : SparseOpticalFlow
     }
     body
     {
-        import std.algorithm.iteration : each;
         import std.array : uninitializedArray;
 
         size_t[2] size = [f1.height, f1.width];
@@ -86,12 +90,13 @@ class SparsePyramidFlow : SparseOpticalFlow
         auto lpoints = points.dup;
         auto lsearchRegions = searchRegions.dup;
 
-        lpoints.each!((ref v) => v = [v[0] / flowScale[0], v[1] / flowScale[1]]);
-        lsearchRegions.each!((ref v) => v = [v[0] / flowScale[0], v[1] / flowScale[1]]);
+        alias scale = (ref v) { v[0] /= flowScale[0]; v[1] /= flowScale[1]; };
+        lpoints.sliced.each!scale;
+        lsearchRegions.sliced.each!scale;
 
         if (usePrevious)
         {
-            flow.each!((ref v) => v = [v[0] / flowScale[0], v[1] / flowScale[1]]);
+            flow.sliced.each!scale;
         }
         else
         {
@@ -102,20 +107,20 @@ class SparsePyramidFlow : SparseOpticalFlow
         auto h = f1.height;
         auto w = f1.width;
 
-        Slice!(2, float*) current, next, f1s, f2s;
+        Slice!(SliceKind.contiguous, [2], float*) current, next, f1s, f2s;
         switch (f1.depth) 
         {
             case BitDepth.BD_32:
-                f1s = f1.sliced!float.reshape(f1.height, f1.width);
-                f2s = f2.sliced!float.reshape(f2.height, f2.width);
+                f1s = f1.sliced!float.flattened.sliced(f1.height, f1.width);
+                f2s = f2.sliced!float.flattened.sliced(f2.height, f2.width);
                 break;
             case BitDepth.BD_16:
-                f1s = f1.sliced!ushort.reshape(f1.height, f1.width).as!float.slice;
-                f2s = f2.sliced!ushort.reshape(f2.height, f2.width).as!float.slice;
+                f1s = f1.sliced!ushort.flattened.sliced(f1.height, f1.width).as!float.slice;
+                f2s = f2.sliced!ushort.flattened.sliced(f2.height, f2.width).as!float.slice;
                 break;
             default:
-                f1s = f1.sliced!ubyte.reshape(f1.height, f1.width).as!float.slice;
-                f2s = f2.sliced!ubyte.reshape(f2.height, f2.width).as!float.slice;
+                f1s = f1.sliced!ubyte.flattened.sliced(f1.height, f1.width).as!float.slice;
+                f2s = f2.sliced!ubyte.flattened.sliced(f2.height, f2.width).as!float.slice;
         }
 
         // calculate pyramid flow
@@ -141,9 +146,10 @@ class SparsePyramidFlow : SparseOpticalFlow
 
             if (i < levelCount - 1)
             {
-                flow.each!((ref v) => v = [v[0] * 2.0f, v[1] * 2.0f]);
-                lpoints.each!((ref v) => v = [v[0] * 2, v[1] * 2]);
-                lsearchRegions.each!((ref v) => v = [v[0] * 2, v[1] * 2]);
+                alias twice = (ref v) { v[0] += v[0]; v[1] += v[1]; };
+                flow.sliced.each!twice;
+                lpoints.sliced.each!twice;
+                lsearchRegions.sliced.each!twice;
             }
         }
 
@@ -172,7 +178,7 @@ class DensePyramidFlow : DenseOpticalFlow
         levelCount = levels;
     }
 
-    override DenseFlow evaluate(inout Image f1, inout Image f2, DenseFlow prealloc = emptySlice!(3,
+    override DenseFlow evaluate(inout Image f1, inout Image f2, DenseFlow prealloc = emptySlice!([3],
             float), bool usePrevious = false)
     in
     {
@@ -217,20 +223,20 @@ class DensePyramidFlow : DenseOpticalFlow
         auto h = f1.height;
         auto w = f1.width;
 
-        Slice!(2, float*) current, next, corig, norig;
+        Slice!(SliceKind.contiguous, [2], float*) current, next, corig, norig;
         switch (f1.depth) 
         {
             case BitDepth.BD_32:
-                corig = f1.sliced!float.reshape(f1.height, f1.width);
-                norig = f2.sliced!float.reshape(f2.height, f2.width);
+                corig = f1.sliced!float.flattened.sliced(f1.height, f1.width);
+                norig = f2.sliced!float.flattened.sliced(f2.height, f2.width);
                 break;
             case BitDepth.BD_16:
-                corig = f1.sliced!ushort.reshape(f1.height, f1.width).as!float.slice;
-                norig = f2.sliced!ushort.reshape(f2.height, f2.width).as!float.slice;
+                corig = f1.sliced!ushort.flattened.sliced(f1.height, f1.width).as!float.slice;
+                norig = f2.sliced!ushort.flattened.sliced(f2.height, f2.width).as!float.slice;
                 break;
             default:
-                corig = f1.sliced.reshape(f1.height, f1.width).as!float.slice;
-                norig = f2.sliced.reshape(f2.height, f2.width).as!float.slice;
+                corig = f1.sliced.flattened.sliced(f1.height, f1.width).as!float.slice;
+                norig = f2.sliced.flattened.sliced(f2.height, f2.width).as!float.slice;
         }
 
         // first flow used as indicator to skip the first warp.
@@ -286,7 +292,6 @@ version (unittest)
 {
 
     import std.algorithm.iteration : map;
-    import std.range : iota;
     import std.array : array;
     import std.random : uniform;
 
@@ -309,7 +314,7 @@ version (unittest)
 
     class DummyDenseFlow : DenseOpticalFlow
     {
-        override DenseFlow evaluate(inout Image f1, inout Image f2, DenseFlow prealloc = emptySlice!(3,
+        override DenseFlow evaluate(inout Image f1, inout Image f2, DenseFlow prealloc = emptySlice!([3],
                 float), bool usePrevious = false)
         {
             return new float[f1.height * f1.width * 2].sliced(f1.height, f1.width, 2);
