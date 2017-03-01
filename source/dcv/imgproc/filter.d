@@ -493,24 +493,29 @@ body
 Calculate gradient magnitude and orientation of an image slice.
 
 Params:
-    input = Input slice of an image.
-    mag = Output magnitude value of gradients. If shape does not correspond to input, is
-        allocated anew.
-    orient = Orientation value of gradients in radians. If shape does not correspond to
-        input, is allocated anew.
-    edgeKernelType = Optional convolution kernel type to calculate partial derivatives. 
-    Default value is EdgeKernel.SIMPLE, which calls calcPartialDerivatives function
-    to calculate derivatives. Other options will perform convolution with requested
-    kernel type.
+    input           = Input slice of an image.
+    mag             = Output magnitude value of gradients. If shape does not correspond to input, is
+                      allocated anew.
+    orient          = Orientation value of gradients in radians. If shape does not correspond to
+                      input, is allocated anew.
+    edgeKernelType  = Optional convolution kernel type to calculate partial derivatives. 
+                      Default value is EdgeKernel.SIMPLE, which calls calcPartialDerivatives function
+                      to calculate derivatives. Other options will perform convolution with requested
+                      kernel type.
+    pool            = TaskPool instance used parallelise the algorithm.
 
 Note:
     Input slice's memory has to be contiguous. Magnitude and orientation slices' strides
     have to be the identical.
 */
-void calcGradients(InputTensor, V = DeepElementType!InputTensor)(InputTensor input,
-    ref Slice!(Contiguous, [2], V*) mag, ref Slice!(Contiguous, [2],
-    V*) orient, EdgeKernel edgeKernelType = EdgeKernel.SIMPLE, TaskPool pool = taskPool) if (
-        isFloatingPoint!V)
+void calcGradients(InputTensor, V = DeepElementType!InputTensor)
+(
+    InputTensor input,
+    ref Slice!(Contiguous, [2], V*) mag,
+    ref Slice!(Contiguous, [2], V*) orient,
+    EdgeKernel edgeKernelType = EdgeKernel.SIMPLE,
+    TaskPool pool = taskPool
+) if (isFloatingPoint!V)
 in
 {
     static assert(isSlice!InputTensor, "Input tensor has to be of type mir.ndslice.slice.Slice");
@@ -578,9 +583,10 @@ Filtering used in canny edge detection algorithm - suppresses all
 edge impulses (gradient values along edges normal) except the peek value.
 
 Params:
-    mag = Gradient magnitude.
-    orient = Gradient orientation of the same image source as magnitude.
-    prealloc = Optional pre-allocated buffer for output slice.
+    mag         = Gradient magnitude.
+    orient      = Gradient orientation of the same image source as magnitude.
+    prealloc    = Optional pre-allocated buffer for output slice.
+    pool        = TaskPool instance used parallelise the algorithm.
 
 Note:
     Orientation and pre-allocated structures must match. If prealloc
@@ -588,9 +594,13 @@ Note:
 See:
     dcv.imgproc.filter.calcGradients, dcv.imgproc.convolution
 */
-Slice!(Contiguous, [2], V*) nonMaximaSupression(InputTensor, V = DeepElementType!InputTensor)(
-    InputTensor mag, InputTensor orient, Slice!(Contiguous, [2],
-    V*) prealloc = emptySlice!([2], V), TaskPool pool = taskPool)
+Slice!(Contiguous, [2], V*) nonMaximaSupression(InputTensor, V = DeepElementType!InputTensor)
+(
+    InputTensor mag,
+    InputTensor orient,
+    Slice!(Contiguous, [2], V*) prealloc = emptySlice!([2], V),
+    TaskPool pool = taskPool
+)
 in
 {
     static assert(isSlice!InputTensor, "Input tensor has to be of type mir.ndslice.slice.Slice");
@@ -637,16 +647,22 @@ body
 Perform canny filtering on an image to expose edges.
 
 Params:
-    slice = Input image slice.
-    lowThresh = lower threshold value after non-maxima suppression.
-    upThresh = upper threshold value after non-maxima suppression.
-    edgeKernelType = Type of edge kernel used to calculate image gradients.
-    prealloc = Optional pre-allocated buffer.
+    slice           = Input image slice.
+    lowThresh       = lower threshold value after non-maxima suppression.
+    upThresh        = upper threshold value after non-maxima suppression.
+    edgeKernelType  = Type of edge kernel used to calculate image gradients.
+    prealloc        = Optional pre-allocated buffer.
+    pool            = TaskPool instance used parallelise the algorithm.
 */
-Slice!(Contiguous, [2], V*) canny(V, T, SliceKind kind)(Slice!(kind, [2],
-    T*) slice, T lowThresh, T upThresh,
-    EdgeKernel edgeKernelType = EdgeKernel.SOBEL, Slice!(Contiguous, [2],
-    V*) prealloc = emptySlice!([2], V), TaskPool pool = taskPool)
+Slice!(Contiguous, [2], V*) canny(V, T, SliceKind kind)
+(
+    Slice!(kind, [2], T*) slice,
+    T lowThresh,
+    T upThresh,
+    EdgeKernel edgeKernelType = EdgeKernel.SOBEL,
+    Slice!(Contiguous, [2], V*) prealloc = emptySlice!([2], V),
+    TaskPool pool = taskPool
+)
 {
     import dcv.imgproc.threshold;
     import dcv.core.algorithm : ranged;
@@ -666,9 +682,13 @@ Perform canny filtering on an image to expose edges.
 Convenience function to call canny with same lower and upper threshold values,
 similar to dcv.imgproc.threshold.threshold.
 */
-Slice!(Contiguous, [2], V*) canny(V, T, SliceKind kind)(Slice!(kind, [2],
-    T*) slice, T thresh, EdgeKernel edgeKernelType = EdgeKernel.SOBEL,
-    Slice!(Contiguous, [2], V*) prealloc = emptySlice!([2], V))
+Slice!(Contiguous, [2], V*) canny(V, T, SliceKind kind)
+(
+    Slice!(kind, [2], T*) slice,
+    T thresh,
+    EdgeKernel edgeKernelType = EdgeKernel.SOBEL,
+    Slice!(Contiguous, [2], V*) prealloc = emptySlice!([2], V)
+)
 {
     return canny!(V, T)(slice, thresh, thresh, edgeKernelType, prealloc);
 }
@@ -679,13 +699,13 @@ $(LINK2 https://en.wikipedia.org/wiki/Bilateral_filter,Bilateral) filtering impl
 Non-linear, edge-preserving and noise-reducing smoothing filtering algorithm.
 
 Params:
-    bc = Boundary condition test used to index the image slice.
-    slice = Slice of the input image.
-    sigmaCol = Color sigma value.
-    sigmaSpace = Spatial sigma value.
-    kernelSize = Size of convolution kernel. Must be odd number.
-    prealloc = Optional pre-allocated result image buffer. If not of same shape as input slice, its allocated anew.
-    pool = Optional TaskPool instance used to parallelize computation.
+    bc          = Boundary condition test used to index the image slice.
+    input       = Slice of the input image.
+    sigmaCol    = Color sigma value.
+    sigmaSpace  = Spatial sigma value.
+    kernelSize  = Size of convolution kernel. Must be odd number.
+    prealloc    = Optional pre-allocated result image buffer. If not of same shape as input slice, its allocated anew.
+    pool        = Optional TaskPool instance used to parallelize computation.
 
 Returns:
     Slice of filtered image.
@@ -795,10 +815,10 @@ body
 Median filtering algorithm.
 
 Params:
-    slice = Input image slice.
-    kernelSize = Square size of median kernel.
-    prealloc = Optional pre-allocated return image buffer.
-    pool = Optional TaskPool instance used to parallelize computation.
+    slice       = Input image slice.
+    kernelSize  = Square size of median kernel.
+    prealloc    = Optional pre-allocated return image buffer.
+    pool        = Optional TaskPool instance used to parallelize computation.
 
 Returns:
     Returns filtered image of same size as the input. If prealloc parameter is not an empty slice, and is
@@ -867,15 +887,17 @@ unittest
 Calculate range value histogram.
 
 Params:
-    HistogramType = (template parameter) Histogram type. Can be static or dynamic array, most commonly 
-    of 32 bit integer, of size T.max + 1, where T is element type of input range.
-    range = Input forward range, for which histogram is calculated.
+    HistogramType   = (template parameter) Histogram type. Can be static or dynamic array, most commonly
+                      of 32 bit integer, of size T.max + 1, where T is element type of input range.
+    range           = Input forward range, for which histogram is calculated.
 
 Returns:
     Histogram for given forward range.
 */
-HistogramType calcHistogram(Range, HistogramType = int[(ElementType!Range).max + 1])(Range range) if (
-        isForwardRange!Range && (isDynamicArray!HistogramType || isStaticArray!HistogramType))
+HistogramType calcHistogram(Range, HistogramType = int[(ElementType!Range).max + 1])
+(
+    Range range
+) if (isForwardRange!Range && (isDynamicArray!HistogramType || isStaticArray!HistogramType))
 in
 {
     static if (isStaticArray!HistogramType)
@@ -941,16 +963,20 @@ Note:
     to perform equalization for V channel, $(LINK2 https://en.wikipedia.org/wiki/Histogram_equalization#Histogram_equalization_of_color_images,to alter the color as less as possible).
 
 Params:
-    Histogram = (template parameter) Histogram type, see $(LINK2 #calcHistogram,calcHistogram) function for details.
-    slice = Input image slice.
-    histogram = Histogram values for input image slice.
-    prealloc = Optional pre-allocated buffer where equalized image is saved.
+    HistogramType   = (template parameter) Histogram type, see $(LINK2 #calcHistogram,calcHistogram) function for details.
+    slice           = Input image slice.
+    histogram       = Histogram values for input image slice.
+    prealloc        = Optional pre-allocated buffer where equalized image is saved.
 
 Returns:
     Copy of input image slice with its histogram values equalized.
 */
-auto histEqualize(T, HistogramType, SliceKind kind, size_t[] packs)(Slice!(kind, packs, T*) slice,
-    HistogramType histogram, Slice!(Contiguous, packs, T*) prealloc = emptySlice!(packs, T))
+auto histEqualize(T, HistogramType, SliceKind kind, size_t[] packs)
+(
+    Slice!(kind, packs, T*) slice,
+    HistogramType histogram,
+    Slice!(Contiguous, packs, T*) prealloc = emptySlice!(packs, T)
+)
 in
 {
     static assert(packs.length == 1, "Packed slices are not allowed.");
@@ -1048,19 +1074,21 @@ Note:
     Erosion works only for 2D binary images.
 
 Params:
-    slice = Input image slice, to be eroded.
-    kernel = Erosion kernel. Default value is radialKernel!T(3).
-    prealloc = Optional pre-allocated buffer to hold result.
-    pool = Optional TaskPool instance used to parallelize computation.
-    
+    slice       = Input image slice, to be eroded.
+    kernel      = Erosion kernel. Default value is radialKernel!T(3).
+    prealloc    = Optional pre-allocated buffer to hold result.
+    pool        = Optional TaskPool instance used to parallelize computation.
+
 Returns:
     Eroded image slice, of same type as input image.
 */
-Slice!(kind, [2], T*) erode(alias BoundaryConditionTest = neumann, T, SliceKind kind)(
-    Slice!(kind, [2], T*) slice, Slice!(kind, [2],
-    T*) kernel = radialKernel!T(3), Slice!(kind, [2],
-    T*) prealloc = emptySlice!([2], T), TaskPool pool = taskPool) if (
-        isBoundaryCondition!BoundaryConditionTest)
+Slice!(kind, [2], T*) erode(alias BoundaryConditionTest = neumann, T, SliceKind kind)
+(
+    Slice!(kind, [2], T*) slice,
+    Slice!(kind, [2], T*) kernel = radialKernel!T(3),
+    Slice!(kind, [2], T*) prealloc = emptySlice!([2], T),
+    TaskPool pool = taskPool
+) if (isBoundaryCondition!BoundaryConditionTest)
 {
     return morphOp!(MorphologicOperation.ERODE, BoundaryConditionTest)(slice,
         kernel, prealloc, pool);
@@ -1111,19 +1139,21 @@ Note:
     Dilation works only for 2D binary images.
 
 Params:
-    slice = Input image slice, to be eroded.
-    kernel = Dilation kernel. Default value is radialKernel!T(3).
-    prealloc = Optional pre-allocated buffer to hold result.
-    pool = Optional TaskPool instance used to parallelize computation.
+    slice       = Input image slice, to be eroded.
+    kernel      = Dilation kernel. Default value is radialKernel!T(3).
+    prealloc    = Optional pre-allocated buffer to hold result.
+    pool        = Optional TaskPool instance used to parallelize computation.
     
 Returns:
     Dilated image slice, of same type as input image.
 */
-Slice!(kind, [2], T*) dilate(alias BoundaryConditionTest = neumann, T, SliceKind kind)(
-    Slice!(kind, [2], T*) slice, Slice!(kind, [2],
-    T*) kernel = radialKernel!T(3), Slice!(kind, [2],
-    T*) prealloc = emptySlice!([2], T), TaskPool pool = taskPool) if (
-        isBoundaryCondition!BoundaryConditionTest)
+Slice!(kind, [2], T*) dilate(alias BoundaryConditionTest = neumann, T, SliceKind kind)
+(
+    Slice!(kind, [2], T*) slice,
+    Slice!(kind, [2], T*) kernel = radialKernel!T(3),
+    Slice!(kind, [2], T*) prealloc = emptySlice!([2], T),
+    TaskPool pool = taskPool
+) if (isBoundaryCondition!BoundaryConditionTest)
 {
     return morphOp!(MorphologicOperation.DILATE, BoundaryConditionTest)(slice,
         kernel, prealloc, pool);
@@ -1138,19 +1168,21 @@ Note:
     Opening works only for 2D binary images.
 
 Params:
-    slice = Input image slice, to be eroded.
-    kernel = Erosion/Dilation kernel. Default value is radialKernel!T(3).
-    prealloc = Optional pre-allocated buffer to hold result.
-    pool = Optional TaskPool instance used to parallelize computation.
+    slice       = Input image slice, to be eroded.
+    kernel      = Erosion/Dilation kernel. Default value is radialKernel!T(3).
+    prealloc    = Optional pre-allocated buffer to hold result.
+    pool        = Optional TaskPool instance used to parallelize computation.
     
 Returns:
     Opened image slice, of same type as input image.
 */
-Slice!(kind, [2], T*) open(alias BoundaryConditionTest = neumann, T, SliceKind kind)(
-    Slice!(kind, [2], T*) slice, Slice!(kind, [2],
-    T*) kernel = radialKernel!T(3), Slice!(kind, [2],
-    T*) prealloc = emptySlice!([2], T), TaskPool pool = taskPool) if (
-        isBoundaryCondition!BoundaryConditionTest)
+Slice!(kind, [2], T*) open(alias BoundaryConditionTest = neumann, T, SliceKind kind)
+(
+    Slice!(kind, [2], T*) slice,
+    Slice!(kind, [2], T*) kernel = radialKernel!T(3),
+    Slice!(kind, [2], T*) prealloc = emptySlice!([2], T),
+    TaskPool pool = taskPool
+) if (isBoundaryCondition!BoundaryConditionTest)
 {
     return morphOp!(MorphologicOperation.DILATE, BoundaryConditionTest)(
         morphOp!(MorphologicOperation.ERODE, BoundaryConditionTest)(slice,

@@ -171,14 +171,20 @@ bool imwrite(in Image image, in string path)
 /**
 Convenience wrapper for imwrite with Slice type.
 
-params:
-slice = Slice of the image data;
-path = Path where the image will be written.
+Params:
+    slice   = Slice of the image data;
+    format  = Explicit definition of the image format.
+    path    = Path where the image will be written.
 
-return:
-Status of the writing as bool.
+Returns:
+    Status of the writing as bool.
 */
-bool imwrite(SliceKind kind, size_t []packs, T)(Slice!(kind, packs, T*) slice, ImageFormat format, in string path)
+bool imwrite(SliceKind kind, size_t []packs, T)
+(
+    Slice!(kind, packs, T*) slice,
+    ImageFormat format,
+    in string path
+)
 {
     static assert(packs.length == 1, "Packed slices are not allowed in imwrite.");
     static assert(packs[0] == 2 || packs[0] == 3, "Slice has to be 2 or 3 dimensional.");

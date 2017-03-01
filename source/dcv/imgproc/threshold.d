@@ -30,10 +30,10 @@ values are clipped from given value to 0.
 Thresholding is supported for 1D, 2D and 3D slices.
 
 Params:
-    slice = Input slice.
-    lowThresh = Lower threshold value.
-    highThresh = Higher threshold value.
-    prealloc = Optional pre-allocated slice buffer for output.
+    input = Input slice.
+    lowThresh   = Lower threshold value.
+    highThresh  = Higher threshold value.
+    prealloc    = Optional pre-allocated slice buffer for output.
 
 Note:
     Input and pre-allocated buffer slice, should be of same structure
@@ -41,8 +41,12 @@ Note:
     allocated anew, input slice memory must be contiguous.
 */
 nothrow Slice!(Contiguous, packs, OutputType*) threshold(OutputType, InputType, SliceKind kind, size_t []packs)
-    (Slice!(kind, packs, InputType*) input, InputType lowThresh, InputType highThresh,
-    Slice!(Contiguous, packs, OutputType*) prealloc = emptySlice!(packs, OutputType))
+(
+    Slice!(kind, packs, InputType*) input,
+    InputType lowThresh,
+    InputType highThresh,
+    Slice!(Contiguous, packs, OutputType*) prealloc = emptySlice!(packs, OutputType)
+)
 in
 {
     //TODO: consider leaving upper value, and not setting it to 1.
@@ -95,9 +99,9 @@ Convenience function for thresholding, where lower and upper bound values are th
 Calls threshold(slice, thresh, thresh, prealloc)
 
 Params:
-    slice = Input slice.
-    thresh = Threshold value - any value lower than this will be set to 0, and higher to 1.
-    prealloc = Optional pre-allocated slice buffer for output.
+    input       = Input slice.
+    thresh      = Threshold value - any value lower than this will be set to 0, and higher to 1.
+    prealloc    = Optional pre-allocated slice buffer for output.
 
 Note:
     Input and pre-allocated buffer slice, should be of same structure
@@ -105,8 +109,12 @@ Note:
     allocated anew, input slice memory must be contiguous.
 */
 nothrow Slice!(Contiguous, packs, OutputType*) threshold(OutputType, InputType, SliceKind kind, size_t []packs)
-    (Slice!(kind, packs, InputType*) input, InputType thresh,
-    Slice!(Contiguous, packs, OutputType*) prealloc = emptySlice!(packs, OutputType))
+(
+    Slice!(kind, packs, InputType*) input,
+    InputType thresh,
+    Slice!(Contiguous, packs, OutputType*) prealloc = emptySlice!(packs, OutputType)
+)
 {
     return threshold!(OutputType, InputType, N)(slice, thresh, thresh, prealloc);
 }
+

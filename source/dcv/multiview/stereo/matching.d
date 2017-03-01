@@ -128,10 +128,10 @@ to the taxonomy laid out in Scharstein and Szeliski (2002).
 
 According to this taxonomy, stereo matching can be divided into four steps:
 
-1) Matching cost computation
-2) Cost aggregation
-3) Disparity computation
-4) Disparity refinement
+- Matching cost computation
+- Cost aggregation
+- Disparity computation
+- Disparity refinement
 
 Implementations of various algorithms that conform to requirements of these components
 can be found in this module, as well as several helper functions that will create

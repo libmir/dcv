@@ -23,11 +23,12 @@ import dcv.imgproc.filter : calcPartialDerivatives;
 Calculate per-pixel corner impuls response using Harris corner detector.
 
 Params:
-    image = Input image slice.
-    winSize = Window (square) size used in corner detection.
-    k = Sensitivity parameter defined in the algorithm.
-    gauss = Gauss sigma value used as window weighting parameter.
-    prealloc = Optional pre-allocated buffer for return response image.
+    image       = Input image slice.
+    winSize     = Window (square) size used in corner detection.
+    k           = Sensitivity parameter defined in the algorithm.
+    gauss       = Gauss sigma value used as window weighting parameter.
+    prealloc    = Optional pre-allocated buffer for return response image.
+    pool        = TaskPool instance used parallelise the algorithm.
 
 Returns:
     Response matrix the same size of the input image, where each pixel represents
@@ -35,8 +36,14 @@ Returns:
     actual corner in the image.
  */
 Slice!(SliceKind.contiguous, [2], OutputType*) harrisCorners(InputType, OutputType = InputType, SliceKind inputKind)
-    (Slice!(inputKind, [2], InputType*) image, in uint winSize = 3, in float k = 0.64f, in float gauss = 0.84f,
-    Slice!(SliceKind.contiguous, [2], OutputType*) prealloc = emptySlice!([2], OutputType), TaskPool pool = taskPool)
+(
+    Slice!(inputKind, [2], InputType*) image,
+    in uint winSize = 3,
+    in float k = 0.64f,
+    in float gauss = 0.84f,
+    Slice!(SliceKind.contiguous, [2], OutputType*) prealloc = emptySlice!([2], OutputType),
+    TaskPool pool = taskPool
+)
 in
 {
     assert(!image.empty, "Empty image given.");
@@ -59,10 +66,11 @@ body
 Calculate per-pixel corner impuls response using Shi-Tomasi corner detector.
 
 Params:
-    image = Input image slice.
-    winSize = Window (square) size used in corner detection.
-    gauss = Gauss sigma value used as window weighting parameter.
-    prealloc = Optional pre-allocated buffer for return response image.
+    image       = Input image slice.
+    winSize     = Window (square) size used in corner detection.
+    gauss       = Gauss sigma value used as window weighting parameter.
+    prealloc    = Optional pre-allocated buffer for return response image.
+    pool        = TaskPool instance used parallelise the algorithm.
 
 Returns:
     Response matrix the same size of the input image, where each pixel represents
@@ -70,8 +78,13 @@ Returns:
     actual corner in the image.
  */
 Slice!(SliceKind.contiguous, [2], OutputType*) shiTomasiCorners(InputType, OutputType = InputType, SliceKind inputKind)
-    (Slice!(inputKind, [2], InputType*) image, in uint winSize = 3, in float gauss = 0.84f,
-    Slice!(SliceKind.contiguous, [2], OutputType*) prealloc = emptySlice!([2], OutputType), TaskPool pool = taskPool)
+(
+    Slice!(inputKind, [2], InputType*) image,
+    in uint winSize = 3,
+    in float gauss = 0.84f,
+    Slice!(SliceKind.contiguous, [2], OutputType*) prealloc = emptySlice!([2], OutputType),
+    TaskPool pool = taskPool
+)
 in
 {
     assert(!image.empty, "Empty image given.");

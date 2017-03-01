@@ -24,13 +24,13 @@ interface SparseOpticalFlow
     Evaluate sparse optical flow method between two consecutive frames.
 
     Params:
-        f1 = First frame image.
-        f2 = Second frame image.
-        points = points which are tracked.
-        searchRegions = search region width and height for each point.
-        flow = displacement values preallocated array.
-        usePrevious = if algorithm should continue iterating by 
-        using presented values in the flow array, set this to true.
+        f1              = First frame image.
+        f2              = Second frame image.
+        points          = points which are tracked.
+        searchRegions   = search region width and height for each point.
+        prevflow            = displacement values preallocated array.
+        usePrevious     = if algorithm should continue iterating by 
+                          using presented values in the flow array, set this to true.
 
     Returns:
         Array of 2 floating point values which represent movement of each given feature point, from f1 to f2.
@@ -51,11 +51,11 @@ interface DenseOpticalFlow
     Evaluate dense optical flow method between two consecutive frames.
 
     Params:
-        f1 = First image, i.e. previous frame in the video.
-        f2 = Second image of same size and type as $(D f1), i.e. current frame in the video.
-        prealloc = Optional pre-allocated flow buffer. If provided, has to be of same size as input images are, and with 2 channels (u, v).
+        f1          = First image, i.e. previous frame in the video.
+        f2          = Second image of same size and type as $(D f1), i.e. current frame in the video.
+        prealloc    = Optional pre-allocated flow buffer. If provided, has to be of same size as input images are, and with 2 channels (u, v).
         usePrevious = Should the previous flow be used. If true $(D prealloc) is treated as previous flow, and has to satisfy size requirements.
-    
+
     Returns:
         Calculated flow field.
     */
