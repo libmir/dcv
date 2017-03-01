@@ -8,6 +8,10 @@
 
 *Computer Vision Library for D Programming Language*
 
+## API Refactoring Note
+
+Library's **API** is currently under [heavy reconstruction](https://github.com/libmir/dcv/issues/87). Until the API is considered properly designed, **implementation of new features will be put on hold**.
+
 ## About
 
 DCV is an open source computer vision library, written in D programming language, with goal to provide tools for solving most common computer vision problems - various image processing tasks, feature detection and tracking, camera calibration, stereo etc.
