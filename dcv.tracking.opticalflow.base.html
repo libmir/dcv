@@ -25,11 +25,11 @@ Relja Ljubobratovic
 <td><i>points</i> which are tracked.</td></tr>
 <tr><td>float[2][] <i>searchRegions</i></td>
 <td>search region width and height for each point.</td></tr>
-<tr><td>flow</td>
+<tr><td>float[2][] <i>prevflow</i></td>
 <td>displacement values preallocated array.</td></tr>
 <tr><td>bool <i>usePrevious</i></td>
 <td>if algorithm should continue iterating by
-        using presented values in the flow array, set this to <b>true</b>.</td></tr>
+                          using presented values in the flow array, set this to <b>true</b>.</td></tr>
 </table><br>
 <b>Returns:</b><br>
 Array of 2 floating point values which represent movement of each given feature point, from <i>f1</i> to <i>f2</i>.<br><br>
@@ -37,7 +37,7 @@ Array of 2 floating point values which represent movement of each given feature 
 </dd>
 </dl>
 </dd>
-<dt><big><a name="DenseFlow"></a>alias <u id="DenseFlow">DenseFlow</u> = mir.ndslice.slice.Slice!(3LU, float*).Slice;
+<dt><big><a name="DenseFlow"></a>alias <u id="DenseFlow">DenseFlow</u> = mir.ndslice.slice.Slice!(cast(SliceKind)2, [3LU], float*).Slice;
 </big></dt>
 <dd>Alias to a type used to define the dense optical flow field.<br><br>
 
@@ -46,7 +46,7 @@ Array of 2 floating point values which represent movement of each given feature 
 </big></dt>
 <dd>Dense Optical Flow algorithm interface.<br><br>
 
-<dl><dt><big><a name="DenseOpticalFlow.evaluate"></a>abstract DenseFlow <u id="evaluate">evaluate</u>(inout Image <i>f1</i>, inout Image <i>f2</i>, DenseFlow <i>prealloc</i> = emptySlice!(3, float), bool <i>usePrevious</i> = false);
+<dl><dt><big><a name="DenseOpticalFlow.evaluate"></a>abstract DenseFlow <u id="evaluate">evaluate</u>(inout Image <i>f1</i>, inout Image <i>f2</i>, DenseFlow <i>prealloc</i> = emptySlice!([3], float), bool <i>usePrevious</i> = false);
 </big></dt>
 <dd>Evaluate dense optical flow method between two consecutive frames.
 <br><br>

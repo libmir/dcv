@@ -17,57 +17,7 @@ Relja Ljubobratovic
 <b>License:</b><br>
 <a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.<br><br>
 
-<dl><dt><big><a name="NormType"></a>enum <u id="NormType">NormType</u>: int;
-</big></dt>
-<dd>Type of matrix and vector norms.<br><br>
-
-<dl><dt><big><a name="NormType.INF"></a><u id="INF">INF</u></big></dt>
-<dd>Infinite norm, max(x)<br><br>
-
-</dd>
-<dt><big><a name="NormType.L1"></a><u id="L1">L1</u></big></dt>
-<dd>1-norm, sum(abs(x))<br><br>
-
-</dd>
-<dt><big><a name="NormType.L2"></a><u id="L2">L2</u></big></dt>
-<dd>Eucledian norm, sqrt(sum(x^^2))<br><br>
-
-</dd>
-</dl>
-</dd>
-<dt><big><a name="norm"></a>pure nothrow @nogc auto <u id="norm">norm</u>(Range, size_t N)(auto ref Slice!(N, Range) <i>tensor</i>, NormType <i>normType</i>);
-</big></dt>
-<dd>Calculate value of various <u id="norm">norm</u> types for vectors and matrices.
-<br><br>
-<b>Note:</b><br>
-Deprecated in favor of mir.glas.l1 functions: amax asum, nrm2.
-
-<br><br>
-<b>Params:</b><br>
-<table><tr><td>Slice!(N, Range) <i>tensor</i></td>
-<td>Tensor of which the <u id="norm">norm</u> value is calculated.</td></tr>
-<tr><td>NormType <i>normType</i></td>
-<td>requested type of <u id="norm">norm</u>.</td></tr>
-</table><br>
-<b>Returns:</b><br>
-Calculated <u id="norm">norm</u> value.<br><br>
-
-</dd>
-<dt><big><a name="normalized"></a>nothrow @nogc auto <u id="normalized">normalized</u>(Range, size_t N)(auto ref Slice!(N, Range) <i>tensor</i>, NormType <i>normType</i> = NormType.L2);
-</big></dt>
-<dd>Normalize <i>tensor</i> values using given norm type.
-<br><br>
-<b>Params:</b><br>
-<table><tr><td>Slice!(N, Range) <i>tensor</i></td>
-<td>Tensor which is <u id="normalized">normalized</u>.</td></tr>
-<tr><td>NormType <i>normType</i></td>
-<td>Requested norm type for normalization.</td></tr>
-</table><br>
-<b>Returns:</b><br>
-Returns <u id="normalized">normalized</u> input <i>tensor</i>.<br><br>
-
-</dd>
-<dt><big><a name="scaled"></a>nothrow @nogc auto <u id="scaled">scaled</u>(Scalar, Tensor)(Tensor <i>tensor</i>, Scalar <i>alpha</i> = 1, Scalar <i>beta</i> = 0) if (isNumeric!Scalar);
+<dl><dt><big><a name="scaled"></a>nothrow @nogc auto <u id="scaled">scaled</u>(Scalar, Tensor)(Tensor <i>tensor</i>, Scalar <i>alpha</i> = 1, Scalar <i>beta</i> = 0) if (isNumeric!Scalar);
 </big></dt>
 <dd>Scale <i>tensor</i> values.
 <br><br>

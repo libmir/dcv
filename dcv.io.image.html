@@ -70,17 +70,19 @@ Status of the writing as bool.<br><br>
 Status of the writing as bool.<br><br>
 
 </dd>
-<dt><big><a name="imwrite.3"></a>bool <u id="imwrite">imwrite</u>(size_t dims, T)(Slice!(dims, T*) <i>slice</i>, ImageFormat <i>format</i>, in string <i>path</i>);
+<dt><big><a name="imwrite.3"></a>bool <u id="imwrite">imwrite</u>(SliceKind kind, size_t[] packs, T)(Slice!(kind, packs, T*) <i>slice</i>, ImageFormat <i>format</i>, in string <i>path</i>);
 </big></dt>
 <dd>Convenience wrapper for <u id="imwrite">imwrite</u> with Slice type.
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Slice!(dims, T*) <i>slice</i></td>
+<table><tr><td>Slice!(kind, packs, T*) <i>slice</i></td>
 <td>Slice of the image data;</td></tr>
+<tr><td>ImageFormat <i>format</i></td>
+<td>Explicit definition of the image <i>format</i>.</td></tr>
 <tr><td>string <i>path</i></td>
 <td>Path where the image will be written.</td></tr>
 </table><br>
-<b>return:</b><br>
+<b>Returns:</b><br>
 Status of the writing as bool.<br><br>
 
 </dd>

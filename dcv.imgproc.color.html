@@ -33,15 +33,15 @@ Relja Ljubobratovic
 </dd>
 </dl>
 </dd>
-<dt><big><a name="rgb2gray"></a>pure nothrow Slice!(2, V*) <u id="rgb2gray">rgb2gray</u>(V)(Slice!(3, V*) <i>input</i>, Slice!(2, V*) <i>prealloc</i> = emptySlice!(2, V), Rgb2GrayConvertion <i>conv</i> = Rgb2GrayConvertion.LUMINANCE_PRESERVE);
+<dt><big><a name="rgb2gray"></a>pure nothrow Slice!(SliceKind.contiguous, [2], V*) <u id="rgb2gray">rgb2gray</u>(V)(Slice!(SliceKind.contiguous, [3], V*) <i>input</i>, Slice!(SliceKind.contiguous, [2], V*) <i>prealloc</i> = emptySlice!([2], V), Rgb2GrayConvertion <i>conv</i> = Rgb2GrayConvertion.LUMINANCE_PRESERVE);
 </big></dt>
 <dd>Convert RGB image to grayscale.
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Slice!(3, V*) <i>input</i></td>
+<table><tr><td>Slice!(SliceKind.contiguous, [3], V*) <i>input</i></td>
 <td>Input image. Should have 3 channels, represented as R, G and B
         respectively in that order.</td></tr>
-<tr><td>Slice!(2, V*) <i>prealloc</i></td>
+<tr><td>Slice!(SliceKind.contiguous, [2], V*) <i>prealloc</i></td>
 <td>Pre-allocated buffer, where grayscale image will be copied. Default
     argument is an empty slice, where new data is allocated and returned. If given
     slice is not of corresponding shape(range.shape[0], range.shape[1]), it is
@@ -57,7 +57,7 @@ Returns grayscale version of the given RGB image, of the same size.
 Input and pre-allocated slices' strides must be identical.<br><br>
 
 </dd>
-<dt><big><a name="bgr2gray"></a>pure nothrow Slice!(2, V*) <u id="bgr2gray">bgr2gray</u>(V)(Slice!(3, V*) <i>input</i>, Slice!(2, V*) <i>prealloc</i> = emptySlice!(2, V), Rgb2GrayConvertion <i>conv</i> = Rgb2GrayConvertion.LUMINANCE_PRESERVE);
+<dt><big><a name="bgr2gray"></a>pure nothrow Slice!(SliceKind.contiguous, [2], V*) <u id="bgr2gray">bgr2gray</u>(V)(Slice!(SliceKind.contiguous, [3], V*) <i>input</i>, Slice!(SliceKind.contiguous, [2], V*) <i>prealloc</i> = emptySlice!([2], V), Rgb2GrayConvertion <i>conv</i> = Rgb2GrayConvertion.LUMINANCE_PRESERVE);
 </big></dt>
 <dd>Convert BGR image to grayscale.
 <br><br>
@@ -66,10 +66,10 @@ is chosen as convertion strategy.
 
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Slice!(3, V*) <i>input</i></td>
+<table><tr><td>Slice!(SliceKind.contiguous, [3], V*) <i>input</i></td>
 <td>Input image. Should have 3 channels, represented as B, G and R
         respectively in that order.</td></tr>
-<tr><td>Slice!(2, V*) <i>prealloc</i></td>
+<tr><td>Slice!(SliceKind.contiguous, [2], V*) <i>prealloc</i></td>
 <td>Pre-allocated range, where grayscale image will be copied. Default
     argument is an empty slice, where new data is allocated and returned. If given
     slice is not of corresponding shape(range.shape[0], range.shape[1]), it is
@@ -85,7 +85,7 @@ Returns grayscale version of the given BGR image, of the same size.
 Input and pre-allocated slices' strides must be identical.<br><br>
 
 </dd>
-<dt><big><a name="gray2rgb"></a>pure nothrow Slice!(3, V*) <u id="gray2rgb">gray2rgb</u>(V)(Slice!(2, V*) <i>input</i>, Slice!(3, V*) <i>prealloc</i> = emptySlice!(3, V));
+<dt><big><a name="gray2rgb"></a>pure nothrow Slice!(SliceKind.contiguous, [3], V*) <u id="gray2rgb">gray2rgb</u>(V)(Slice!(SliceKind.contiguous, [2], V*) <i>input</i>, Slice!(SliceKind.contiguous, [3], V*) <i>prealloc</i> = emptySlice!([3], V));
 </big></dt>
 <dd>Convert gray image to RGB.
 <br><br>
@@ -94,9 +94,9 @@ to each of three channels for the RGB image version.
 
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Slice!(2, V*) <i>input</i></td>
+<table><tr><td>Slice!(SliceKind.contiguous, [2], V*) <i>input</i></td>
 <td>Grayscale image, to be converted to the RGB.</td></tr>
-<tr><td>Slice!(3, V*) <i>prealloc</i></td>
+<tr><td>Slice!(SliceKind.contiguous, [3], V*) <i>prealloc</i></td>
 <td>Pre-allocated range, where RGB image will be copied. Default
     argument is an empty slice, where new data is allocated and returned. If given
     slice is not of corresponding shape(range.shape[0], range.shape[1], 3), it is
@@ -110,7 +110,7 @@ Returns RGB version of the given grayscale image.
 Input and pre-allocated slices' strides must be identical.<br><br>
 
 </dd>
-<dt><big><a name="rgb2hsv"></a>pure nothrow Slice!(3, R*) <u id="rgb2hsv">rgb2hsv</u>(R, V)(Slice!(3, V*) <i>input</i>, Slice!(3, R*) <i>prealloc</i> = emptySlice!(3, R)) if (isNumeric!R &amp;&amp; isNumeric!V);
+<dt><big><a name="rgb2hsv"></a>pure nothrow Slice!(SliceKind.contiguous, [3], R*) <u id="rgb2hsv">rgb2hsv</u>(R, V)(Slice!(SliceKind.contiguous, [3], V*) <i>input</i>, Slice!(SliceKind.contiguous, [3], R*) <i>prealloc</i> = emptySlice!([3], R)) if (isNumeric!R &amp;&amp; isNumeric!V);
 </big></dt>
 <dd>Convert RGB image to HSV color format.
 <br><br>
@@ -125,9 +125,9 @@ and 0-1 for floating point types.
 
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Slice!(3, V*) <i>input</i></td>
+<table><tr><td>Slice!(SliceKind.contiguous, [3], V*) <i>input</i></td>
 <td>RGB image, which gets converted to HSV.</td></tr>
-<tr><td>Slice!(3, R*) <i>prealloc</i></td>
+<tr><td>Slice!(SliceKind.contiguous, [3], R*) <i>prealloc</i></td>
 <td>Pre-allocated range, where HSV image will be copied. Default
     argument is an empty slice, where new data is allocated and returned. If given
     slice is not of corresponding shape(range.shape[0], range.shape[1], 3), it is
@@ -141,7 +141,7 @@ Returns HSV verion of the given RGB image.
 Input and pre-allocated slices' strides must be identical.<br><br>
 
 </dd>
-<dt><big><a name="hsv2rgb"></a>pure nothrow Slice!(3, R*) <u id="hsv2rgb">hsv2rgb</u>(R, V)(Slice!(3, V*) <i>input</i>, Slice!(3, R*) <i>prealloc</i> = emptySlice!(3, R)) if (isNumeric!R &amp;&amp; isNumeric!V);
+<dt><big><a name="hsv2rgb"></a>pure nothrow Slice!(SliceKind.contiguous, [3], R*) <u id="hsv2rgb">hsv2rgb</u>(R, V)(Slice!(SliceKind.contiguous, [3], V*) <i>input</i>, Slice!(SliceKind.contiguous, [3], R*) <i>prealloc</i> = emptySlice!([3], R)) if (isNumeric!R &amp;&amp; isNumeric!V);
 </big></dt>
 <dd>Convert HSV image to RGB color format.
 <br><br>
@@ -155,9 +155,9 @@ range RGB values to be 0-255, ushort 0-65535, and floating types
 
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Slice!(3, V*) <i>input</i></td>
+<table><tr><td>Slice!(SliceKind.contiguous, [3], V*) <i>input</i></td>
 <td>HSV image, which gets converted to RGB.</td></tr>
-<tr><td>Slice!(3, R*) <i>prealloc</i></td>
+<tr><td>Slice!(SliceKind.contiguous, [3], R*) <i>prealloc</i></td>
 <td>Pre-allocated range, where RGB image will be copied. Default
     argument is an empty slice, where new data is allocated and returned. If given
     slice is not of corresponding shape(range.shape[0], range.shape[1], 3), it is
@@ -171,7 +171,7 @@ Returns RGB verion of the given HSV image.
 Input and pre-allocated slices' strides must be identical.<br><br>
 
 </dd>
-<dt><big><a name="rgb2yuv"></a>pure nothrow Slice!(3, V*) <u id="rgb2yuv">rgb2yuv</u>(V)(Slice!(3, V*) <i>input</i>, Slice!(3, V*) <i>prealloc</i> = emptySlice!(3, V));
+<dt><big><a name="rgb2yuv"></a>pure nothrow Slice!(SliceKind.contiguous, [3], V*) <u id="rgb2yuv">rgb2yuv</u>(V)(Slice!(SliceKind.contiguous, [3], V*) <i>input</i>, Slice!(SliceKind.contiguous, [3], V*) <i>prealloc</i> = emptySlice!([3], V));
 </big></dt>
 <dd>Convert RGB image format to YUV.
 <br><br>
@@ -181,9 +181,9 @@ YUV444 format).
 
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Slice!(3, V*) <i>input</i></td>
+<table><tr><td>Slice!(SliceKind.contiguous, [3], V*) <i>input</i></td>
 <td>Input RGB image.</td></tr>
-<tr><td>Slice!(3, V*) <i>prealloc</i></td>
+<tr><td>Slice!(SliceKind.contiguous, [3], V*) <i>prealloc</i></td>
 <td>Optional pre-allocated buffer. If given, has to be
         of same shape as <i>input</i> image, otherwise gets reallocated.</td></tr>
 </table><br>
@@ -195,7 +195,7 @@ Resulting YUV image slice.
 Input and pre-allocated slices' strides must be identical.<br><br>
 
 </dd>
-<dt><big><a name="yuv2rgb"></a>pure nothrow Slice!(3, V*) <u id="yuv2rgb">yuv2rgb</u>(V)(Slice!(3, V*) <i>input</i>, Slice!(3, V*) <i>prealloc</i> = emptySlice!(3, V));
+<dt><big><a name="yuv2rgb"></a>pure nothrow Slice!(SliceKind.contiguous, [3], V*) <u id="yuv2rgb">yuv2rgb</u>(V)(Slice!(SliceKind.contiguous, [3], V*) <i>input</i>, Slice!(SliceKind.contiguous, [3], V*) <i>prealloc</i> = emptySlice!([3], V));
 </big></dt>
 <dd>Convert YUV image to RGB.
 <br><br>
@@ -204,9 +204,9 @@ same amount of luma and chroma.
 
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Slice!(3, V*) <i>input</i></td>
+<table><tr><td>Slice!(SliceKind.contiguous, [3], V*) <i>input</i></td>
 <td>Input YUV image.</td></tr>
-<tr><td>Slice!(3, V*) <i>prealloc</i></td>
+<tr><td>Slice!(SliceKind.contiguous, [3], V*) <i>prealloc</i></td>
 <td>Optional pre-allocated buffer. If given, has to be
         of same shape as <i>input</i> image, otherwise gets reallocated.</td></tr>
 </table><br>

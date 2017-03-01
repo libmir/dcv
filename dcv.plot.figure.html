@@ -110,8 +110,8 @@ If <u id="figure">figure</u> with given <i>title</i> exists already, that <u id=
 
 </dd>
 <dt><big><a name="imshow"></a>Figure <u id="imshow">imshow</u>(Image <i>image</i>, string <i>title</i> = "");
-<br>Figure <u id="imshow">imshow</u>(size_t N, T)(Slice!(N, T*) <i>slice</i>, string <i>title</i> = "");
-<br>Figure <u id="imshow">imshow</u>(size_t N, T)(Slice!(N, T*) <i>slice</i>, ImageFormat <i>format</i>, string <i>title</i> = "");
+<br>Figure <u id="imshow">imshow</u>(SliceKind kind, size_t[] packs, Iterator)(Slice!(kind, packs, Iterator) <i>slice</i>, string <i>title</i> = "");
+<br>Figure <u id="imshow">imshow</u>(SliceKind kind, size_t[] packs, Iterator)(Slice!(kind, packs, Iterator) <i>slice</i>, ImageFormat <i>format</i>, string <i>title</i> = "");
 </big></dt>
 <dd>Show an <i>image</i> to screen.
 <br><br>
@@ -127,6 +127,33 @@ If figure with given <i>title</i> exists, than the <i>image</i> content is updat
 <b>Returns:</b><br>
 If figure with given <i>title</i> exists already, that figure is returned,
     otherwise new figure is created and returned.<br><br>
+
+</dd>
+<dt><big><a name="plot"></a>Figure <u id="plot">plot</u>(Image <i>image</i>, GGPlotD <i>gg</i>, string <i>title</i> = "");
+<br>Figure <u id="plot">plot</u>(SliceKind kind, size_t[] packs, Iterator)(Slice!(kind, packs, Iterator) <i>slice</i>, GGPlotD <i>gg</i>, string <i>title</i> = "");
+<br>Figure <u id="plot">plot</u>(SliceKind kind, size_t[] packs, Iterator)(Slice!(kind, packs, Iterator) <i>slice</i>, ImageFormat <i>format</i>, GGPlotD <i>gg</i>, string <i>title</i> = "");
+</big></dt>
+<dd>Show given <i>image</i>, and then <u id="plot">plot</u> given GGPlotD context on top of it.<br><br>
+
+</dd>
+<dt><big><a name="plot.2"></a>Figure <u id="plot">plot</u>(GGPlotD <i>gg</i>, string <i>title</i> = "");
+</big></dt>
+<dd>Plot GGPlotD context onto figure with given <i>title</i>.
+<br><br>
+Given <u id="plot">plot</u> is drawn on top of figure's current image buffer. Size of the figure, and it's image buffer is
+      unchanged. If no figure exists with given <i>title</i>, new one is allocated with default setup (500x500, with
+      black background), and the <u id="plot">plot</u> is drawn on it.
+
+<br><br>
+<b>Params:</b><br>
+<table><tr><td>GGPlotD <i>gg</i></td>
+<td>GGPlotD context, to be plotted on figure.</td></tr>
+<tr><td>string <i>title</i></td>
+<td>Title of the window. If none given (default), window is named by "Figure id".</td></tr>
+</table><br>
+<b>Returns:</b><br>
+If figure with given <i>title</i> exists already, that figure is returned,
+         otherwise new figure is created and returned.<br><br>
 
 </dd>
 <dt><big><a name="waitKey"></a>int <u id="waitKey">waitKey</u>(string unit = "msecs")(ulong <i>count</i> = 0);
@@ -202,7 +229,7 @@ Ascii value as int of keyboard press, or 0 if timer runs out.<br><br>
 <dd>Construct figure window with given <i>title</i>, and fill it with given <i>image</i>.<br><br>
 
 </dd>
-<dt><big><a name="Figure.this.3"></a>this(size_t N, T)(string <i>title</i>, Slice!(N, T*) <i>slice</i>, ImageFormat <i>format</i> = ImageFormat.IF_UNASSIGNED) if (N == 2 || N == 3);
+<dt><big><a name="Figure.this.3"></a>this(SliceKind kind, size_t[] packs, Iterator)(string <i>title</i>, Slice!(kind, packs, Iterator) <i>slice</i>, ImageFormat <i>format</i> = ImageFormat.IF_UNASSIGNED) if (N == 2 || N == 3);
 </big></dt>
 <dd>Construct figure window with given <i>title</i>, and fill it with given image.<br><br>
 
@@ -249,9 +276,21 @@ Ascii value as int of keyboard press, or 0 if timer runs out.<br><br>
 <dd>Draw <i>image</i> onto figure canvas.<br><br>
 
 </dd>
-<dt><big><a name="Figure.draw.2"></a>void <u id="draw">draw</u>(size_t N, T)(Slice!(N, T*) <i>slice</i>, ImageFormat <i>format</i> = ImageFormat.IF_UNASSIGNED);
+<dt><big><a name="Figure.draw.2"></a>void <u id="draw">draw</u>(SliceKind kind, size_t[] packs, Iterator)(Slice!(kind, packs, Iterator) <i>image</i>, ImageFormat <i>format</i> = ImageFormat.IF_UNASSIGNED);
 </big></dt>
-<dd>Draw <i>slice</i> of image onto figure canvas.<br><br>
+<dd>Draw slice of <i>image</i> onto figure canvas.<br><br>
+
+</dd>
+<dt><big><a name="Figure.draw.3"></a>void <u id="draw">draw</u>(GGPlotD <i>plot</i>);
+</big></dt>
+<dd>Draw the GGPlotD context on this figure's canvas.
+<br><br>
+    Important Notes:
+        - ggplotd's coordinate system starts from down-left corner. To match
+          the image coordinate system (which starts from up-left corner), y axis
+          is flipped in the given <i>plot</i>.
+        - GGPlotD's margins are zeroed out in this function, and axes hidden.
+        - GGPlotD's axes ranges are configured in this function to match figure size (width and height).<br><br>
 
 </dd>
 </dl>

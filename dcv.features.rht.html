@@ -51,12 +51,12 @@ curveKey - accumulator key for a curve, onCurve - test if a point is on curve,
 <dd>Set <u id="threshold">threshold</u> for a curve to be considered in an accumulator<br><br>
 
 </dd>
-<dt><big><a name="BaseRht.opCall"></a>auto <u id="opCall">opCall</u>(T)(Slice!(2, T*) <i>image</i>);
+<dt><big><a name="BaseRht.opCall"></a>auto <u id="opCall">opCall</u>(T, SliceKind kind)(Slice!(kind, [2], T*) <i>image</i>);
 </big></dt>
 <dd>Run RHT using non-zero points in <i>image</i> as edge points.<br><br>
 
 </dd>
-<dt><big><a name="BaseRht.opCall.2"></a>auto <u id="opCall">opCall</u>(T, Range)(Slice!(2, T*) <i>image</i>, Range <i>points</i>) if (isInputRange!Range);
+<dt><big><a name="BaseRht.opCall.2"></a>auto <u id="opCall">opCall</u>(T, SliceKind kind, Range)(Slice!(kind, [2], T*) <i>image</i>, Range <i>points</i>) if (isInputRange!Range);
 </big></dt>
 <dd>Run RHT using prepopullated array of edge <i>points</i> (that may be filtered beforehand).<br><br>
 

@@ -8,7 +8,7 @@ For any <u id="image">image</u> processing needs, <u id="image">image</u> data c
 <b>Example:</b><br>
 <pre class="d_code">Image <u id="image">image</u> = <font color=blue>new</font> Image(32, 32, ImageFormat.IF_MONO, BitDepth.BD_32);
 
-Slice!(3, <font color=blue>float</font>*) slice = <u id="image">image</u>.sliced!<font color=blue>float</font>; <font color=green>// slice image data, considering the data is of float type.
+Slice!(Contiguous, [3], <font color=blue>float</font>*) slice = <u id="image">image</u>.sliced!<font color=blue>float</font>; <font color=green>// slice image data, considering the data is of float type.
 </font>
 <font color=blue>assert</font>(<u id="image">image</u>.height == slice.length!0 &amp;&amp; <u id="image">image</u>.width == slice.length!1);
 <font color=blue>assert</font>(<u id="image">image</u>.channels == 1);
@@ -121,52 +121,52 @@ Relja Ljubobratovic
 </table><br>
 
 </dd>
-<dt><big><a name="Image.format"></a>const pure @property @safe auto <u id="format">format</u>();
+<dt><big><a name="Image.format"></a>const pure nothrow @property @safe auto <u id="format">format</u>();
 </big></dt>
 <dd>Get <u id="format">format</u> of an image.<br><br>
 
 </dd>
-<dt><big><a name="Image.width"></a>const pure @property @safe auto <u id="width">width</u>();
+<dt><big><a name="Image.width"></a>const pure nothrow @property @safe auto <u id="width">width</u>();
 </big></dt>
 <dd>Get height of an image.<br><br>
 
 </dd>
-<dt><big><a name="Image.height"></a>const pure @property @safe auto <u id="height">height</u>();
+<dt><big><a name="Image.height"></a>const pure nothrow @property @safe auto <u id="height">height</u>();
 </big></dt>
 <dd>Get <u id="height">height</u> of an image.<br><br>
 
 </dd>
-<dt><big><a name="Image.depth"></a>const pure @property @safe auto <u id="depth">depth</u>();
+<dt><big><a name="Image.depth"></a>const pure nothrow @property @safe auto <u id="depth">depth</u>();
 </big></dt>
 <dd>Get bit <u id="depth">depth</u> of the image.<br><br>
 
 </dd>
-<dt><big><a name="Image.empty"></a>const pure @property @safe auto <u id="empty">empty</u>();
+<dt><big><a name="Image.empty"></a>const pure nothrow @property @safe auto <u id="empty">empty</u>();
 </big></dt>
 <dd>Check if image is <u id="empty">empty</u> (there's no data present).<br><br>
 
 </dd>
-<dt><big><a name="Image.channels"></a>const pure @property @safe auto <u id="channels">channels</u>();
+<dt><big><a name="Image.channels"></a>const pure nothrow @property @safe auto <u id="channels">channels</u>();
 </big></dt>
 <dd>Channel count of the image.<br><br>
 
 </dd>
-<dt><big><a name="Image.pixelSize"></a>const pure @property @safe auto <u id="pixelSize">pixelSize</u>();
+<dt><big><a name="Image.pixelSize"></a>const pure nothrow @property @safe auto <u id="pixelSize">pixelSize</u>();
 </big></dt>
 <dd>Number of bytes contained in one pixel of the image.<br><br>
 
 </dd>
-<dt><big><a name="Image.byteSize"></a>const pure @property @safe auto <u id="byteSize">byteSize</u>();
+<dt><big><a name="Image.byteSize"></a>const pure nothrow @property @safe auto <u id="byteSize">byteSize</u>();
 </big></dt>
 <dd>Number of bytes contained in the image.<br><br>
 
 </dd>
-<dt><big><a name="Image.rowStride"></a>const pure @property @safe auto <u id="rowStride">rowStride</u>();
+<dt><big><a name="Image.rowStride"></a>const pure nothrow @property @safe auto <u id="rowStride">rowStride</u>();
 </big></dt>
 <dd>Number of bytes contained in one row of the image.<br><br>
 
 </dd>
-<dt><big><a name="Image.size"></a>const pure @property @safe size_t[3] <u id="size">size</u>();
+<dt><big><a name="Image.size"></a>const pure nothrow @property @safe size_t[3] <u id="size">size</u>();
 </big></dt>
 <dd>Size of the image.
 <br><br>
@@ -224,12 +224,12 @@ Cast <u id="data">data</u> array to corresponding dynamic array type,
 </dd>
 </dl>
 </dd>
-<dt><big><a name="asImage"></a>Image <u id="asImage">asImage</u>(size_t N, T)(Slice!(N, T*) <i>slice</i>, ImageFormat <i>format</i>);
+<dt><big><a name="asImage"></a>Image <u id="asImage">asImage</u>(SliceKind kind, size_t[] packs, T)(Slice!(kind, packs, T*) <i>slice</i>, ImageFormat <i>format</i>);
 </big></dt>
 <dd>Convert a ndslice object to an Image, with defined image <i>format</i>.<br><br>
 
 </dd>
-<dt><big><a name="asImage.2"></a>Image <u id="asImage">asImage</u>(size_t N, T)(Slice!(N, T*) <i>slice</i>);
+<dt><big><a name="asImage.2"></a>Image <u id="asImage">asImage</u>(SliceKind kind, size_t[] packs, T)(Slice!(kind, packs, T*) <i>slice</i>);
 </big></dt>
 <dd>Convert ndslice object into an image, with default format setup, regarding to <i>slice</i> dimension.<br><br>
 

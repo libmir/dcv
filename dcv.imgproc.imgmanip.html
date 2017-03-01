@@ -19,7 +19,7 @@ Relja Ljubobratovic
     </dd>
 </dl><br><br>
 
-<dl><dt><big><a name="resize"></a>Slice!(N, V*) <u id="resize">resize</u>(alias interp = linear, V, size_t N, size_t SN)(Slice!(N, V*) <i>slice</i>, size_t[SN] <i>newsize</i>, TaskPool <i>pool</i> = taskPool) if (isInterpolationFunc!interp);
+<dl><dt><big><a name="resize"></a>Slice!(SliceKind.contiguous, packs, V*) <u id="resize">resize</u>(alias interp = linear, SliceKind kind, size_t[] packs, V, size_t SN)(Slice!(kind, packs, V*) <i>slice</i>, size_t[SN] <i>newsize</i>, TaskPool <i>pool</i> = taskPool) if (packs.length == 1);
 </big></dt>
 <dd>Resize array using custom interpolation function.
 <br><br>
@@ -36,7 +36,7 @@ interpolation function rules in dcv.imgproc.interpolation.
 
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Slice!(N, V*) <i>slice</i></td>
+<table><tr><td>Slice!(kind, packs, V*) <i>slice</i></td>
 <td>Slice to an input array.</td></tr>
 <tr><td>size_t[SN] <i>newsize</i></td>
 <td>tuple that defines new shape. New dimension has to be
@@ -49,7 +49,7 @@ interpolation function rules in dcv.imgproc.interpolation.
 consider size input as array, and add prealloc<br><br>
 
 </dd>
-<dt><big><a name="scale"></a>Slice!(N, V*) <u id="scale">scale</u>(alias interp = linear, V, ScaleValue, size_t N, size_t SN)(Slice!(N, V*) <i>slice</i>, ScaleValue[SN] <u id="scale">scale</u>, TaskPool <i>pool</i> = taskPool) if (isFloatingPoint!ScaleValue &amp;&amp; isInterpolationFunc!interp);
+<dt><big><a name="scale"></a>Slice!(kind, packs, V*) <u id="scale">scale</u>(alias interp = linear, V, ScaleValue, SliceKind kind, size_t[] packs, size_t SN)(Slice!(kind, packs, V*) <i>slice</i>, ScaleValue[SN] <u id="scale">scale</u>, TaskPool <i>pool</i> = taskPool) if (isFloatingPoint!ScaleValue &amp;&amp; isInterpolationFunc!interp);
 </big></dt>
 <dd>Scale array size using custom interpolation function.
 <br><br>
@@ -107,12 +107,11 @@ Remapped input <i>image</i> by given <i>map</i>.<br><br>
 <b>Examples:</b><br>
 Test if warp and <u id="remap">remap</u> always returns slice of corresponding format.
 <pre class="d_code">
-<font color=blue>import</font> std.algorithm.iteration : <i>map</i>;
-<font color=blue>import</font> std.random : uniform;
-<font color=blue>import</font> std.array : array;
+<font color=blue>import</font> std.random : uniform01;
+<font color=blue>import</font> mir.ndslice.allocation;
 
-<font color=blue>auto</font> <i>image</i> = 9.iota.<i>map</i>!(v =&gt; <font color=blue>cast</font>(<font color=blue>float</font>)v).array.sliced(3, 3);
-<font color=blue>auto</font> wmap = 18.iota.<i>map</i>!(v =&gt; <font color=blue>cast</font>(<font color=blue>float</font>)uniform(0.0f, 1.0f)).array.sliced(3, 3, 2);
+<font color=blue>auto</font> <i>image</i> = iota(3, 3).as!<font color=blue>float</font>.slice;
+<font color=blue>auto</font> wmap = iota(3, 3, 2).<i>map</i>!(v =&gt; <font color=blue>cast</font>(<font color=blue>float</font>)uniform01).slice;
 
 <font color=blue>auto</font> warped = <i>image</i>.warp(wmap);
 <font color=blue>assert</font>(warped.shape == <i>image</i>.shape);
@@ -122,14 +121,14 @@ Test if warp and <u id="remap">remap</u> always returns slice of corresponding f
 </pre>
 <br><br>
 </dd>
-<dt><big><a name="transformAffine"></a>Slice!(N, V*) <u id="transformAffine">transformAffine</u>(alias interp = linear, V, TransformMatrix, size_t N)(Slice!(N, V*) <i>slice</i>, inout TransformMatrix <i>transform</i>, size_t[2] <i>outSize</i> = [0, 0]);
+<dt><big><a name="transformAffine"></a>Slice!(kind, packs, V*) <u id="transformAffine">transformAffine</u>(alias interp = linear, V, TransformMatrix, SliceKind kind, size_t[] packs)(Slice!(kind, packs, V*) <i>slice</i>, inout TransformMatrix <i>transform</i>, size_t[2] <i>outSize</i> = [0, 0]);
 </big></dt>
 <dd>Transform an image by given affine transformation.
 <br><br>
 <b>Params:</b><br>
 <table><tr><td>interp</td>
 <td>(template parameter) Interpolation function. Default linear.</td></tr>
-<tr><td>Slice!(N, V*) <i>slice</i></td>
+<tr><td>Slice!(kind, packs, V*) <i>slice</i></td>
 <td>Slice of an image which is transformed.</td></tr>
 <tr><td>TransformMatrix <i>transform</i></td>
 <td>2D Transformation matrix (3x3). Its element type must be floating point type,
@@ -146,14 +145,14 @@ Given transformation is considered to be an affine transformation. If it is not,
 Transformed image.<br><br>
 
 </dd>
-<dt><big><a name="transformPerspective"></a>Slice!(N, V*) <u id="transformPerspective">transformPerspective</u>(alias interp = linear, V, TransformMatrix, size_t N)(Slice!(N, V*) <i>slice</i>, inout TransformMatrix <i>transform</i>, size_t[2] <i>outSize</i> = [0, 0]);
+<dt><big><a name="transformPerspective"></a>Slice!(kind, packs, V*) <u id="transformPerspective">transformPerspective</u>(alias interp = linear, V, TransformMatrix, SliceKind kind, size_t[] packs)(Slice!(kind, packs, V*) <i>slice</i>, TransformMatrix <i>transform</i>, size_t[2] <i>outSize</i> = [0, 0]);
 </big></dt>
 <dd>Transform an image by given perspective transformation.
 <br><br>
 <b>Params:</b><br>
 <table><tr><td>interp</td>
 <td>(template parameter) Interpolation function. Default linear.</td></tr>
-<tr><td>Slice!(N, V*) <i>slice</i></td>
+<tr><td>Slice!(kind, packs, V*) <i>slice</i></td>
 <td>Slice of an image which is transformed.</td></tr>
 <tr><td>TransformMatrix <i>transform</i></td>
 <td>2D Transformation matrix (3x3). Its element type must be floating point type,

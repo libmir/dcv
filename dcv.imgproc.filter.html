@@ -37,8 +37,8 @@ Relja Ljubobratovic
     </dd>
 </dl><br><br>
 
-<dl><dt><big><a name="boxKernel"></a>Slice!(2, T*) <u id="boxKernel">boxKernel</u>(T)(size_t <i>rows</i>, size_t <i>cols</i>, T <i>value</i> = 1);
-<br>Slice!(2, T*) <u id="boxKernel">boxKernel</u>(T)(size_t <i>size</i>, T <i>value</i> = 1);
+<dl><dt><big><a name="boxKernel"></a>Slice!(Contiguous, [2], T*) <u id="boxKernel">boxKernel</u>(T)(size_t <i>rows</i>, size_t <i>cols</i>, T <i>value</i> = 1);
+<br>Slice!(Contiguous, [2], T*) <u id="boxKernel">boxKernel</u>(T)(size_t <i>size</i>, T <i>value</i> = 1);
 </big></dt>
 <dd>Box kernel creation.
 <br><br>
@@ -57,7 +57,7 @@ Creates square kernel of given <i>size</i>, filled with given <i>value</i>.
 Kernel of <i>size</i> [<i>rows</i>, <i>cols</i>], filled with given <i>value</i>.<br><br>
 
 </dd>
-<dt><big><a name="radialKernel"></a>Slice!(2, T*) <u id="radialKernel">radialKernel</u>(T)(size_t <i>radius</i>, T <i>foreground</i> = 1, T <i>background</i> = 0);
+<dt><big><a name="radialKernel"></a>Slice!(Contiguous, [2], T*) <u id="radialKernel">radialKernel</u>(T)(size_t <i>radius</i>, T <i>foreground</i> = 1, T <i>background</i> = 0);
 </big></dt>
 <dd>Radial kernel creation.
 <br><br>
@@ -77,12 +77,12 @@ Creates square kernel of given <i>radius</i> as edge length, with given values.
 Kernel of size [<i>radius</i>, <i>radius</i>], filled with given values.<br><br>
 
 </dd>
-<dt><big><a name="gaussian"></a>pure Slice!(2, V*) <u id="gaussian">gaussian</u>(V = real)(real <i>sigma</i>, size_t <i>width</i>, size_t <i>height</i>);
+<dt><big><a name="gaussian"></a>pure Slice!(Contiguous, [2], V*) <u id="gaussian">gaussian</u>(V = double)(V <i>sigma</i>, size_t <i>width</i>, size_t <i>height</i>);
 </big></dt>
 <dd>Instantiate 2D <u id="gaussian">gaussian</u> kernel.<br><br>
 
 </dd>
-<dt><big><a name="laplacian"></a>pure nothrow Slice!(2, T*) <u id="laplacian">laplacian</u>(T = real)(real <i>a</i> = 0.00000) if (isNumeric!T);
+<dt><big><a name="laplacian"></a>pure nothrow Slice!(Contiguous, [2], T*) <u id="laplacian">laplacian</u>(T = double)(T <i>a</i> = 0.00000) if (isNumeric!T);
 </big></dt>
 <dd>Create negative <u id="laplacian">laplacian</u> 3x3 kernel matrix.
 <br><br>
@@ -97,19 +97,16 @@ Laplacian(I) =
 </pre><br><br>
 <b>Examples:</b><br>
 <pre class="d_code">
-<font color=blue>import</font> std.algorithm.comparison : equal;
-
-<font color=blue>auto</font> l4 = <u id="laplacian">laplacian</u>(); <font color=green>// laplacian!real(0);
-</font><font color=blue>assert</font>(equal(l4.byElement, [0, 1, 0, 1, -4, 1, 0, 1, 0]));
+<font color=blue>assert</font>(<u id="laplacian">laplacian</u>().flattened == [0, 1, 0, 1, -4, 1, 0, 1, 0]);
 </pre>
 <br><br>
 </dd>
-<dt><big><a name="laplacianOfGaussian"></a>Slice!(2, T*) <u id="laplacianOfGaussian">laplacianOfGaussian</u>(T = real)(real <i>sigma</i>, size_t <i>width</i>, size_t <i>height</i>);
+<dt><big><a name="laplacianOfGaussian"></a>Slice!(Contiguous, [2], T*) <u id="laplacianOfGaussian">laplacianOfGaussian</u>(T = double)(T <i>sigma</i>, size_t <i>width</i>, size_t <i>height</i>);
 </big></dt>
 <dd>Create laplacian of gaussian <a target="_blank" href="http://homepages.inf.ed.ac.uk/rbf/HIPR2/log.htm">(LoG)</a> filter kernel.
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>real <i>sigma</i></td>
+<table><tr><td>T <i>sigma</i></td>
 <td>gaussian <i>sigma</i> variance value</td></tr>
 <tr><td>size_t <i>width</i></td>
 <td><i>width</i> of the kernel matrix</td></tr>
@@ -122,9 +119,9 @@ Laplacian(I) =
 <font color=blue>import</font> std.math : approxEqual;
 
 <font color=blue>auto</font> log = <u id="laplacianOfGaussian">laplacianOfGaussian</u>!<font color=blue>float</font>(0.84f, 3, 3);
-<font color=blue>auto</font> expected = [0.147722, -0.00865228, 0.147722, -0.00865228, -0.556277, -0.00865228,
-    0.147722, -0.00865228, 0.147722].sliced(3, 3);
-<font color=blue>assert</font>(log.byElement.array.equal!approxEqual(expected.byElement.array));
+<font color=blue>auto</font> expected = [0.147722, -0.00865228, 0.147722, -0.00865228,
+    -0.556277, -0.00865228, 0.147722, -0.00865228, 0.147722].sliced(3, 3);
+<font color=blue>assert</font>(equal!approxEqual(log.flattened, expected.flattened));
 </pre>
 <br><br>
 </dd>
@@ -133,32 +130,32 @@ Laplacian(I) =
 <dd>Convolution kernel type for edge detection.<br><br>
 
 </dd>
-<dt><big><a name="sobel"></a>pure nothrow @trusted Slice!(2, T*) <u id="sobel">sobel</u>(T = real)(GradientDirection <i>direction</i>);
+<dt><big><a name="sobel"></a>pure nothrow @trusted Slice!(Contiguous, [2], T*) <u id="sobel">sobel</u>(T = double)(GradientDirection <i>direction</i>);
 </big></dt>
 <dd>Create a Sobel edge kernel.<br><br>
 
 </dd>
-<dt><big><a name="scharr"></a>pure nothrow @trusted Slice!(2, T*) <u id="scharr">scharr</u>(T = real)(GradientDirection <i>direction</i>);
+<dt><big><a name="scharr"></a>pure nothrow @trusted Slice!(Contiguous, [2], T*) <u id="scharr">scharr</u>(T = double)(GradientDirection <i>direction</i>);
 </big></dt>
 <dd>Create a Scharr edge kernel.<br><br>
 
 </dd>
-<dt><big><a name="prewitt"></a>pure nothrow @trusted Slice!(2, T*) <u id="prewitt">prewitt</u>(T = real)(GradientDirection <i>direction</i>);
+<dt><big><a name="prewitt"></a>pure nothrow @trusted Slice!(Contiguous, [2], T*) <u id="prewitt">prewitt</u>(T = double)(GradientDirection <i>direction</i>);
 </big></dt>
 <dd>Create a Prewitt edge kernel.<br><br>
 
 </dd>
-<dt><big><a name="edgeKernel"></a>pure nothrow @trusted Slice!(2, T*) <u id="edgeKernel">edgeKernel</u>(T)(EdgeKernel <i>kernelType</i>, GradientDirection <i>direction</i>);
+<dt><big><a name="edgeKernel"></a>pure nothrow @trusted Slice!(Contiguous, [2], T*) <u id="edgeKernel">edgeKernel</u>(T)(EdgeKernel <i>kernelType</i>, GradientDirection <i>direction</i>);
 </big></dt>
 <dd>Create a kernel of given type.<br><br>
 
 </dd>
-<dt><big><a name="filterNonMaximum"></a>auto <u id="filterNonMaximum">filterNonMaximum</u>(Matrix)(Matrix <i>input</i>, size_t <i>filterSize</i> = 10);
+<dt><big><a name="filterNonMaximum"></a>auto <u id="filterNonMaximum">filterNonMaximum</u>(SliceKind kind, Iterator)(Slice!(kind, [2], Iterator) <i>input</i>, size_t <i>filterSize</i> = 10);
 </big></dt>
 <dd>Perform non-maxima filtering of the image.
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Matrix <i>input</i></td>
+<table><tr><td>Slice!(kind, [2], Iterator) <i>input</i></td>
 <td>Input matrix.</td></tr>
 <tr><td>size_t <i>filterSize</i></td>
 <td>Size of filtering kernel (aperture).</td></tr>
@@ -167,7 +164,7 @@ Laplacian(I) =
 Input matrix, after filtering.<br><br>
 
 </dd>
-<dt><big><a name="calcPartialDerivatives"></a>void <u id="calcPartialDerivatives">calcPartialDerivatives</u>(InputTensor, V = DeepElementType!InputTensor)(InputTensor <i>input</i>, ref Slice!(2, V*) <i>fx</i>, ref Slice!(2, V*) <i>fy</i>, TaskPool <i>pool</i> = taskPool) if (isFloatingPoint!V);
+<dt><big><a name="calcPartialDerivatives"></a>void <u id="calcPartialDerivatives">calcPartialDerivatives</u>(InputTensor, V = DeepElementType!InputTensor)(InputTensor <i>input</i>, ref Slice!(Contiguous, [2], V*) <i>fx</i>, ref Slice!(Contiguous, [2], V*) <i>fy</i>, TaskPool <i>pool</i> = taskPool) if (isFloatingPoint!V);
 </big></dt>
 <dd>Calculate partial derivatives of an slice.
 <br><br>
@@ -175,31 +172,33 @@ Partial derivatives are calculated by convolving an slice with
 [-1, 1] kernel, horizontally and vertically.<br><br>
 
 </dd>
-<dt><big><a name="calcGradients"></a>void <u id="calcGradients">calcGradients</u>(InputTensor, V = DeepElementType!InputTensor)(InputTensor <i>input</i>, ref Slice!(2, V*) <i>mag</i>, ref Slice!(2, V*) <i>orient</i>, EdgeKernel <i>edgeKernelType</i> = EdgeKernel.SIMPLE, TaskPool <i>pool</i> = taskPool) if (isFloatingPoint!V);
+<dt><big><a name="calcGradients"></a>void <u id="calcGradients">calcGradients</u>(InputTensor, V = DeepElementType!InputTensor)(InputTensor <i>input</i>, ref Slice!(Contiguous, [2], V*) <i>mag</i>, ref Slice!(Contiguous, [2], V*) <i>orient</i>, EdgeKernel <i>edgeKernelType</i> = EdgeKernel.SIMPLE, TaskPool <i>pool</i> = taskPool) if (isFloatingPoint!V);
 </big></dt>
 <dd>Calculate gradient magnitude and orientation of an image slice.
 <br><br>
 <b>Params:</b><br>
 <table><tr><td>InputTensor <i>input</i></td>
 <td>Input slice of an image.</td></tr>
-<tr><td>Slice!(2, V*) <i>mag</i></td>
+<tr><td>Slice!(Contiguous, [2], V*) <i>mag</i></td>
 <td>Output magnitude value of gradients. If shape does not correspond to <i>input</i>, is
-        allocated anew.</td></tr>
-<tr><td>Slice!(2, V*) <i>orient</i></td>
+                      allocated anew.</td></tr>
+<tr><td>Slice!(Contiguous, [2], V*) <i>orient</i></td>
 <td>Orientation value of gradients in radians. If shape does not correspond to
-        <i>input</i>, is allocated anew.</td></tr>
+                      <i>input</i>, is allocated anew.</td></tr>
 <tr><td>EdgeKernel <i>edgeKernelType</i></td>
 <td>Optional convolution kernel type to calculate partial derivatives.
-    Default value is EdgeKernel.SIMPLE, which calls calcPartialDerivatives function
-    to calculate derivatives. Other options will perform convolution with requested
-    kernel type.</td></tr>
+                      Default value is EdgeKernel.SIMPLE, which calls calcPartialDerivatives function
+                      to calculate derivatives. Other options will perform convolution with requested
+                      kernel type.</td></tr>
+<tr><td>TaskPool <i>pool</i></td>
+<td>TaskPool instance used parallelise the algorithm.</td></tr>
 </table><br>
 <b>Note:</b><br>
 Input slice's memory has to be contiguous. Magnitude and orientation slices' strides
     have to be the identical.<br><br>
 
 </dd>
-<dt><big><a name="nonMaximaSupression"></a>Slice!(2, V*) <u id="nonMaximaSupression">nonMaximaSupression</u>(InputTensor, V = DeepElementType!InputTensor)(InputTensor <i>mag</i>, InputTensor <i>orient</i>, Slice!(2, V*) <i>prealloc</i> = emptySlice!(2, V), TaskPool <i>pool</i> = taskPool);
+<dt><big><a name="nonMaximaSupression"></a>Slice!(Contiguous, [2], V*) <u id="nonMaximaSupression">nonMaximaSupression</u>(InputTensor, V = DeepElementType!InputTensor)(InputTensor <i>mag</i>, InputTensor <i>orient</i>, Slice!(Contiguous, [2], V*) <i>prealloc</i> = emptySlice!([2], V), TaskPool <i>pool</i> = taskPool);
 </big></dt>
 <dd>Edge detection impulse non-maxima supression.
 <br><br>
@@ -212,8 +211,10 @@ edge impulses (gradient values along edges normal) except the peek value.
 <td>Gradient magnitude.</td></tr>
 <tr><td>InputTensor <i>orient</i></td>
 <td>Gradient orientation of the same image source as magnitude.</td></tr>
-<tr><td>Slice!(2, V*) <i>prealloc</i></td>
+<tr><td>Slice!(Contiguous, [2], V*) <i>prealloc</i></td>
 <td>Optional pre-allocated buffer for output slice.</td></tr>
+<tr><td>TaskPool <i>pool</i></td>
+<td>TaskPool instance used parallelise the algorithm.</td></tr>
 </table><br>
 <b>Note:</b><br>
 Orientation and pre-allocated structures must match. If <i>prealloc</i>
@@ -223,12 +224,12 @@ Orientation and pre-allocated structures must match. If <i>prealloc</i>
 dcv.imgproc.filter.calcGradients, dcv.imgproc.convolution<br><br>
 
 </dd>
-<dt><big><a name="canny"></a>Slice!(2, V*) <u id="canny">canny</u>(V, T)(Slice!(2, T*) <i>slice</i>, T <i>lowThresh</i>, T <i>upThresh</i>, EdgeKernel <i>edgeKernelType</i> = EdgeKernel.SOBEL, Slice!(2, V*) <i>prealloc</i> = emptySlice!(2, V), TaskPool <i>pool</i> = taskPool);
+<dt><big><a name="canny"></a>Slice!(Contiguous, [2], V*) <u id="canny">canny</u>(V, T, SliceKind kind)(Slice!(kind, [2], T*) <i>slice</i>, T <i>lowThresh</i>, T <i>upThresh</i>, EdgeKernel <i>edgeKernelType</i> = EdgeKernel.SOBEL, Slice!(Contiguous, [2], V*) <i>prealloc</i> = emptySlice!([2], V), TaskPool <i>pool</i> = taskPool);
 </big></dt>
 <dd>Perform <u id="canny">canny</u> filtering on an image to expose edges.
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Slice!(2, T*) <i>slice</i></td>
+<table><tr><td>Slice!(kind, [2], T*) <i>slice</i></td>
 <td>Input image <i>slice</i>.</td></tr>
 <tr><td>T <i>lowThresh</i></td>
 <td>lower threshold value after non-maxima suppression.</td></tr>
@@ -236,12 +237,14 @@ dcv.imgproc.filter.calcGradients, dcv.imgproc.convolution<br><br>
 <td>upper threshold value after non-maxima suppression.</td></tr>
 <tr><td>EdgeKernel <i>edgeKernelType</i></td>
 <td>Type of edge kernel used to calculate image gradients.</td></tr>
-<tr><td>Slice!(2, V*) <i>prealloc</i></td>
+<tr><td>Slice!(Contiguous, [2], V*) <i>prealloc</i></td>
 <td>Optional pre-allocated buffer.</td></tr>
+<tr><td>TaskPool <i>pool</i></td>
+<td>TaskPool instance used parallelise the algorithm.</td></tr>
 </table><br>
 
 </dd>
-<dt><big><a name="canny.2"></a>Slice!(2, V*) <u id="canny">canny</u>(V, T)(Slice!(2, T*) <i>slice</i>, T <i>thresh</i>, EdgeKernel <i>edgeKernelType</i> = EdgeKernel.SOBEL, Slice!(2, V*) <i>prealloc</i> = emptySlice!(2, V));
+<dt><big><a name="canny.2"></a>Slice!(Contiguous, [2], V*) <u id="canny">canny</u>(V, T, SliceKind kind)(Slice!(kind, [2], T*) <i>slice</i>, T <i>thresh</i>, EdgeKernel <i>edgeKernelType</i> = EdgeKernel.SOBEL, Slice!(Contiguous, [2], V*) <i>prealloc</i> = emptySlice!([2], V));
 </big></dt>
 <dd>Perform <u id="canny">canny</u> filtering on an image to expose edges.
 <br><br>
@@ -249,8 +252,7 @@ Convenience function to call <u id="canny">canny</u> with same lower and upper t
 similar to dcv.imgproc.threshold.threshold.<br><br>
 
 </dd>
-<dt><big><a name="bilateralFilter"></a>Slice!(N, OutputType*) <u id="bilateralFilter">bilateralFilter</u>(alias bc = neumann, InputTensor, OutputType = DeepElementType!InputTensor, size_t N = ReturnType!(InputTensor.shape).length)(InputTensor <i>input</i>, float <i>sigmaCol</i>, float <i>sigmaSpace</i>, size_t <i>kernelSize</i>, Slice!(N, OutputType*) <i>prealloc</i> = emptySlice!(N, OutputType), TaskPool <i>pool</i> = taskPool) if (N == 2);
-<br>Slice!(N, OutputType*) <u id="bilateralFilter">bilateralFilter</u>(alias bc = neumann, InputTensor, OutputType = DeepElementType!InputTensor, size_t N = ReturnType!(InputTensor.shape).length)(InputTensor <i>input</i>, float <i>sigmaCol</i>, float <i>sigmaSpace</i>, size_t <i>kernelSize</i>, Slice!(N, OutputType*) <i>prealloc</i> = emptySlice!(N, OutputType), TaskPool <i>pool</i> = taskPool) if (N == 3);
+<dt><big><a name="bilateralFilter"></a>Slice!(Contiguous, packs, OutputType*) <u id="bilateralFilter">bilateralFilter</u>(OutputType, alias bc = neumann, SliceKind kind, size_t[] packs, Iterator)(Slice!(kind, packs, Iterator) <i>input</i>, float <i>sigmaCol</i>, float <i>sigmaSpace</i>, size_t <i>kernelSize</i>, Slice!(Contiguous, packs, OutputType*) <i>prealloc</i> = emptySlice!(packs, OutputType), TaskPool <i>pool</i> = taskPool);
 </big></dt>
 <dd><a href="https://en.wikipedia.org/wiki/Bilateral_filter">Bilateral</a> filtering implementation.
 <br><br>
@@ -260,7 +262,7 @@ Non-linear, edge-preserving and noise-reducing smoothing filtering algorithm.
 <b>Params:</b><br>
 <table><tr><td>bc</td>
 <td>Boundary condition test used to index the image slice.</td></tr>
-<tr><td>slice</td>
+<tr><td>Slice!(kind, packs, Iterator) <i>input</i></td>
 <td>Slice of the <i>input</i> image.</td></tr>
 <tr><td>float <i>sigmaCol</i></td>
 <td>Color sigma value.</td></tr>
@@ -268,7 +270,7 @@ Non-linear, edge-preserving and noise-reducing smoothing filtering algorithm.
 <td>Spatial sigma value.</td></tr>
 <tr><td>size_t <i>kernelSize</i></td>
 <td>Size of convolution kernel. Must be odd number.</td></tr>
-<tr><td>Slice!(N, OutputType*) <i>prealloc</i></td>
+<tr><td>Slice!(Contiguous, packs, OutputType*) <i>prealloc</i></td>
 <td>Optional pre-allocated result image buffer. If not of same shape as <i>input</i> slice, its allocated anew.</td></tr>
 <tr><td>TaskPool <i>pool</i></td>
 <td>Optional TaskPool instance used to parallelize computation.</td></tr>
@@ -277,16 +279,16 @@ Non-linear, edge-preserving and noise-reducing smoothing filtering algorithm.
 Slice of filtered image.<br><br>
 
 </dd>
-<dt><big><a name="medianFilter"></a>Slice!(N, O*) <u id="medianFilter">medianFilter</u>(alias BoundaryConditionTest = neumann, T, O = T, size_t N)(Slice!(N, T*) <i>slice</i>, size_t <i>kernelSize</i>, Slice!(N, O*) <i>prealloc</i> = emptySlice!(N, O), TaskPool <i>pool</i> = taskPool);
+<dt><big><a name="medianFilter"></a>Slice!(Contiguous, packs, O*) <u id="medianFilter">medianFilter</u>(alias BoundaryConditionTest = neumann, T, O = T, SliceKind kind, size_t[] packs)(Slice!(kind, packs, T*) <i>slice</i>, size_t <i>kernelSize</i>, Slice!(Contiguous, packs, O*) <i>prealloc</i> = emptySlice!(packs, O), TaskPool <i>pool</i> = taskPool);
 </big></dt>
 <dd>Median filtering algorithm.
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Slice!(N, T*) <i>slice</i></td>
+<table><tr><td>Slice!(kind, packs, T*) <i>slice</i></td>
 <td>Input image <i>slice</i>.</td></tr>
 <tr><td>size_t <i>kernelSize</i></td>
 <td>Square size of median kernel.</td></tr>
-<tr><td>Slice!(N, O*) <i>prealloc</i></td>
+<tr><td>Slice!(Contiguous, packs, O*) <i>prealloc</i></td>
 <td>Optional pre-allocated return image buffer.</td></tr>
 <tr><td>TaskPool <i>pool</i></td>
 <td>Optional TaskPool instance used to parallelize computation.</td></tr>
@@ -304,7 +306,7 @@ Returns filtered image of same size as the input. If <i>prealloc</i> parameter i
 <b>Params:</b><br>
 <table><tr><td>HistogramType</td>
 <td>(template parameter) Histogram type. Can be static or dynamic array, most commonly
-    of 32 bit integer, of size T.max + 1, where T is element type of input <i>range</i>.</td></tr>
+                      of 32 bit integer, of size T.max + 1, where T is element type of input <i>range</i>.</td></tr>
 <tr><td>Range <i>range</i></td>
 <td>Input forward <i>range</i>, for which histogram is calculated.</td></tr>
 </table><br>
@@ -312,7 +314,7 @@ Returns filtered image of same size as the input. If <i>prealloc</i> parameter i
 Histogram for given forward <i>range</i>.<br><br>
 
 </dd>
-<dt><big><a name="histEqualize"></a>Slice!(N, T*) <u id="histEqualize">histEqualize</u>(T, HistogramType, size_t N)(Slice!(N, T*) <i>slice</i>, HistogramType <i>histogram</i>, Slice!(N, T*) <i>prealloc</i> = emptySlice!(N, T));
+<dt><big><a name="histEqualize"></a>auto <u id="histEqualize">histEqualize</u>(T, HistogramType, SliceKind kind, size_t[] packs)(Slice!(kind, packs, T*) <i>slice</i>, HistogramType <i>histogram</i>, Slice!(Contiguous, packs, T*) <i>prealloc</i> = emptySlice!(packs, T));
 </big></dt>
 <dd>Histogram Equalization.
 <br><br>
@@ -328,7 +330,7 @@ If 3D <i>slice</i> is given, <i>histogram</i> is applied separatelly for each ch
     Image image = imread(<font color=red>"dcv/examples/data/lena.png"</font>);
 
     <font color=blue>auto</font> <i>slice</i> = image.sliced.rgb2gray;
-    <font color=blue>auto</font> equalized = <i>slice</i>.<u id="histEqualize">histEqualize</u>(<i>slice</i>.byElement.calcHistogram);
+    <font color=blue>auto</font> equalized = <i>slice</i>.<u id="histEqualize">histEqualize</u>(<i>slice</i>.flattened.calcHistogram);
 
     <i>slice</i>.imshow(<font color=red>"Original"</font>);
     equalized.imshow(<font color=red>"Equalized"</font>);
@@ -354,20 +356,20 @@ For more valid color <i>histogram</i> equalization results, try converting image
 
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Histogram</td>
+<table><tr><td>HistogramType</td>
 <td>(template parameter) Histogram type, see <a href="#calcHistogram">calcHistogram</a> function for details.</td></tr>
-<tr><td>Slice!(N, T*) <i>slice</i></td>
+<tr><td>Slice!(kind, packs, T*) <i>slice</i></td>
 <td>Input image <i>slice</i>.</td></tr>
 <tr><td>HistogramType <i>histogram</i></td>
 <td>Histogram values for input image <i>slice</i>.</td></tr>
-<tr><td>Slice!(N, T*) <i>prealloc</i></td>
+<tr><td>Slice!(Contiguous, packs, T*) <i>prealloc</i></td>
 <td>Optional pre-allocated buffer where equalized image is saved.</td></tr>
 </table><br>
 <b>Returns:</b><br>
 Copy of input image <i>slice</i> with its <i>histogram</i> values equalized.<br><br>
 
 </dd>
-<dt><big><a name="erode"></a>Slice!(2, T*) <u id="erode">erode</u>(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) <i>slice</i>, Slice!(2, T*) <i>kernel</i> = radialKernel!T(3), Slice!(2, T*) <i>prealloc</i> = emptySlice!(2, T), TaskPool <i>pool</i> = taskPool) if (isBoundaryCondition!BoundaryConditionTest);
+<dt><big><a name="erode"></a>Slice!(kind, [2], T*) <u id="erode">erode</u>(alias BoundaryConditionTest = neumann, T, SliceKind kind)(Slice!(kind, [2], T*) <i>slice</i>, Slice!(kind, [2], T*) <i>kernel</i> = radialKernel!T(3), Slice!(kind, [2], T*) <i>prealloc</i> = emptySlice!([2], T), TaskPool <i>pool</i> = taskPool) if (isBoundaryCondition!BoundaryConditionTest);
 </big></dt>
 <dd>Perform morphological <a target="_blank" href="https://en.wikipedia.org/wiki/Erosion_(morphology)">erosion</a>.
 <br><br>
@@ -417,11 +419,11 @@ Erosion works only for 2D binary images.
 
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Slice!(2, T*) <i>slice</i></td>
+<table><tr><td>Slice!(kind, [2], T*) <i>slice</i></td>
 <td>Input image <i>slice</i>, to be eroded.</td></tr>
-<tr><td>Slice!(2, T*) <i>kernel</i></td>
+<tr><td>Slice!(kind, [2], T*) <i>kernel</i></td>
 <td>Erosion <i>kernel</i>. Default value is radialKernel!T(3).</td></tr>
-<tr><td>Slice!(2, T*) <i>prealloc</i></td>
+<tr><td>Slice!(kind, [2], T*) <i>prealloc</i></td>
 <td>Optional pre-allocated buffer to hold result.</td></tr>
 <tr><td>TaskPool <i>pool</i></td>
 <td>Optional TaskPool instance used to parallelize computation.</td></tr>
@@ -430,7 +432,7 @@ Erosion works only for 2D binary images.
 Eroded image <i>slice</i>, of same type as input image.<br><br>
 
 </dd>
-<dt><big><a name="dilate"></a>Slice!(2, T*) <u id="dilate">dilate</u>(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) <i>slice</i>, Slice!(2, T*) <i>kernel</i> = radialKernel!T(3), Slice!(2, T*) <i>prealloc</i> = emptySlice!(2, T), TaskPool <i>pool</i> = taskPool) if (isBoundaryCondition!BoundaryConditionTest);
+<dt><big><a name="dilate"></a>Slice!(kind, [2], T*) <u id="dilate">dilate</u>(alias BoundaryConditionTest = neumann, T, SliceKind kind)(Slice!(kind, [2], T*) <i>slice</i>, Slice!(kind, [2], T*) <i>kernel</i> = radialKernel!T(3), Slice!(kind, [2], T*) <i>prealloc</i> = emptySlice!([2], T), TaskPool <i>pool</i> = taskPool) if (isBoundaryCondition!BoundaryConditionTest);
 </big></dt>
 <dd>Perform morphological <a target="_blank" href="https://en.wikipedia.org/wiki/Dilation_(morphology)">dilation</a>.
 <br><br>
@@ -476,11 +478,11 @@ Dilation works only for 2D binary images.
 
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Slice!(2, T*) <i>slice</i></td>
+<table><tr><td>Slice!(kind, [2], T*) <i>slice</i></td>
 <td>Input image <i>slice</i>, to be eroded.</td></tr>
-<tr><td>Slice!(2, T*) <i>kernel</i></td>
+<tr><td>Slice!(kind, [2], T*) <i>kernel</i></td>
 <td>Dilation <i>kernel</i>. Default value is radialKernel!T(3).</td></tr>
-<tr><td>Slice!(2, T*) <i>prealloc</i></td>
+<tr><td>Slice!(kind, [2], T*) <i>prealloc</i></td>
 <td>Optional pre-allocated buffer to hold result.</td></tr>
 <tr><td>TaskPool <i>pool</i></td>
 <td>Optional TaskPool instance used to parallelize computation.</td></tr>
@@ -489,7 +491,7 @@ Dilation works only for 2D binary images.
 Dilated image <i>slice</i>, of same type as input image.<br><br>
 
 </dd>
-<dt><big><a name="open"></a>Slice!(2, T*) <u id="open">open</u>(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) <i>slice</i>, Slice!(2, T*) <i>kernel</i> = radialKernel!T(3), Slice!(2, T*) <i>prealloc</i> = emptySlice!(2, T), TaskPool <i>pool</i> = taskPool) if (isBoundaryCondition!BoundaryConditionTest);
+<dt><big><a name="open"></a>Slice!(kind, [2], T*) <u id="open">open</u>(alias BoundaryConditionTest = neumann, T, SliceKind kind)(Slice!(kind, [2], T*) <i>slice</i>, Slice!(kind, [2], T*) <i>kernel</i> = radialKernel!T(3), Slice!(kind, [2], T*) <i>prealloc</i> = emptySlice!([2], T), TaskPool <i>pool</i> = taskPool) if (isBoundaryCondition!BoundaryConditionTest);
 </big></dt>
 <dd>Perform morphological <a target="_blank" href="https://en.wikipedia.org/wiki/Opening_(morphology)">opening</a>.
 <br><br>
@@ -501,11 +503,11 @@ Opening works only for 2D binary images.
 
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Slice!(2, T*) <i>slice</i></td>
+<table><tr><td>Slice!(kind, [2], T*) <i>slice</i></td>
 <td>Input image <i>slice</i>, to be eroded.</td></tr>
-<tr><td>Slice!(2, T*) <i>kernel</i></td>
+<tr><td>Slice!(kind, [2], T*) <i>kernel</i></td>
 <td>Erosion/Dilation <i>kernel</i>. Default value is radialKernel!T(3).</td></tr>
-<tr><td>Slice!(2, T*) <i>prealloc</i></td>
+<tr><td>Slice!(kind, [2], T*) <i>prealloc</i></td>
 <td>Optional pre-allocated buffer to hold result.</td></tr>
 <tr><td>TaskPool <i>pool</i></td>
 <td>Optional TaskPool instance used to parallelize computation.</td></tr>
@@ -514,7 +516,7 @@ Opening works only for 2D binary images.
 Opened image <i>slice</i>, of same type as input image.<br><br>
 
 </dd>
-<dt><big><a name="close"></a>Slice!(2, T*) <u id="close">close</u>(alias BoundaryConditionTest = neumann, T)(Slice!(2, T*) <i>slice</i>, Slice!(2, T*) <i>kernel</i> = radialKernel!T(3), Slice!(2, T*) <i>prealloc</i> = emptySlice!(2, T), TaskPool <i>pool</i> = taskPool) if (isBoundaryCondition!BoundaryConditionTest);
+<dt><big><a name="close"></a>Slice!(kind, [2], T*) <u id="close">close</u>(alias BoundaryConditionTest = neumann, T, SliceKind kind)(Slice!(kind, [2], T*) <i>slice</i>, Slice!(kind, [2], T*) <i>kernel</i> = radialKernel!T(3), Slice!(kind, [2], T*) <i>prealloc</i> = emptySlice!([2], T), TaskPool <i>pool</i> = taskPool) if (isBoundaryCondition!BoundaryConditionTest);
 </big></dt>
 <dd>Perform morphological <a target="_blank" href="https://en.wikipedia.org/wiki/Closing_(morphology)">closing</a>.
 <br><br>
@@ -526,11 +528,11 @@ Closing works only for 2D binary images.
 
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Slice!(2, T*) <i>slice</i></td>
+<table><tr><td>Slice!(kind, [2], T*) <i>slice</i></td>
 <td>Input image <i>slice</i>, to be eroded.</td></tr>
-<tr><td>Slice!(2, T*) <i>kernel</i></td>
+<tr><td>Slice!(kind, [2], T*) <i>kernel</i></td>
 <td>Erosion/Dilation <i>kernel</i>. Default value is radialKernel!T(3).</td></tr>
-<tr><td>Slice!(2, T*) <i>prealloc</i></td>
+<tr><td>Slice!(kind, [2], T*) <i>prealloc</i></td>
 <td>Optional pre-allocated buffer to hold result.</td></tr>
 <tr><td>TaskPool <i>pool</i></td>
 <td>Optional TaskPool instance used to parallelize computation.</td></tr>

@@ -8,12 +8,12 @@ Relja Ljubobratovic
 <b>License:</b><br>
 <a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.<br><br>
 
-<dl><dt><big><a name="colorCode"></a>Slice!(3, ubyte*) <u id="colorCode">colorCode</u>(Slice!(3, float*) <i>flow</i>, float <i>maxSize</i> = 0);
+<dl><dt><big><a name="colorCode"></a>Slice!(SliceKind.contiguous, [3], ubyte*) <u id="colorCode">colorCode</u>(Slice!(SliceKind.contiguous, [3], float*) <i>flow</i>, float <i>maxSize</i> = 0);
 </big></dt>
 <dd>Draw color-coded optical <i>flow</i>.
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Slice!(3, float*) <i>flow</i></td>
+<table><tr><td>Slice!(SliceKind.contiguous, [3], float*) <i>flow</i></td>
 <td>Optical <i>flow</i> displacement vectors.</td></tr>
 <tr><td>float <i>maxSize</i></td>
 <td>Value which is considered to be the maximal

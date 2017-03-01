@@ -8,12 +8,12 @@ Relja Ljubobratovic
 <b>License:</b><br>
 <a target="_blank" href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License - Version 1.0</a>.<br><br>
 
-<dl><dt><big><a name="harrisCorners"></a>Slice!(2, OutputType*) <u id="harrisCorners">harrisCorners</u>(InputType, OutputType = InputType)(Slice!(2, InputType*) <i>image</i>, in uint <i>winSize</i> = 3, in float <i>k</i> = 0.64F, in float <i>gauss</i> = 0.84F, Slice!(2, OutputType*) <i>prealloc</i> = emptySlice!(2, OutputType), TaskPool <i>pool</i> = taskPool);
+<dl><dt><big><a name="harrisCorners"></a>Slice!(SliceKind.contiguous, [2], OutputType*) <u id="harrisCorners">harrisCorners</u>(InputType, OutputType = InputType, SliceKind inputKind)(Slice!(inputKind, [2], InputType*) <i>image</i>, in uint <i>winSize</i> = 3, in float <i>k</i> = 0.64F, in float <i>gauss</i> = 0.84F, Slice!(SliceKind.contiguous, [2], OutputType*) <i>prealloc</i> = emptySlice!([2], OutputType), TaskPool <i>pool</i> = taskPool);
 </big></dt>
 <dd>Calculate per-pixel corner impuls response using Harris corner detector.
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Slice!(2, InputType*) <i>image</i></td>
+<table><tr><td>Slice!(inputKind, [2], InputType*) <i>image</i></td>
 <td>Input <i>image</i> slice.</td></tr>
 <tr><td>uint <i>winSize</i></td>
 <td>Window (square) size used in corner detection.</td></tr>
@@ -21,41 +21,37 @@ Relja Ljubobratovic
 <td>Sensitivity parameter defined in the algorithm.</td></tr>
 <tr><td>float <i>gauss</i></td>
 <td>Gauss sigma value used as window weighting parameter.</td></tr>
-<tr><td>Slice!(2, OutputType*) <i>prealloc</i></td>
+<tr><td>Slice!(SliceKind.contiguous, [2], OutputType*) <i>prealloc</i></td>
 <td>Optional pre-allocated buffer for return response <i>image</i>.</td></tr>
+<tr><td>TaskPool <i>pool</i></td>
+<td>TaskPool instance used parallelise the algorithm.</td></tr>
 </table><br>
 <b>Returns:</b><br>
 Response matrix the same size of the input <i>image</i>, where each pixel represents
     corner response value - the bigger the value, more probably it represents the
-    actual corner in the <i>image</i>.
-
-<br><br>
-<b>Note:</b><br>
-If given, pre-allocated memory has to be contiguous.<br><br>
+    actual corner in the <i>image</i>.<br><br>
 
 </dd>
-<dt><big><a name="shiTomasiCorners"></a>Slice!(2, OutputType*) <u id="shiTomasiCorners">shiTomasiCorners</u>(InputType, OutputType = InputType)(Slice!(2, InputType*) <i>image</i>, in uint <i>winSize</i> = 3, in float <i>gauss</i> = 0.84F, Slice!(2, OutputType*) <i>prealloc</i> = emptySlice!(2, OutputType), TaskPool <i>pool</i> = taskPool);
+<dt><big><a name="shiTomasiCorners"></a>Slice!(SliceKind.contiguous, [2], OutputType*) <u id="shiTomasiCorners">shiTomasiCorners</u>(InputType, OutputType = InputType, SliceKind inputKind)(Slice!(inputKind, [2], InputType*) <i>image</i>, in uint <i>winSize</i> = 3, in float <i>gauss</i> = 0.84F, Slice!(SliceKind.contiguous, [2], OutputType*) <i>prealloc</i> = emptySlice!([2], OutputType), TaskPool <i>pool</i> = taskPool);
 </big></dt>
 <dd>Calculate per-pixel corner impuls response using Shi-Tomasi corner detector.
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>Slice!(2, InputType*) <i>image</i></td>
+<table><tr><td>Slice!(inputKind, [2], InputType*) <i>image</i></td>
 <td>Input <i>image</i> slice.</td></tr>
 <tr><td>uint <i>winSize</i></td>
 <td>Window (square) size used in corner detection.</td></tr>
 <tr><td>float <i>gauss</i></td>
 <td>Gauss sigma value used as window weighting parameter.</td></tr>
-<tr><td>Slice!(2, OutputType*) <i>prealloc</i></td>
+<tr><td>Slice!(SliceKind.contiguous, [2], OutputType*) <i>prealloc</i></td>
 <td>Optional pre-allocated buffer for return response <i>image</i>.</td></tr>
+<tr><td>TaskPool <i>pool</i></td>
+<td>TaskPool instance used parallelise the algorithm.</td></tr>
 </table><br>
 <b>Returns:</b><br>
 Response matrix the same size of the input <i>image</i>, where each pixel represents
     corner response value - the bigger the value, more probably it represents the
-    actual corner in the <i>image</i>.
-
-<br><br>
-<b>Note:</b><br>
-If given, pre-allocated memory has to be contiguous.<br><br>
+    actual corner in the <i>image</i>.<br><br>
 
 </dd>
 </dl>
