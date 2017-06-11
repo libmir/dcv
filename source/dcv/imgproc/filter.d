@@ -49,7 +49,7 @@ import std.array : uninitializedArray;
 import std.parallelism : parallel, taskPool, TaskPool;
 
 import mir.utility : min, max;
-import mir.math.internal;
+import mir.math.common;
 import mir.ndslice.allocation;
 import mir.ndslice.internal : fastmath;
 import mir.ndslice.topology;
@@ -244,7 +244,7 @@ Slice!(Contiguous, [2], T*) laplacianOfGaussian(T = double)(T sigma,
     static assert(isFloatingPoint!T);
 
     import mir.math.sum : sum;
-    import mir.math.internal : exp;
+    import mir.math.common : exp;
     import mir.utility : max;
     import std.math : E, PI;
 
@@ -569,7 +569,7 @@ body
 
 @fastmath void calcGradientsImpl(T)(T fx, T fy, ref T mag, ref T orient)
 {
-    import mir.math.internal : sqrt;
+    import mir.math.common : sqrt;
     import std.math : atan2;
 
     mag = sqrt(fx * fx + fy * fy);
@@ -1220,7 +1220,7 @@ Slice!(kind, [2], T*) close(alias BoundaryConditionTest = neumann, T, SliceKind 
 @fastmath void calcBilateralMask(Window, Mask)(Window window, Mask mask,
     float sigmaCol, float sigmaSpace)
 {
-    import mir.math.internal : exp, sqrt;
+    import mir.math.common : exp, sqrt;
 
     auto in_val = window[$ / 2, $ / 2];
     float rd, cd, c_val, s_val;
@@ -1281,7 +1281,7 @@ private:
 
 void nonMaximaSupressionImpl(DataPack, MagWindow)(DataPack p, MagWindow magWin)
 {
-    import mir.math.internal;
+    import mir.math.common;
 
     alias F = typeof(p.a);
 
@@ -1340,7 +1340,7 @@ void nonMaximaSupressionImpl(DataPack, MagWindow)(DataPack p, MagWindow magWin)
 
 auto bilateralFilterImpl(Window, Mask)(Window window, Mask mask, float sigmaCol, float sigmaSpace)
 {
-    import mir.math.internal;
+    import mir.math.common;
 
     calcBilateralMask(window, mask, sigmaCol, sigmaSpace);
     mask[] *= 1f / reduce!"a + b"(0f, mask.as!float.map!fabs);

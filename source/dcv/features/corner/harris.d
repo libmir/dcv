@@ -192,7 +192,7 @@ struct ShiTomasiDetector
 {
     @fastmath @nogc nothrow float opCall(float r1, float r2, float r3)
     {
-        import mir.math.internal : sqrt;
+        import mir.math.common : sqrt;
         return ((r1 + r3) - sqrt((r1 - r3) * (r1 - r3) + r2 * r2));
     }
 }

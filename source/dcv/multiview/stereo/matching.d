@@ -31,7 +31,7 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 */
 module dcv.multiview.stereo.matching;
 
-import mir.math.internal;
+import mir.math.common;
 import mir.math.sum;
 
 import mir.ndslice.slice;
