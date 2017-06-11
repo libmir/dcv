@@ -50,7 +50,7 @@
             "dependencies":
             {
                 "mir-math": "~>0.0.1",
-                "mir-algorithm": "~>0.0.25"
+                "mir-algorithm": "~>0.4.14"
             }
         },
         {
@@ -82,7 +82,7 @@
                 {
                     "name": "ggplotd",
                     "dependencies": {
-                        "ggplotd": "~>0.9.4"
+                        "ggplotd": "~>1.1.3"
                     },
                     "versions": ["ggplotd"]
                 }
