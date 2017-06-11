@@ -505,7 +505,7 @@ void gray2rgbImpl(GRAYRGB)(GRAYRGB pack)
 
 void rgb2hsvImpl(RGBHSV)(RGBHSV pack)
 {
-    import mir.math.internal;
+    import mir.math.common;
 
     alias V = typeof(pack.a[0]);
     alias R = typeof(pack.b[0]);

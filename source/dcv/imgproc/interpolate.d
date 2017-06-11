@@ -107,7 +107,7 @@ private:
 
 pure @fastmath auto linearImpl_1(T)(Slice!(SliceKind.contiguous, [1], T*) range, double pos)
 {
-    import mir.math.internal;
+    import mir.math.common;
 
     assert(pos < range.length);
 
@@ -135,7 +135,7 @@ pure @fastmath auto linearImpl_1(T)(Slice!(SliceKind.contiguous, [1], T*) range,
 
 pure @fastmath auto linearImpl_2(SliceKind kind, size_t[] packs, T)(Slice!(kind, packs, T*) range, double pos_x, double pos_y)
 {
-    import mir.math.internal : floor;
+    import mir.math.common : floor;
 
     assert(pos_x < range.length!0 && pos_y < range.length!1);
 

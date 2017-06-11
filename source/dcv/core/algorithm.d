@@ -23,7 +23,7 @@ import std.traits : isNumeric, isFloatingPoint;
 
 import mir.ndslice.slice;
 import mir.ndslice.algorithm : reduce, each;
-import mir.math.internal;
+import mir.math.common;
 
 /**
 Scale tensor values.
@@ -88,7 +88,7 @@ body
 
     static if (isFloatingPoint!T)
     {
-        import mir.math.internal : fmin, fmax;
+        import mir.math.common : fmin, fmax;
         auto _max = reduce!fmax(T.min_normal, tensor);
         auto _min = reduce!fmin(T.max, tensor);
     }
