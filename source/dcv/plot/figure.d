@@ -20,19 +20,19 @@ image
     .conv!symmetric(gaussian!float(1.0f, 3, 3))
     .imshow;
 
-// ... or instantiate new figure to setup some useful callbacks, than use the 
+// ... or instantiate new figure to setup some useful callbacks, than use the
 // Figure interface to draw on it's canvas, and show it:
 
 auto f = figure("Figure title");  // create the figure with given title
 
 // set the mouse move callback
-f.setCursorCallback( (Figure figure, double x, double y) 
+f.setCursorCallback( (Figure figure, double x, double y)
 {
     writeln("Mouse moved to: ", [x, y]);
 })
 
 // set the mouse button click callback
-f.setMouseCallback( (Figure figure, int button, int scancode, int mods) 
+f.setMouseCallback( (Figure figure, int button, int scancode, int mods)
 {
     writeln("Mouse clicked: ", [button, scancode, mods]);
 });
@@ -47,7 +47,7 @@ plotImage.imwrite("my_plot.png");
 
 // And at the end, you can run the event loop for each previously set up figure, to wait
 // for key input, or given time to pass.
-waitKey!"seconds"(10); 
+waitKey!"seconds"(10);
 ----
 Figure mechanism is integrated with ggplotd library, so GGPlotD context can be directly plotted onto existing figure.
 To use GGPlotD library integration with DCV $(LINK2 http://dcv.dlang.io/?loc=dcv_plot_figure.html#plo, (dcv.plot.figure.plot)),
@@ -77,11 +77,11 @@ image.imshow(title);
 // construct the plot
 auto gg = GGPlotD().put(geomPoint(Aes!(double[], "x", double[], "y")([100.00, 200.0], [200.0,100.0])));
 // draw it onto the figure with given title...
-gg.plot(title); 
+gg.plot(title);
 ----
 
 $(DL Module contains:
-    $(DD 
+    $(DD
             $(LINK2 #imshow,imshow)
             $(LINK2 #plot,plot)
             $(LINK2 #waitKey,waitKey)
@@ -113,18 +113,43 @@ version(ggplotd)
 import dcv.core.image : Image, ImageFormat, BitDepth, asImage;
 import dcv.plot.bindings;
 
+
+/**
+Exception thrown if drawing context hasn't been properly initialized.
+
+Note:
+    Current implementation of the module utilizes glfw3 library as drawing backend.
+    API calls in the module may throw this exception if glfwInit fails at the module
+    initialization.
+
+See:
+    http://www.glfw.org/docs/latest/group__init.html#ga317aac130a235ab08c6db0834907d85e
+*/
+class ContextNotInitialized : Exception
+{
+    this()
+    {
+        super("Drawing context has not been initialized properly.");
+    }
+}
+
 /**
 Create a plotting figure.
 
 Params:
     title = Title of the window. If none given (default), window is named by "Figure id".
 
+Throws:
+    ContextNotInitialized
+
 Returns:
-    If figure with given title exists already, that figure is returned, 
+    If figure with given title exists already, that figure is returned,
     otherwise new figure is created and returned.
 */
 Figure figure(string title = "")
 {
+    mixin(checkContextInit);
+
     Figure f = null;
     if (title == "")
         title = "Figure " ~ _figures.length.to!string;
@@ -161,8 +186,11 @@ Params:
 
 If figure with given title exists, than the image content is updated with the given image.
 
+Throws:
+    ContextNotInitialized
+
 Returns:
-    If figure with given title exists already, that figure is returned, 
+    If figure with given title exists already, that figure is returned,
     otherwise new figure is created and returned.
 */
 Figure imshow(Image image, string title = "")
@@ -196,8 +224,20 @@ Figure imshow(SliceKind kind, size_t[] packs, Iterator)
 version(ggplotd)
 {
     /**
-      Show given image, and then plot given GGPlotD context on top of it.
-     */
+    Show given image, and then plot given GGPlotD context on top of it.
+
+    Params:
+        image = Image that is to be shown on the screen.
+        gg = Plotted data on top of the image.
+        title = Title of the window. If none given (default), window is named by "Figure id".
+
+    Throws:
+        ContextNotInitialized
+
+    Returns:
+        If figure with given title exists already, that figure is returned,
+        otherwise new figure is created and returned.
+    */
     Figure plot(Image image, GGPlotD gg, string title = "")
     {
         auto f = figure(title);
@@ -230,20 +270,23 @@ version(ggplotd)
     }
 
     /**
-      Plot GGPlotD context onto figure with given title.
+    Plot GGPlotD context onto figure with given title.
 
-      Given plot is drawn on top of figure's current image buffer. Size of the figure, and it's image buffer is
-      unchanged. If no figure exists with given title, new one is allocated with default setup (500x500, with 
-      black background), and the plot is drawn on it.
+    Given plot is drawn on top of figure's current image buffer. Size of the figure, and it's image buffer is
+    unchanged. If no figure exists with given title, new one is allocated with default setup (500x500, with
+    black background), and the plot is drawn on it.
 
-     Params:
-         gg = GGPlotD context, to be plotted on figure.
-         title = Title of the window. If none given (default), window is named by "Figure id".
+    Params:
+        gg = GGPlotD context, to be plotted on figure.
+        title = Title of the window. If none given (default), window is named by "Figure id".
 
-     Returns:
-         If figure with given title exists already, that figure is returned, 
-         otherwise new figure is created and returned.
-     */
+    Throws:
+        ContextNotInitialized
+
+    Returns:
+        If figure with given title exists already, that figure is returned,
+        otherwise new figure is created and returned.
+    */
     Figure plot(GGPlotD gg, string title = "")
     {
         auto f = figure(title);
@@ -252,6 +295,7 @@ version(ggplotd)
         return f;
     }
 }
+
 /**
 Run the event loop for each present figure, and wait for key and/or given time.
 
@@ -259,12 +303,17 @@ Params:
     unit = Unit in which time count is given. Same as core.time.Duration unit parameters.
     count = Number of unit ticks to wait for event loop to finish. If left at zero (default), runs indefinitelly.
 
+Throws:
+    ContextNotInitialized
+
 Returns:
     Ascii value as int of keyboard press, or 0 if timer runs out.
 */
 int waitKey(string unit = "msecs")(ulong count = 0)
 {
     import std.datetime : StopWatch;
+
+    mixin(checkContextInit);
 
     StopWatch stopwatch;
     stopwatch.start;
@@ -330,9 +379,14 @@ Destroy figure.
 
 Params:
     title = Title of the window to be destroyed. If left as empty string, destroys all windows.
+
+Throws:
+    ContextNotInitialized
 */
 void imdestroy(string title = "")
 {
+    mixin(checkContextInit);
+
     if (title == "")
     {
         foreach (f; _figures)
@@ -422,7 +476,7 @@ class Figure
     }
 
     /// Construct figure window with given title.
-    this(string title, int width = 512, int height = 512)
+    private this(string title, int width = 512, int height = 512)
     in
     {
         assert(width > 0);
@@ -442,7 +496,7 @@ class Figure
     }
 
     /// Construct figure window with given title, and fill it with given image.
-    this(string title, Image image)
+    private this(string title, Image image)
     in
     {
         assert(image !is null);
@@ -455,7 +509,7 @@ class Figure
     }
 
     /// Construct figure window with given title, and fill it with given image.
-    this(SliceKind kind, size_t[] packs, Iterator)
+    private this(SliceKind kind, size_t[] packs, Iterator)
         (string title, Slice!(kind, packs, Iterator) slice, ImageFormat format = ImageFormat.IF_UNASSIGNED)
             if (N == 2 || N == 3)
     {
@@ -806,15 +860,21 @@ immutable MOUSE_BUTTON_4 = 3;
 
 private:
 
+static int GLFW_STATUS;
+
+// Checks if drawing context has been initialized.
+enum checkContextInit = q{
+    if (GLFW_STATUS == GLFW_FALSE) {
+        throw new ContextNotInitialized();
+    }
+};
+
 // initialize glfw and global callbacks
 static this()
 {
     import std.stdio;
 
-    if (!glfwInit())
-    {
-        throw new Exception("Invalid glfwInit call");
-    }
+    GLFW_STATUS = glfwInit();
 
     setCharCallback((uint key) { _lastKey = key; });
 

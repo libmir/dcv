@@ -11,6 +11,8 @@ struct GLFWmonitor
 /*************************************************************************
  * GLFW API tokens
  *************************************************************************/
+immutable GLFW_TRUE = 1;
+immutable GLFW_FALSE = 0;
 
 immutable GLFW_VERSION_MAJOR = 3;
 immutable GLFW_VERSION_MINOR = 1;
