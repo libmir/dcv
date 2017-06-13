@@ -15,23 +15,31 @@ fast running code that could be used to make production ready tools and applicat
 <h2>API</h2>
 <p>
 DCV's API heavily utilizes <a href="https://github.com/libmir/mir">Mir</a> library, and it's mir.ndslice package. N-dimensional range view 
-structure <a href="https://github.com/libmir/mir/blob/master/source/mir/ndslice/slice.d">Slice</a> is used for any form of image manipulation 
+structure <a href="http://docs.algorithm.dlang.io/latest/mir_ndslice.html">Slice</a> is used for any form of image manipulation 
 and processing. But overall shape of the API is adopted from well known computer vision toolkits such as Matlab Image Processing 
 Toolbox, and OpenCV library, to be easily familiarized with. But it's also spiced up with D's syntactic sugar, to support pipelined calls:
 </p>
-<div><pre style="margin: 0; line-height: 125%"><a href="https://dcv.dlang.io/?loc=dcv.core.image.html">Image</a> image = imread(<span style="color: #a31515">&quot;/path/to/image.png&quot;</span>); <span style="color: #008000">// read an image from filesystem.</span>
 
-<span style="color: #0000ff">auto</span> slice = image.sliced; <span style="color: #008000">// slice image data (calls mir.ndslice.slice.sliced on image data)</span>
+<div>
+<pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">import</span> <a href="http://docs.algorithm.dlang.io/latest/index.html">mir.ndslice;</a>
+<span style="color: #0000ff">import</span> dcv;
 
-slice[0..$, 0..$, 1]<span style="color: #008000"> // take only the green channel</span>
-    .as!<span style="color: #2b91af">float</span><span style="color: #008000"> // convert slice data to float</span>
-    .slice<span style="color: #008000"> // make a copy</span>
-    .<a href="https://dcv.dlang.io/?loc=dcv.imgproc.convolution.html">conv</a>!symmetric(sobel!<span style="color: #2b91af">float</span>(GradientDirection.DIR_X)) <span style="color: #008000">// convolve image with horizontal Sobel kernel.</span>
-    .<a href="https://dcv.dlang.io/?loc=dcv.core.algorithm.html#ranged">ranged</a>(0, 255) <span style="color: #008000">// scale values to fit the range between the 0 and 255</span>
-    .<a href="https://dcv.dlang.io/?loc=dcv.plot.figure.html">imshow</a>(<span style="color: #a31515">&quot;Sobel derivatives&quot;</span>); <span style="color: #008000">// preview changes on screen.</span>
+<span style="color: #2b91af">void</span> main() {
+    <a href="http://dcv.dlang.io/?loc=dcv.core.image.html">Image</a> image = <a href="http://dcv.dlang.io/?loc=dcv.io.image.html">imread</a>(<span style="color: #a31515">&quot;/path/to/image.png&quot;</span>); <span style="color: #008000">// read an image from filesystem.</span>
 
-waitKey();
+    <span style="color: #0000ff">auto</span> slice = image.sliced; <span style="color: #008000">// slice image data (calls mir.ndslice.slice.sliced on image data)</span>
+
+    slice[0..$, 0..$, 1] <span style="color: #008000">// take the green channel only.</span>
+        .<a href="http://docs.algorithm.dlang.io/latest/mir_ndslice_topology.html#.as">as</a>!<span style="color: #008000">// convert slice data to float.</span>
+        .<a href="http://docs.algorithm.dlang.io/latest/mir_ndslice_allocation.html#.slice">slice</a> <span style="color: #008000">// make a copy</span>
+        .<a href="http://dcv.dlang.io/?loc=dcv.imgproc.convolution.html">conv</a>!<a href="http://dcv.dlang.io/index.html?loc=dcv.core.utils.html#symmetric">symmetric</a>(<a href="http://dcv.dlang.io/index.html?loc=dcv.imgproc.filter.html">sobel</a>!<span style="color: #2b91af">float</span>(GradientDirection.DIR_X)) <span style="color: #008000">// convolve image with horizontal Sobel kernel.</span>
+        .<a href="http://dcv.dlang.io/?loc=dcv.core.algorithm.html">ranged</a>(0, 255) <span style="color: #008000">// scale values to fit the range between the 0 and 255</span>
+        .<a href="http://dcv.dlang.io/?loc=dcv.plot.figure.html">imshow</a>(<span style="color: #a31515">&quot;Sobel derivatives&quot;</span>); <span style="color: #008000">// preview changes on screen.</span>
+
+    waitKey();
+}
 </pre></div>
+
 <p>Be sure to check out other <a id="examlesOnHomePage" href="javascript:;"><strong>examples!</strong></a></p>
 <h1><a id="library-modules" class="anchor" href="#library-modules" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Library Modules</h1>
 <ul> <!--hrefs will move to documentation once its readdy-->
