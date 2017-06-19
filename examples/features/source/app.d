@@ -38,8 +38,8 @@ void main()
     auto harrisResponse = harrisCorners(gray, 5).filterNonMaximum;
 
     // extract corners from the response matrix ( extract 100 corners, where each response is larger than 0.)
-    auto shiTomasiCorners = extractCorners(shiTomasiResponse, 100, 0.0f);
-    auto harrisCorners = extractCorners(harrisResponse, 100, 0.0f);
+    auto shiTomasiCorners = extractCorners(shiTomasiResponse, 100, 0.0f).slice.field;
+    auto harrisCorners = extractCorners(harrisResponse, 100, 0.0f).slice.field;
 
     // visualize corner response, and write it to disk.
     visualizeCornerResponse(harrisResponse, "harrisResponse");
