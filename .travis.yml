@@ -32,9 +32,9 @@ script:
  - dub build video
  - dub build klt
  - dub build hornschunck
- - dub test dcv dcv:plot -b unittest-release
- - dub test dcv dcv:io -b unittest-release
- - dub test dcv dcv:core -b unittest-release
+ - dub test dcv:plot -b unittest-release
+ - dub test dcv:io -b unittest-release
+ - dub test dcv:core -b unittest-release
  - dub test dcv:plot -b unittest-cov
  - dub test dcv:io -b unittest-cov
  - dub test dcv:core -b unittest-cov
