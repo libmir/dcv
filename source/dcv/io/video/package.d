@@ -2,9 +2,9 @@
 
 public import dcv.io.video.input, dcv.io.video.output;
 
+/+
 unittest
 {
-
     /*
      Only a temp solution for a test. More complete and correct form of testing should be provided in future.
      */
@@ -169,3 +169,5 @@ unittest
 
     inputStream.close();
 }
++/
+
