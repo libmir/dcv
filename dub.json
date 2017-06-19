@@ -16,12 +16,6 @@
     "sourcePaths": ["scripts"],
     "sourceFiles": ["source/dcv/package.d"],
 
-    "buildTypes": {
-        "unittest-release": {
-            "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
-        }
-    },
-
     "configurations": [
         {
             "name": "default"
@@ -47,6 +41,11 @@
                 "source/dcv/multiview",
                 "source/dcv/tracking"
             ],
+            "buildTypes": {
+                "unittest-release": {
+                    "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
+                }
+            },
             "dependencies":
             {
                 "mir-algorithm": "~>0.6.6"
@@ -58,6 +57,11 @@
             "sourcePaths": [
                 "source/dcv/io"
             ],
+            "buildTypes": {
+                "unittest-release": {
+                    "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
+                }
+            },
             "dependencies":{
                 "dcv:core": "*",
                 "imageformats": "~>6.1.0",
@@ -70,6 +74,11 @@
             "sourcePaths": [
                 "source/dcv/plot"
             ],
+            "buildTypes": {
+                "unittest-release": {
+                    "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
+                }
+            },
             "dependencies":{
                 "dcv:core": "*"
             },
