@@ -46,45 +46,66 @@ Params:
     larger than this are considered as valid corners.
 
 Returns:
-    Dynamic array of size_t[2], as in array of 2D points, of corner reponses 
+    Lazy array of size_t[2], as in array of 2D points, of corner reponses
     which fit the given criteria.
 */
-pure nothrow auto extractCorners(T)
-    (Slice!(Contiguous, [2], T*) cornerResponse, int count = -1, T threshold = 0)
-if ( isNumeric!T )
+pure nothrow
+auto extractCorners(T)
+(
+    Slice!(Contiguous, [2], T*) cornerResponse,
+    int count = -1,
+    T threshold = 0
+) if ( isNumeric!T )
+in
 {
-    import std.algorithm.sorting : topN;
-    import std.algorithm.iteration : map, filter, each;
-    import std.array : array;
+    assert(!cornerResponse.empty, "Corner response matrix should not be empty.");
+}
+body
+{
+    import std.array : Appender;
+    import std.typecons : Tuple;
 
+    import mir.ndslice.sorting : sort;
     import mir.ndslice.topology : zip, flattened, ndiota;
 
-    if (cornerResponse.empty)
-    {
-        return null;
-    }
+    alias Pair = Tuple!(T, "value", size_t[2], "position");
 
     // TODO: test if corner response is contiguous, or better yet - change
     //       the implementation not to depend on contiguous slice.
 
-    return zip(ndiota(cornerResponse.shape), cornerResponse)
-        .flattened
-        .filter!(p => p.b > threshold)
-        .array
-        .topN!((a, b) => a.b > b.b)(count)
-        .map!(p => p.a)
-        .array;
+    auto resultAppender = Appender!(Pair[])();
+
+    size_t r = 0, c;
+    foreach(row; cornerResponse) {
+        c = 0;
+        foreach(value; row) {
+            if (value > threshold) {
+                resultAppender.put(Pair(value, [r, c]));
+            }
+            c++;
+        }
+        r++;
+    }
+
+    auto result = resultAppender
+        .data
+        .sliced
+        .sort!( (a, b) => a.value > b.value )
+        .map!( p => p.position );
+
+    if (count > 0) {
+        result = result[0..count];
+    }
+
+    return result;
 }
 
+///
 unittest
 {
-    auto res = Slice!(SliceKind.contiguous, [2], float*).init.extractCorners;
-    assert(res is null);
-}
-
-unittest
-{
-    auto image = [0., 0., 0., 0., 1., 0., 0., 0., 0.].sliced(3, 3);
+    auto image = [0., 0., 0.,
+                  0., 1., 0.,
+                  0., 0., 0.].sliced(3, 3);
 
     auto res = image.extractCorners;
 
@@ -95,19 +116,24 @@ unittest
 ///
 unittest
 {
-    auto image = [0., 0.1, 0., 0., 0.3, 0., 0., 0.2, 0.].sliced(3, 3);
+    auto image = [0., 0.1, 0.,
+                  0., 0.3, 0.,
+                  0., 0.2, 0.].sliced(3, 3);
 
     auto res = image.extractCorners;
 
     assert(res.length == 3);
-    assert(res[0] == [0, 1]);
-    assert(res[1] == [1, 1]);
-    assert(res[2] == [2, 1]);
+    assert(res[0] == [1, 1]);
+    assert(res[1] == [2, 1]);
+    assert(res[2] == [0, 1]);
 }
 
+///
 unittest
 {
-    auto image = [0., 0.1, 0., 0., 0.3, 0., 0., 0.2, 0.].sliced(3, 3);
+    auto image = [0., 0.1, 0.,
+                  0., 0.3, 0.,
+                  0., 0.2, 0.].sliced(3, 3);
 
     auto res = image.extractCorners(1);
 
@@ -115,12 +141,16 @@ unittest
     assert(res[0] == [1, 1]);
 }
 
+///
 unittest
 {
-    auto image = [0., 0.1, 0., 0., 0.3, 0., 0., 0.2, 0.].sliced(3, 3);
+    auto image = [0., 0.1, 0.,
+                  0., 0.3, 0.,
+                  0., 0.2, 0.].sliced(3, 3);
 
     auto res = image.extractCorners(-1, 0.2);
 
     assert(res.length == 1);
     assert(res[0] == [1, 1]);
 }
+
