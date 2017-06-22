@@ -110,7 +110,6 @@ version(ggplotd)
     import ggplotd.ggplotd, ggplotd.aes, ggplotd.axes, ggplotd.geom;
 }
 
-import dcv.core.image : Image, ImageFormat, BitDepth, asImage;
 import dcv.plot.bindings;
 
 
@@ -193,33 +192,33 @@ Returns:
     If figure with given title exists already, that figure is returned,
     otherwise new figure is created and returned.
 */
-Figure imshow(Image image, string title = "")
-{
-    auto f = figure(title);
-    f.draw(image);
-    f.show();
-    return f;
-}
+// Figure imshow(Image image, string title = "")
+// {
+//     auto f = figure(title);
+//     f.draw(image);
+//     f.show();
+//     return f;
+// }
 
 /// ditto
-Figure imshow(SliceKind kind, size_t[] packs, Iterator)
-    (Slice!(kind, packs, Iterator) slice, string title = "")
-{
-    auto f = figure(title);
-    f.draw(slice, ImageFormat.IF_UNASSIGNED);
-    f.show();
-    return f;
-}
+// Figure imshow(SliceKind kind, size_t[] packs, Iterator)
+//     (Slice!(kind, packs, Iterator) slice, string title = "")
+// {
+//     auto f = figure(title);
+//     f.draw(slice, ImageFormat.IF_UNASSIGNED);
+//     f.show();
+//     return f;
+// }
 
 /// ditto
-Figure imshow(SliceKind kind, size_t[] packs, Iterator)
-    (Slice!(kind, packs, Iterator) slice, ImageFormat format, string title = "")
-{
-    auto f = figure(title);
-    f.draw(slice, format);
-    f.show();
-    return f;
-}
+// Figure imshow(SliceKind kind, size_t[] packs, Iterator)
+//     (Slice!(kind, packs, Iterator) slice, ImageFormat format, string title = "")
+// {
+//     auto f = figure(title);
+//     f.draw(slice, format);
+//     f.show();
+//     return f;
+// }
 
 version(ggplotd)
 {
@@ -496,26 +495,26 @@ class Figure
     }
 
     /// Construct figure window with given title, and fill it with given image.
-    private this(string title, Image image)
-    in
-    {
-        assert(image !is null);
-        assert(!image.empty);
-    }
-    body
-    {
-        this(title, cast(int)image.width, cast(int)image.height);
-        draw(image);
-    }
+    // private this(string title, Image image)
+    // in
+    // {
+    //     assert(image !is null);
+    //     assert(!image.empty);
+    // }
+    // body
+    // {
+    //     this(title, cast(int)image.width, cast(int)image.height);
+    //     draw(image);
+    // }
 
     /// Construct figure window with given title, and fill it with given image.
-    private this(SliceKind kind, size_t[] packs, Iterator)
-        (string title, Slice!(kind, packs, Iterator) slice, ImageFormat format = ImageFormat.IF_UNASSIGNED)
-            if (N == 2 || N == 3)
-    {
-        this(title, cast(int)slice.length!1, cast(int)slice.length!0);
-        draw(slice, format);
-    }
+    // private this(SliceKind kind, size_t[] packs, Iterator)
+    //     (string title, Slice!(kind, packs, Iterator) slice, ImageFormat format = ImageFormat.IF_UNASSIGNED)
+    //         if (N == 2 || N == 3)
+    // {
+    //     this(title, cast(int)slice.length!1, cast(int)slice.length!0);
+    //     draw(slice, format);
+    // }
 
     ~this()
     {
@@ -591,17 +590,17 @@ class Figure
 
 
     /// Get a copy of image currently drawn on figure's canvas.
-    @property image() const 
-    in
-    {
-        assert(width && height);
-    }
-    body
-    {
-        Image im = new Image(width, height, ImageFormat.IF_RGB, BitDepth.BD_8);
-        im.data[] = _data[];
-        return im;
-    }
+    // @property image() const 
+    // in
+    // {
+    //     assert(width && height);
+    // }
+    // body
+    // {
+    //     Image im = new Image(width, height, ImageFormat.IF_RGB, BitDepth.BD_8);
+    //     im.data[] = _data[];
+    //     return im;
+    // }
 
     /// Show the figure window.
     void show()
@@ -650,24 +649,24 @@ class Figure
     }
 
     /// Draw image onto figure canvas.
-    void draw(Image image)
-    {
-        Image showImage = adoptImage(image);
+    // void draw(Image image)
+    // {
+    //     Image showImage = adoptImage(image);
 
-        if (_width != showImage.width || _height != showImage.height)
-        {
-            _width = cast(int)showImage.width;
-            _height = cast(int)showImage.height;
-            _data = showImage.data.dup;
-        }
-        else
-        {
-            assert(_data.length == showImage.data.length);
-            _data[] = showImage.data[];
-        }
+    //     if (_width != showImage.width || _height != showImage.height)
+    //     {
+    //         _width = cast(int)showImage.width;
+    //         _height = cast(int)showImage.height;
+    //         _data = showImage.data.dup;
+    //     }
+    //     else
+    //     {
+    //         assert(_data.length == showImage.data.length);
+    //         _data[] = showImage.data[];
+    //     }
 
-        fitWindow();
-    }
+    //     fitWindow();
+    // }
 
     /// Draw slice of image onto figure canvas.
     void draw(SliceKind kind, size_t[] packs, Iterator)
@@ -948,46 +947,46 @@ void closeCallbackWrapper(GLFWwindow* window)
     }
 }
 
-Image adoptImage(Image image)
-{
-    import dcv.imgproc.color : yuv2rgb, gray2rgb;
+// Image adoptImage(Image image)
+// {
+//     import dcv.imgproc.color : yuv2rgb, gray2rgb;
 
-    Image showImage = (image.depth != BitDepth.BD_8) ? image.asType!ubyte : image;
-    import mir.ndslice.topology;
-    switch (showImage.format)
-    {
-    case ImageFormat.IF_RGB_ALPHA:
-        showImage = showImage.sliced[0 .. $, 0 .. $, 0 .. 2].asImage(ImageFormat.IF_RGB);
-        break;
-    case ImageFormat.IF_BGR:
-        foreach (e; showImage.sliced.pack!1.flattened)
-        {
-            auto t = e[0];
-            e[0] = e[2];
-            e[2] = t;
-        }
-        break;
-    case ImageFormat.IF_BGR_ALPHA:
-        foreach (e; showImage.sliced.pack!1.flattened)
-        {
-            auto t = e[0];
-            e[0] = e[2];
-            e[2] = t;
-        }
-        showImage = showImage.sliced[0 .. $, 0 .. $, 0 .. 2].asImage(ImageFormat.IF_RGB);
-        break;
-    case ImageFormat.IF_YUV:
-        showImage = showImage.sliced.yuv2rgb!ubyte.asImage(ImageFormat.IF_RGB);
-        break;
-    case ImageFormat.IF_MONO:
-        showImage = showImage.sliced.flattened.sliced(image.height, image.width)
-            .gray2rgb!ubyte.asImage(ImageFormat.IF_RGB);
-        break;
-    default:
-        break;
-    }
-    return showImage;
-}
+//     Image showImage = (image.depth != BitDepth.BD_8) ? image.asType!ubyte : image;
+//     import mir.ndslice.topology;
+//     switch (showImage.format)
+//     {
+//     case ImageFormat.IF_RGB_ALPHA:
+//         showImage = showImage.sliced[0 .. $, 0 .. $, 0 .. 2].asImage(ImageFormat.IF_RGB);
+//         break;
+//     case ImageFormat.IF_BGR:
+//         foreach (e; showImage.sliced.pack!1.flattened)
+//         {
+//             auto t = e[0];
+//             e[0] = e[2];
+//             e[2] = t;
+//         }
+//         break;
+//     case ImageFormat.IF_BGR_ALPHA:
+//         foreach (e; showImage.sliced.pack!1.flattened)
+//         {
+//             auto t = e[0];
+//             e[0] = e[2];
+//             e[2] = t;
+//         }
+//         showImage = showImage.sliced[0 .. $, 0 .. $, 0 .. 2].asImage(ImageFormat.IF_RGB);
+//         break;
+//     case ImageFormat.IF_YUV:
+//         showImage = showImage.sliced.yuv2rgb!ubyte.asImage(ImageFormat.IF_RGB);
+//         break;
+//     case ImageFormat.IF_MONO:
+//         showImage = showImage.sliced.flattened.sliced(image.height, image.width)
+//             .gray2rgb!ubyte.asImage(ImageFormat.IF_RGB);
+//         break;
+//     default:
+//         break;
+//     }
+//     return showImage;
+// }
 
 version(ggplotd) void drawGGPlotD(GGPlotD gg,  ubyte[] data,  int width, int height)
 {

@@ -45,7 +45,6 @@ import mir.ndslice.topology;
 import mir.ndslice.algorithm : reduce;
 import mir.ndslice.allocation: slice;
 
-import dcv.core.memory;
 import dcv.core.utils;
 
 /**
