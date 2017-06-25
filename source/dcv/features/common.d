@@ -41,10 +41,10 @@ mixin template BaseDetector()
         image = Image in which features are looked for.
         count = How many features are to be extracted from given image.
      */
-    public pure
+    public
     Feature[] evaluate(size_t[] packs, T)
     (
-        Slice!(Contiguous, packs, const(T*)) image
+        Slice!(Contiguous, packs, const(T)*) image
     ) const
     in
     {
@@ -53,7 +53,7 @@ mixin template BaseDetector()
     }
     body
     {
-        return(evaluateImpl(image));
+        return evaluateImpl(image);
     }
 }
 
@@ -70,10 +70,10 @@ mixin template BaseDescriptor(T)
      */
     public alias DescriptorArray = ContiguousMatrix!T;
 
-    public pure
+    public
     DescriptorArray evaluate(size_t[] packs, T)
     (
-        Slice!(Contiguous, packs, const(T*)) image
+        Slice!(Contiguous, packs, const(T)*) image
     ) const
     {
         return(evaluateImpl(image));
