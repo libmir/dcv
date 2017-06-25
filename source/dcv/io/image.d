@@ -8,14 +8,6 @@
    License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
  */
 module dcv.io.image;
-/*
-
-
-   TODO: write wrappers and  use libjpeg, libpng, libtiff, openexr.
-
-   v0.1 norm:
-   Implemented and tested Image class.
- */
 
 import std.exception: enforce;
 import std.range:array;
@@ -23,14 +15,13 @@ import std.algorithm: reduce;
 import std.string: toLower;
 import std.path:extension;
 
-import imageformats;
-
 import mir.ndslice.topology: reshape;
 import mir.ndslice.slice:Slice, ContiguousMatrix, sliced, DeepElementType, Contiguous, SliceKind;
 import mir.ndslice.allocation: slice;
 
-import dcv.core.types;
+import imageformats;
 
+import dcv.core.types;
 
 /**
    Base classification for exception that can occurr in the
@@ -60,21 +51,6 @@ ContiguousMatrix!T imread(T)(in string path)
 if (isPixel!T)
 {
     return imreadImpl_imageformats!T(path);
-}
-
-
-unittest
-{
-    // should read all images.
-    foreach (f; dirEntries("./tests/", SpanMode.breadth))
-    {
-        auto ext = f.extension.toLower;
-        if (ext == ".png" || ext == ".bmp" || ext == ".tga")
-        {
-            Image im = imread(f);
-            assert(im);
-        }
-    }
 }
 
 
@@ -140,230 +116,6 @@ void imwrite(SliceKind kind, size_t[] packs, Iterator)
     }
 }
 
-/**
-   Convenience wrapper for imwrite with Image.
-
-   params:
-   image = Image to be written;
-   path = Path where the image will be written.
-
-   return:
-   Status of the writing as bool.
- */
-// bool imwrite(in Image image, in string path)
-// {
-//     return imwrite(path, image.width, image.height, image.format, image.depth, image.data!ubyte);
-// }
-
-/**
-   Convenience wrapper for imwrite with Slice type.
-
-   Params:
-    slice   = Slice of the image data;
-    format  = Explicit definition of the image format.
-    path    = Path where the image will be written.
-
-   Returns:
-    Status of the writing as bool.
- */
-// bool imwrite(SliceKind kind, size_t [] packs, T)
-// (
-//     Slice!(kind, packs, T*) slice,
-//     ImageFormat format,
-//     in string path
-// )
-// {
-//     static assert(packs.length == 1, "Packed slices are not allowed in imwrite.");
-//     static assert(packs[0] == 2 || packs[0] == 3, "Slice has to be 2 or 3 dimensional.");
-
-//     int  err;
-//     auto sdata = slice.reshape([slice.elementsCount], err).array;
-//     assert(err == 0, "Internal error, cannot reshape the slice."); // should never happen, right?
-
-//     static if (is (T == ubyte))
-//     {
-//         return imwrite(path, slice.shape[1], slice.shape[0], format, BitDepth.BD_8, sdata);
-//     }
-//     else static if (is (T == ushort))
-//     {
-//         throw new Exception("Writting image format not supported.");
-//     }
-//     else static if (is (T == float))
-//     {
-//         throw new Exception("Writting image format not supported.");
-//     }
-//     else
-//     {
-//         throw new Exception("Writting image format not supported.");
-//     }
-// }
-
-version (unittest)
-{
-    import std.algorithm:map;
-    import std.range:iota;
-    import std.random:uniform;
-    import std.array:array;
-    import std.functional: pipe;
-    import std.path:extension;
-    import std.file:dirEntries, SpanMode, remove;
-
-    alias imgen_8  = pipe!(iota, map!(v => cast(ubyte)uniform(0, ubyte.max)), std.array.array);
-    alias imgen_16 = pipe!(iota, map!(v => cast(ushort)uniform(0, ushort.max)), std.array.array);
-
-    auto im_ubyte_8_mono()
-    {
-        return (32 * 32).imgen_8;
-    }
-
-    auto im_ubyte_8_rgb()
-    {
-        return (32 * 32 * 3).imgen_8;
-    }
-
-    auto im_ubyte_8_rgba()
-    {
-        return (32 * 32 * 4).imgen_8;
-    }
-
-    auto im_ubyte_16_mono()
-    {
-        return (32 * 32).imgen_16;
-    }
-
-    auto im_ubyte_16_rgb()
-    {
-        return (32 * 32 * 3).imgen_16;
-    }
-
-    auto im_ubyte_16_rgba()
-    {
-        return (32 * 32 * 4).imgen_16;
-    }
-}
-unittest
-{
-    // test 8-bit mono image writing
-    import std.algorithm.comparison: equal;
-
-    auto f   = "__test__.png";
-    auto fs  = "__test__slice__.png";
-    auto d   = im_ubyte_8_mono;
-    auto w   = 32;
-    auto h   = 32;
-    auto imw = new Image(w, h, ImageFormat.IF_MONO, BitDepth.BD_8, d);
-    imwrite(imw, f);
-    imwrite(imw.sliced, ImageFormat.IF_MONO, fs);
-    Image im  = imread(f, ReadParams(ImageFormat.IF_MONO, BitDepth.BD_8));
-    Image ims = imread(fs, ReadParams(ImageFormat.IF_MONO, BitDepth.BD_8));
-
-    // test read image comparing to the input arguments
-    assert(im.width == w);
-    assert(im.height == h);
-    assert(im.format == ImageFormat.IF_MONO);
-    assert(im.channels == 1);
-    assert(im.depth == BitDepth.BD_8);
-    assert(equal(im.data, d));
-
-    // test slice written image compared to the Image writen one
-    assert(im.width == ims.width);
-    assert(im.height == ims.height);
-    assert(im.format == ims.format);
-    assert(im.channels == ims.channels);
-    assert(im.depth == ims.depth);
-    assert(equal(im.data, ims.data));
-    try
-    {
-        remove(f);
-        remove(fs);
-    }
-    catch
-    {
-    }
-}
-
-unittest
-{
-    // test 8-bit rgb image writing
-    import std.algorithm.comparison: equal;
-
-    auto f   = "__test__.png";
-    auto fs  = "__test__slice__.png";
-    auto d   = im_ubyte_8_rgb;
-    auto w   = 32;
-    auto h   = 32;
-    auto imw = new Image(w, h, ImageFormat.IF_RGB, BitDepth.BD_8, d);
-    imwrite(imw, f);
-    imwrite(imw.sliced, ImageFormat.IF_RGB, fs);
-    Image im  = imread(f, ReadParams(ImageFormat.IF_RGB, BitDepth.BD_8));
-    Image ims = imread(fs, ReadParams(ImageFormat.IF_RGB, BitDepth.BD_8));
-
-    // test read image comparing to the input arguments
-    assert(im.width == w);
-    assert(im.height == h);
-    assert(im.format == ImageFormat.IF_RGB);
-    assert(im.channels == 3);
-    assert(im.depth == BitDepth.BD_8);
-    assert(equal(im.data, d));
-
-    // test slice written image compared to the Image writen one
-    assert(im.width == ims.width);
-    assert(im.height == ims.height);
-    assert(im.format == ims.format);
-    assert(im.channels == ims.channels);
-    assert(im.depth == ims.depth);
-    assert(equal(im.data, ims.data));
-    try
-    {
-        remove(f);
-        remove(fs);
-    }
-    catch
-    {
-    }
-}
-
-unittest
-{
-    // test 8-bit rgba image writing
-    import std.algorithm.comparison: equal;
-
-    auto f   = "__test__.png";
-    auto fs  = "__test__slice__.png";
-    auto d   = im_ubyte_8_rgba;
-    auto w   = 32;
-    auto h   = 32;
-    auto imw = new Image(w, h, ImageFormat.IF_RGB_ALPHA, BitDepth.BD_8, d);
-    imwrite(imw, f);
-    imwrite(imw.sliced, ImageFormat.IF_RGB_ALPHA, fs);
-    Image im  = imread(f, ReadParams(ImageFormat.IF_RGB_ALPHA, BitDepth.BD_8));
-    Image ims = imread(fs, ReadParams(ImageFormat.IF_RGB_ALPHA, BitDepth.BD_8));
-
-    // test read image comparing to the input arguments
-    assert(im.width == w);
-    assert(im.height == h);
-    assert(im.format == ImageFormat.IF_RGB_ALPHA);
-    assert(im.channels == 4);
-    assert(im.depth == BitDepth.BD_8);
-    assert(equal(im.data, d));
-
-    // test slice written image compared to the Image writen one
-    assert(im.width == ims.width);
-    assert(im.height == ims.height);
-    assert(im.format == ims.format);
-    assert(im.channels == ims.channels);
-    assert(im.depth == ims.depth);
-    assert(equal(im.data, ims.data));
-
-    try
-    {
-        remove(f);
-        remove(fs);
-    }
-    catch
-    {
-    }
-}
 
 private:
 
@@ -399,48 +151,6 @@ ContiguousMatrix!T imreadImpl_imageformats(T)(in string path)
 
 }
 
-unittest
-{
-    // test 8 bit read
-    auto  f   = "./tests/pngsuite/basi0g08.png";
-    Image im1 = imreadImpl_imageformats(f, ReadParams(ImageFormat.IF_UNASSIGNED, BitDepth.BD_8));
-    Image im2 = imreadImpl_imageformats(f, ReadParams(ImageFormat.IF_UNASSIGNED, BitDepth.BD_UNASSIGNED));
-    assert(im1 && im2);
-    assert(im1.width == im2.width);
-    assert(im1.height == im2.height);
-    assert(im1.channels == im2.channels);
-    assert(im1.channels == 3);
-    assert(im1.depth == im2.depth);
-    assert(im1.depth == BitDepth.BD_8);
-    assert(im1.format == im2.format);
-}
-
-unittest
-{
-    // test read as mono
-    auto  f  = "./tests/pngsuite/basi0g08.png";
-    Image im = imreadImpl_imageformats(f, ReadParams(ImageFormat.IF_MONO, BitDepth.BD_8));
-    assert(im);
-    assert(im.width == 32);
-    assert(im.height == 32);
-    assert(im.channels == 1);
-    assert(im.depth == BitDepth.BD_8);
-    assert(im.format == ImageFormat.IF_MONO);
-}
-
-unittest
-{
-    // test 16 bit read
-    auto  f  = "./tests/pngsuite/pngtest16rgba.png";
-    Image im = imreadImpl_imageformats(f, ReadParams(ImageFormat.IF_UNASSIGNED, BitDepth.BD_16));
-    assert(im);
-    assert(im.width == 32);
-    assert(im.height == 32);
-    assert(im.channels == 3);
-    assert(im.depth == BitDepth.BD_16);
-    assert(im.format == ImageFormat.IF_RGB);
-}
-
 ColFmt imreadImpl_imageformats_adoptFormat(T)()
 {
     static if (isRGB!T)
@@ -471,13 +181,4 @@ ColFmt imreadImpl_imageformats_adoptFormat(T)()
         static assert(0, "Given pixel type representative is invalid.");
     }
 };
-
-unittest
-{
-    /// Test imageformats color format adoption
-    static assert(imreadImpl_imageformats_adoptFormat!RGB8 == ColFmt.RGB);
-    static assert(imreadImpl_imageformats_adoptFormat!RBGA8 == ColFmt.RGBA);
-    static assert(imreadImpl_imageformats_adoptFormat!Pixel8u == ColFmt.Y);
-    static assert(imreadImpl_imageformats_adoptFormat!(RGB!("la", ubyte) ) == ColFmt.YA);
-}
 
