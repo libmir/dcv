@@ -1,4 +1,4 @@
-﻿/**
+/**
    Image manipulation module.
 
    Copyright: Copyright Relja Ljubobratovic 2016.
@@ -25,10 +25,11 @@ import std.parallelism: TaskPool, taskPool, parallel;
 import std.range.primitives: ElementType;
 import std.traits;
 
-import dcv.core.utils;
-
 import mir.ndslice.slice;
 import mir.ndslice.topology;
+
+import dcv.core.utils;
+import dcv.imgproc.interpolate;
 
 /**
    Resize array using custom interpolation function.
@@ -52,9 +53,13 @@ import mir.ndslice.topology;
 
    TODO: consider size input as array, and add prealloc
  */
-Slice!(SliceKind.contiguous, packs, V*) resize(alias interp = linear, SliceKind kind, size_t[] packs, V, size_t SN)(Slice!(kind, packs, V*) slice, size_t[SN] newsize, TaskPool pool = taskPool)
+Slice!(SliceKind.contiguous, packs, V*) resize(alias interp = linear, SliceKind kind, size_t[] packs, V, size_t SN)
+(
+    Slice!(kind, packs, V*) slice,
+    size_t[SN] newsize,
+    TaskPool pool = taskPool
+)
 if (packs.length == 1)
-//if (isInterpolationFunc!interp)
 {
     static if (packs[0] == 1)
     {
@@ -105,7 +110,12 @@ unittest
    $(D_CODE scaled = resize(input, input.shape*scale))
 
  */
-Slice!(kind, packs, V*) scale(alias interp = linear, V, ScaleValue, SliceKind kind, size_t[] packs, size_t SN)(Slice!(kind, packs, V*) slice, ScaleValue[SN] scale, TaskPool pool = taskPool)
+Slice!(kind, packs, V*) scale(alias interp = linear, V, ScaleValue, SliceKind kind, size_t[] packs, size_t SN)
+(
+    Slice!(kind, packs, V*) slice,
+    ScaleValue[SN] scale,
+    TaskPool pool = taskPool
+)
 if (isFloatingPoint!ScaleValue && isInterpolationFunc!interp)
 {
     foreach (v; scale)
@@ -175,8 +185,13 @@ unittest
    Returns:
     Warped input image by given map.
  */
-pure auto warp(alias interp = linear, ImageTensor, MapTensor)(ImageTensor image, MapTensor map,
-                                                              ImageTensor prealloc = ImageTensor.init)
+pure
+auto warp(alias interp = linear, ImageTensor, MapTensor)
+(
+    ImageTensor image,
+    MapTensor map,
+    ImageTensor prealloc = ImageTensor.init
+)
 {
     return pixelWiseDisplacement!(linear, DisplacementType.WARP, ImageTensor, MapTensor)
                (image, map, prealloc);
@@ -199,14 +214,19 @@ pure auto warp(alias interp = linear, ImageTensor, MapTensor)(ImageTensor image,
    Returns:
     Remapped input image by given map.
  */
-pure auto remap(alias interp = linear, ImageTensor, MapTensor)(ImageTensor image, MapTensor map,
-                                                               ImageTensor prealloc = ImageTensor.init)
+pure
+auto remap(alias interp = linear, ImageTensor, MapTensor)
+(
+    ImageTensor image,
+    MapTensor map,
+    ImageTensor prealloc = ImageTensor.init
+)
 {
     return pixelWiseDisplacement!(linear, DisplacementType.REMAP, ImageTensor, MapTensor)
                (image, map, prealloc);
 }
 
-/// Test if warp and remap always returns slice of corresponding format.
+// Test if warp and remap always returns slice of corresponding format.
 unittest
 {
     import std.random:uniform01;
@@ -262,8 +282,13 @@ private enum DisplacementType
     REMAP
 }
 
-private pure auto pixelWiseDisplacement(alias interp, DisplacementType disp, ImageTensor, MapTensor)
-    (ImageTensor image, MapTensor map, ImageTensor prealloc)
+private pure
+auto pixelWiseDisplacement(alias interp, DisplacementType disp, ImageTensor, MapTensor)
+(
+    ImageTensor image,
+    MapTensor map,
+    ImageTensor prealloc
+)
 in
 {
     assert(!image.empty, "Input image is empty");
@@ -304,8 +329,13 @@ body
     return prealloc;
 }
 
-private pure void displacementImpl(alias interp, DisplacementType disp, ImageMatrix, MapTensor)
-    (ImageMatrix image, MapTensor map, ImageMatrix result)
+private pure
+void displacementImpl(alias interp, DisplacementType disp, ImageMatrix, MapTensor)
+(
+    ImageMatrix image,
+    MapTensor map,
+    ImageMatrix result
+)
 {
     static if (disp == DisplacementType.WARP)
         float r = 0.0f, c;
@@ -348,7 +378,8 @@ private enum TransformType : size_t
     PERSPECTIVE_TRANSFORM = 1
 }
 
-private static bool isTransformMatrix(TransformMatrix)()
+private static
+bool isTransformMatrix(TransformMatrix)()
 {
     // static if its float[][], or its Slice!(SliceKind.contiguous, [2], float*)
     import std.traits:isScalarType, isPointer, TemplateArgsOf, PointerTarget;
@@ -414,16 +445,14 @@ unittest
    Returns:
     Transformed image.
  */
-Slice!(kind, packs, V*) transformAffine(alias interp = linear, V, TransformMatrix, SliceKind kind, size_t[] packs)(Slice!(kind, packs, V*) slice, inout TransformMatrix transform, size_t[2] outSize = [0, 0])
+Slice!(kind, packs, V*) transformAffine(alias interp = linear, V, TransformMatrix, SliceKind kind, size_t[] packs)
+(
+    Slice!(kind, packs, V*) slice,
+    inout TransformMatrix transform,
+    size_t[2] outSize = [0, 0]
+) if (isTransformMatrix!TransformMatrix)
 {
-    static if (isTransformMatrix!TransformMatrix)
-    {
-        return transformImpl!(TransformType.AFFINE_TRANSFORM, interp)(slice, transform, outSize);
-    }
-    else
-    {
-        static assert(0, "Invalid transform matrix type: " ~ typeof(transform).stringof);
-    }
+    return transformImpl!(TransformType.AFFINE_TRANSFORM, interp)(slice, transform, outSize);
 }
 
 /**
@@ -443,19 +472,14 @@ Slice!(kind, packs, V*) transformAffine(alias interp = linear, V, TransformMatri
    Returns:
     Transformed image.
  */
-Slice!(kind, packs, V*) transformPerspective(alias interp = linear, V, TransformMatrix, SliceKind kind, size_t[] packs)(
+Slice!(kind, packs, V*) transformPerspective(alias interp = linear, V, TransformMatrix, SliceKind kind, size_t[] packs)
+(
     Slice!(kind, packs, V*) slice,
     TransformMatrix transform,
-    size_t[2] outSize = [0, 0])
+    size_t[2] outSize = [0, 0]
+) if (isTransformMatrix!TransformMatrix)
 {
-    static if (isTransformMatrix!TransformMatrix)
-    {
-        return transformImpl!(TransformType.PERSPECTIVE_TRANSFORM, linear)(slice, transform, outSize);
-    }
-    else
-    {
-        static assert(0, "Invalid transform matrix type: " ~ typeof(transform).stringof);
-    }
+    return transformImpl!(TransformType.PERSPECTIVE_TRANSFORM, interp)(slice, transform, outSize);
 }
 
 version (unittest)
@@ -502,9 +526,13 @@ unittest
 private:
 
 // 1d resize implementation
-Slice!(SliceKind.contiguous, [1], V*) resizeImpl_1(alias interp, V)(Slice!(SliceKind.contiguous, [1], V*) slice, size_t newsize, TaskPool pool)
+Slice!(SliceKind.contiguous, [1], V*) resizeImpl_1(alias interp, V)
+(
+    Slice!(SliceKind.contiguous, [1], V*) slice,
+    size_t newsize,
+    TaskPool pool
+)
 {
-
     enforce(!slice.empty && newsize > 0);
 
     auto retval      = new V[newsize];
@@ -519,9 +547,14 @@ Slice!(SliceKind.contiguous, [1], V*) resizeImpl_1(alias interp, V)(Slice!(Slice
 }
 
 // 1d resize implementation
-Slice!(SliceKind.contiguous, [2], V*) resizeImpl_2(alias interp, SliceKind kind, V)(Slice!(kind, [2], V*) slice, size_t height, size_t width, TaskPool pool)
+Slice!(SliceKind.contiguous, [2], V*) resizeImpl_2(alias interp, SliceKind kind, V)
+(
+    Slice!(kind, [2], V*) slice,
+    size_t height,
+    size_t width,
+    TaskPool pool
+)
 {
-
     enforce(!slice.empty && width > 0 && height > 0);
 
     auto retval = new V[width * height].sliced(height, width);
@@ -545,9 +578,14 @@ Slice!(SliceKind.contiguous, [2], V*) resizeImpl_2(alias interp, SliceKind kind,
 }
 
 // 1d resize implementation
-Slice!(SliceKind.contiguous, [3], V*) resizeImpl_3(alias interp, SliceKind kind, V)(Slice!(kind, [3], V*) slice, size_t height, size_t width, TaskPool pool)
+Slice!(SliceKind.contiguous, [3], V*) resizeImpl_3(alias interp, SliceKind kind, V)
+(
+    Slice!(kind, [3], V*) slice,
+    size_t height,
+    size_t width,
+    TaskPool pool
+)
 {
-
     enforce(!slice.empty && width > 0 && height > 0);
 
     auto rows     = slice.length !0;
@@ -576,7 +614,10 @@ Slice!(SliceKind.contiguous, [3], V*) resizeImpl_3(alias interp, SliceKind kind,
     return retval;
 }
 
-Slice!(SliceKind.contiguous, [2], float*) invertTransformMatrix(TransformMatrix)(TransformMatrix t)
+Slice!(SliceKind.contiguous, [2], float*) invertTransformMatrix(TransformMatrix)
+(
+    TransformMatrix t
+)
 {
     import mir.ndslice.allocation;
     auto result = slice!float (3, 3);
@@ -601,7 +642,11 @@ Slice!(SliceKind.contiguous, [2], float*) invertTransformMatrix(TransformMatrix)
 }
 
 Slice!(kind, packs, V*) transformImpl(TransformType transformType, alias interp, V, TransformMatrix, SliceKind kind, size_t[] packs)
-    (Slice!(kind, packs, V*) slice, TransformMatrix transform, size_t[2] outSize)
+(
+    Slice!(kind, packs, V*) slice,
+    TransformMatrix transform,
+    size_t[2] outSize
+)
 in
 {
     static assert(packs[0] == 2 || packs[0] == 3, "Unsupported slice dimension (only 2D and 3D supported)");
