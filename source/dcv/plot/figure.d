@@ -633,7 +633,7 @@ class Figure
 
         _width  = cast(int)showImage.length !1;
         _height = cast(int)showImage.length !0;
-        _data   = (cast(ubyte*)showImage.iterator)[0 .. newwidth * newheight * 3];
+        _data   = (cast(ubyte*)showImage.iterator)[0 .. _width * _height * 3];
 
         fitWindow();
     }
