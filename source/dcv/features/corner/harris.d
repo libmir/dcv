@@ -1,217 +1,308 @@
 /**
-Module implements $(LINK3 https://en.wikipedia.org/wiki/Corner_detection#The_Harris_.26_Stephens_.2F_Plessey_.2F_Shi.E2.80.93Tomasi_corner_detection_algorithms, Harris and Shi-Tomasi) corner detectors.
+   Module implements $(LINK3 https://en.wikipedia.org/wiki/Corner_detection#The_Harris_.26_Stephens_.2F_Plessey_.2F_Shi.E2.80.93Tomasi_corner_detection_algorithms, Harris and Shi-Tomasi) corner detectors.
 
-Copyright: Copyright Relja Ljubobratovic 2016.
+   Copyright: Copyright Relja Ljubobratovic 2016.
 
-Authors: Relja Ljubobratovic
+   Authors: Relja Ljubobratovic
 
-License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
-*/
+   License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
+ */
 module dcv.features.corner.harris;
 
-import std.parallelism : parallel, taskPool, TaskPool;
+import std.traits: isFloatingPoint;
 
 import mir.math.common : fastmath;
 
 import mir.ndslice;
-import mir.ndslice.algorithm : each;
+import mir.ndslice.algorithm: each;
 
-import dcv.core.utils : emptySlice;
-import dcv.imgproc.filter : calcPartialDerivatives;
+import dcv.core.utils:emptySlice;
+import dcv.imgproc.filter: calcPartialDerivatives;
+
+import dcv.features.common;
+
+
+alias HarrisKernel    = CornerKernel!HarrisFormula;
+alias ShiTomasiKernel = CornerKernel!ShiTomasiFormula;
+
+alias HarrisDetector    = CornerDetector!(HarrisProperties, HarrisKernel);
+alias ShiTomasiDetector = CornerDetector!(ShiTomasiProperties, ShiTomasiKernel);
 
 /**
-Calculate per-pixel corner impuls response using Harris corner detector.
+   Create Harris corner detector using given algorithm properties.
 
-Params:
+   Params:
+    properties = HarrisProperties instance, holding algorithm configuration.
+
+   Returns:
+    HarrisDetector instace built using given properties.
+ */
+auto harrisDetector(HarrisProperties properties)
+{
+    auto formula  = HarrisFormula(properties.sensitivity);
+    auto kernel   = HarrisKernel(formula);
+    auto detector = HarrisDetector(properties, kernel);
+
+    return detector;
+}
+
+/**
+   Create Shi-Tomasi corner detector using given algorithm properties.
+
+   Params:
+       properties = ShiTomasiProperties instance, holding algorithm configuration.
+
+   Returns:
+       ShiTomasiDetector instace built using given properties.
+ */
+auto shiTomasiDetector(ShiTomasiProperties properties)
+{
+    auto formula  = ShiTomasiFormula.init;
+    auto kernel   = ShiTomasiKernel(formula);
+    auto detector = ShiTomasiDetector(properties, kernel);
+
+    return detector;
+}
+
+/// Harris corner detector algorithm properties.
+struct HarrisProperties
+{
+    mixin CornerProperties;
+    /// Algorithm sensitivity parameter. Smaller value means more corners will be detected.
+    float sensitivity = 0.6f;
+}
+
+/// Harris corner detector algorithm properties.
+struct ShiTomasiProperties
+{
+    mixin CornerProperties;
+}
+
+private mixin template CornerProperties()
+{
+    /// Size of the corner sampling window. Set larger window size to detect larger
+    /// corners in the image. Window size has to be an odd number.
+    uint windowSize = 3;
+    /// Smoothing sigma value. Each corner sampling window is weighed according
+    /// to gaussian kernel of same size, constructed using this sigma value.
+    float gaussianSigma = 0.8f;
+    /// Feature response threshold (0-1). Leave at 0 to return all possible responses as features.
+    float featureThreshold = 0.0f;
+    /// Maximal count of detected features. Leave at 0 to detect all possible responses as features.
+    size_t maximumFeatures = 0;
+    /// Non-maxima supression window size.
+    size_t nonmaxWindowSize = 10;
+}
+
+/**
+   Calculate per-pixel corner impulse response using Harris corner detector.
+
+   Params:
     image       = Input image slice.
-    winSize     = Window (square) size used in corner detection.
-    k           = Sensitivity parameter defined in the algorithm.
-    gauss       = Gauss sigma value used as window weighting parameter.
-    prealloc    = Optional pre-allocated buffer for return response image.
+
     pool        = TaskPool instance used parallelise the algorithm.
 
-Returns:
+   Returns:
     Response matrix the same size of the input image, where each pixel represents
     corner response value - the bigger the value, more probably it represents the
     actual corner in the image.
  */
-Slice!(SliceKind.contiguous, [2], OutputType*) harrisCorners(InputType, OutputType = InputType, SliceKind inputKind)
+Slice!(Contiguous, [2], OutputType*)
+harrisResponse(InputType, OutputType = InputType, SliceKind inputKind)
 (
     Slice!(inputKind, [2], InputType*) image,
-    in uint winSize = 3,
-    in float k = 0.64f,
-    in float gauss = 0.84f,
-    Slice!(SliceKind.contiguous, [2], OutputType*) prealloc = emptySlice!([2], OutputType),
-    TaskPool pool = taskPool
+    HarrisProperties properties
 )
 in
 {
     assert(!image.empty, "Empty image given.");
-    assert(winSize % 2 != 0, "Kernel window size has to be odd.");
-    assert(gauss > 0.0, "Gaussian sigma value has to be greater than 0.");
-    assert(k > 0.0, "K value has to be greater than 0.");
+    assert(properties.windowSize % 2 != 0, "Kernel window size has to be odd.");
+    assert(properties.gaussianSigma > 0.0, "Gaussian sigma value has to be greater than 0.");
+    assert(properties.sensitivity > 0.0, "Sensitivity value has to be greater than 0.");
 }
 body
 {
-    if (prealloc.shape != image.shape)
-    {
-        prealloc = uninitializedSlice!OutputType(image.shape);
-    }
-    HarrisDetector detector;
-    detector.k = k;
-    return calcCorners(image, winSize, gauss, prealloc, detector, pool);
+    auto detector = HarrisDetector(properties);
+    return detector.calcResponse(image);
 }
 
 /**
-Calculate per-pixel corner impuls response using Shi-Tomasi corner detector.
+   Calculate per-pixel corner impulse response using Shi-Tomasi corner detector.
 
-Params:
+   Params:
     image       = Input image slice.
     winSize     = Window (square) size used in corner detection.
     gauss       = Gauss sigma value used as window weighting parameter.
     prealloc    = Optional pre-allocated buffer for return response image.
     pool        = TaskPool instance used parallelise the algorithm.
 
-Returns:
+   Returns:
     Response matrix the same size of the input image, where each pixel represents
     corner response value - the bigger the value, more probably it represents the
     actual corner in the image.
  */
-Slice!(SliceKind.contiguous, [2], OutputType*) shiTomasiCorners(InputType, OutputType = InputType, SliceKind inputKind)
+Slice!(Contiguous, [2], OutputType*)
+shiTomasiCornerResponse(InputType, OutputType = InputType, SliceKind inputKind)
 (
     Slice!(inputKind, [2], InputType*) image,
-    in uint winSize = 3,
-    in float gauss = 0.84f,
-    Slice!(SliceKind.contiguous, [2], OutputType*) prealloc = emptySlice!([2], OutputType),
-    TaskPool pool = taskPool
+    ShiTomasiProperties properties
 )
 in
 {
     assert(!image.empty, "Empty image given.");
-    assert(winSize % 2 != 0, "Kernel window size has to be odd.");
-    assert(gauss > 0.0, "Gaussian sigma value has to be greater than 0.");
+    assert(properties.windowSize % 2 != 0, "Kernel window size has to be odd.");
+    assert(properties.gaussianSigma > 0.0, "Gaussian sigma value has to be greater than 0.");
 }
 body
 {
-    if (prealloc.shape != image.shape)
+    auto detector = ShiTomasiDetector(properties);
+    return detector.calcResponse(image);
+}
+
+/**
+   Corner detector algorithm base.
+
+   Contains core routines common to Harris and Shi-Tomasi corner detectors.
+ */
+struct CornerDetector (Properties, Kernel)
+{
+    mixin BaseDetector;
+
+    @disable this();
+
+    this(Properties properties, Kernel kernel)
     {
-        prealloc = uninitializedSlice!OutputType(image.shape);
+        this.properties = properties;
+        this.kernel     = kernel;
     }
 
-    ShiTomasiDetector detector;
-    return calcCorners(image, winSize, gauss, prealloc, detector, pool);
-}
-
-unittest
-{
-    auto image = new float[9].sliced(3, 3);
-    auto result = harrisCorners(image, 3, 0.64, 0.84);
-    assert(result.shape == image.shape);
-}
-
-unittest
-{
-    import std.range : lockstep;
-
-    auto image = new float[9].sliced(3, 3);
-    auto resultBuffer = new double[9].sliced(3, 3);
-    auto result = harrisCorners!(float, double)(image, 3, 0.64, 0.84, resultBuffer);
-    assert(result.shape == image.shape);
-    foreach (ref r1, ref r2; lockstep(result.flattened, resultBuffer.flattened))
+    /**
+       Calculate per-pixel response for this corner detector.
+     */
+    public
+    auto calcResponse(size_t[] packs, T)
+    (
+        Slice!(Contiguous, packs, const(T)*) image,
+    )
+    in
     {
-        assert(&r1 == &r2);
+        assert(!image.empty, "Given image must not be empty.");
     }
-}
-
-unittest
-{
-    import std.algorithm.comparison : equal;
-
-    auto image = new float[9].sliced(3, 3);
-    auto result = shiTomasiCorners(image, 3, 0.84);
-    assert(result.shape[].equal(image.shape[]));
-}
-
-unittest
-{
-    import std.algorithm.comparison : equal;
-    import std.range : lockstep;
-
-    auto image = new float[9].sliced(3, 3);
-    auto resultBuffer = new double[9].sliced(3, 3);
-    auto result = shiTomasiCorners!(float, double)(image, 3, 0.84, resultBuffer);
-    assert(result.shape[].equal(image.shape[]));
-    foreach (ref r1, ref r2; lockstep(result.flattened, resultBuffer.flattened))
+    body
     {
-        assert(&r1 == &r2);
+        import mir.ndslice.topology:zip;
+        import std.algorithm.comparison:max;
+
+        Slice!(Contiguous, [2], T*) fx, fy;
+
+        calcPartialDerivatives(image, fx, fy);
+
+        immutable size_t ws  = properties.windowSize;
+        immutable size_t wsh = max(1, ws / 2);
+
+        return zip(fx, fy)
+               .windows(ws, ws)
+               .map!(w => kernel.evaluate!(typeof(w))(w));
     }
-}
-
-@nogc nothrow @fastmath
-{
-    void calcCornersImpl(Window, Detector)(Window window, Detector detector)
-    {
-        import mir.ndslice.algorithm : reduce;
-
-        float[3] r = [0.0f, 0.0f, 0.0f];
-        float winSqr = float(window.length!0);
-        winSqr *= winSqr;
-
-        r = reduce!sumResponse(r, window);
-
-        r[0] = (r[0] / winSqr) * 0.5f;
-        r[1] /= winSqr;
-        r[2] = (r[2] / winSqr) * 0.5f;
-
-        auto rv = detector(r[0], r[1], r[2]);
-        if (rv > 0)
-            window[$ / 2, $ / 2].a = rv;
-    }
-
-    float[3] sumResponse(Pack)(float[3] r, Pack pack)
-    {
-        auto gx = pack.b;
-        auto gy = pack.c;
-        return [r[0] + gx * gx, r[1] + gx * gy, r[2] + gy * gy];
-    }
-}
 
 private:
+    Feature[] evaluateImpl(size_t[] packs, T)
+    (
+        Slice!(Contiguous, packs, const(T)*) image
+    )
+    {
+        import mir.math.sum:sum;
+        import dcv.features.utils:extractFeaturesFromResponse;
+        import dcv.imgproc.filter:filterNonMaximum;
 
-struct HarrisDetector
+        auto response = this
+                        .calcResponse!(packs, T)(image)
+                        .filterNonMaximum(properties.nonmaxWindowSize);
+
+        auto s = response.sum;
+
+        return response
+               .map!(e => e / s)
+               .slice
+               .extractFeaturesFromResponse!(T*)(cast(int)properties.maximumFeatures, properties.featureThreshold);
+    }
+
+    Properties properties;
+    Kernel     kernel;
+}
+
+struct CornerKernel (EigenvalueFormula)
+{
+    import mir.ndslice.slice:isSlice;
+
+    this(EigenvalueFormula formula)
+    {
+        this.formula = formula;
+    }
+
+    @nogc nothrow @fastmath:
+
+    auto evaluate(Window)
+    (
+        Window window
+    ) if (isSlice!Window)
+    {
+        import mir.ndslice.algorithm:reduce;
+
+        auto fx = unzip !'a' (window);
+        auto fy = unzip !'b' (window);
+
+        alias T = DeepElementType!(typeof(fx));
+
+        static assert(isFloatingPoint!T,
+                      "Processing element type of corner response matrix has to be of floating point type.");
+
+        T[3] r = [0, 0, 0];
+
+        T winSqr = cast(T)window.length !0;
+        winSqr *= winSqr;
+
+        r = reduce!sumResponse(r, fx, fy);
+
+        r[0]  = (r[0] / winSqr)  * T(0.5);
+        r[1] /= winSqr;
+        r[2]  = (r[2] / winSqr) * 0.5f;
+
+        return formula(r[0], r[1], r[2]);
+    }
+
+    static float[3] sumResponse(float [3] r, float gx, float gy)
+    {
+        return [r[0] + gx * gx, r[1] + gx * gy, r[2] + gy * gy];
+    }
+
+private:
+    EigenvalueFormula formula;
+}
+
+struct HarrisFormula
 {
     float k;
 
-    @fastmath @nogc nothrow float opCall(float r1, float r2, float r3)
+    this(float k)
+    {
+        this.k = k;
+    }
+
+    pure nothrow @nogc @safe @fastmath
+    float opCall(float r1, float r2, float r3)
     {
         return (((r1 * r1) - (r2 * r3)) - k * ((r1 + r3) * r1 + r3));
     }
 }
 
-struct ShiTomasiDetector
+struct ShiTomasiFormula
 {
-    @fastmath @nogc nothrow float opCall(float r1, float r2, float r3)
+    pure nothrow @nogc @safe @fastmath
+    float opCall(float r1, float r2, float r3)
     {
         import mir.math.common : sqrt;
         return ((r1 + r3) - sqrt((r1 - r3) * (r1 - r3) + r2 * r2));
     }
 }
 
-Slice!(SliceKind.contiguous, [2], OutputType*) calcCorners(Detector, InputType, SliceKind inputKind, OutputType)
-    (Slice!(inputKind, [2], InputType*) image, uint winSize, float gaussSigma,
-    Slice!(SliceKind.contiguous, [2], OutputType*) prealloc, Detector detector, TaskPool pool)
-{
-    import mir.ndslice.topology : zip, iota;
-
-    // TODO: implement gaussian weighting!
-
-    Slice!(SliceKind.contiguous, [2], InputType*) fx, fy;
-    calcPartialDerivatives(image, fx, fy);
-
-    auto windowPack = zip(prealloc, fx, fy).windows(winSize, winSize);
-
-    foreach (windowRow; pool.parallel(windowPack))
-        windowRow.each!(win => calcCornersImpl(win, detector));
-
-    return prealloc;
-}
