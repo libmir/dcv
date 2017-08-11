@@ -45,15 +45,16 @@ mixin template BaseDetector()
     Feature[] evaluate(size_t[] packs, T)
     (
         Slice!(Contiguous, packs, const(T)*) image
-    ) const
+    )
     in
     {
-        assert(image.empty, "Given image should not be empty.");
-        assert(packs.length == 2 || packs.length == 3, "Given image must be a two or three-dimensional slice.");
+        assert(!image.empty, "Given image should not be empty.");
+        assert(packs.length == 1 && (packs[0] == 2 || packs[0] == 3),
+               "Given image must not be packed and be a two or three-dimensional slice.");
     }
     body
     {
-        return evaluateImpl(image);
+        return evaluateImpl!(packs, T)(image);
     }
 }
 
@@ -74,7 +75,7 @@ mixin template BaseDescriptor(T)
     DescriptorArray evaluate(size_t[] packs, T)
     (
         Slice!(Contiguous, packs, const(T)*) image
-    ) const
+    )
     {
         return(evaluateImpl(image));
     }
