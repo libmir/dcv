@@ -168,32 +168,47 @@ public import dcv.features.common;
 /// Pixel neighborhood type, described in the paper.
 enum FASTType
 {
-    FAST_9,
-    FAST_10,
-    FAST_11,
-    FAST_12,
+    t9,
+    t10,
+    t11,
+    t12,
 }
 
-struct FASTParams
+struct FASTProperties
 {
-    uint threshold  = 100;             // corner threshold
-    bool suppressnm = true;            // should non-max suporession be performed.
-    FASTType type   = FASTType.FAST_9; // type of the detector
+    /// corner threshold
+    uint threshold = 100;
+    /// should non-max suporession be performed.
+    bool suppressnm = true;
+    /// type of the detector
+    FASTType type = FASTType.t9;
+}
+
+
+auto fastDetector(FASTProperties properties)
+{
+    return FASTDetector(properties);
 }
 
 /**
    FAST corner detector utility.
  */
-struct FAST
+struct FASTDetector
 {
     mixin BaseDetector;
 
-    FASTParams params;
+    @disable this();
 
+    this(FASTProperties properties)
+    {
+        this.properties = properties;
+    }
+
+private:
     /**
        Detect features for given image.
 
-       Params:
+       Properties.
        image = Input image where corners are to be found. Only 8-bit mono image is supported as this time.
        count = How many corners are to be found.
 
@@ -203,12 +218,11 @@ struct FAST
     Feature[] evaluateImpl(size_t[] packs, T)
     (
         Slice!(Contiguous, packs, const(T)*) image
-    ) const
+    )
     {
         import core.stdc.stdlib : free;
         enum errMsg = "FAST detector is only available for 8bit mono images.";
 
-        static assert(packs.length == 1 && packs[0] == 2, errMsg);
         static assert(is (T == ubyte), errMsg);
 
         Feature[] features;            // output features
@@ -230,35 +244,35 @@ struct FAST
         xy* function(const ubyte*, int, int, int, int, int*) detectFunc;
         int* function(const ubyte* i, int stride, xy* corners, int num_corners, int b) scoreFunc;
 
-        final switch (params.type)
+        final switch (properties.type)
         {
-        case FASTType.FAST_9:
+        case FASTType.t9:
             detectFunc = &fast9_detect;
             scoreFunc  = &fast9_score;
             break;
-        case FASTType.FAST_10:
+        case FASTType.t10:
             detectFunc = &fast10_detect;
             scoreFunc  = &fast10_score;
             break;
-        case FASTType.FAST_11:
+        case FASTType.t11:
             detectFunc = &fast11_detect;
             scoreFunc  = &fast11_score;
             break;
-        case FASTType.FAST_12:
+        case FASTType.t12:
             detectFunc = &fast12_detect;
             scoreFunc  = &fast12_score;
         }
 
-        xyFeatures = detectFunc(imdata, imwidth, imheight, imrowstride, params.threshold, &featureCount);
+        xyFeatures = detectFunc(imdata, imwidth, imheight, imrowstride, properties.threshold, &featureCount);
 
-        if (params.suppressnm)
+        if (properties.suppressnm)
         {
             import core.stdc.stdlib : free;
 
             int nonMaxFeatureCount = 0;
             xy* xySuppressed       = null;
 
-            featureScore = scoreFunc(imdata, imrowstride, xyFeatures, featureCount, cast(int)params.threshold);
+            featureScore = scoreFunc(imdata, imrowstride, xyFeatures, featureCount, cast(int)properties.threshold);
             xySuppressed = nonmax_suppression(xyFeatures, featureScore, featureCount, &nonMaxFeatureCount);
 
             // free the score before the suppresion
@@ -273,7 +287,7 @@ struct FAST
             xyFeatures = xySuppressed;
         }
 
-        featureScore = scoreFunc(imdata, imrowstride, xyFeatures, featureCount, cast(int)params.threshold);
+        featureScore = scoreFunc(imdata, imrowstride, xyFeatures, featureCount, cast(int)properties.threshold);
 
         // Convert FAST results to features
         features.length = featureCount;
@@ -289,5 +303,7 @@ struct FAST
 
         return features;
     }
+
+    FASTProperties properties;
 }
 
