@@ -40,7 +40,6 @@ ref output = alpha * (input) + beta;
 
 Returns:
     Scaled input tensor.
-    
 */
 nothrow @nogc auto scaled(Scalar, Tensor)(Tensor tensor, Scalar alpha = 1, Scalar beta = 0) if (isNumeric!Scalar)
 in
