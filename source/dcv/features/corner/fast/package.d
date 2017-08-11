@@ -205,16 +205,6 @@ struct FASTDetector
     }
 
 private:
-    /**
-       Detect features for given image.
-
-       Properties.
-       image = Input image where corners are to be found. Only 8-bit mono image is supported as this time.
-       count = How many corners are to be found.
-
-       Returns:
-       Array of found feature points.
-     */
     Feature[] evaluateImpl(size_t[] packs, T)
     (
         Slice!(Contiguous, packs, const(T)*) image
