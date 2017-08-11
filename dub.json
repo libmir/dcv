@@ -48,7 +48,7 @@
             },
             "dependencies":
             {
-                "mir-algorithm": "~>0.6.6",
+                "mir-algorithm": "~>0.6.9",
                 "color": "~>0.0.5"
             }
         },
