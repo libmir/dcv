@@ -65,7 +65,7 @@
             "dependencies":{
                 "dcv:core": "*",
                 "imageformats": "~>6.1.0",
-                "ffmpeg-d": "~>2.5.1"
+                "ffmpeg-d": "~master"
             }
         },
         {

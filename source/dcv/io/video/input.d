@@ -38,6 +38,8 @@ debug
 import ffmpeg.libavcodec.avcodec;
 import ffmpeg.libavformat.avformat;
 import ffmpeg.libavutil.avutil;
+import ffmpeg.libavutil.frame;
+import ffmpeg.libavutil.dict;
 import ffmpeg.libavutil.opt;
 import ffmpeg.libavutil.mem;
 import ffmpeg.libswscale.swscale;
@@ -132,13 +134,13 @@ public:
         auto width()
         {
             checkStream();
-            return stream.codec.width;
+            return stream.codecpar.width;
         }
         /// Get height of the video frame.
         auto height()
         {
             checkStream();
-            return stream.codec.height;
+            return stream.codecpar.height;
         }
 
         /// Get size of frame in bytes.
@@ -169,14 +171,14 @@ public:
         auto frameRate()
         {
             checkStream();
-            double fps = stream.r_frame_rate.q2d;
+            double fps = stream.r_frame_rate.av_q2d;
             if (fps < float.epsilon)
             {
-                fps = stream.avg_frame_rate.q2d;
+                fps = stream.avg_frame_rate.av_q2d;
             }
             if (fps < float.epsilon)
             {
-                fps = 1. / stream.codec.time_base.q2d;
+                fps = 1. / stream.codec.time_base.av_q2d;
             }
 
             return fps;
@@ -442,6 +444,11 @@ private:
             if ((ret = avcodec_open2(dec_ctx, dec, &opts)) < 0)
             {
                 debug writeln("Failed to open codec: ", av_get_media_type_string(type));
+                return ret;
+            }
+            if ((ret = avcodec_parameters_to_context(dec_ctx, st.codecpar)) < 0)
+            {
+                debug writeln("Failed to get codec parameters: ", av_get_media_type_string(type));
                 return ret;
             }
         }

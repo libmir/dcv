@@ -15,6 +15,7 @@ import std.exception : Exception, enforce;
 import ffmpeg.libavcodec.avcodec;
 import ffmpeg.libavformat.avformat;
 import ffmpeg.libavutil.avutil;
+import ffmpeg.libavutil.frame;
 import ffmpeg.libavutil.opt;
 import ffmpeg.libswscale.swscale;
 import ffmpeg.libavdevice.avdevice;
