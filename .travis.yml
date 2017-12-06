@@ -6,10 +6,10 @@ os:
  - linux
 
 d:
- - ldc-1.1.0
- - ldc-1.2.0
- - dmd-2.072.0
- - dmd-2.074.1
+ - ldc-1.5.0
+ - ldc-1.6.0
+ - dmd-2.076.1
+ - dmd-2.077.1
 
 before_install:
  - "export DISPLAY=:99.0"
