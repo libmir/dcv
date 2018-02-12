@@ -36,7 +36,7 @@ bayer2rgb -||-
 */
 import std.traits : isFloatingPoint, isNumeric;
 
-import mir.ndslice.internal : fastmath;
+import mir.math.common : fastmath;
 
 import mir.ndslice.slice;
 import mir.ndslice.topology;

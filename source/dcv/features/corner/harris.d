@@ -11,7 +11,7 @@ module dcv.features.corner.harris;
 
 import std.parallelism : parallel, taskPool, TaskPool;
 
-import mir.ndslice.internal : fastmath;
+import mir.math.common : fastmath;
 
 import mir.ndslice;
 import mir.ndslice.algorithm : each;

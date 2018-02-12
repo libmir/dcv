@@ -38,7 +38,7 @@ import std.traits : isAssignable, ReturnType;
 import std.conv : to;
 import std.parallelism : parallel, taskPool, TaskPool;
 
-import mir.ndslice.internal : fastmath;
+import mir.math.common : fastmath;
 
 import mir.ndslice.slice;
 import mir.ndslice.topology;

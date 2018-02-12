@@ -51,7 +51,8 @@ import std.parallelism : parallel, taskPool, TaskPool;
 import mir.utility : min, max;
 import mir.math.common;
 import mir.ndslice.allocation;
-import mir.ndslice.internal : fastmath;
+import mir.math.common : fastmath;
+
 import mir.ndslice.topology;
 import mir.ndslice.slice;
 import mir.ndslice.algorithm : reduce, each;
