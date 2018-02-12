@@ -13,7 +13,7 @@ import std.traits : isNumeric, isScalarType, isIntegral, allSameType, ReturnType
     isFloatingPoint;
 import std.meta : allSatisfy;
 
-import mir.ndslice.internal : fastmath;
+import mir.math.common : fastmath;
 
 import mir.ndslice.slice;
 
