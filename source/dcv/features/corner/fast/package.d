@@ -116,7 +116,6 @@ class FASTDetector : Detector
     {
         import core.stdc.stdlib : free;
         import std.exception : enforce;
-        import std.array : reserve;
         import std.algorithm : min;
 
         enforce(image.depth == BitDepth.BD_8, "Invalid bit depth - FAST is supported so " ~ "far only for 8-bit images");
