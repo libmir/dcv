@@ -10,7 +10,7 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 module dcv.io.video.common;
 
 import std.stdio : writeln;
-import std.exception : Exception, enforce;
+import std.exception : enforce;
 
 import ffmpeg.libavcodec.avcodec;
 import ffmpeg.libavformat.avformat;

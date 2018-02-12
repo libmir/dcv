@@ -9,8 +9,9 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 */
 module dcv.imgproc.interpolate;
 
-import std.traits : isNumeric, isScalarType, isIntegral, allSameType, allSatisfy, ReturnType,
+import std.traits : isNumeric, isScalarType, isIntegral, allSameType, ReturnType,
     isFloatingPoint;
+import std.meta : allSatisfy;
 
 import mir.ndslice.internal : fastmath;
 
