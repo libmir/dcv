@@ -22,7 +22,7 @@
         },
         {
             "name": "ggplotd",
-            "subConfigurations": 
+            "subConfigurations":
             {
                 "dcv:plot": "ggplotd"
             }
@@ -65,7 +65,7 @@
             "dependencies":{
                 "dcv:core": "*",
                 "imageformats": "~>6.1.0",
-                "ffmpeg-d": "~>3.1.0"
+                "ffmpeg-d": "~>3.1.1"
             }
         },
         {
