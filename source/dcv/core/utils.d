@@ -62,17 +62,17 @@ package(dcv) @nogc pure nothrow
         static struct Range
         {
             import mir.ndslice.iterator;
-            Slice!(SliceKind.contiguous, [1], IotaIterator!size_t) rows;
-            Slice!(SliceKind.contiguous, [1], IotaIterator!size_t) cols;
+            Slice!(SliceKind.contiguous, [1], IotaIterator!ptrdiff_t) rows;
+            Slice!(SliceKind.contiguous, [1], IotaIterator!ptrdiff_t) cols;
         }
 
         size_t kh = max(size_t(1), ks / 2);
 
         Range[4] borders = [
             Range(iota(shape[0]), iota(kh)),
-            Range(iota(shape[0]), iota([kh], shape[1] - kh)),
+            Range(iota(shape[0]), iota!ptrdiff_t([kh], shape[1] - kh)),
             Range(iota(kh), iota(shape[1])),
-            Range(iota([kh], shape[0] - kh), iota(shape[1])),
+            Range(iota!ptrdiff_t([kh], shape[0] - kh), iota(shape[1])),
         ];
 
         return borders;
