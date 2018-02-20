@@ -70,9 +70,9 @@ package(dcv) @nogc pure nothrow
 
         Range[4] borders = [
             Range(iota(shape[0]), iota(kh)),
-            Range(iota(shape[0]), iota!ptrdiff_t([kh], shape[1] - kh)),
+            Range(iota(shape[0]), iota([kh], shape[1] - kh)),
             Range(iota(kh), iota(shape[1])),
-            Range(iota!ptrdiff_t([kh], shape[0] - kh), iota(shape[1])),
+            Range(iota([kh], shape[0] - kh), iota(shape[1])),
         ];
 
         return borders;
