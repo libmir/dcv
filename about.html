@@ -30,7 +30,7 @@ Toolbox, and OpenCV library, to be easily familiarized with. But it's also spice
     <span style="color: #0000ff">auto</span> slice = image.sliced; <span style="color: #008000">// slice image data (calls mir.ndslice.slice.sliced on image data)</span>
 
     slice[0..$, 0..$, 1] <span style="color: #008000">// take the green channel only.</span>
-        .<a href="http://docs.algorithm.dlang.io/latest/mir_ndslice_topology.html#.as">as</a>!<span style="color: #008000">// convert slice data to float.</span>
+        .<a href="http://docs.algorithm.dlang.io/latest/mir_ndslice_topology.html#.as">as</a>!<span style="color: #2b91af">float </span><span style="color: #008000">// convert slice data to float.</span>
         .<a href="http://docs.algorithm.dlang.io/latest/mir_ndslice_allocation.html#.slice">slice</a> <span style="color: #008000">// make a copy</span>
         .<a href="http://dcv.dlang.io/?loc=dcv.imgproc.convolution.html">conv</a>!<a href="http://dcv.dlang.io/index.html?loc=dcv.core.utils.html#symmetric">symmetric</a>(<a href="http://dcv.dlang.io/index.html?loc=dcv.imgproc.filter.html">sobel</a>!<span style="color: #2b91af">float</span>(GradientDirection.DIR_X)) <span style="color: #008000">// convolve image with horizontal Sobel kernel.</span>
         .<a href="http://dcv.dlang.io/?loc=dcv.core.algorithm.html">ranged</a>(0, 255) <span style="color: #008000">// scale values to fit the range between the 0 and 255</span>
