@@ -4,13 +4,7 @@
     "copyright": "Copyright © 2016, relja",
     "authors": ["relja"],
     "dependencies": {
-        "dcv": {
-            "version": "~master",
-            "path": "../../../"
-        }
-    },
-    "subConfigurations":
-    {
-        "dcv": "ggplotd"
+        "dcv:core": {"path": "../../../"},
+        "dcv:video": {"path": "../../../"}
     }
 }

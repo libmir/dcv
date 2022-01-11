@@ -13,15 +13,11 @@ import dcv.imgproc.filter;
 import dcv.io;
 import dcv.plot;
 
-import ggplotd.ggplotd;
-import ggplotd.geom;
-import ggplotd.aes;
-
 
 void main()
 {
     // read source image
-    auto image = imread("../data/building.png");
+    auto image = imread("../data/building.jpg");
 
     // prepare working sliced
     auto imslice = image.sliced!ubyte;
@@ -29,7 +25,7 @@ void main()
     auto gray = imfslice.rgb2gray;
 
     // make copies to draw corners 
-    auto pixelSize = imslice.elementsCount;
+    auto pixelSize = imslice.elementCount;
     auto shiTomasiDraw = imslice.slice;
     auto harrisDraw = imslice.slice;
 
@@ -46,13 +42,16 @@ void main()
     visualizeCornerResponse(shiTomasiResponse, "shiTomasiResponse");
 
     // plot corner points on image.
-    cornerPlot(harrisDraw, harrisCorners, "harrisCorners");
-    cornerPlot(shiTomasiDraw, shiTomasiCorners, "shiTomasiCorners");
+    auto figureHarris = imshow(imslice, "harrisCorners");
+    auto figureshiTomasi = imshow(imslice, "shiTomasiCorners");
+
+    figureHarris.overlayCorners(harrisCorners);
+    figureshiTomasi.overlayCorners(shiTomasiCorners);
 
     waitKey();
 }
 
-void visualizeCornerResponse(SliceKind kind)(Slice!(kind, [2], float*) response, string windowName)
+void visualizeCornerResponse(SliceKind kind)(Slice!(float*, 2, kind) response, string windowName)
 {
     response
         // scale values in the response matrix for easier visualization.
@@ -60,14 +59,10 @@ void visualizeCornerResponse(SliceKind kind)(Slice!(kind, [2], float*) response,
         .as!ubyte
         .slice
         // Show the window
-        .imshow(windowName) 
-        .image
-        // ... but also write it to disk.
-        .imwrite("result/" ~ windowName ~ ".png");
+        .imshow(windowName);   
 }
 
-void cornerPlot(SliceKind kind)(Slice!(kind, [3], ubyte*) slice, size_t[2][] corners, string windowName)
-{
+void overlayCorners(Figure handle, size_t[2][] corners){
     import std.array : array;
     import std.algorithm.iteration : map;
 
@@ -75,11 +70,7 @@ void cornerPlot(SliceKind kind)(Slice!(kind, [3], ubyte*) slice, size_t[2][] cor
     auto xs = corners.map!(e => e[1]);
     auto ys = corners.map!(e => e[0]);
 
-    auto aes = Aes!(typeof(xs), "x", typeof(ys), "y", bool[], "fill", string[], "colour")
-                   (xs, ys, false.repeat(xs.length).array, "red".repeat(xs.length).array);
-
-    auto gg = GGPlotD().put(geomPoint(aes));
-
-    // plot corners on the same figure, and save it's image to disk.
-    slice.plot(gg, windowName).image().imwrite("result/" ~ windowName ~ ".png");
+    foreach(i; 0..xs.length){
+        handle.drawCircle(PlotCircle(cast(float)xs[i], cast(float)ys[i], 5.0f), plotRed);
+    }
 }

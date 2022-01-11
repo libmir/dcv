@@ -1,0 +1,9 @@
+{
+	"name": "convexhull",
+	"description": "Convex hull of random points ",
+	"copyright": "Copyright © 2021, Ferhat Kurtulmuş",
+	"authors": ["Ferhat Kurtulmuş"],
+	"dependencies": {
+		"dcv:core": {"path": "../../"}
+	}
+}

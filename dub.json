@@ -2,102 +2,69 @@
     "name": "dcv",
     "description": "Computer vision library for D programming language.",
     "copyright": "Copyright © 2016, Relja Ljubobratovic",
-    "authors": ["Relja Ljubobratovic"],
+    "authors": [
+        "Relja Ljubobratovic",
+        "Ilya Yaroshenko",
+        "Henry Gouk",
+        "Dmitry Olshansky",
+        "Timothee Cour",
+        "Arun Chandrasekaran",
+        "The Gitter Badger",
+        "Ferhat Kurtulmuş"
+    ],
     "license": "BSL-1.0",
 
-    "dependencies": {
-        ":core": "*",
-        ":io": "*",
-        ":plot": "*"
-    },
+    "targetType": "none",
+    "subPackages": [
 
-    "targetType": "library",
-
-    "sourcePaths": ["scripts"],
-    "sourceFiles": ["source/dcv/package.d"],
-
-    "configurations": [
-        {
-            "name": "default"
-        },
-        {
-            "name": "ggplotd",
-            "subConfigurations": 
-            {
-                "dcv:plot": "ggplotd"
-            }
-        }
-    ],
-
-    "subPackages":
-    [
         {
             "name": "core",
-            "description": "Core package of DCV. Contains computer vision algorithms.",
-            "sourcePaths": [
-                "source/dcv/core",
-                "source/dcv/features",
-                "source/dcv/imgproc",
-                "source/dcv/multiview",
-                "source/dcv/tracking"
-            ],
-            "buildTypes": {
-                "unittest-release": {
-                    "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
-                }
-            },
+            "sourcePaths": [ "core/dcv" ],
+            "importPaths": [ "core" ],
             "dependencies":
             {
-                "mir-algorithm": "~>0.9.1"
-            }
-        },
-        {
-            "name": "io",
-            "description": "Image and Video I/O package.",
-            "sourcePaths": [
-                "source/dcv/io"
-            ],
-            "buildTypes": {
-                "unittest-release": {
-                    "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
-                }
+                "mir-algorithm": "3.11.4",
+                "mir-random": "2.2.19",
+                "imageformats": "7.0.2",
+                "bindbc-glfw": "~>1.0.0",
+                "bindbc-opengl": "~>1.0.0",
+                "bcaa": "0.0.8"
             },
-            "dependencies":{
-                "dcv:core": "*",
-                "imageformats": "~>6.1.0",
-                "ffmpeg-d": "~>3.1.0"
-            }
-        },
-        {
-            "name": "plot",
-            "description": "Visualization package.",
-            "sourcePaths": [
-                "source/dcv/plot"
-            ],
-            "buildTypes": {
-                "unittest-release": {
-                    "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
-                }
-            },
-            "dependencies":{
-                "dcv:core": "*"
-            },
-            "configurations":
-            [
+            "versions": ["GLFW_31"],
+            "configurations": [
                 {
-                    "name": "default"
+                    "name": "default",
+                    "versions": [
+                        "GL_31"
+                    ]
                 },
                 {
-                    "name": "ggplotd",
-                    "dependencies": {
-                        "ggplotd": "~>1.1.3"
-                    },
-                    "versions": ["ggplotd"]
+                    "name": "legacygl",
+                    "versions": [
+                        "GL_11",
+                        "GL_AllowDeprecated",
+                        "UseLegacyGL"
+                    ]
                 }
-            ],
-            "libs": ["glfw"],
-            "libs-linux": ["GL"],
-            "lflags-osx": ["-framework", "OpenGL"]
+            ]
+        },
+        {
+            "name": "ffmpeg441",
+            "sourcePaths": [ "ffmpeg441/ffmpeg/" ],
+            "importPaths": [ "ffmpeg441"],
+            "libs": [
+                "avcodec", "avdevice", "avfilter", "avformat", "avutil",
+                "postproc", "swresample", "swscale"
+            ]
+        },
+        {
+            "name": "video",
+            "sourcePaths": [ "video/dcv/io/video" ],
+            "importPaths": [ "video" ],
+            "dependencies": {
+                "dcv:core": "*",
+                "dcv:ffmpeg441": "*"
+            }
         }
     ]
 }
