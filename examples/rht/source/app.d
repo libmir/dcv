@@ -5,7 +5,7 @@ module dcv.example.rht;
  */
 
 import std.stdio : writeln;
-import std.datetime : StopWatch;
+import std.datetime.stopwatch : StopWatch;
 import std.math : fabs, PI, sin, cos, rint;
 import std.typecons : tuple;
 
@@ -17,7 +17,7 @@ import dcv.io : imread, imwrite;
 import dcv.imgproc;
 import dcv.features.rht;
 
-void plotLine(T, Line, Color)(Slice!(Contiguous, [3], T*) img, Line line, Color color)
+void plotLine(T, Line, Color)(Slice!(T*, 3, Contiguous) img, Line line, Color color)
 {
     int height = cast(int)img.length!0;
     int width = cast(int)img.length!1;
@@ -43,7 +43,7 @@ void plotLine(T, Line, Color)(Slice!(Contiguous, [3], T*) img, Line line, Color 
     }
 }
 
-void plotCircle(T, Circle, Color)(Slice!(Contiguous, [3], T*) img, Circle circle, Color color)
+void plotCircle(T, Circle, Color)(Slice!(T*, 3, Contiguous) img, Circle circle, Color color)
 {
     int height = cast(int)img.length!0;
     int width = cast(int)img.length!1;
@@ -70,7 +70,7 @@ int main(string[] args)
         return 1;
     }
 
-    Slice!(Contiguous, [3], float*) imslice = img.sliced.as!float.slice; // convert Image data type from ubyte to float
+    Slice!(float*, 3, Contiguous) imslice = img.sliced.as!float.slice; // convert Image data type from ubyte to float
 
     auto gray = imslice.rgb2gray; // convert rgb image to grayscale
 
@@ -89,7 +89,7 @@ int main(string[] args)
         plotLine(imslice, line, [1.0, 1.0, 1.0]);
     }
     s.stop;
-    writeln("RHT lines took ", s.peek.msecs, "ms");
+    writeln("RHT lines took ", s.peek.total!"msecs", "ms");
     writeln("Points left after lines:", linesRange.points.length);
     auto circles = RhtCircles().epouchs(15).iterations(2000).minCurve(50);
     s.reset;
@@ -100,7 +100,7 @@ int main(string[] args)
         plotCircle(imslice, circle, [1.0, 1.0, 1.0]);
     }
     s.stop;
-    writeln("RHT circles took ", s.peek.msecs, "ms");
+    writeln("RHT circles took ", s.peek.total!"msecs", "ms");
 
     // write resulting images on the filesystem.
     blur.map!(v => v.clip!ubyte).slice.imwrite(ImageFormat.IF_RGB, "./result/outblur.png");

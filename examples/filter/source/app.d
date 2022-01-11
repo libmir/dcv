@@ -5,7 +5,7 @@ module dcv.example.convolution;
  */
 
 import std.stdio : writeln;
-import std.datetime : StopWatch;
+import std.datetime.stopwatch : StopWatch;
 import std.math : abs;
 import std.array : array;
 
@@ -28,7 +28,7 @@ int main(string[] args)
         return 1;
     }
 
-    Slice!(Contiguous, [3], float*) imslice = img
+    Slice!(float*, 3) imslice = img
         .sliced // slice image data
         .as!float // convert it to float
         .slice; // make a copy.
@@ -38,7 +38,7 @@ int main(string[] args)
     auto gaussianKernel = gaussian!float(2, 5, 5); // create gaussian convolution kernel (sigma, kernel width and height)
     auto sobelXKernel = sobel!real(GradientDirection.DIR_X); // sobel operator for horizontal (X) gradients
     auto laplacianKernel = laplacian!double; // laplacian kernel, similar to matlabs fspecial('laplacian', alpha)
-    auto logKernel = laplacianOfGaussian!float(1, 5, 5); // laplacian of gaussian, similar to matlabs fspecial('log', alpha, width, height)
+    auto logKernel = laplacianOfGaussian!float(1.0, 5, 5); // laplacian of gaussian, similar to matlabs fspecial('log', alpha, width, height)
 
     // perform convolution for each kernel
     auto blur = imslice.conv(gaussianKernel);
@@ -80,7 +80,7 @@ int main(string[] args)
     return 0;
 }
 
-auto saltNPepper(T, SliceKind kind)(Slice!(kind, [2], T*) input, float saturation)
+auto saltNPepper(T, SliceKind kind)(Slice!(T*, 2LU, kind) input, float saturation)
 {
     import std.range : lockstep;
     import std.random : uniform;

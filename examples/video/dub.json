@@ -4,9 +4,10 @@
 	"copyright": "Copyright © 2016, Relja Ljubobratovic",
 	"authors": ["Relja Ljubobratovic"],
 	"dependencies": {
-		"dcv": {
-			"version": "~master",
-			"path": "../../"
-		}
-	}
+		"dcv:core": {"path": "../../"},
+        "dcv:video": {"path": "../../"}
+	},
+    "subConfigurations": {
+        "dcv:core": "legacygl"
+    }
 }

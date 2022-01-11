@@ -4,6 +4,7 @@ module dcv.example.plot;
  * Image plotting example using dcv library.
  */
 
+import core.stdc.stdio;
 import std.stdio;
 
 import dcv.core;
@@ -25,10 +26,10 @@ void main(string[] args)
 
     immutable winStr = "DCV image";
 
-    image.imshow(winStr).setCursorCallback((Figure figure, double x, double y) {
-        writeln("Mouse moved to: ", [x, y]);
-    }).setMouseCallback((Figure figure, int button, int scancode, int mods) {
-        writeln("Mouse clicked: ", [button, scancode, mods]);
+    image.imshow(winStr).setCursorCallback(delegate(Figure figure, double x, double y) nothrow {
+        printf("Mouse moved to: [%f, %f]\n", x, y);
+    }).setMouseCallback(delegate(Figure figure, int button, int scancode, int mods) nothrow {
+        printf("Mouse clicked: [%d, %d, %d]\n", button, scancode, mods);
     });
 
     int c = waitKey();

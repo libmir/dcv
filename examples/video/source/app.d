@@ -5,7 +5,7 @@ module dcv.example.video;
  */
 
 import std.stdio;
-import std.datetime : StopWatch;
+import std.datetime.stopwatch : StopWatch;
 import core.stdc.stdlib;
 
 import dcv.io.image;
@@ -13,6 +13,9 @@ import dcv.imgproc.color;
 import dcv.core.utils;
 import dcv.io.video;
 import dcv.plot.figure;
+
+// executable -l "video=Lenovo EasyCamera"
+// executable -f ../data/centaur_1.mpg
 
 void main(string[] args)
 {
@@ -41,9 +44,9 @@ void main(string[] args)
         // Open the example video
         inStream.open(path, type);
     }
-    catch
+    catch(Exception e)
     {
-        writeln("Cannot open input video stream");
+        writeln("Cannot open input video stream: " ~ e.message);
         exit(-1);
     }
 
@@ -80,7 +83,7 @@ void main(string[] args)
             frame.imshow(path);
 
         // Compensate fps wait for lost time on color conversion.
-        int wait = max(1, cast(int)waitFrame - cast(int)s.peek.msecs);
+        int wait = max(1, cast(int)waitFrame - cast(int)s.peek.total!"msecs");
 
         // If user presses escape key, stop the streaming.
         if (waitKey(wait) == KEY_ESCAPE)

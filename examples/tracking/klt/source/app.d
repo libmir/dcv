@@ -13,16 +13,14 @@ import mir.ndslice;
 
 import dcv.core;
 import dcv.io;
+import dcv.io.video;
 import dcv.imgproc.filter : filterNonMaximum;
 import dcv.imgproc.color : gray2rgb;
 import dcv.features.corner.harris : shiTomasiCorners;
 import dcv.features.utils : extractCorners;
 import dcv.tracking.opticalflow : LucasKanadeFlow, SparsePyramidFlow;
-import dcv.plot.figure;
+import dcv.plot;
 
-import ggplotd.aes;
-import ggplotd.geom;
-import ggplotd.ggplotd;
 
 
 void printHelp()
@@ -184,7 +182,8 @@ int main(string[] args)
         assert(err == 0);
 
         // plot tracked points on screen.
-        f2c.plot(plotPoints(corners), "KLT");
+        auto figureKLT = imshow(f2c, "KLT");
+        figureKLT.plotPoints(corners);
 
         if (waitKey(10) == KEY_ESCAPE)
             break;
@@ -202,11 +201,13 @@ int main(string[] args)
     return 0;
 }
 
-GGPlotD plotPoints(float[2][] corners)
-{
+void plotPoints(Figure handle, float[2][] corners){
+    import std.algorithm.iteration : map;
+
     auto xs = corners.map!(v => v[1]);
     auto ys = corners.map!(v => v[0]);
 
-    return GGPlotD().put(geomPoint(Aes!(typeof(xs), "x", typeof(ys), "y", bool[], "fill", string[], "colour")
-            (xs, ys, false.repeat(xs.length).array, "red".repeat(xs.length).array)));
+    foreach(i; 0..xs.length){
+        handle.drawCircle(PlotCircle(xs[i], ys[i], 5.0f), plotRed);
+    }
 }
