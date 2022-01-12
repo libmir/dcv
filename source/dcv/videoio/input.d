@@ -25,7 +25,7 @@ Authors: Relja Ljubobratovic
 License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
 */
 
-module dcv.io.video.input;
+module dcv.videoio.input;
 
 import std.exception : enforce;
 import std.string;
@@ -42,7 +42,7 @@ import ffmpeg.libswscale;
 import ffmpeg.libavdevice;
 import ffmpeg.libavfilter;
 
-public import dcv.io.video.common;
+public import dcv.videoio.common;
 public import dcv.io.image;
 
 /**

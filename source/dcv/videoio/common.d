@@ -7,7 +7,7 @@ Authors: Relja Ljubobratovic
 
 License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
 */
-module dcv.io.video.common;
+module dcv.videoio.common;
 
 import std.stdio : writeln;
 import std.exception : enforce;

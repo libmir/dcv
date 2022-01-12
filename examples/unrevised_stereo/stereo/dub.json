@@ -6,9 +6,8 @@
 	"description": "Stereo matching example for DCV.",
 	"copyright": "Copyright © 2016, Henry Gouk",
 	"dependencies": {
-		"dcv": {
-			"version": "~master",
-			"path": "../../"
-		}
+		"dcv:core": {"path": "../../"},
+        "dcv:io": {"path": "../../"},
+        "dcv:plot": {"path": "../../"}
 	}
 }

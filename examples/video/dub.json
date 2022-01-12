@@ -5,9 +5,10 @@
 	"authors": ["Relja Ljubobratovic"],
 	"dependencies": {
 		"dcv:core": {"path": "../../"},
-        "dcv:video": {"path": "../../"}
+        "dcv:videoio": {"path": "../../"},
+        "dcv:plot": {"path": "../../"}
 	},
     "subConfigurations": {
-        "dcv:core": "legacygl"
+        "dcv:plot": "legacygl"
     }
 }

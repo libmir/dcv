@@ -13,22 +13,78 @@
         "Ferhat Kurtulmuş"
     ],
     "license": "BSL-1.0",
-
-    "targetType": "none",
+    "dependencies": {
+        ":core": "*",
+        ":io": "*",
+        ":plot": "*"
+    },
+    "targetType": "library",
+    "sourceFiles": ["source/dcv/package.d"],
     "subPackages": [
-
         {
             "name": "core",
-            "sourcePaths": [ "core/dcv" ],
-            "importPaths": [ "core" ],
+            "description": "Core package of DCV. Contains computer vision algorithms.",
+            "sourcePaths": [
+                "source/dcv/core",
+                "source/dcv/features",
+                "source/dcv/imgproc",
+                "source/dcv/tracking",
+                "source/dcv/measure",
+                "source/dcv/morphology"
+            ],
             "dependencies":
             {
                 "mir-algorithm": "3.11.4",
                 "mir-random": "2.2.19",
-                "imageformats": "7.0.2",
-                "bindbc-glfw": "~>1.0.0",
-                "bindbc-opengl": "~>1.0.0",
                 "bcaa": "0.0.8"
+            },
+            "buildTypes": {
+                "unittest-release": {
+                    "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
+                }
+            }
+        },
+        {
+            "name": "io",
+            "description": "Image I/O package.",
+            "sourcePaths": [
+                "source/dcv/io"
+            ],
+            "dependencies":{
+                "dcv:core": "*",
+                "imageformats": "7.0.2"
+            },
+            "buildTypes": {
+                "unittest-release": {
+                    "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
+                }
+            }
+        },
+        {
+            "name": "videoio",
+            "description": "Video I/O package.",
+            "sourcePaths": [ "source/dcv/videoio/"],
+            "dependencies": {
+                "dcv:core": "*",
+                "dcv:io": "*",
+                "dcv:ffmpeg441": "*"
+            }
+        },
+        {
+            "name": "plot",
+            "description": "Visualization package.",
+            "sourcePaths": [
+                "source/dcv/plot"
+            ],
+            "buildTypes": {
+                "unittest-release": {
+                    "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
+                }
+            },
+            "dependencies":{
+                "dcv:core": "*",
+                "bindbc-glfw": "~>1.0.0",
+                "bindbc-opengl": "~>1.0.0"
             },
             "versions": ["GLFW_31"],
             "configurations": [
@@ -56,15 +112,6 @@
                 "avcodec", "avdevice", "avfilter", "avformat", "avutil",
                 "postproc", "swresample", "swscale"
             ]
-        },
-        {
-            "name": "video",
-            "sourcePaths": [ "video/dcv/io/video" ],
-            "importPaths": [ "video" ],
-            "dependencies": {
-                "dcv:core": "*",
-                "dcv:ffmpeg441": "*"
-            }
         }
     ]
 }

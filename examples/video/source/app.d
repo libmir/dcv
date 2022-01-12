@@ -8,10 +8,9 @@ import std.stdio;
 import std.datetime.stopwatch : StopWatch;
 import core.stdc.stdlib;
 
-import dcv.io.image;
+import dcv.videoio;
 import dcv.imgproc.color;
 import dcv.core.utils;
-import dcv.io.video;
 import dcv.plot.figure;
 
 // executable -l "video=Lenovo EasyCamera"
