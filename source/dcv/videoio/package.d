@@ -1,6 +1,6 @@
-﻿module dcv.io.video;
+﻿module dcv.videoio;
 
-public import dcv.io.video.input, dcv.io.video.output;
+public import dcv.videoio.common, dcv.videoio.input, dcv.videoio.output;
 
 /+
 unittest

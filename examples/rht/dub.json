@@ -4,6 +4,8 @@
 	"copyright": "Copyright © 2016, Dmitry Olshansky",
 	"authors": ["Dmitry Olshansky"],
 	"dependencies": {
-		"dcv:core": {"path": "../../"}
+		"dcv:core": {"path": "../../"},
+        "dcv:io": {"path": "../../"},
+        "dcv:plot": {"path": "../../"}
 	}
 }
