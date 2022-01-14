@@ -6,6 +6,7 @@ import mir.ndslice;
 import mir.rc;
 
 import dcv.core.utils : dlist;
+debug import dcv.core.utils : nm, nf;
 
 @nogc nothrow:
 
@@ -16,6 +17,8 @@ Params:
 */
 void floodFill(InputImg, T = DeepElementType!InputImg)(ref InputImg data, size_t x, size_t y, T color = 255)
 {
+    debug nf = nm = 0;
+
     const rows = data.shape[0];
     const cols = data.shape[1];
 
@@ -27,7 +30,6 @@ void floodFill(InputImg, T = DeepElementType!InputImg)(ref InputImg data, size_t
     alias Point = Tuple!(size_t, "first", size_t, "second");
     
     dlist!(Point) obj;
-    scope(exit) obj.clear;
 
     obj.insertBack(Point( x, y ));
 
@@ -76,6 +78,10 @@ void floodFill(InputImg, T = DeepElementType!InputImg)(ref InputImg data, size_t
             vis[x, y - 1] = 1;
         }
     }
+
+    obj.clear;
+    
+    debug assert(nm == nf, "Memory leaks here!");
 }
 
 pragma(inline, true)
