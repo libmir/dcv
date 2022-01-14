@@ -397,3 +397,33 @@ BoundingBox boundingBox(C)(C contour)
 
 
 }
+
+Tuple!(size_t, size_t) anyInsidePoint(C)(auto ref C contour){
+    import dcv.morphology.geometry : isPointInPolygon;
+
+    immutable size_t[8] dx8 = [1, -1, 1, 0, -1,  1,  0, -1];
+    immutable size_t[8] dy8 = [0,  0, 1, 1,  1, -1, -1, -1];
+
+    foreach (i; 0..contour.shape[0]){
+        auto cur = contour[i];
+        Tuple!(size_t, size_t) last = tuple(cast(size_t)contour[i][0],
+            cast(size_t)contour[i][1]);
+        foreach(direction; 0..8){
+            Tuple!(size_t, size_t) point = tuple(last[0] + dx8[direction], last[1] + dy8[direction]);
+            if(!contour._contains(point) && isPointInPolygon(point, contour))
+                return point;
+        }
+    }
+    return tuple(size_t(0), size_t(0));
+}
+
+private bool _contains(C, P)(C c, P p){
+    foreach (i; 0..c.shape[0]){
+        auto cur = c[i];
+
+        if((cast(size_t)cur[0] == cast(size_t)p[0]) && 
+            (cast(size_t)cur[1] == cast(size_t)p[1]))
+            return true;
+    }
+    return false;
+}
