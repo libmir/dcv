@@ -346,3 +346,18 @@ int _symmetric(int x, int nx)
     }
     return x;
 }
+
+import mir.rc: RCI;
+import std.traits;
+	
+template ElemType(SliceType){
+    static if (__traits(isSame, TemplateOf!(IteratorOf!(SliceType)), RCI)){
+        alias ASeq = TemplateArgsOf!(IteratorOf!(SliceType));
+        alias ElemType = ASeq[0];
+    }else{
+        alias PointerOf(T : T*) = T;
+        alias P = IteratorOf!(SliceType);
+        alias ElemType = PointerOf!P;
+
+    }
+}
