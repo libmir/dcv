@@ -510,9 +510,13 @@ struct dlist(T)
     void clear()
     {
         auto r = this[];
-        if (r.empty)
+        if (r.empty){
+            if(_root){
+                mfree(_root);
+                _root = null;
+            }
             return;
-
+        }
         BaseNode* last = null;
         do
         {
