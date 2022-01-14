@@ -290,7 +290,6 @@ private auto _assemble_contours(Segments)(auto ref Segments segments){
         }
     }
 
-    debug assert(starts.length == 0 && ends.length == 0, "Unexpected segment state");
     
     import mir.ndslice.sorting : sort;
 

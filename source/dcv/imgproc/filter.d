@@ -1081,9 +1081,9 @@ Params:
 Returns:
     Eroded image slice, of same type as input image.
 */
-Slice!(T*, 2LU, kind) erode(alias BoundaryConditionTest = neumann, T, SliceKind kind)
+Slice!(T*, 2LU, kind) erode(alias BoundaryConditionTest = neumann, Iterator, SliceKind kind, T = DeepElementType!(typeof(slice)))
 (
-    Slice!(T*, 2LU, kind) slice,
+    Slice!(Iterator, 2LU, kind) slice,
     Slice!(T*, 2LU, kind) kernel = radialKernel!T(3),
     Slice!(T*, 2LU, kind) prealloc = emptySlice!(2, T),
     TaskPool pool = taskPool
@@ -1146,9 +1146,9 @@ Params:
 Returns:
     Dilated image slice, of same type as input image.
 */
-Slice!(T*, 2LU, kind) dilate(alias BoundaryConditionTest = neumann, T, SliceKind kind)
+Slice!(T*, 2LU, kind) dilate(alias BoundaryConditionTest = neumann, Iterator, SliceKind kind, T = DeepElementType!(typeof(slice)))
 (
-    Slice!(T*, 2LU, kind) slice,
+    Slice!(Iterator, 2LU, kind) slice,
     Slice!(T*, 2LU, kind) kernel = radialKernel!T(3),
     Slice!(T*, 2LU, kind) prealloc = emptySlice!(2, T),
     TaskPool pool = taskPool
@@ -1427,8 +1427,8 @@ enum MorphologicOperation
     DILATE
 }
 
-Slice!(T*, 2LU, kind) morphOp(MorphologicOperation op, alias BoundaryConditionTest = neumann, T, SliceKind kind)
-    (Slice!(T*, 2LU, kind) slice, Slice!(T*, 2LU, kind) kernel, Slice!(T*, 2LU, kind) prealloc, TaskPool pool)
+Slice!(T*, 2LU, kind) morphOp(MorphologicOperation op, alias BoundaryConditionTest = neumann, Iterator, SliceKind kind, T = DeepElementType!(typeof(slice)))
+    (Slice!(Iterator, 2LU, kind) slice, Slice!(T*, 2LU, kind) kernel, Slice!(T*, 2LU, kind) prealloc, TaskPool pool)
 if (isBoundaryCondition!BoundaryConditionTest)
 in
 {
