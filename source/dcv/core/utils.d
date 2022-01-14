@@ -616,6 +616,25 @@ Complexity: $(BIGOH log(n))
     /// ditto
     alias stableInsertAfter = insertAfter;
 
+    void removeFront()
+    {
+        debug assert(!empty, "dlist.removeFront: List is empty");
+        debug assert(_root is _first._prev, "dlist: Inconsistent state");
+
+        auto torm = _first;
+        BaseNode.connect(_root, _first._next);
+        mfree(torm);
+    }
+
+    void removeBack()
+    {
+        debug assert(!empty, "dlist.removeBack: List is empty");
+        debug assert(_last._next is _root, "dlist: Inconsistent state");
+        auto torm = _last;
+        BaseNode.connect(_last._prev, _root);
+        mfree(torm);
+    }
+
 private:
     // Helper: Inserts stuff before the node n.
     size_t insertBeforeNode(Stuff)(BaseNode* n, ref Stuff stuff)
