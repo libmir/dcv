@@ -48,6 +48,7 @@ nothrow Slice!(OutputType*, N, Contiguous) threshold(OutputType, InputType, size
     Slice!(InputType*, N, kind) input,
     InputType lowThresh,
     InputType highThresh,
+    bool inverse = false,
     Slice!(OutputType*, N, Contiguous) prealloc = emptySlice!(N, OutputType)
 )
 in
@@ -71,10 +72,13 @@ do
     assert(input.structure.strides == prealloc.structure.strides,
             "Input slice structure does not match with resulting buffer.");
 
-    static if (isFloatingPoint!OutputType)
-        OutputType upvalue = 1.0;
-    else
-        OutputType upvalue = OutputType.max;
+    static if (isFloatingPoint!OutputType){
+        immutable OutputType upvalue = inverse?0.0:1.0;
+        immutable OutputType downvalue = inverse?1.0:0.0;
+    }else{
+        immutable OutputType upvalue   = inverse ? 0 : OutputType.max;
+        immutable OutputType downvalue = inverse ? OutputType.max : 0;
+    }
 
     auto p = zip!true(prealloc, input);
 
@@ -82,14 +86,14 @@ do
     {
         p.each!((v)
         {
-            v.a = cast(OutputType)(v.b <= lowThresh ? 0 : upvalue);
+            v.a = cast(OutputType)(v.b <= lowThresh ? downvalue : upvalue);
         });
     }
     else
     {
         p.each!((v)
         {
-            v.a = cast(OutputType)(v.b >= lowThresh && v.b <= highThresh ? upvalue : 0);
+            v.a = cast(OutputType)(v.b >= lowThresh && v.b <= highThresh ? upvalue : downvalue);
         });
     }
 
@@ -115,11 +119,14 @@ nothrow Slice!(OutputType*, N, Contiguous) threshold(OutputType, InputType, size
 (
     Slice!(InputType*, N, kind) input,
     InputType thresh,
+    bool inverse = false,
     Slice!(OutputType*, N, Contiguous) prealloc = emptySlice!(N, OutputType)
 )
 {
-    return threshold!(OutputType)(input, thresh, thresh, prealloc);
+    return threshold!(OutputType)(input, thresh, thresh, inverse, prealloc);
 }
+
+enum THR_INVERSE = true;
 
 /** Return threshold value based on Otsu’s method.
 

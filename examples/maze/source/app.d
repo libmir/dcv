@@ -18,8 +18,7 @@ int main(string[] args)
 
     auto gray = img.sliced.rgb2gray; // convert it to gray level
     
-    auto imbin = threshold!ubyte(gray, ubyte(10), ubyte(255)); // threshold the image
-    imbin[].each!((ref a) { a = cast(ubyte)abs(a-255); }); // invert
+    auto imbin = threshold!ubyte(gray, ubyte(10), ubyte(255), THR_INVERSE); // threshold the image
 
     imbin = imbin.dilate(boxKernel!ubyte(3)); // thicken the wals a little bit
 
@@ -40,7 +39,8 @@ int main(string[] args)
 
     imshow(cimg, "contour image");
     
-    cimg[].each!((ref a) { a = cast(ubyte)abs(a-255); }); // invert
+    // map iterator does not work for now. An expensive inversion is workaround.
+    cimg[].each!((ref a) { a = cast(ubyte)abs(a-255); }); 
 
     auto dilated = cimg.dilate(boxKernel!ubyte(17));
 
@@ -52,9 +52,28 @@ int main(string[] args)
     
     auto path = zip(dilated, eroded).map!((a, b) => abs(a - b)); // subtract dilated from eroded
 
-    imshow(path, "path"); // display solution
+    img.imOverlay(path);
+
+    imshow(img, "path"); // display solution
     
     waitKey();
     
     return 0;
+}
+
+
+
+void imOverlay(S, B)(ref S im, B binary){
+    import std.algorithm.iteration;
+    import std.range;
+
+    size_t i;
+    binary.each!((bin){
+        if(bin == 255){
+            im.data[i] = 255;
+            im.data[i+1] = 0;
+            im.data[i+2] = 0;
+        }
+        i += 3;
+    });
 }
