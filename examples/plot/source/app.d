@@ -8,7 +8,7 @@ import core.stdc.stdio;
 import std.stdio;
 
 import dcv.core;
-import dcv.io;
+import dcv.imageio;
 import dcv.imgproc;
 import dcv.plot.figure;
 

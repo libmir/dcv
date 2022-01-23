@@ -7,7 +7,7 @@ import std.stdio;
 import mir.ndslice.algorithm : reduce;
 
 import dcv.imgproc;
-import dcv.io.image;
+import dcv.imageio.image;
 import dcv.plot;
 import dcv.multiview.stereo.matching;
 

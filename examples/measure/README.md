@@ -13,7 +13,7 @@
 ## code
 ```d
 import dcv.core;
-import dcv.io.image;
+import dcv.imageio.image;
 import dcv.plot;
 import dcv.imgproc;
 import dcv.measure;

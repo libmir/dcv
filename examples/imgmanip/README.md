@@ -7,7 +7,7 @@ This example should demonstrate how to apply various image (spatial) transformat
 ## Modules used
 * dcv.core;
 * dcv.imgproc.imgmanip;
-* dcv.io;
+* dcv.imageio;
 
 ## Resize
 

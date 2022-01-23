@@ -10,7 +10,7 @@ import dcv.core;
 import dcv.features;
 import dcv.imgproc.color;
 import dcv.imgproc.filter;
-import dcv.io;
+import dcv.imageio;
 import dcv.plot;
 
 

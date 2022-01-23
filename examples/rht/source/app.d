@@ -13,7 +13,7 @@ import mir.ndslice;
 
 import dcv.core.image : Image, ImageFormat;
 import dcv.core.utils : clip;
-import dcv.io : imread, imwrite;
+import dcv.imageio : imread, imwrite;
 import dcv.imgproc;
 import dcv.features.rht;
 

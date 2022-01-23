@@ -6,7 +6,7 @@ This example should demonstrate how image plotting mechanism works in DCV, and h
 
 ## Modules used
 * dcv.core
-* dcv.io
+* dcv.imageio
 * dcv.imgproc
 * dcv.plot.figure
 

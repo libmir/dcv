@@ -43,7 +43,7 @@ import ffmpeg.libavdevice;
 import ffmpeg.libavfilter;
 
 public import dcv.videoio.common;
-public import dcv.io.image;
+public import dcv.imageio.image;
 
 /**
 Input streaming type - file or webcam (live)

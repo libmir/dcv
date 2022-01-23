@@ -934,7 +934,7 @@ If 3D slice is given, histogram is applied separatelly for each channel.
 
 Example:
 ----
-import dcv.core, dcv.io, dcv.imgproc, dcv.plot;
+import dcv.core, dcv.imageio, dcv.imgproc, dcv.plot;
 
 void main()
 {

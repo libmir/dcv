@@ -9,7 +9,7 @@ import mir.ndslice;
 
 import dcv.core;
 import dcv.imgproc.imgmanip;
-import dcv.io;
+import dcv.imageio;
 
 void main()
 {

@@ -5,7 +5,7 @@ This example shows how to use stereo matching utilities in DCV.
 
 ## Modules used
 * dcv.imgproc
-* dcv.io.image
+* dcv.imageio.image
 * dcv.plot
 * dcv.multiview.stereo.matching
 

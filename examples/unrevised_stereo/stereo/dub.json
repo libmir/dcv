@@ -7,7 +7,7 @@
 	"copyright": "Copyright © 2016, Henry Gouk",
 	"dependencies": {
 		"dcv:core": {"path": "../../"},
-        "dcv:io": {"path": "../../"},
+        "dcv:imageio": {"path": "../../"},
         "dcv:plot": {"path": "../../"}
 	}
 }

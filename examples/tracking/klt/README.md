@@ -4,7 +4,7 @@ This example demonstrates usage of Pyramidal Lucas-Kanade Optical Flow algorithm
 
 ## Modules used
  * dcv.core;
- * dcv.io;
+ * dcv.imageio;
  * dcv.imgproc.filter : filterNonMaximum;
  * dcv.imgproc.color : gray2rgb;
  * dcv.features.corner.harris : shiTomasiCorners;
