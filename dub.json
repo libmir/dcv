@@ -14,9 +14,10 @@
     ],
     "license": "BSL-1.0",
     "dependencies": {
-        ":core": "*",
-        ":io": "*",
-        ":plot": "*"
+        "dcv:core": "*",
+        "dcv:io": "*",
+        "dcv:videoio": "*",
+        "dcv:plot": "*"
     },
     "targetType": "library",
     "sourceFiles": ["source/dcv/package.d"],
@@ -67,7 +68,7 @@
             "dependencies": {
                 "dcv:core": "*",
                 "dcv:io": "*",
-                "dcv:ffmpeg441": "*"
+                "ffmpeg-d": "~>4.4.1"
             }
         },
         {
@@ -102,15 +103,6 @@
                         "UseLegacyGL"
                     ]
                 }
-            ]
-        },
-        {
-            "name": "ffmpeg441",
-            "sourcePaths": [ "ffmpeg441/ffmpeg/" ],
-            "importPaths": [ "ffmpeg441"],
-            "libs": [
-                "avcodec", "avdevice", "avfilter", "avformat", "avutil",
-                "postproc", "swresample", "swscale"
             ]
         }
     ]
