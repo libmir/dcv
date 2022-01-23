@@ -1,3 +1,4 @@
+module dcv;
 
 public {
     import dcv.core;
