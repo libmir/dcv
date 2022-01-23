@@ -4,7 +4,6 @@
 [![codecov.io](https://codecov.io/github/libmir/dcv/coverage.svg?branch=master)](https://codecov.io/github/libmir/dcv?branch=master) 
 [![DUB](https://img.shields.io/dub/v/dcv.svg)](http://code.dlang.org/packages/dcv) 
 [![Gitter](https://img.shields.io/gitter/room/libmir/public.svg)](https://gitter.im/libmir/public) 
-[![DUB](https://img.shields.io/dub/dt/dcv.svg)](http://code.dlang.org/packages/dcv)
 
 *Computer Vision Library for D Programming Language*
 
