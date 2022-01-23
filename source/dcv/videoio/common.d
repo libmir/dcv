@@ -21,7 +21,7 @@ import ffmpeg.libswscale;
 import ffmpeg.libavdevice;
 import ffmpeg.libavfilter;
 
-public import dcv.io.image;
+public import dcv.imageio.image;
 
 /**
 Exception related to streaming operations.

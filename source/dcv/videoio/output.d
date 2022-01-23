@@ -55,7 +55,7 @@ import ffmpeg.libavdevice;
 import ffmpeg.libavfilter;
 
 public import dcv.videoio.common;
-public import dcv.io.image;
+public import dcv.imageio.image;
 
 /**
 Output stream definition properties.

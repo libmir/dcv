@@ -6,7 +6,7 @@
     "dependencies": {
         "dcv:core": {"path": "../../../"},
         "dcv:videoio": {"path": "../../../"},
-        "dcv:io": {"path": "../../../"},
+        "dcv:imageio": {"path": "../../../"},
         "dcv:plot": {"path": "../../../"}
     }
 }

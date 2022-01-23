@@ -10,7 +10,7 @@ Should showcases a few basics such as image i/o, conversion to Slice object etc.
 ## Modules used
 * dcv.core.image
 * dcv.core.utils
-* dcv.io
+* dcv.imageio
 * dcv.imgproc
 * dcv.features.rht
 

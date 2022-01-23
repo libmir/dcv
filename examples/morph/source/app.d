@@ -5,7 +5,7 @@ module dcv.example.morph;
  */
 
 import dcv.core;
-import dcv.io;
+import dcv.imageio;
 import dcv.imgproc;
 import dcv.plot;
 

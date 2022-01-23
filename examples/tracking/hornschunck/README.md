@@ -6,7 +6,7 @@ This example demonstrates usage of Pyramidal Horn-Schunck optical flow algorithm
 
 ## Modules used
 * dcv.core
-* dcv.io
+* dcv.imageio
 * dcv.imgproc.imgmanip
 * dcv.tracking.opticalflow
 * dcv.plot.opticalflow

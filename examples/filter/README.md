@@ -8,7 +8,7 @@ Should also provide insight to basic setup for any image processing, such as ima
 ## Modules used
 * dcv.core.image
 * dcv.core.utils
-* dcv.io
+* dcv.imageio
 * dcv.imgproc
 
 ## Source Image

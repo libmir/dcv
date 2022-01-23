@@ -8,9 +8,9 @@ Authors: Relja Ljubobratovic
 License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
 */
 
-module dcv.io;
+module dcv.imageio;
 
-public import dcv.io.image;
+public import dcv.imageio.image;
 
 /*
 TODO: split sub-modules. (image, video, filestorage etc.)

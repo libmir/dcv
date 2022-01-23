@@ -12,7 +12,7 @@ import std.array : array;
 import mir.ndslice;
 
 import dcv.core : Image, ranged, ImageFormat;
-import dcv.io : imread, imwrite;
+import dcv.imageio : imread, imwrite;
 import dcv.imgproc;
 import dcv.plot;
 

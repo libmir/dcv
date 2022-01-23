@@ -5,7 +5,7 @@ public {
     import dcv.features;
     import dcv.measure;
     import dcv.imgproc;
-    import dcv.io;
+    import dcv.imageio;
     import dcv.videoio;
     import dcv.plot;
     import dcv.tracking;

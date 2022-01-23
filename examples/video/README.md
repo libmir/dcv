@@ -7,7 +7,7 @@ This example should demonstrate how to read video streams using dcv library.
 ## Modules used
 * dcv.core;
 * dcv.imgproc.color;
-* dcv.io;
+* dcv.imageio;
 * dcv.plot.figure;
 
 ## Disclaimer
@@ -17,7 +17,7 @@ these utilities should look like.
 
 ### InputStream usage
 
-Input video streaming utility is located in the dcv.io.video.input module, defined as 
+Input video streaming utility is located in the dcv.imageio.video.input module, defined as 
 InputStream class. In the demo application, we open the input video stream, read the 
 video frame by frame, and show its content on the screen.
 
@@ -91,7 +91,7 @@ code, please take a look in the dcv/examples/video/source/app.d file.
 
 ### More examples
 
-For more extensive example, please take a look into a unit test in the dcv.io.video module (source/dcv/io/video.package.d file). This is actually a functional test proving the video streaming utilities work as expected. Please keep in mind that these modules are not done yet, and will surely change in future.
+For more extensive example, please take a look into a unit test in the dcv.imageio.video module (source/dcv/io/video.package.d file). This is actually a functional test proving the video streaming utilities work as expected. Please keep in mind that these modules are not done yet, and will surely change in future.
 
 
 

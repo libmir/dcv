@@ -1,9 +1,9 @@
 
 import std.stdio;
-import dcv.io.image : imread, imwrite;
+import dcv.imageio.image : imread, imwrite;
 
 import dcv.core;
-import dcv.io.image;
+import dcv.imageio.image;
 import dcv.plot;
 import dcv.imgproc;
 import dcv.measure;

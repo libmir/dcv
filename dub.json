@@ -15,7 +15,7 @@
     "license": "BSL-1.0",
     "dependencies": {
         "dcv:core": "*",
-        "dcv:io": "*",
+        "dcv:imageio": "*",
         "dcv:videoio": "*",
         "dcv:plot": "*"
     },
@@ -46,10 +46,10 @@
             }
         },
         {
-            "name": "io",
+            "name": "imageio",
             "description": "Image I/O package.",
             "sourcePaths": [
-                "source/dcv/io"
+                "source/dcv/imageio"
             ],
             "dependencies":{
                 "dcv:core": "*",
@@ -67,7 +67,7 @@
             "sourcePaths": [ "source/dcv/videoio/"],
             "dependencies": {
                 "dcv:core": "*",
-                "dcv:io": "*",
+                "dcv:imageio": "*",
                 "ffmpeg-d": "~>4.4.1"
             }
         },

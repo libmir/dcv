@@ -4,7 +4,7 @@ Module introduces $(LINK3 https://en.wikipedia.org/wiki/Kernel_(image_processing
 Following example loads famous image of Lena Söderberg and performs gaussian blurring by convolving the image with gaussian kernel.
 
 ----
-import dcv.io.image : imread, ReadParams;
+import dcv.imageio.image : imread, ReadParams;
 import dcv.core.image : Image, asType;
 import dcv.imgproc.convolution : conv;
 

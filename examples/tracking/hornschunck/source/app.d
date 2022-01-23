@@ -10,7 +10,7 @@ import std.conv : to;
 import mir.ndslice;
 
 import dcv.core;
-import dcv.io;
+import dcv.imageio;
 
 import dcv.imgproc.imgmanip : warp;
 import dcv.tracking.opticalflow : HornSchunckFlow, HornSchunckProperties, DensePyramidFlow;

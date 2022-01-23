@@ -5,7 +5,7 @@ This example should demonstrate how to perform morphological operation on binary
 ## Modules used
 
 *   dcv.core
-*   dcv.io
+*   dcv.imageio
 *   dcv.imgproc
 *   dcv.plot
 

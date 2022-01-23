@@ -9,7 +9,7 @@ This example demonstrates corner detection algorithms - Harris, and Shi-Tomasi.
 * dcv.features
 * dcv.imgproc.color
 * dcv.imgproc.filter
-* dcv.io
+* dcv.imageio
 
 ## Example description
 

@@ -12,7 +12,7 @@ import std.array : array;
 import mir.ndslice;
 
 import dcv.core;
-import dcv.io;
+import dcv.imageio;
 import dcv.videoio;
 import dcv.imgproc.filter : filterNonMaximum;
 import dcv.imgproc.color : gray2rgb;

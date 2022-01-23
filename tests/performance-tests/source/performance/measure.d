@@ -19,7 +19,7 @@ import dcv.imgproc;
 import dcv.features;
 import dcv.multiview;
 import dcv.tracking;
-import dcv.io;
+import dcv.imageio;
 
 import mir.ndslice;
 
