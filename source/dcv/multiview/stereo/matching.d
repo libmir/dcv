@@ -205,7 +205,8 @@ StereoCostFunction normalisedCrossCorrelation(uint windowSize = 5)
     alias dot = reduce!fma;
 
 	static @fastmath CostType ncc(L, R)(L l, R r)
-	{
+	{   
+        // TODO: use mtimes of https://code.dlang.org/packages/lubeck for a faster result
 		return -dot(CostType(0), l, r) / sqrt(dot(CostType(0), l, l) * dot(CostType(0), r, r));
 	}
 
@@ -233,18 +234,17 @@ private StereoCostFunction windowCost(alias fun)(uint windowSize)
         for(size_t d = 0; d < props.disparityRange; d++)
         {
             costVol[0 .. $, 0 .. d, d] = CostType.max;
-            import mir.ndslice.dynamic;
+            import mir.ndslice.dynamic : transposed;
             costVol[0 .. $, d .. $, d] = zip!true(lpad[0 .. $, d .. $], rpad[0 .. $, 0 .. $ - d])
                                         .pack!1
                                         .windows(windowSize, windowSize)
                                         .unpack
-                                        .universal
-                                        .transposed!(0, 1, 4) // some fix needed here !!!
+                                        .unpack
+                                        .transposed!(0, 1, 4)
                                         .pack!2
                                         .map!(x => fun(x.unzip!'a', x.unzip!'b'))
                                         .pack!1
-                                        .map!sum
-                                        .unpack;
+                                        .map!sum;
         }
     }
 
@@ -294,8 +294,8 @@ private void pointwiseCost(alias fun)(const ref StereoPipelineProperties propert
         costVol[0 .. $, d .. $, d] = zip!true(l[0 .. $, d .. $], r[0 .. $, 0 .. $ - d])
                                     .map!fun
                                     .pack!1
-                                    .map!sum
-                                    .unpack;
+                                    .map!sum;
+                                    //.unpack;
     }
 }
 
