@@ -295,7 +295,6 @@ private void pointwiseCost(alias fun)(const ref StereoPipelineProperties propert
                                     .map!fun
                                     .pack!1
                                     .map!sum;
-                                    //.unpack;
     }
 }
 
