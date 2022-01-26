@@ -31,7 +31,8 @@
                 "source/dcv/imgproc",
                 "source/dcv/tracking",
                 "source/dcv/measure",
-                "source/dcv/morphology"
+                "source/dcv/morphology",
+                "source/dcv/multiview"
             ],
             "dependencies":
             {
