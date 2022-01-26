@@ -4,7 +4,7 @@ import std.math;
 import std.range;
 import std.stdio;
 
-import mir.ndslice.algorithm : reduce;
+import mir.algorithm.iteration : reduce;
 
 import dcv.imgproc;
 import dcv.imageio.image;
