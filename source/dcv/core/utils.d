@@ -521,8 +521,8 @@ struct dlist(T)
         do
         {
             last = r._first;
-            mfree(last);
             r.popFront();
+            mfree(last);
         } while ( !r.empty );
 
         mfree(_root);
