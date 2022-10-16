@@ -240,9 +240,11 @@ private auto _assemble_contours(Segments)(auto ref Segments segments){
                 if (tail_num > head_num){
                     // tail was created second. Append tail to head.
                     head.insertBack(tail[]);
+
                     // Remove tail from the detected contours
                     contours[tail_num].clear;
                     contours.remove(tail_num);
+
                     // Update starts and ends
                     starts[head[].front] = tuple(head, head_num);
                     ends[head[].back] = tuple(head, head_num);
