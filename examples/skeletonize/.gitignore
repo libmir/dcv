@@ -1,0 +1,8 @@
+.dub
+docs.json
+__dummy.html
+*.o
+*.obj
+*.exe
+/filter
+*.selections.json

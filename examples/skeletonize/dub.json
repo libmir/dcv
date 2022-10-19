@@ -1,0 +1,11 @@
+{
+	"name": "skeletonize",
+	"description": "skeletonization of binary regions.",
+	"copyright": "Copyright © 2022, Ferhat Kurtulmuş",
+	"authors": ["Ferhat Kurtulmuş"],
+	"dependencies": {
+		"dcv:core": {"path": "../../"},
+        "dcv:imageio": {"path": "../../"},
+        "dcv:plot": {"path": "../../"}
+	}
+}
