@@ -54,7 +54,6 @@ Library is licensed under Boost Software License - Version 1.0. Some modules in 
 ## dcv revision/revival notes
 
 * This is an effort to make dcv work with the recent versions of LDC, mir libraries and stuff
-* I consider this as a temporary git repo which will be deleted after a big PR to the original DCV repo (if the maintainers accept).
 
 ## Done so far:
 
@@ -68,7 +67,7 @@ Library is licensed under Boost Software License - Version 1.0. Some modules in 
 ## newly-implemented functionality:
 * Otsu's method for threshold calculation
 * dcv.measure module with refcounted image types: labelling connected regions, moments, ellipsefit, convexhull, findContours, area, perimeter
-* dcv.morphology module with distanceTransform (more planned like watershed, skeletonize, end-points, junctions)
+* dcv.morphology module with distanceTransform (more planned like watershed, ~~skeletonize~~, end-points, junctions)
 * Switched to modern OpenGL for rendering, by reserving the legacy gl support. use "subConfigurations": {"dcv:core": "legacygl"} for the legacy GL support.
 * New plot primitives like drawLine and drawCircle at Opengl rendering level. the function plot2imslice copies the rendered buffer to a slice. Take a look at the convexhull examples for more.
 
