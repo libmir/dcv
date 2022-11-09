@@ -54,7 +54,7 @@
             ],
             "dependencies":{
                 "dcv:core": "*",
-                "imageformats": "7.0.2"
+                "gamut": "~>1.0.0"
             },
             "buildTypes": {
                 "unittest-release": {

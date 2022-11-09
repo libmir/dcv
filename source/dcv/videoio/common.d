@@ -106,7 +106,7 @@ class AVStarter
 
 immutable IF_MONO_TYPES = [AVPixelFormat.AV_PIX_FMT_GRAY8];
 
-immutable IF_MONO_ALPHA_TYPES = [AVPixelFormat.AV_PIX_FMT_GRAY8A];
+// immutable IF_MONO_ALPHA_TYPES = [AVPixelFormat.AV_PIX_FMT_GRAY8A];
 
 immutable IF_YUV_TYPES = [
     AVPixelFormat.AV_PIX_FMT_YUV410P, AVPixelFormat.AV_PIX_FMT_YUV411P,
@@ -118,22 +118,22 @@ immutable IF_RGB_TYPES = [
     AVPixelFormat.AV_PIX_FMT_RGB0, AVPixelFormat.AV_PIX_FMT_RGB24, AVPixelFormat.AV_PIX_FMT_RGB4,
     AVPixelFormat.AV_PIX_FMT_RGB8
 ];
-
+/+
 immutable IF_RGB_ALPHA_TYPES = [AVPixelFormat.AV_PIX_FMT_ARGB, AVPixelFormat.AV_PIX_FMT_RGBA];
-
++/
 immutable IF_BGR_TYPES = [
     AVPixelFormat.AV_PIX_FMT_BGR0, AVPixelFormat.AV_PIX_FMT_BGR24, AVPixelFormat.AV_PIX_FMT_BGR4,
     AVPixelFormat.AV_PIX_FMT_BGR8
 ];
 
-immutable IF_BGR_ALPHA_TYPES = [AVPixelFormat.AV_PIX_FMT_ABGR, AVPixelFormat.AV_PIX_FMT_BGRA];
+// immutable IF_BGR_ALPHA_TYPES = [AVPixelFormat.AV_PIX_FMT_ABGR, AVPixelFormat.AV_PIX_FMT_BGRA];
 
 alias IF_MONO_PREFERED = AVPixelFormat.AV_PIX_FMT_GRAY8;
-alias IF_MONO_ALPHA_PREFERED = AVPixelFormat.AV_PIX_FMT_GRAY8A;
+// alias IF_MONO_ALPHA_PREFERED = AVPixelFormat.AV_PIX_FMT_GRAY8A;
 alias IF_RGB_PREFERED = AVPixelFormat.AV_PIX_FMT_RGB24;
-alias IF_RGB_ALPHA_PREFERED = AVPixelFormat.AV_PIX_FMT_RGBA;
+// alias IF_RGB_ALPHA_PREFERED = AVPixelFormat.AV_PIX_FMT_RGBA;
 alias IF_BGR_PREFERED = AVPixelFormat.AV_PIX_FMT_BGR24;
-alias IF_BGR_ALPHA_PREFERED = AVPixelFormat.AV_PIX_FMT_BGRA;
+// alias IF_BGR_ALPHA_PREFERED = AVPixelFormat.AV_PIX_FMT_BGRA;
 alias IF_YUV_PREFERED = AVPixelFormat.AV_PIX_FMT_YUV444P;
 
 AVPixelFormat convertDepricatedPixelFormat(AVPixelFormat pix)
@@ -176,22 +176,27 @@ ImageFormat AVPixelFormat_to_ImageFormat(AVPixelFormat format)
     {
         return ImageFormat.IF_BGR;
     }
+    /+
     else if (IF_RGB_ALPHA_TYPES.find(format))
     {
         return ImageFormat.IF_RGB_ALPHA;
     }
+    
     else if (IF_BGR_ALPHA_TYPES.find(format))
     {
         return ImageFormat.IF_BGR_ALPHA;
     }
+    +/
     else if (IF_MONO_TYPES.find(format))
     {
         return ImageFormat.IF_MONO;
     }
+    /+
     else if (IF_MONO_ALPHA_TYPES.find(format))
     {
         return ImageFormat.IF_MONO_ALPHA;
     }
+    +/
     else
     {
         enforce(0, "Format type is not supported");
@@ -205,16 +210,16 @@ AVPixelFormat ImageFormat_to_AVPixelFormat(ImageFormat format)
     {
     case ImageFormat.IF_MONO:
         return IF_MONO_PREFERED;
-    case ImageFormat.IF_MONO_ALPHA:
-        return IF_MONO_ALPHA_PREFERED;
+    /+case ImageFormat.IF_MONO_ALPHA:
+        return IF_MONO_ALPHA_PREFERED;+/
     case ImageFormat.IF_BGR:
         return IF_BGR_PREFERED;
-    case ImageFormat.IF_BGR_ALPHA:
-        return IF_BGR_ALPHA_PREFERED;
+    /+case ImageFormat.IF_BGR_ALPHA:
+        return IF_BGR_ALPHA_PREFERED;+/
     case ImageFormat.IF_RGB:
         return IF_RGB_PREFERED;
-    case ImageFormat.IF_RGB_ALPHA:
-        return IF_RGB_ALPHA_PREFERED;
+    /+case ImageFormat.IF_RGB_ALPHA:
+        return IF_RGB_ALPHA_PREFERED;+/
     case ImageFormat.IF_YUV:
         return IF_YUV_PREFERED;
     default:
@@ -240,22 +245,22 @@ void adoptFormat(AVPixelFormat format, AVFrame* frame, ubyte[] data)
     {
         throw new Exception("Not implemented");
     }
-    else if (IF_RGB_ALPHA_TYPES.find(format))
+    /+else if (IF_RGB_ALPHA_TYPES.find(format))
     {
         throw new Exception("Not implemented");
     }
     else if (IF_BGR_ALPHA_TYPES.find(format))
     {
         throw new Exception("Not implemented");
-    }
+    }+/
     else if (IF_MONO_TYPES.find(format))
     {
         throw new Exception("Not implemented");
     }
-    else if (IF_MONO_ALPHA_TYPES.find(format))
+    /+else if (IF_MONO_ALPHA_TYPES.find(format))
     {
         throw new Exception("Not implemented");
-    }
+    }+/
     else
     {
         enforce(0, "Format type is not supported");

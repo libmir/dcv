@@ -441,18 +441,18 @@ void extractDataFromImage(in Image image, ref ubyte*[] data, ref int[] linesize)
         data = [image.data.ptr];
         linesize = [w];
         break;
-    case ImageFormat.IF_MONO_ALPHA:
+    /+case ImageFormat.IF_MONO_ALPHA:
         data = [image.data.ptr];
         linesize = [w * 2];
-        break;
+        break;+/
     case ImageFormat.IF_RGB, ImageFormat.IF_BGR:
         data = [image.data.ptr];
         linesize = [w * 3];
         break;
-    case ImageFormat.IF_RGB_ALPHA, ImageFormat.IF_BGR_ALPHA:
+    /+case ImageFormat.IF_RGB_ALPHA, ImageFormat.IF_BGR_ALPHA:
         data = [image.data.ptr];
         linesize = [w * 4];
-        break;
+        break;+/
     case ImageFormat.IF_YUV:
         data = [new ubyte[w * h].ptr, new ubyte[w * h].ptr, new ubyte[w * h].ptr];
         foreach (i; 0 .. pixelCount)
