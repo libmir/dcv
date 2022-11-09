@@ -27,22 +27,24 @@ enum ImageFormat
 {
     IF_UNASSIGNED = 0, /// Not assigned format.
     IF_MONO, /// Mono, single channel format.
-    IF_MONO_ALPHA, /// Mono with alpha channel.
+    //IF_MONO_ALPHA, /// Mono with alpha channel.
     IF_RGB, /// RGB format.
     IF_BGR, /// BGR format.
     IF_YUV, /// YUV (YCbCr) format.
-    IF_RGB_ALPHA, /// RGB format with alpha.
-    IF_BGR_ALPHA /// BGR format with alpha.
+    //IF_RGB_ALPHA, /// RGB format with alpha.
+    //IF_BGR_ALPHA /// BGR format with alpha.
 }
 
-immutable size_t[] imageFormatChannelCount = [0, // unassigned
+
+immutable size_t[] imageFormatChannelCount = [
+    0, // unassigned
     1, // mono
-    2, // mono alpha
+    //2, // mono alpha
     3, // rgb
     3, // bgr
     3, // yuv
-    4, // rgba
-    4 // bgra
+    //4, // rgba
+    //4 // bgra
     ];
 
 /// Bit depth of a pixel in an image.
@@ -379,24 +381,38 @@ public:
 
         if (_depth == BitDepth.BD_8)
         {
+            foreach(i, v; data!ubyte){
+                newim.data!T[i] = cast(T)v;
+            }
+            /*
             foreach (v1, ref v2; lockstep(data!ubyte, newim.data!T))
             {
                 v2 = cast(T)v1;
-            }
+            }*/
+
         }
         else if (_depth == BitDepth.BD_16)
         {
+            foreach(i, v; data!ushort){
+                newim.data!T[i] = cast(T)v;
+            }
+            /*
             foreach (v1, ref v2; lockstep(data!ushort, newim.data!T))
             {
                 v2 = cast(T)v1;
-            }
+            }*/
         }
         else if (_depth == BitDepth.BD_32)
         {
+            foreach(i, v; data!float){
+                newim.data!T[i] = cast(T)v;
+            }
+            /*
             foreach (v1, ref v2; lockstep(data!float, newim.data!T))
             {
                 v2 = cast(T)v1;
             }
+            */
         }
 
         return newim;
@@ -606,15 +622,15 @@ Image asImage(Iterator, size_t N, SliceKind kind)(Slice!(Iterator, N, kind) slic
         case 1:
             format = ImageFormat.IF_MONO;
             break;
-        case 2:
+        /+case 2:
             format = ImageFormat.IF_MONO_ALPHA;
-            break;
+            break;+/
         case 3:
             format = ImageFormat.IF_RGB;
             break;
-        case 4:
+        /+case 4:
             format = ImageFormat.IF_RGB_ALPHA;
-            break;
+            break;+/
         default:
             import std.conv : to;
 

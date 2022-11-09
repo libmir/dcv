@@ -17,7 +17,17 @@ import std.algorithm : reduce;
 import std.string : toLower;
 import std.path : extension;
 
-import imageformats;
+import gamut : GamutImage = Image,
+                LOAD_NO_ALPHA,
+                LOAD_RGB,
+                LOAD_GREYSCALE,
+                LOAD_8BIT,
+                LOAD_16BIT,
+                PixelType,
+                LAYOUT_GAPLESS,
+                LAYOUT_VERT_STRAIGHT;
+                
+                
 
 import mir.ndslice.topology : reshape;
 import mir.ndslice.slice;
@@ -130,7 +140,11 @@ bool imwrite(in string path, size_t width, size_t height, ImageFormat format, Bi
     assert(width > 0 && height > 0);
     if (depth == BitDepth.BD_8)
     {
-        write_image(path, cast(long)width, cast(long)height, data, imageFormatChannelCount[format]);
+        GamutImage image;
+        image.loadFromMemory(data, ReadParams(format, depth).readParams2LoadFlags);
+        if (!image.saveToFile(path))
+                throw new Exception("Writing " ~ path ~ " failed");
+        // write_image(path, cast(long)width, cast(long)height, data, imageFormatChannelCount[format]);
     }
     else if (depth == BitDepth.BD_16)
     {
@@ -338,6 +352,25 @@ unittest
 
 private:
 
+int readParams2LoadFlags(ReadParams params){
+    int ret;
+
+    if(params.format == ImageFormat.IF_RGB){
+        ret |= LOAD_RGB;
+    }else 
+    if(params.format == ImageFormat.IF_MONO){
+        ret |= LOAD_GREYSCALE;
+    }
+    
+    if(params.depth == BitDepth.BD_8){
+        ret |= LOAD_8BIT;
+    }else 
+    if(params.depth == BitDepth.BD_16){
+        ret |= LOAD_16BIT;
+    }
+    return ret | LOAD_NO_ALPHA;
+}
+
 Image imreadImpl_imageformats(in string path, ReadParams params)
 {
     enforce(params.depth != BitDepth.BD_32, "Currenly reading of 32-bit image data is not supported");
@@ -346,18 +379,46 @@ Image imreadImpl_imageformats(in string path, ReadParams params)
         params.format = ImageFormat.IF_RGB;
 
     Image im = null;
-    auto ch = imreadImpl_imageformats_adoptFormat(params.format);
+    //auto ch = imreadImpl_imageformats_adoptFormat(params.format);
 
+    GamutImage gimage;
+    
     if (params.depth == BitDepth.BD_UNASSIGNED || params.depth == BitDepth.BD_8)
     {
-        IFImage ifim = read_image(path, ch);
-        im = new Image(cast(size_t)ifim.w, cast(size_t)ifim.h, params.format, BitDepth.BD_8, ifim.pixels);
+        //IFImage ifim = read_image(path, ch);
+        gimage.loadFromFile(path, LOAD_NO_ALPHA | LOAD_RGB | LOAD_8BIT);
+        //gimage.setSize(gimage.width, gimage.height, PixelType.rgb8, LAYOUT_GAPLESS | LAYOUT_VERT_STRAIGHT); // make contiguous
+
+        //ubyte[] allpixels = gimage.allPixelsAtOnce().dup;
+
+        ubyte[] allpixels = new ubyte[gimage.width*gimage.height*3];
+        size_t kk;
+        for (int y = 0; y < gimage.height(); ++y)
+        {
+            ubyte* scan = cast(ubyte*) gimage.scanline(y);
+            for (int x = 0; x < gimage.width(); ++x)
+            {
+                allpixels[kk++] = scan[3*x + 0];
+                allpixels[kk++] = scan[3*x + 1];
+                allpixels[kk++] = scan[3*x + 2];
+            }
+        }
+        
+        import std.conv : to;
+        if (gimage.errored)
+            throw new Exception(gimage.errorMessage.to!string);
+        im = new Image(cast(size_t)gimage.width, cast(size_t)gimage.height, params.format, BitDepth.BD_8, allpixels);
     }
     else if (params.depth == BitDepth.BD_16)
     {
+        // This should be revised according to gamut. Probably will not work as its present form
+
         enforce(path.extension.toLower == ".png", "Reading 16-bit image has to be in PNG format.");
-        IFImage16 ifim = read_png16(path, ch);
-        im = new Image(cast(size_t)ifim.w, cast(size_t)ifim.h, params.format, BitDepth.BD_16, cast(ubyte[])ifim.pixels);
+        gimage.loadFromFile(path, LOAD_NO_ALPHA | LOAD_RGB | LOAD_16BIT);
+        gimage.setSize(gimage.width, gimage.height, PixelType.rgb16, LAYOUT_GAPLESS | LAYOUT_VERT_STRAIGHT);
+        ushort[] allpixels = gimage.allPixelsAtOnce().dup;
+        //IFImage16 ifim = read_png16(path, ch);
+        im = new Image(cast(size_t)gimage.width, cast(size_t)gimage.height, params.format, BitDepth.BD_16, allpixels);
     }
     else
     {
@@ -430,17 +491,17 @@ int imreadImpl_imageformats_adoptFormat(ImageFormat format)
     switch (format)
     {
     case ImageFormat.IF_RGB:
-        ch = ColFmt.RGB;
+        ch = 3;
         break;
-    case ImageFormat.IF_RGB_ALPHA:
-        ch = ColFmt.RGBA;
-        break;
+    //case ImageFormat.IF_RGB_ALPHA:
+    //    ch = 4;
+    //    break;
     case ImageFormat.IF_MONO:
-        ch = ColFmt.Y;
+        ch = 1;
         break;
-    case ImageFormat.IF_MONO_ALPHA:
-        ch = ColFmt.YA;
-        break;
+    //case ImageFormat.IF_MONO_ALPHA:
+    //    ch = 2;
+    //    break;
     default:
         throw new Exception("Format not supported");
     }

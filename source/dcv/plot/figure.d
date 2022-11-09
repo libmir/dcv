@@ -458,7 +458,7 @@ class Figure
 
         int _width = 0;
         int _height = 0;
-        ubyte[] _data = void;
+        ubyte[] _data = null;
         string _title = "";
 
         MouseCallback _mouseCallback = null;
@@ -1065,9 +1065,9 @@ Image adoptImage(Image image)
     import mir.ndslice.topology;
     switch (showImage.format)
     {
-    case ImageFormat.IF_RGB_ALPHA:
+    /+case ImageFormat.IF_RGB_ALPHA:
         showImage = showImage.sliced[0 .. $, 0 .. $, 0 .. 2].asImage(ImageFormat.IF_RGB);
-        break;
+        break;+/
     case ImageFormat.IF_BGR:
         foreach (e; showImage.sliced.pack!1.flattened)
         {
@@ -1076,7 +1076,7 @@ Image adoptImage(Image image)
             e[2] = t;
         }
         break;
-    case ImageFormat.IF_BGR_ALPHA:
+    /+case ImageFormat.IF_BGR_ALPHA:
         foreach (e; showImage.sliced.pack!1.flattened)
         {
             auto t = e[0];
@@ -1084,7 +1084,7 @@ Image adoptImage(Image image)
             e[2] = t;
         }
         showImage = showImage.sliced[0 .. $, 0 .. $, 0 .. 2].asImage(ImageFormat.IF_RGB);
-        break;
+        break;+/
     case ImageFormat.IF_YUV:
         showImage = showImage.sliced.yuv2rgb!ubyte.asImage(ImageFormat.IF_RGB);
         break;
