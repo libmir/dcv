@@ -140,9 +140,22 @@ bool imwrite(in string path, size_t width, size_t height, ImageFormat format, Bi
     assert(width > 0 && height > 0);
     if (depth == BitDepth.BD_8)
     {
-        GamutImage image;
-        image.loadFromMemory(data, ReadParams(format, depth).readParams2LoadFlags);
-        if (!image.saveToFile(path))
+        GamutImage gimage = GamutImage(cast(int)width, cast(int)height, gamutPixelTypeFromFormat[format]);
+        
+        size_t kk;
+        for (int y = 0; y < gimage.height(); ++y)
+        {
+            ubyte* scan = cast(ubyte*) gimage.scanline(y);
+            for (int x = 0; x < gimage.width(); ++x)
+            {
+                scan[3*x + 0] = data[kk++];
+                scan[3*x + 1] = data[kk++];
+                scan[3*x + 2] = data[kk++];
+                
+            }
+        }
+
+        if (!gimage.saveToFile(path))
                 throw new Exception("Writing " ~ path ~ " failed");
         // write_image(path, cast(long)width, cast(long)height, data, imageFormatChannelCount[format]);
     }
@@ -416,7 +429,7 @@ Image imreadImpl_imageformats(in string path, ReadParams params)
         enforce(path.extension.toLower == ".png", "Reading 16-bit image has to be in PNG format.");
         gimage.loadFromFile(path, LOAD_NO_ALPHA | LOAD_RGB | LOAD_16BIT);
         gimage.setSize(gimage.width, gimage.height, PixelType.rgb16, LAYOUT_GAPLESS | LAYOUT_VERT_STRAIGHT);
-        ushort[] allpixels = gimage.allPixelsAtOnce().dup;
+        ubyte[] allpixels = gimage.allPixelsAtOnce().dup;
         //IFImage16 ifim = read_png16(path, ch);
         im = new Image(cast(size_t)gimage.width, cast(size_t)gimage.height, params.format, BitDepth.BD_16, allpixels);
     }
@@ -507,7 +520,13 @@ int imreadImpl_imageformats_adoptFormat(ImageFormat format)
     }
     return ch;
 }
-
+package enum gamutPixelTypeFromFormat = [
+    ImageFormat.IF_UNASSIGNED : PixelType.unknown,
+    ImageFormat.IF_MONO : PixelType.l8,
+    ImageFormat.IF_RGB : PixelType.rgb8
+    // TODO: 16 bit formats
+];
+/*
 unittest
 {
     /// Test imageformats color format adoption
@@ -525,3 +544,4 @@ unittest
         // should enter here...
     }
 }
+*/

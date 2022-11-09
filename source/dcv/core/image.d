@@ -26,11 +26,11 @@ import mir.ndslice.allocation;
 enum ImageFormat
 {
     IF_UNASSIGNED = 0, /// Not assigned format.
-    IF_MONO, /// Mono, single channel format.
+    IF_MONO = 1, /// Mono, single channel format.
     //IF_MONO_ALPHA, /// Mono with alpha channel.
-    IF_RGB, /// RGB format.
-    IF_BGR, /// BGR format.
-    IF_YUV, /// YUV (YCbCr) format.
+    IF_RGB = 2, /// RGB format.
+    IF_BGR = 3, /// BGR format.
+    IF_YUV = 4, /// YUV (YCbCr) format.
     //IF_RGB_ALPHA, /// RGB format with alpha.
     //IF_BGR_ALPHA /// BGR format with alpha.
 }
