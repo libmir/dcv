@@ -416,7 +416,7 @@ Image imreadImpl_imageformats(in string path, ReadParams params)
         enforce(path.extension.toLower == ".png", "Reading 16-bit image has to be in PNG format.");
         gimage.loadFromFile(path, LOAD_NO_ALPHA | LOAD_RGB | LOAD_16BIT);
         gimage.setSize(gimage.width, gimage.height, PixelType.rgb16, LAYOUT_GAPLESS | LAYOUT_VERT_STRAIGHT);
-        ushort[] allpixels = gimage.allPixelsAtOnce().dup;
+        ubyte[] allpixels = gimage.allPixelsAtOnce().dup;
         //IFImage16 ifim = read_png16(path, ch);
         im = new Image(cast(size_t)gimage.width, cast(size_t)gimage.height, params.format, BitDepth.BD_16, allpixels);
     }
