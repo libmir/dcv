@@ -141,20 +141,32 @@ bool imwrite(in string path, size_t width, size_t height, ImageFormat format, Bi
     if (depth == BitDepth.BD_8)
     {
         GamutImage gimage = GamutImage(cast(int)width, cast(int)height, gamutPixelTypeFromFormat[format]);
-        
-        size_t kk;
-        for (int y = 0; y < gimage.height(); ++y)
-        {
-            ubyte* scan = cast(ubyte*) gimage.scanline(y);
-            for (int x = 0; x < gimage.width(); ++x)
-            {
-                scan[3*x + 0] = data[kk++];
-                scan[3*x + 1] = data[kk++];
-                scan[3*x + 2] = data[kk++];
-                
-            }
-        }
 
+        if(data.length == width * height){ // single channel
+            size_t kk;
+            for (int y = 0; y < gimage.height(); ++y){
+                ubyte* scan = cast(ubyte*) gimage.scanline(y);
+                for (int x = 0; x < gimage.width(); ++x){
+                    scan[x] = data[kk++];
+                }
+            }
+        }else if(data.length == width * height * 3){ // 3 channels
+            size_t kk;
+            for (int y = 0; y < gimage.height(); ++y)
+            {
+                ubyte* scan = cast(ubyte*) gimage.scanline(y);
+                for (int x = 0; x < gimage.width(); ++x)
+                {
+                    scan[3*x + 0] = data[kk++];
+                    scan[3*x + 1] = data[kk++];
+                    scan[3*x + 2] = data[kk++];
+                    
+                }
+            }
+        }else {
+            throw new Exception("Only 1 and 3 channel images can be written.");
+        }
+        
         if (!gimage.saveToFile(path))
                 throw new Exception("Writing " ~ path ~ " failed");
         // write_image(path, cast(long)width, cast(long)height, data, imageFormatChannelCount[format]);
