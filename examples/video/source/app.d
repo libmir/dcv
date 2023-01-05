@@ -155,7 +155,6 @@ bool parseArgs(in string[] args, out string path, out InputStreamType type)
 }
 
 /+
-import core.memory : GC;
 
 import std.stdio;
 import std.process;
@@ -173,9 +172,6 @@ enum H = 480;
 
 void main()
 {
-    int x, y, count;
-    
-    
     // for video file as input
     /*auto pipes = pipeProcess(["ffmpeg", "-i", "file_example_MP4_640_3MG.mp4", "-f", "image2pipe",
      "-vcodec", "rawvideo", "-pix_fmt", "rgb24", "-"], // yuv420p
@@ -190,7 +186,6 @@ void main()
     // Process video frames
     auto frame = slice!ubyte([H, W, 3], 0);
 
-    GC.disable();
     while(1)
     {
         
@@ -199,13 +194,15 @@ void main()
         // If we didn't get a frame of video, we're probably at the end
         if (dt.length != H*W*3) break;
         
+        // do image processing here
+        
         imshow(frame, "video");
         waitKey(2);
 
         if (!figure("video").visible)
             break;
     }
-    GC.enable();
+    
     
 }
 +/
