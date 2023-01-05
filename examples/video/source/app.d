@@ -153,3 +153,59 @@ bool parseArgs(in string[] args, out string path, out InputStreamType type)
 
     return true;
 }
+
+/+
+import core.memory : GC;
+
+import std.stdio;
+import std.process;
+
+import dcv.imgproc.color;
+import dcv.core;
+import dcv.plot.figure;
+
+import mir.ndslice;
+
+// compile release for speed: dub -b release
+// Video resolution
+enum W = 640;
+enum H = 480;
+
+void main()
+{
+    int x, y, count;
+    
+    
+    // for video file as input
+    /*auto pipes = pipeProcess(["ffmpeg", "-i", "file_example_MP4_640_3MG.mp4", "-f", "image2pipe",
+     "-vcodec", "rawvideo", "-pix_fmt", "rgb24", "-"], // yuv420p
+        Redirect.stdout);*/
+    // for camera device as input
+    auto pipes = pipeProcess(["ffmpeg", "-y", "-f", "dshow", "-video_size", "640x480", "-i",
+        `video=Lenovo EasyCamera`, "-framerate", "30", "-f", "image2pipe", "-vcodec", "rawvideo", 
+        "-pix_fmt", "rgb24", "-"], Redirect.stdout);
+    
+    // scope(exit) wait(pipes.pid);
+     
+    // Process video frames
+    auto frame = slice!ubyte([H, W, 3], 0);
+
+    GC.disable();
+    while(1)
+    {
+        
+        // Read a frame from the input pipe into the buffer
+        ubyte[] dt = pipes.stdout.rawRead(frame.ptr[0..H*W*3]);
+        // If we didn't get a frame of video, we're probably at the end
+        if (dt.length != H*W*3) break;
+        
+        imshow(frame, "video");
+        waitKey(2);
+
+        if (!figure("video").visible)
+            break;
+    }
+    GC.enable();
+    
+}
++/
