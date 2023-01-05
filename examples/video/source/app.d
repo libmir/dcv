@@ -154,7 +154,7 @@ bool parseArgs(in string[] args, out string path, out InputStreamType type)
     return true;
 }
 
-/+
+/+ alternative approach using ffmpeg executable. Neither videoio nor ffmpeg static linking is required.
 
 import std.stdio;
 import std.process;
