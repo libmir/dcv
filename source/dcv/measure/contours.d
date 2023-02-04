@@ -56,9 +56,12 @@ private enum defaultLevel = -1.0;
 
 private double _defaultLevel(InputType)(auto ref InputType image)
 {
-    auto min_index = image.minIndex;
-    auto max_index = image.maxIndex;
-    return (image[min_index[0], min_index[1]] + image[max_index[0], max_index[1]] ) / 2.0;
+    import std.algorithm.searching : _minIndex = minIndex, _maxIndex = maxIndex;
+
+    auto flatIter = image.flattened;
+    auto min_index = flatIter._minIndex;
+    auto max_index = flatIter._maxIndex;
+    return (flatIter[min_index] + flatIter[max_index] ) / 2.0;
 }
 
 pragma(inline, true)
