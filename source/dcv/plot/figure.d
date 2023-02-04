@@ -803,6 +803,7 @@ version(UseLegacyGL){ } else {
         auto primRange = primitiveStack[];
         while(!primRange.empty){
             primRange.back.draw();
+            primitiveStack.popLastOf(primRange);
             primRange.popBackN(1);
         }
     }
