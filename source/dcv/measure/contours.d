@@ -90,87 +90,88 @@ private auto _get_contour_segments(InputType)
     double ul, ur, ll, lr;
     size_t r1, c1;
 
-    foreach(r0; 0 .. array.shape[0] - 1){
-        foreach(c0; 0 .. array.shape[1] - 1){
-            r1 = r0 + 1;
-            c1 = c0 + 1;
+    foreach(kk; 0..(array.shape[0]*array.shape[1]-2)){
+        immutable r0 = kk / array.shape[1];
+        immutable c0 = kk % array.shape[1];
 
-            ul = array[r0, c0];
-            ur = array[r0, c1];
-            ll = array[r1, c0];
-            lr = array[r1, c1];
+        r1 = r0 + 1;
+        c1 = c0 + 1;
 
-            square_case = 0;
-            if (ul > level) square_case += 1;
-            if (ur > level) square_case += 2;
-            if (ll > level) square_case += 4;
-            if (lr > level) square_case += 8;
+        ul = array[r0, c0];
+        ur = array[r0, c1];
+        ll = array[r1, c0];
+        lr = array[r1, c1];
 
-            if ((square_case == 0) || (square_case == 15))
-                // only do anything if there's a line passing through the
-                // square. Cases 0 and 15 are entirely below/above the contour.
-                continue;
+        square_case = 0;
+        if (ul > level) square_case += 1;
+        if (ur > level) square_case += 2;
+        if (ll > level) square_case += 4;
+        if (lr > level) square_case += 8;
 
-            top = Point(r0, c0 + _get_fraction(ul, ur, level));
-            bottom = Point(r1, c0 + _get_fraction(ll, lr, level));
-            left = Point(r0 + _get_fraction(ul, ll, level), c0);
-            right = Point(r0 + _get_fraction(ur, lr, level), c1);
+        if ((square_case == 0) || (square_case == 15))
+            // only do anything if there's a line passing through the
+            // square. Cases 0 and 15 are entirely below/above the contour.
+            continue;
 
-            if (square_case == 1)
-                // top to left
-                segments.put(tuple(top, left));
-            else if (square_case == 2)
-                // right to top
-                segments.put(tuple(right, top));
-            else if (square_case == 3)
-                // right to left
-                segments.put(tuple(right, left));
-            else if (square_case == 4)
-                // left to bottom
-                segments.put(tuple(left, bottom));
-            else if (square_case == 5)
-                // top to bottom
-                segments.put(tuple(top, bottom));
-            else if (square_case == 6){
-                if (vertex_connect_high){
-                    segments.put(tuple(left, top));
-                    segments.put(tuple(right, bottom));
-                }else{
-                    segments.put(tuple(right, top));
-                    segments.put(tuple(left, bottom));
-                }
-            }
-            else if (square_case == 7)
-                // right to bottom
-                segments.put(tuple(right, bottom));
-            else if (square_case == 8)
-                // bottom to right
-                segments.put(tuple(bottom, right));
-            else if (square_case == 9){
-                if (vertex_connect_high){
-                    segments.put(tuple(top, right));
-                    segments.put(tuple(bottom, left));
-                }else{
-                    segments.put(tuple(top, left));
-                    segments.put(tuple(bottom, right));
-                }
-            }
-            else if (square_case == 10)
-                // bottom to top
-                segments.put(tuple(bottom, top));
-            else if (square_case == 11)
-                // bottom to left
-                segments.put(tuple(bottom, left));
-            else if (square_case == 12)
-                // lef to right
-                segments.put(tuple(left, right));
-            else if (square_case == 13)
-                // top to right
-                segments.put(tuple(top, right));
-            else if (square_case == 14)
-                // left to top
+        top = Point(r0, c0 + _get_fraction(ul, ur, level));
+        bottom = Point(r1, c0 + _get_fraction(ll, lr, level));
+        left = Point(r0 + _get_fraction(ul, ll, level), c0);
+        right = Point(r0 + _get_fraction(ur, lr, level), c1);
+
+        if (square_case == 1)
+            // top to left
+            segments.put(tuple(top, left));
+        else if (square_case == 2)
+            // right to top
+            segments.put(tuple(right, top));
+        else if (square_case == 3)
+            // right to left
+            segments.put(tuple(right, left));
+        else if (square_case == 4)
+            // left to bottom
+            segments.put(tuple(left, bottom));
+        else if (square_case == 5)
+            // top to bottom
+            segments.put(tuple(top, bottom));
+        else if (square_case == 6){
+            if (vertex_connect_high){
                 segments.put(tuple(left, top));
+                segments.put(tuple(right, bottom));
+            }else{
+                segments.put(tuple(right, top));
+                segments.put(tuple(left, bottom));
+            }
         }
+        else if (square_case == 7)
+            // right to bottom
+            segments.put(tuple(right, bottom));
+        else if (square_case == 8)
+            // bottom to right
+            segments.put(tuple(bottom, right));
+        else if (square_case == 9){
+            if (vertex_connect_high){
+                segments.put(tuple(top, right));
+                segments.put(tuple(bottom, left));
+            }else{
+                segments.put(tuple(top, left));
+                segments.put(tuple(bottom, right));
+            }
+        }
+        else if (square_case == 10)
+            // bottom to top
+            segments.put(tuple(bottom, top));
+        else if (square_case == 11)
+            // bottom to left
+            segments.put(tuple(bottom, left));
+        else if (square_case == 12)
+            // lef to right
+            segments.put(tuple(left, right));
+        else if (square_case == 13)
+            // top to right
+            segments.put(tuple(top, right));
+        else if (square_case == 14)
+            // left to top
+            segments.put(tuple(left, top));
     }
 
     auto ret = RCArray!Point(segments.length * 2);
