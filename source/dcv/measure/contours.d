@@ -90,9 +90,9 @@ private auto _get_contour_segments(InputType)
     double ul, ur, ll, lr;
     size_t r1, c1;
 
-    foreach(kk; 0..(array.shape[0]*array.shape[1]-2)){
-        immutable r0 = kk / array.shape[1];
-        immutable c0 = kk % array.shape[1];
+    foreach(kk; 0..((array.shape[0]-1)*(array.shape[1]-1))){
+        immutable r0 = kk / (array.shape[1]-1);
+        immutable c0 = kk % (array.shape[1]-1);
 
         r1 = r0 + 1;
         c1 = c0 + 1;
