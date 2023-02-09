@@ -1,26 +1,36 @@
-/*
-Copyright (c) 2021- Ferhat Kurtulmuş
-Boost Software License - Version 1.0 - August 17th, 2003
+/**
+    Original implementation by Josh Chen.
+    https://github.com/FreshJesh5/Suzuki-Algorithm
+    Authors: Ferhat Kurtulmuş
 */
 module dcv.measure.contours;
 
-import std.typecons: Tuple, tuple;
-import std.math;
-debug import std.stdio;
+import dcv.core.utils;
+
 import core.lifetime: move;
+import std.math : abs;
+import std.typecons : Tuple, tuple;
 
 import mir.ndslice;
 import mir.rc;
+import dvector;
 
-import bcaa;
+alias Contour = Slice!(RCI!size_t, 2LU, Contiguous);
 
-import dcv.core.utils : dlist;
-debug import dcv.core.utils : nm, nf;
+//struct for storing information on the current border, the first child, next sibling, and the parent.
+struct HierNode {
+    int parent = -1;
+    int first_child = -1;
+    int next_sibling = -1;
 
-// based on https://github.com/scikit-image/scikit-image/blob/main/skimage/measure/_find_contours.py
+    Border border;
 
-struct Point {
-    double x, y;
+@nogc nothrow:
+    void reset() {
+        parent = -1;
+        first_child = -1;
+        next_sibling = -1;
+    }
 }
 
 struct Rectangle {
@@ -34,298 +44,136 @@ alias BoundingBox = Rectangle;
 
 @nogc nothrow:
 
-/** Find iso-valued contours in a 2D array for a given level value.
+Tuple!(RCArray!Contour, RCArray!HierNode)
+findContours(InputType, bool fullyConnected = false)
+(InputType binaryImage, immutable DeepElementType!InputType whiteValue = 255) {
+    import mir.ndslice.topology : as;
 
-Params:
-    image = Input binary image of ubyte (0 for background). Agnostic to SliceKind
+    // add 1 pix of margins to 2 dims
+    immutable numrows = binaryImage.shape[0]+2;
+    immutable numcols = binaryImage.shape[1]+2;
 
-Returns RCArray!Slice!(RCI!double, 2LU, Contiguous): a refcounted array of Contours
-*/
-RCArray!Contour findContours(InputType)(auto ref InputType image, double level = defaultLevel, bool fullyConnected = true)
-{
-    if (level == -1.0)
-        level = _defaultLevel(image);
+    auto image = rcslice!int([numrows, numcols], 0);
+    image[1..$-1, 1..$-1] = as!int(binaryImage / whiteValue);
+    //auto image = as!int(binaryImage / 255).rcslice;
     
-    auto segments = _get_contour_segments(image.as!double, level, fullyConnected);
-    auto contours = _assemble_contours(segments);
+    Border NBD, LNBD;
+    //a vector of vectors to store each contour.
+    //contour n will be stored in contours[n-2]
+    //contour 2 will be stored in contours[0], contour 3 will be stored in contours[1], ad infinitum
+    Dvector!(Dvector!Point) contours;
 
-    return contours;
-}
+    LNBD.border_type = HOLE_BORDER;
+    NBD.border_type = HOLE_BORDER;
+    NBD.seq_num = 1;
 
-private enum defaultLevel = -1.0;
+    //hierarchy tree will be stored as an vector of nodes instead of using an actual tree since we need to access a node based on its index
+    //see definition for HierNode
+    //-1 denotes NULL
+    Dvector!HierNode hierarchy;
+    HierNode temp_node = HierNode(-1, -1, -1);
+    temp_node.border = NBD;
+    hierarchy ~= temp_node;
 
-private double _defaultLevel(InputType)(auto ref InputType image)
-{
-    import std.algorithm.searching : _minIndex = minIndex, _maxIndex = maxIndex;
-
-    auto flatIter = image.flattened;
-    auto min_index = flatIter._minIndex;
-    auto max_index = flatIter._maxIndex;
-    return (flatIter[min_index] + flatIter[max_index] ) / 2.0;
-}
-
-pragma(inline, true)
-private double _get_fraction(double from_value, double to_value, double level)
-{
-    if (to_value == from_value)
-        return 0;
-    return ((level - from_value) / (to_value - from_value));
-}
-
-private auto _get_contour_segments(InputType)
-(
-    InputType array,
-    double level,
-    bool vertex_connect_high)
-{
-
-    import mir.appender;
-
-    alias TPP = Tuple!(Point, Point);
-
-    auto segments = scopedBuffer!TPP;
-
-    ubyte square_case = 0;
-    Point top, bottom, left, right;
-    double ul, ur, ll, lr;
-    size_t r1, c1;
-
-    foreach(kk; 0..((array.shape[0]-1)*(array.shape[1]-1))){
-        immutable r0 = kk / (array.shape[1]-1);
-        immutable c0 = kk % (array.shape[1]-1);
-
-        r1 = r0 + 1;
-        c1 = c0 + 1;
-
-        ul = array[r0, c0];
-        ur = array[r0, c1];
-        ll = array[r1, c0];
-        lr = array[r1, c1];
-
-        square_case = 0;
-        if (ul > level) square_case += 1;
-        if (ur > level) square_case += 2;
-        if (ll > level) square_case += 4;
-        if (lr > level) square_case += 8;
-
-        if ((square_case == 0) || (square_case == 15))
-            // only do anything if there's a line passing through the
-            // square. Cases 0 and 15 are entirely below/above the contour.
-            continue;
-
-        top = Point(r0, c0 + _get_fraction(ul, ur, level));
-        bottom = Point(r1, c0 + _get_fraction(ll, lr, level));
-        left = Point(r0 + _get_fraction(ul, ll, level), c0);
-        right = Point(r0 + _get_fraction(ur, lr, level), c1);
-
-        if (square_case == 1)
-            // top to left
-            segments.put(tuple(top, left));
-        else if (square_case == 2)
-            // right to top
-            segments.put(tuple(right, top));
-        else if (square_case == 3)
-            // right to left
-            segments.put(tuple(right, left));
-        else if (square_case == 4)
-            // left to bottom
-            segments.put(tuple(left, bottom));
-        else if (square_case == 5)
-            // top to bottom
-            segments.put(tuple(top, bottom));
-        else if (square_case == 6){
-            if (vertex_connect_high){
-                segments.put(tuple(left, top));
-                segments.put(tuple(right, bottom));
-            }else{
-                segments.put(tuple(right, top));
-                segments.put(tuple(left, bottom));
+    Point p2;
+    bool border_start_found;
+    foreach (r; 0..numrows) {
+        LNBD.seq_num = 1;
+        LNBD.border_type = HOLE_BORDER;
+        foreach (c; 0..numcols) {
+            border_start_found = false;
+            //Phase 1: Find border
+            //If fij = 1 and fi, j-1 = 0, then decide that the pixel (i, j) is the border following starting point
+            //of an outer border, increment NBD, and (i2, j2) <- (i, j - 1).
+            if ((image[r, c] == 1 && c - 1 < 0) || (image[r, c] == 1 && image[r, c - 1] == 0)) {
+                NBD.border_type = OUTER_BORDER;
+                NBD.seq_num += 1;
+                p2.setPoint(r,c-1);
+                border_start_found = true;
             }
-        }
-        else if (square_case == 7)
-            // right to bottom
-            segments.put(tuple(right, bottom));
-        else if (square_case == 8)
-            // bottom to right
-            segments.put(tuple(bottom, right));
-        else if (square_case == 9){
-            if (vertex_connect_high){
-                segments.put(tuple(top, right));
-                segments.put(tuple(bottom, left));
-            }else{
-                segments.put(tuple(top, left));
-                segments.put(tuple(bottom, right));
-            }
-        }
-        else if (square_case == 10)
-            // bottom to top
-            segments.put(tuple(bottom, top));
-        else if (square_case == 11)
-            // bottom to left
-            segments.put(tuple(bottom, left));
-        else if (square_case == 12)
-            // lef to right
-            segments.put(tuple(left, right));
-        else if (square_case == 13)
-            // top to right
-            segments.put(tuple(top, right));
-        else if (square_case == 14)
-            // left to top
-            segments.put(tuple(left, top));
-    }
 
-    auto ret = RCArray!Point(segments.length * 2);
-    ret.ptr[0..segments.length*2] = (cast(Point*)segments.data[].ptr)[0..segments.length * 2];
-
-    return ret;
-}
-
-private auto _assemble_contours(Segments)(auto ref Segments segments){ 
-    import std.algorithm.comparison : equal;
-    import mir.ndslice: chunks;
-
-    debug nm = nf = 0;
-
-    size_t current_index = 0;
-    
-    alias DLP = dlist!(Point);
-    
-    Bcaa!(size_t, DLP) contours;
-    
-    Bcaa!(Point, Tuple!(DLP, size_t)) starts;
-    Bcaa!(Point, Tuple!(DLP, size_t)) ends;
-
-    scope(exit){
-        starts.free;
-        ends.free;
-        contours.free;
-    }
-    
-    foreach(elem; segments.asSlice.chunks(2)){
-        Point from_point = elem[0];
-        Point to_point = elem[1];
-
-        // Ignore degenerate segments.
-        // This happens when (and only when) one vertex of the square is
-        // exactly the contour level, and the rest are above or below.
-        // This degenerate vertex will be picked up later by neighboring
-        // squares.
-        if (from_point == to_point)
-            continue;
-        
-        DLP tail;
-        size_t tail_num;
-        
-        if (auto tuptail = to_point in starts){
-            tail = (*tuptail)[0];
-            tail_num = (*tuptail)[1];
-            starts.remove(to_point);
-        }
-
-        DLP head;
-        size_t head_num;
-        
-        if (auto tuphead = from_point in ends){
-            head = (*tuphead)[0];
-            head_num = (*tuphead)[1];
-            ends.remove(from_point);
-        }
-
-        if ((!tail.empty) && (!head.empty)){
-            // We need to connect these two contours.
-            if (tail[].equal(head[])){
-                // We need to closed a contour: add the end point
-                head.insertBack(to_point);
-            }
-            else{  // tail is not head
-                // We need to join two distinct contours.
-                // We want to keep the first contour segment created, so that
-                // the final contours are ordered left->right, top->bottom.
-                if (tail_num > head_num){
-                    // tail was created second. Append tail to head.
-                    head.insertBack(tail[]);
-
-                    // Remove tail from the detected contours
-                    contours[tail_num].clear;
-                    contours.remove(tail_num);
-
-                    // Update starts and ends
-                    starts[head[].front] = tuple(head, head_num);
-                    ends[head[].back] = tuple(head, head_num);
-                }else{  // tail_num <= head_num 
-                    // head was created second. Prepend head to tail.
-                    
-                    tail.insertFront(head[]);
-                    
-                    // Remove head from the detected contours
-                    starts.remove(head[].front); // head[0] can be == to_point!
-
-                    contours[head_num].clear;
-                    contours.remove(head_num);
-                    // Update starts and ends
-                    starts[tail[].front] = tuple(tail, tail_num);
-                    ends[tail[].back] = tuple(tail, tail_num);
-                    
+            //Else if fij >= 1 and fi,j+1 = 0, then decide that the pixel (i, j) is the border following
+            //starting point of a hole border, increment NBD, (i2, j2) ←(i, j + 1), and LNBD ← fij in case fij > 1.
+            else if ( c+1 < numcols && (image[r, c] >= 1 && image[r, c + 1] == 0)) {
+                NBD.border_type = HOLE_BORDER;
+                NBD.seq_num += 1;
+                if (image[r, c] > 1) {
+                    LNBD.seq_num = image[r, c];
+                    LNBD.border_type = hierarchy[LNBD.seq_num-1].border.border_type;
                 }
+                p2.setPoint(r, c + 1);
+                border_start_found = true;
+            }
+
+            if (border_start_found) {
+                //Phase 2: Store Parent
+                temp_node.reset();
+                if (NBD.border_type == LNBD.border_type) {
+                    temp_node.parent = hierarchy[LNBD.seq_num - 1].parent;
+                    temp_node.next_sibling = hierarchy[temp_node.parent - 1].first_child;
+                    hierarchy[temp_node.parent - 1].first_child = NBD.seq_num;
+                    temp_node.border = NBD;
+                    hierarchy ~= temp_node;
+                }
+                else {
+                    if (hierarchy[LNBD.seq_num-1].first_child != -1) {
+                        temp_node.next_sibling = hierarchy[LNBD.seq_num-1].first_child;
+                    }
+
+                    temp_node.parent = LNBD.seq_num;
+                    hierarchy[LNBD.seq_num-1].first_child = NBD.seq_num;
+                    temp_node.border = NBD;
+                    hierarchy ~= temp_node;
+                }
+
+                //Phase 3: Follow border
+                alias IMT = typeof(image);
+                static if(fullyConnected){
+                    followBorder!(IMT, stepCW8, stepCCW8)(image, r, c, p2, NBD, contours);
+                } else {
+                    followBorder!(IMT, stepCW, stepCCW)(image, r, c, p2, NBD, contours);
+                }
+                
+            }
+
+            //Phase 4: Continue to next border
+            //If fij != 1, then LNBD <- abs( fij ) and resume the raster scan from the pixel(i, j + 1).
+            //The algorithm terminates when the scan reaches the lower right corner of the picture.
+            if (abs(image[r, c]) > 1) {
+                LNBD.seq_num = abs(image[r, c]);
+                LNBD.border_type = hierarchy[LNBD.seq_num - 1].border.border_type;
             }
         }
-        else if((tail.empty) && (head.empty)) {
-            // We need to add a new contour
-            DLP new_contour = DLP(from_point, to_point);
-            if(auto eptr = current_index in contours){
-                (*eptr).insertBack(new_contour[]);
-            }else{
-                contours[current_index] = new_contour;
-            }
-            
-            starts[from_point] = tuple(new_contour, current_index);
-            ends[to_point] = tuple(new_contour, current_index);
-            current_index ++;
-        }
-        else if(head.empty){  // tail is not None
-            // tail first element is to_point: the new segment should be
-            // prepended.
-            tail.insertFront(from_point);
-            
-            // Update starts
-            starts[from_point] = tuple(tail, tail_num);
-        } else {
-            // tail is None and head is not None:
-            // head last element is from_point: the new segment should be
-            // appended
-            head.insertBack(to_point);
-            // Update ends
-            ends[to_point] = tuple(head, head_num);
-        }
+
     }
 
-    
-    import mir.ndslice.sorting : sort;
-
-    auto cts = RCArray!Contour(contours.length);
+    // prepare return arrays
     size_t i;
-    
-    auto _keys = contours.byKey.rcarray.asSlice.sort;
-    
-    foreach (k; _keys)
+    auto ret0 = RCArray!Contour(contours.length);
+
+    foreach (_c; contours)
     {
-        auto tmp = contours[k];
-        auto _c = tmp[].rcarray!Point;
-        auto len = _c.length;
-        Contour ctr = uninitRCslice!(double)(len, 2);
-        
-        ctr._iterator[0..len*2][] = (cast(double*)_c.ptr)[0..len*2];
-        
-        cts[i++] = ctr;
-        tmp.clear;
+        auto clen = _c.length;
+        Contour ctr = uninitRCslice!(size_t)(clen, 2);
+
+        ctr._iterator[0..clen*2][] = (cast(size_t*)_c[].ptr)[0..clen*2];
+
+        ret0[i++] = ctr;
+
+        _c.free;
     }
 
-    debug assert( nm == nf, "Memory leaks here!");
+    i = 0;
 
-    return cts.move;
+    auto ret1 = RCArray!HierNode(hierarchy.length);
+    foreach (_h; hierarchy)
+        ret1[i++]= _h;
+
+    contours.free;
+    hierarchy.free;
+    
+    return tuple(ret0, ret1);
 }
-
-alias Contour = Slice!(RCI!double, 2LU, Contiguous);
 
 auto contours2image(RCArray!Contour contours, size_t rows, size_t cols)
 {
@@ -401,7 +249,6 @@ BoundingBox boundingBox(C)(C contour)
 
     return BoundingBox(xMin, yMin, xMax - xMin + 1, yMax - yMin + 1);
 
-
 }
 
 Tuple!(size_t, size_t) anyInsidePoint(C)(auto ref C contour){
@@ -432,4 +279,245 @@ private bool _contains(C, P)(C c, P p){
             return true;
     }
     return false;
+}
+
+private:
+
+enum HOLE_BORDER = 1;
+enum OUTER_BORDER = 2;
+
+struct Border {
+    int seq_num;
+    int border_type;
+}
+
+struct Point {
+    size_t row;
+    size_t col;
+
+@nogc nothrow:
+    void setPoint(size_t r, size_t c) {
+        row = r;
+        col = c;
+    }
+
+    bool samePoint(Point p) {
+        return row == p.row && col == p.col;
+    }
+}
+
+//step around a pixel CCW
+private:
+void stepCCW(ref Point current, Point pivot) {
+    if (current.col > pivot.col)
+        current.setPoint(pivot.row - 1, pivot.col);
+    else if (current.col < pivot.col)
+        current.setPoint(pivot.row + 1, pivot.col);
+    else if (current.row > pivot.row)
+        current.setPoint(pivot.row, pivot.col + 1);
+    else if (current.row < pivot.row)
+        current.setPoint(pivot.row, pivot.col - 1);
+}
+
+//step around a pixel CW
+void stepCW(ref Point current, Point pivot) {
+    if (current.col > pivot.col)
+        current.setPoint(pivot.row + 1, pivot.col);
+    else if (current.col < pivot.col)
+        current.setPoint(pivot.row - 1, pivot.col);
+    else if (current.row > pivot.row)
+        current.setPoint(pivot.row, pivot.col - 1);
+    else if (current.row < pivot.row)
+        current.setPoint(pivot.row, pivot.col + 1);
+}
+
+//step around a pixel CCW in the 8-connect neighborhood.
+void stepCCW8(ref Point current, Point pivot) {
+    if (current.row == pivot.row && current.col > pivot.col)
+        current.setPoint(pivot.row - 1, pivot.col + 1);
+    else if (current.col > pivot.col && current.row < pivot.row)
+        current.setPoint(pivot.row - 1, pivot.col);
+    else if (current.row < pivot.row && current.col == pivot.col)
+        current.setPoint(pivot.row - 1, pivot.col - 1);
+    else if (current.row < pivot.row && current.col < pivot.col)
+        current.setPoint(pivot.row, pivot.col - 1);
+    else if (current.row == pivot.row && current.col < pivot.col)
+        current.setPoint(pivot.row + 1, pivot.col - 1);
+    else if (current.row > pivot.row && current.col < pivot.col)
+        current.setPoint(pivot.row + 1, pivot.col);
+    else if (current.row > pivot.row && current.col == pivot.col)
+        current.setPoint(pivot.row + 1, pivot.col + 1);
+    else if (current.row > pivot.row && current.col > pivot.col)
+        current.setPoint(pivot.row, pivot.col + 1);
+}
+
+//step around a pixel CW in the 8-connect neighborhood.
+void stepCW8(ref Point current, Point pivot) {
+    if (current.row == pivot.row && current.col > pivot.col)
+        current.setPoint(pivot.row + 1, pivot.col + 1);
+    else if (current.col > pivot.col && current.row < pivot.row)
+        current.setPoint(pivot.row, pivot.col + 1);
+    else if (current.row < pivot.row && current.col == pivot.col)
+        current.setPoint(pivot.row - 1, pivot.col + 1);
+    else if (current.row < pivot.row && current.col < pivot.col)
+        current.setPoint(pivot.row - 1, pivot.col);
+    else if (current.row == pivot.row && current.col < pivot.col)
+        current.setPoint(pivot.row - 1, pivot.col - 1);
+    else if (current.row > pivot.row && current.col < pivot.col)
+        current.setPoint(pivot.row, pivot.col - 1);
+    else if (current.row > pivot.row && current.col == pivot.col)
+        current.setPoint(pivot.row + 1, pivot.col - 1);
+    else if (current.row > pivot.row && current.col > pivot.col)
+        current.setPoint(pivot.row + 1, pivot.col);
+}
+
+//checks if a given pixel is out of bounds of the image
+pragma(inline, true)
+bool pixelOutOfBounds(Point p, size_t numrows, size_t numcols) {
+    return (p.col >= numcols || p.row >= numrows || p.col < 0 || p.row < 0);
+}
+
+//marks a pixel as examined after passing through
+void markExamined(Point mark, Point center, ref bool[4] checked) {
+    //p3.row, p3.col + 1
+    size_t loc = -1;
+    //    3
+    //  2 x 0
+    //    1
+    if (mark.col > center.col)
+        loc = 0;
+    else if (mark.col < center.col)
+        loc = 2;
+    else if (mark.row > center.row)
+        loc = 1;
+    else if (mark.row < center.row)
+        loc = 3;
+
+    debug assert(loc != -1, "Error: markExamined Failed");
+
+    checked[loc] = true;
+    return;
+}
+
+//marks a pixel as examined after passing through in the 8-connected case
+void markExamined8(Point mark, Point center, ref bool[4] checked) {
+    //p3.row, p3.col + 1
+    size_t loc = -1;
+    //  5 6 7
+    //  4 x 0
+    //  3 2 1
+    if (mark.row == center.row && mark.col > center.col)
+        loc = 0;
+    else if (mark.col > center.col && mark.row < center.row)
+        loc = 7;
+    else if (mark.row < center.row && mark.col == center.col)
+        loc = 6;
+    else if (mark.row < center.row && mark.col < center.col)
+        loc = 5;
+    else if (mark.row == center.row && mark.col < center.col)
+        loc = 4;
+    else if (mark.row > center.row && mark.col < center.col)
+        loc = 3;
+    else if (mark.row > center.row && mark.col == center.col)
+        loc = 2;
+    else if (mark.row > center.row && mark.col > center.col)
+        loc = 1;
+
+    debug assert(loc != -1, "Error: markExamined Failed");
+
+    checked[loc] = true;
+    return;
+}
+
+//checks if given pixel has already been examined
+pragma(inline, true)
+bool isExamined(const ref bool[4] checked) {
+    //p3.row, p3.col + 1
+    return checked[0];
+}
+
+pragma(inline, true)
+bool isExamined8(const ref bool[8] checked) {
+    //p3.row, p3.col + 1
+    return checked[0];
+}
+
+pragma(inline, true)
+P removeMargin(P)(P p){
+    p.row--;
+    p.col--;
+    return p;
+}
+
+//follows a border from start to finish given a starting point
+void followBorder(InputImage, alias cw_fun = stepCW, alias ccw_fun = stepCCW)
+(ref InputImage image, size_t row, size_t col, Point p2, Border NBD, ref Dvector!(Dvector!Point) contours) {
+    size_t numrows = image.shape[0];
+    size_t numcols = image.shape[1];
+    Point current = Point(p2.row, p2.col);
+    Point start = Point(row, col);
+    Dvector!Point point_storage;
+
+    //(3.1)
+    //Starting from (i2, j2), look around clockwise the pixels in the neighborhood of (i, j) and find a nonzero pixel.
+    //Let (i1, j1) be the first found nonzero pixel. If no nonzero pixel is found, assign -NBD to fij and go to (4).
+    do {
+        cw_fun(current, start);
+        if (current.samePoint(p2)) {
+            image[start.row, start.col] = -NBD.seq_num;
+            point_storage ~= start.removeMargin;
+            contours ~= point_storage;
+            return;
+        }
+    } while (pixelOutOfBounds(current, numrows, numcols) || image[current.row, current.col] == 0);
+    Point p1 = current;
+    
+    //(3.2)
+    //(i2, j2) <- (i1, j1) and (i3, j3) <- (i, j).
+    
+    Point p3 = start;
+    Point p4;
+    p2 = p1;
+    bool[4] checked;
+//    bool checked[8];
+    while (true) {
+        //(3.3)
+        //Starting from the next element of the pixel(i2, j2) in the counterclockwise order, examine counterclockwise the pixels in the
+        //neighborhood of the current pixel(i3, j3) to find a nonzero pixel and let the first one be(i4, j4).
+        current = p2;
+
+
+        checked[] = false;
+
+        do {
+            markExamined(current, p3, checked);
+            ccw_fun(current, p3);
+        } while (pixelOutOfBounds(current, numrows, numcols) || image[current.row, current.col] == 0);
+        p4 = current;
+
+        //Change the value fi3, j3 of the pixel(i3, j3) as follows :
+        //    If the pixel(i3, j3 + 1) is a 0 - pixel examined in the substep(3.3) then fi3, j3 <- - NBD.
+        //    If the pixel(i3, j3 + 1) is not a 0 - pixel examined in the substep(3.3) and fi3, j3 = 1, then fi3, j3 ←NBD.
+        //    Otherwise, do not change fi3, j3.
+
+        if ( (p3.col+1 >= numcols || image[p3.row, p3.col + 1] == 0) && isExamined(checked)) {
+            image[p3.row, p3.col] = -NBD.seq_num;
+        }
+        else if (p3.col + 1 < numcols && image[p3.row, p3.col] == 1) {
+            image[p3.row, p3.col] = NBD.seq_num;
+        }
+
+        point_storage ~= p3.removeMargin;
+
+        //(3.5)
+        //If(i4, j4) = (i, j) and (i3, j3) = (i1, j1) (coming back to the starting point), then go to(4);
+        //otherwise, (i2, j2) <- (i3, j3), (i3, j3) <- (i4, j4), and go back to(3.3).
+        if (p4.samePoint(start) && p3.samePoint(p1)) {
+            contours ~= point_storage;
+            return;
+        }
+
+        p2 = p3;
+        p3 = p4;
+    }
 }

@@ -24,7 +24,8 @@ int main(string[] args)
 
     imshow(imbin, "binary image");
 
-    auto cntrs = findContours(imbin); // find contours (binary boundaries)
+    auto cntrs_h = findContours(imbin); // find contours (binary boundaries)
+    auto cntrs = cntrs_h[0];
     auto cimg = contours2image(cntrs, imbin.shape[0], imbin.shape[1]);
     
     // fill contours

@@ -24,7 +24,8 @@ int main(string[] args)
     
     auto labels = bwlabel(imbin); // create label matrix
 
-    auto cntrs = findContours(imbin); // find contours (binary boundaries)
+    auto cntrs_h = findContours(imbin); // find contours (binary boundaries)
+    auto cntrs = cntrs_h[0];
     
     foreach(contour; cntrs) // iterate over the regions
     { 
