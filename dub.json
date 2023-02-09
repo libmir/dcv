@@ -38,7 +38,8 @@
             {
                 "mir-algorithm": ">=3.15.3",
                 "mir-random": "2.2.19",
-                "bcaa": "0.0.8"
+                "bcaa": "0.0.8",
+                "dvector": "*"
             },
             "buildTypes": {
                 "unittest-release": {

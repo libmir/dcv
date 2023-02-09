@@ -383,8 +383,6 @@ private struct DRange
 
 struct dlist(T)
 {
-    import std.range : Take;
-
     struct PayNode
     {
         BaseNode _base;
@@ -412,16 +410,15 @@ struct dlist(T)
   {
     static BaseNode* createNode(Stuff)(auto ref Stuff arg, BaseNode* prev = null, BaseNode* next = null)
     {
-        auto pn = mmalloc!PayNode(PayNode.sizeof);
-        *pn = PayNode(BaseNode(prev, next), arg);
-
+		auto pn = mmalloc!PayNode(PayNode.sizeof);
+		*pn = PayNode(BaseNode(prev, next), arg);
         return (pn).asBaseNode();
     }
 
     void initialize() nothrow  
     {
         if (_root) return;
-        _root = (mmalloc!PayNode( PayNode.sizeof)).asBaseNode();
+		_root = (mmalloc!PayNode( PayNode.sizeof)).asBaseNode();
         _root._next = _root._prev = _root;
     }
     ref inout(BaseNode*) _first() @property  nothrow  inout
@@ -445,7 +442,7 @@ struct dlist(T)
         insertBack(stuff);
     }
 
-    bool opEquals()(ref const DList rhs) const
+    bool opEquals()(ref const typeof(this) rhs) const
     if (is(typeof(front == front)))
     {
         const lhs = this;
@@ -508,8 +505,9 @@ struct dlist(T)
     }
 
     void clear()
-    {
+    {	
         auto r = this[];
+
         if (r.empty){
             if(_root){
                 mfree(_root);
@@ -517,22 +515,29 @@ struct dlist(T)
             }
             return;
         }
+
         BaseNode* last = null;
         do
         {
             last = r._first;
             r.popFront();
+            BaseNode.connect(_root, _first._next);
             mfree(last);
         } while ( !r.empty );
-
-        mfree(_root);
-        _root = null;
         
+        
+        if(_root){
+            mfree(_root);
+            _root = null;
+        }
+		
     }
 
-    @property dlist dup()
+    @property typeof(this) dup()
     {
-        return dlist(this[]);
+		typeof(this) dl;
+		dl.insertBack(this[]);
+        return dl;
     }
 
     Range opSlice()
