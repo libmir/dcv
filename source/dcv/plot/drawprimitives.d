@@ -5,6 +5,25 @@ Boost Software License - Version 1.0 - August 17th, 2003
 
 module dcv.plot.drawprimitives;
 
+// must match with enum ImageFormat
+int DISPLAY_FORMAT(int format) @nogc nothrow
+{
+    import dcv.plot.bindings;
+
+    if(format == 1){
+        return GL_DEPTH_COMPONENT;
+    } else 
+    if(format == 2){
+       return GL_RGB;
+    } else
+    if(format == 3){
+        return GL_BGR;
+    } else {
+        debug assert(0, "unsopported format for imshow."); // it will never come here :)
+        return -1;
+    }
+}
+
 version(UseLegacyGL){ } else:
 
 import std.math;
@@ -35,23 +54,6 @@ struct PlotCircle {
 }
 
 package:
-
-// must match with enum ImageFormat
-int DISPLAY_FORMAT(int format) @nogc nothrow
-{
-    if(format == 1){
-        return GL_DEPTH_COMPONENT;
-    } else 
-    if(format == 2){
-       return GL_RGB;
-    } else
-    if(format == 3){
-        return GL_BGR;
-    } else {
-        debug assert(0, "unsopported format for imshow."); // it will never come here :)
-        return -1;
-    }
-}
 
 struct TextureRenderer {
 
