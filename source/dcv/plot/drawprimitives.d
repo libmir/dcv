@@ -14,11 +14,6 @@ import mir.appender;
 
 import dcv.plot.bindings;
 
-interface PrimitiveDrawer
-{
-    void draw();
-}
-
 alias PlotPoint = Tuple!(float, "x", float, "y"); 
 alias PPoint = PlotPoint;
 
@@ -41,36 +36,60 @@ struct PlotCircle {
 
 package:
 
-class TextureRenderer {
+// must match with enum ImageFormat
+int DISPLAY_FORMAT(int format) @nogc nothrow
+{
+    if(format == 1){
+        return GL_DEPTH_COMPONENT;
+    } else 
+    if(format == 2){
+       return GL_RGB;
+    } else
+    if(format == 3){
+        return GL_BGR;
+    } else {
+        debug assert(0, "unsopported format for imshow."); // it will never come here :)
+        return -1;
+    }
+}
+
+struct TextureRenderer {
+
+@disable this();
+
     private {
         ubyte* imptr;
         uint width;
         uint height;
-        GLTexturedRect drawer;
+        int dispFormat;
+        GLTexturedRect drafter;
         GLuint shaderPrg;
         uint textureId;
     }
 
-    this(ubyte* imptr, uint width, uint height){
-        
+    @nogc nothrow:
+    this(ubyte* imptr, uint width, uint height, int dformat){
         this.imptr = imptr;
         this.width = width;
         this.height = height;
+        dispFormat = dformat;
 
-        textureId = loadTexture(imptr, width, height);
+        textureId = loadTexture(imptr, width, height, DISPLAY_FORMAT(dispFormat));
 
         shaderPrg = loadShaderTextured();
-        drawer = GLTexturedRect(shaderPrg);
+        drafter = GLTexturedRect(shaderPrg);
     }
 
     void render(){
-        updateTexture(imptr, width, height, textureId);
-        drawer.set(Rect(0,0,width,height), textureId, 0.0f);
-        drawer.draw();
+        updateTexture(imptr, width, height, textureId, DISPLAY_FORMAT(dispFormat));
+        drafter.set(Rect(0,0,width,height), textureId, 0.0f);
+        drafter.draw();
     }
 }
 
-GLuint loadTexture(ubyte* imptr, uint w, uint h){
+@nogc nothrow:
+
+GLuint loadTexture(ubyte* imptr, uint w, uint h, int dispFormat){
     GLuint textureId;
     glGenTextures(1, &textureId); 
     glBindTexture(GL_TEXTURE_2D, textureId);
@@ -87,87 +106,48 @@ GLuint loadTexture(ubyte* imptr, uint w, uint h){
     glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, imptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, dispFormat, w, h, 0, dispFormat, GL_UNSIGNED_BYTE, imptr);
     glGenerateMipmap(GL_TEXTURE_2D);
 
     return textureId;
 }
 
-void updateTexture(ubyte* imptr, uint w, uint h, uint textureId){
+void updateTexture(ubyte* imptr, uint w, uint h, uint textureId, int dispFormat){
 
     glBindTexture(GL_TEXTURE_2D, textureId);
 
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, imptr);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, dispFormat, GL_UNSIGNED_BYTE, imptr);
 
     glBindTexture( GL_TEXTURE_2D, 0);
 }
 
-final class LineDrawer : PrimitiveDrawer {
-
-    PlotPoint p1;
-    PlotPoint p2;
-    PlotColor color;
-    float lineWidth;
-
-    GLuint shaderPrg;
-    GLLine drawer;
-
-    this(PlotPoint p1, PlotPoint p2, PlotColor color, float lineWidth){
-        this.p1 = p1;
-        this.p2 = p2;
-        this.color = color;
-        this.lineWidth = lineWidth;
-
-        shaderPrg = loadShaderColor();
-        drawer = GLLine(shaderPrg);
-    }
-
-    override void draw(){
-        drawer.set(p1, p2, color, lineWidth);
-        drawer.draw();
-    }
+void launchLine(ref GLLine drafter,
+    const ref PlotPoint p1, const ref PlotPoint p2, const ref PlotColor color, const ref float lineWidth)
+{
+    drafter.set(p1, p2, color, lineWidth);
+    drafter.draw();
 }
 
-final class HollowCircleDrawer : PrimitiveDrawer {
-    PlotCircle circle;
-    PlotColor color;
-    GLuint shaderPrg;
-    GLCircle drawer;
-
-    this(PlotCircle circle, PlotColor color){
-        this.circle = circle;
-        this.color = color;
-        shaderPrg = loadShaderColor();
-        drawer = GLCircle(shaderPrg);
-    }
-
-    override void draw(){
-        
-        drawer.set(circle.centerx, circle.centery, circle.radius, color);
-        drawer.draw();
-    }
+void launchHollowCircle(ref GLCircle drafter,
+    const ref PlotCircle circle, const ref PlotColor color)
+{  
+    drafter.set(circle.centerx, circle.centery, circle.radius, color);
+    drafter.draw();
 }
 
-final class SolidCircleDrawer : PrimitiveDrawer {
-    PlotCircle circle;
-    PlotColor color;
-    GLuint shaderPrg;
-    GLSolidCircle drawer;
-
-    this(PlotCircle circle, PlotColor color){
-        this.circle = circle;
-        this.color = color;
-        shaderPrg = loadShaderColor();
-        drawer = GLSolidCircle(shaderPrg);
-    }
-
-    override void draw(){
-        drawer.set(circle.centerx, circle.centery, circle.radius, color);
-        drawer.draw();
-    }
+void launchSolidCircle(ref GLSolidCircle drafter,
+    const ref PlotCircle circle, const ref PlotColor color)
+{
+    drafter.set(circle.centerx, circle.centery, circle.radius, color);
+    drafter.draw();
 }
 
-
+void launchRectangle(ref GLRect drafter,
+    const ref PlotPoint[2] r, const ref PlotColor color, const ref float lineWidth)
+{
+    drafter.set(r, color, lineWidth);
+    drafter.draw();
+}
 /+++++++++++++++++++++++++++++       shader code        +++++++++++++++++++++++++++++++/
 
 import core.stdc.math: cos, sin;
@@ -176,8 +156,6 @@ import core.stdc.stdio: printf;
 
 import mir.ndslice;
 import mir.rc;
-
-@nogc nothrow:
 
 package __gshared Slice!(RCI!float, 2LU, Contiguous) ortho;
 
@@ -218,9 +196,7 @@ private auto getModel(const ref Rect r, float angle){
     return model;
 }
 
-private:
-
-enum PI = 3.14159265359f;
+private enum PI = 3.14159265359f;
 
 struct GLLine{
     float[4] vertices;
@@ -239,10 +215,10 @@ struct GLLine{
 
         glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, vertices.length * float.sizeof, vertices[].ptr, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, vertices.length * float.sizeof, vertices.ptr, GL_STATIC_DRAW);
     }
 
-    void set(PPoint point1, PPoint point2, PlotColor color, float lineWidth){
+    void set(const ref PlotPoint point1, const ref PlotPoint point2, const ref PlotColor color, const ref float lineWidth){
         this.lineWidth = lineWidth;
         
         vertices[0] = float(point1.x);
@@ -251,7 +227,7 @@ struct GLLine{
         vertices[3] = float(point2.y);
 
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, vertices.length * float.sizeof, vertices[].ptr, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, vertices.length * float.sizeof, vertices.ptr, GL_STATIC_DRAW);
 
         glUseProgram(shaderProgram);
 
@@ -308,7 +284,7 @@ struct GLCircle {
         glBufferData(GL_ARRAY_BUFFER, vertices.length * float.sizeof, vertices.data.ptr, GL_STATIC_DRAW);
     }
 
-    void set(float x, float y, float radius, PlotColor color){
+    void set(const ref float x, const ref float y, const ref float radius, const ref PlotColor color){
         enum numVertices = 1000;
 
         float increment = 2.0f * PI / float(numVertices);
@@ -327,7 +303,7 @@ struct GLCircle {
         glUseProgram(shaderProgram);
 
         GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
-        auto vertexSize =float.sizeof*2;
+        auto vertexSize = float.sizeof*2;
         glVertexAttribPointer(posAttrib, 2, GL_FLOAT, false, cast(uint)vertexSize, null);
         glEnableVertexAttribArray(posAttrib);
 
@@ -376,7 +352,7 @@ struct GLSolidCircle {
         glBufferData(GL_ARRAY_BUFFER, vertices.length * float.sizeof, vertices.data.ptr, GL_STREAM_DRAW);
     }
 
-    void set(float x, float y, float radius, PlotColor color){        
+    void set(const ref float x, const ref float y, const ref float radius, const ref PlotColor color){        
         import std.range : chunks;
 
         enum quality = 0.125;
@@ -420,6 +396,62 @@ struct GLSolidCircle {
 
 private struct Rect {
     int x, y, w, h;
+}
+
+struct GLRect {
+    float[8] vertices;
+    
+    GLuint shaderProgram;
+    GLuint vbo;
+
+    float lineWidth;
+
+    @nogc nothrow:
+
+    this(GLuint shaderProgram){
+        this.shaderProgram = shaderProgram;
+
+        glGenBuffers(1, &vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, vertices.length * float.sizeof, vertices.ptr, GL_STATIC_DRAW);
+    }
+
+    void set(const ref PlotPoint[2] r, const ref PlotColor color, const ref float lineWidth){
+        this.lineWidth = lineWidth;
+
+        immutable p1 = r[0];
+        immutable p2 = r[1];
+
+        vertices = [p1.x, p1.y,
+                    p1.x, p2.y,
+                    p2.x, p2.y,
+                    p2.x, p1.y
+        ];
+
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, vertices.length * float.sizeof, vertices.ptr, GL_STATIC_DRAW);
+        
+        glUseProgram(shaderProgram);
+
+        GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
+        auto vertexSize = float.sizeof*2;
+        glVertexAttribPointer(posAttrib, 2, GL_FLOAT, false, cast(uint)vertexSize, null);
+        glEnableVertexAttribArray(posAttrib);
+
+        auto pmAtt = glGetUniformLocation(shaderProgram, "projectionMat");
+        glUniformMatrix4fv(pmAtt, 1, GL_FALSE, ortho.ptr);
+
+        // set color
+        auto cAtt = glGetUniformLocation(shaderProgram, "ucolor");
+        glUniform4fv(cAtt, 1, color.ptr);
+    }
+
+    void draw() {
+        glUseProgram(shaderProgram);
+        glDrawArrays(GL_LINE_LOOP, 0, cast(int)vertices.length/2);
+        glDisableVertexAttribArray(0);
+        glUseProgram(0);
+    }
 }
 
 struct GLTexturedRect {
@@ -484,7 +516,7 @@ struct GLTexturedRect {
     }
 }
 
-GLuint initShader(const char* vShader, const char* fShader, const char* outputAttributeName) {
+GLuint initShader(const char* vShader, const char* fShader) {
     struct Shader {
         GLenum type;
         const char* source;
@@ -511,7 +543,7 @@ GLuint initShader(const char* vShader, const char* fShader, const char* outputAt
             char* logMsg = cast(char*)malloc(char.sizeof*logSize);
             glGetShaderInfoLog( shader, logSize, null, logMsg );
             printf("%s \n", logMsg);
-            free(logMsg);
+            free(cast(void*)logMsg);
 
             exit( -1 );
         }
@@ -531,7 +563,7 @@ GLuint initShader(const char* vShader, const char* fShader, const char* outputAt
         char* logMsg = cast(char*)malloc(char.sizeof*logSize);
         glGetProgramInfoLog( program, logSize, null, logMsg );
         printf("%s \n", logMsg);
-        free(logMsg);
+        free(cast(void*)logMsg);
         exit( -1 );
     }
 
@@ -545,27 +577,6 @@ GLuint initShader(const char* vShader, const char* fShader, const char* outputAt
 enum verth = "#version 140\n
 ";
 enum fragh = "#version 140\n";
-
-
-GLuint loadShaderColor(){
-    enum vert = verth ~ q{
-        in vec4 position;
-        uniform mat4 projectionMat;
-        void main() {
-            gl_Position = projectionMat * vec4(position.xyz, 1.0);
-        }
-    };
-    enum frag = fragh ~ `
-        uniform vec4 ucolor;
-        out vec4 FragColor;
-        void main() {
-            FragColor = ucolor;
-        }
-    `;
-
-    return initShader(vert,  frag, "ucolor");
-    
-}
 
 GLuint loadShaderTextured(){
     enum vert = verth ~ q{
@@ -593,5 +604,25 @@ GLuint loadShaderTextured(){
         }
     `;
 
-    return initShader(vert, frag, "fragColor");
+    return initShader(vert, frag);
+}
+
+GLuint loadShaderColor(){
+    enum vert = verth ~ q{
+        in vec4 position;
+        uniform mat4 projectionMat;
+        void main() {
+            gl_Position = projectionMat * vec4(position.xyz, 1.0);
+        }
+    };
+    enum frag = fragh ~ `
+        uniform vec4 ucolor;
+        out vec4 FragColor;
+        void main() {
+            FragColor = ucolor;
+        }
+    `;
+    
+    return initShader(vert, frag);
+    
 }
