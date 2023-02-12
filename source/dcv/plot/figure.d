@@ -749,6 +749,8 @@ class Figure
     private void render()
     {
         version(UseLegacyGL){
+            import dvc.plot.drawPrimitives : DISPLAY_FORMAT;
+            
             glfwMakeContextCurrent(_glfwWindow);
 
             int fBufWidth, fBufHeight;
@@ -769,7 +771,7 @@ class Figure
             glRasterPos3f(0, height - 1, -0.3);
 
             glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-            glDrawPixels(_width, _height, GL_RGB, GL_UNSIGNED_BYTE, _data.ptr);
+            glDrawPixels(_width, _height, DISPLAY_FORMAT(dispFormat), GL_UNSIGNED_BYTE, _data.ptr);
 
             glFlush();
             glEnable(GL_DEPTH_TEST);
