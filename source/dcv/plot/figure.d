@@ -460,14 +460,21 @@ class Figure
         int _height = 0;
         ubyte[] _data = null;
         string _title = "";
+        int dispFormat = -1;
 
         MouseCallback _mouseCallback = null;
         CursorCallback _cursorCallback = null;
         CloseCallback _closeCallback = null;
 
         version(UseLegacyGL){ } else {
-            TextureRenderer imageRenderer = null;
-            DList!PrimitiveDrawer primitiveStack;
+            TextureRenderer* imageRenderer;
+
+            GLLine lineDrafter;
+            GLCircle hcircleDrafter;
+            GLSolidCircle scircleDrafter;
+            GLRect rectangleDrafter;
+
+            DList!(void delegate() @nogc nothrow ) primitiveQueue;
         }
     }
 
@@ -537,6 +544,10 @@ class Figure
 
         version(UseLegacyGL){} else {
             clearPrimitives();
+            if(imageRenderer){
+                free(cast(void*)imageRenderer);
+                imageRenderer = null;
+            }
         }
     }
 
@@ -671,7 +682,9 @@ class Figure
     /// Draw image onto figure canvas.
     void draw(Image image)
     {
-        Image showImage = adoptImage(image);
+        auto tup = adoptImage(image);
+        Image showImage = tup[0];
+        dispFormat = tup[1];
 
         if (_width != showImage.width || _height != showImage.height)
         {
@@ -790,44 +803,55 @@ version(UseLegacyGL){ } else {
 
     private void prepareRender(){
         glfwMakeContextCurrent(_glfwWindow);
-        
         if(imageRenderer is null){
             ortho = getOrtho(0.0f, cast(float)width, cast(float)height, 0.0f);
-            imageRenderer = new TextureRenderer(_data.ptr, width, height);
+            imageRenderer = cast(TextureRenderer*)malloc(TextureRenderer.sizeof);
+            *imageRenderer = TextureRenderer(_data.ptr, width, height, dispFormat);
         }
     }
 
     private void drawPrimitives(){
         import std.range;
 
-        auto primRange = primitiveStack[];
+        auto primRange = primitiveQueue[];
         while(!primRange.empty){
-            primRange.back.draw();
-            primitiveStack.popLastOf(primRange);
+            const fun = primRange.back;
+            fun();
+            primitiveQueue.popLastOf(primRange);
             primRange.popBackN(1);
         }
     }
 
     void clearPrimitives(){
-        primitiveStack.clear();
+        primitiveQueue.clear();
     }
 
     void drawCircle(PlotCircle circle, PlotColor color = [1.0f, 0.0f, 0.0f, 0.5f], bool filled = false){
+       void delegate() @nogc nothrow launch;
         if(filled){
-            primitiveStack.insertFront(
-                new SolidCircleDrawer(circle, color)
-            );
+            launch = () @nogc nothrow {
+                launchSolidCircle(this.scircleDrafter, circle, color);
+            };
         }else{
-            primitiveStack.insertFront(
-                new HollowCircleDrawer(circle, color)
-            );
+            launch = () @nogc nothrow {
+                launchHollowCircle(this.hcircleDrafter, circle, color);
+            };
         }
+        primitiveQueue.insertFront(launch);
     }
 
     void drawLine(PlotPoint p1, PlotPoint p2, PlotColor color, float lineWidth){
-        primitiveStack.insertFront(
-            new LineDrawer(p1, p2, color, lineWidth)
-        );
+        auto launch = () @nogc nothrow {
+            launchLine(this.lineDrafter, p1, p2, color, lineWidth);
+        };
+        primitiveQueue.insertFront(launch);
+    }
+
+    void drawRectangle(PlotPoint[2] rect, PlotColor color, float lineWidth){
+        auto launch = () @nogc nothrow {
+            launchRectangle(this.rectangleDrafter, rect, color, lineWidth);
+        };
+        primitiveQueue.insertFront(launch);
     }
     
     /** 
@@ -859,6 +883,14 @@ version(UseLegacyGL){ } else {
         
         glfwMakeContextCurrent(_glfwWindow);
         initGL();
+
+        version(UseLegacyGL){}else{
+            auto sc = loadShaderColor();
+            lineDrafter = GLLine(sc);
+            hcircleDrafter = GLCircle(sc);
+            scircleDrafter = GLSolidCircle(sc);
+            rectangleDrafter = GLRect(sc);
+        }
     }
 
     private void defaultCloseCallback(Figure figure) nothrow
@@ -1058,45 +1090,33 @@ extern (C) nothrow {
     }
 }
 
-Image adoptImage(Image image)
+import std.typecons : Tuple, tuple;
+
+Tuple!(Image, int) adoptImage(Image image)
 {
     import dcv.imgproc.color : yuv2rgb, gray2rgb;
 
     Image showImage = (image.depth != BitDepth.BD_8) ? image.asType!ubyte : image;
     import mir.ndslice.topology;
+
+    int dispFormat = cast(int)ImageFormat.IF_RGB;
+
     switch (showImage.format)
     {
-    /+case ImageFormat.IF_RGB_ALPHA:
-        showImage = showImage.sliced[0 .. $, 0 .. $, 0 .. 2].asImage(ImageFormat.IF_RGB);
-        break;+/
     case ImageFormat.IF_BGR:
-        foreach (e; showImage.sliced.pack!1.flattened)
-        {
-            auto t = e[0];
-            e[0] = e[2];
-            e[2] = t;
-        }
+        dispFormat = cast(int)ImageFormat.IF_BGR;
         break;
-    /+case ImageFormat.IF_BGR_ALPHA:
-        foreach (e; showImage.sliced.pack!1.flattened)
-        {
-            auto t = e[0];
-            e[0] = e[2];
-            e[2] = t;
-        }
-        showImage = showImage.sliced[0 .. $, 0 .. $, 0 .. 2].asImage(ImageFormat.IF_RGB);
-        break;+/
     case ImageFormat.IF_YUV:
         showImage = showImage.sliced.yuv2rgb!ubyte.asImage(ImageFormat.IF_RGB);
+        dispFormat = cast(int)ImageFormat.IF_RGB;
         break;
     case ImageFormat.IF_MONO:
-        showImage = showImage.sliced.flattened.sliced(image.height, image.width)
-            .gray2rgb!ubyte.asImage(ImageFormat.IF_RGB);
+        dispFormat = cast(int)ImageFormat.IF_MONO;
         break;
     default:
         break;
     }
-    return showImage;
+    return tuple(showImage, dispFormat);
 }
 
 version(ggplotd) void drawGGPlotD(GGPlotD gg,  ubyte[] data,  int width, int height)
