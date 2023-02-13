@@ -329,9 +329,15 @@ version(UseLegacyGL){ } else {
 }
     while (true)
     {
-        if (count && count < mixin("stopwatch.peek.total!\"" ~ unit ~ "\""))
+        if (count && count < mixin("stopwatch.peek.total!\"" ~ unit ~ "\"")){
+            // showing video frames or similar
+            version(UseLegacyGL){ } else {
+                foreach (f; _figures)
+                    f.clearPrimitives();
+            }
             break;
-
+        }    
+        
         glfwPollEvents();
 
         if (_lastKey != -1)
@@ -634,10 +640,6 @@ class Figure
     {
         if (_glfwWindow)
             glfwShowWindow(_glfwWindow);
-        
-        version(UseLegacyGL){} else {
-            clearPrimitives();
-        }
     }
 
     /// Show the figure window.
@@ -819,7 +821,6 @@ version(UseLegacyGL){ } else {
         while(!primRange.empty){
             const fun = primRange.back;
             fun();
-            primitiveQueue.popLastOf(primRange);
             primRange.popBackN(1);
         }
     }
