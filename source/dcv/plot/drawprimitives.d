@@ -450,6 +450,7 @@ struct GLRect {
 
     void draw() {
         glUseProgram(shaderProgram);
+        glLineWidth(lineWidth);
         glDrawArrays(GL_LINE_LOOP, 0, cast(int)vertices.length/2);
         glDisableVertexAttribArray(0);
         glUseProgram(0);
