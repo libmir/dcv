@@ -130,9 +130,11 @@ findContours(InputType, bool fullyConnected = true)
                 //Phase 3: Follow border
                 alias IMT = typeof(image);
                 static if(fullyConnected){
-                    followBorder!(IMT, stepCW8, stepCCW8)(image, r, c, p2, NBD, contours);
+                    followBorder!(IMT, stepCW8, stepCCW8, isExamined8, markExamined8, 8)
+                        (image, r, c, p2, NBD, contours);
                 } else {
-                    followBorder!(IMT, stepCW, stepCCW)(image, r, c, p2, NBD, contours);
+                    followBorder!(IMT, stepCW, stepCCW, isExamined, markExamined, 4)
+                        (image, r, c, p2, NBD, contours);
                 }
                 
             }
@@ -401,7 +403,7 @@ void markExamined(Point mark, Point center, ref bool[4] checked) {
 }
 
 //marks a pixel as examined after passing through in the 8-connected case
-void markExamined8(Point mark, Point center, ref bool[4] checked) {
+void markExamined8(Point mark, Point center, ref bool[8] checked) {
     //p3.row, p3.col + 1
     size_t loc = -1;
     //  5 6 7
@@ -451,7 +453,7 @@ P removeMargin(P)(P p){
 }
 
 //follows a border from start to finish given a starting point
-void followBorder(InputImage, alias cw_fun = stepCW, alias ccw_fun = stepCCW)
+void followBorder(InputImage, alias cw_fun, alias ccw_fun, alias _isExamined, alias _markExamined, size_t nneighbor)
 (ref InputImage image, size_t row, size_t col, Point p2, Border NBD, ref Dvector!(Dvector!Point) contours) {
     size_t numrows = image.shape[0];
     size_t numcols = image.shape[1];
@@ -479,8 +481,8 @@ void followBorder(InputImage, alias cw_fun = stepCW, alias ccw_fun = stepCCW)
     Point p3 = start;
     Point p4;
     p2 = p1;
-    bool[4] checked;
-//    bool checked[8];
+    bool[nneighbor] checked;
+
     while (true) {
         //(3.3)
         //Starting from the next element of the pixel(i2, j2) in the counterclockwise order, examine counterclockwise the pixels in the
@@ -491,7 +493,7 @@ void followBorder(InputImage, alias cw_fun = stepCW, alias ccw_fun = stepCCW)
         checked[] = false;
 
         do {
-            markExamined(current, p3, checked);
+            _markExamined(current, p3, checked);
             ccw_fun(current, p3);
         } while (pixelOutOfBounds(current, numrows, numcols) || image[current.row, current.col] == 0);
         p4 = current;
@@ -501,7 +503,7 @@ void followBorder(InputImage, alias cw_fun = stepCW, alias ccw_fun = stepCCW)
         //    If the pixel(i3, j3 + 1) is not a 0 - pixel examined in the substep(3.3) and fi3, j3 = 1, then fi3, j3 ←NBD.
         //    Otherwise, do not change fi3, j3.
 
-        if ( (p3.col+1 >= numcols || image[p3.row, p3.col + 1] == 0) && isExamined(checked)) {
+        if ( (p3.col+1 >= numcols || image[p3.row, p3.col + 1] == 0) && _isExamined(checked)) {
             image[p3.row, p3.col] = -NBD.seq_num;
         }
         else if (p3.col + 1 < numcols && image[p3.row, p3.col] == 1) {
