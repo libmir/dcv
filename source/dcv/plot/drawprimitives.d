@@ -20,8 +20,8 @@ int DISPLAY_FORMAT(int format) @nogc nothrow
         return GL_BGR;
     } else {
         debug assert(0, "unsopported format for imshow."); // it will never come here :)
-        return -1;
     }
+    return -1;
 }
 
 version(UseLegacyGL){ } else:
@@ -131,9 +131,9 @@ void launchLine(ref GLLine drafter,
 }
 
 void launchHollowCircle(ref GLCircle drafter,
-    const ref PlotCircle circle, const ref PlotColor color)
+    const ref PlotCircle circle, const ref PlotColor color, const ref float lineWidth)
 {  
-    drafter.set(circle.centerx, circle.centery, circle.radius, color);
+    drafter.set(circle.centerx, circle.centery, circle.radius, color, lineWidth);
     drafter.draw();
 }
 
@@ -265,6 +265,7 @@ struct GLCircle {
     ScopedBuffer!float vertices;
     GLuint shaderProgram;
     GLuint vbo;
+    float lineWidth;
 
     @nogc nothrow:
 
@@ -286,7 +287,9 @@ struct GLCircle {
         glBufferData(GL_ARRAY_BUFFER, vertices.length * float.sizeof, vertices.data.ptr, GL_STATIC_DRAW);
     }
 
-    void set(const ref float x, const ref float y, const ref float radius, const ref PlotColor color){
+    void set(const ref float x, const ref float y, const ref float radius, const ref PlotColor color, const ref float lineWidth){
+        this.lineWidth = lineWidth;
+
         enum numVertices = 1000;
 
         float increment = 2.0f * PI / float(numVertices);
@@ -319,13 +322,10 @@ struct GLCircle {
 
     void draw() {
         glUseProgram(shaderProgram);
+        glLineWidth(lineWidth);
         glDrawArrays(GL_LINE_LOOP, 0, cast(int)vertices.length/2);
         glDisableVertexAttribArray(0);
         glUseProgram(0);
-    }
-
-    ~this(){
-        
     }
 }
 

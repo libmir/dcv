@@ -644,6 +644,18 @@ Complexity: $(BIGOH log(n))
         mfree(torm);
     }
 
+    void popFirstOf(ref Range r)
+    {
+        debug assert(_root !is null, "Cannot remove from an un-initialized List");
+        debug assert(r._first, "popFirstOf: Range is empty");
+        auto toFree = r._first;
+        auto prev = r._first._prev;
+        auto next = r._first._next;
+        r.popFront();
+        BaseNode.connect(prev, next);
+        mfree(toFree);
+    }
+
 private:
     // Helper: Inserts stuff before the node n.
     size_t insertBeforeNode(Stuff)(BaseNode* n, ref Stuff stuff)
