@@ -829,7 +829,7 @@ version(UseLegacyGL){ } else {
         primitiveQueue.clear();
     }
 
-    void drawCircle(PlotCircle circle, PlotColor color = [1.0f, 0.0f, 0.0f, 0.5f], bool filled = false){
+    void drawCircle(PlotCircle circle, PlotColor color = [1.0f, 0.0f, 0.0f, 0.5f], bool filled = false, float lineWidth = 1.0f){
        void delegate() @nogc nothrow launch;
         if(filled){
             launch = () @nogc nothrow {
@@ -837,7 +837,7 @@ version(UseLegacyGL){ } else {
             };
         }else{
             launch = () @nogc nothrow {
-                launchHollowCircle(this.hcircleDrafter, circle, color);
+                launchHollowCircle(this.hcircleDrafter, circle, color, lineWidth);
             };
         }
         primitiveQueue.insertFront(launch);

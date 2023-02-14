@@ -9,6 +9,7 @@ import dcv.core.utils;
 
 import core.lifetime: move;
 import std.math : abs;
+import core.stdc.math : pow;
 import std.typecons : Tuple, tuple;
 
 import mir.ndslice;
@@ -45,7 +46,7 @@ alias BoundingBox = Rectangle;
 @nogc nothrow:
 
 Tuple!(RCArray!Contour, RCArray!HierNode)
-findContours(InputType, bool fullyConnected = false)
+findContours(InputType, bool fullyConnected = true)
 (InputType binaryImage, immutable DeepElementType!InputType whiteValue = 255) {
     import mir.ndslice.topology : as;
 
