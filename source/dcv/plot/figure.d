@@ -426,9 +426,9 @@ void imdestroy(string title = "")
 }
 
 /// Key press callback function.
-alias KeyPressCallback = void delegate(int key, int scancode, int action, int mods) nothrow;
+alias KeyPressCallback = void delegate(int key, int scancode, int action, int mods) @nogc nothrow;
 /// Character callback function.
-alias CharCallback = void delegate(uint key) nothrow;
+alias CharCallback = void delegate(uint key) @nogc nothrow;
 
 /**
 Assign key press callback function.
@@ -452,11 +452,11 @@ Plotting figure type.
 class Figure
 {
     /// Mouse button callback function.
-    alias MouseCallback = void delegate(Figure figure, int button, int action, int mods) nothrow;
+    alias MouseCallback = void delegate(Figure figure, int button, int action, int mods) @nogc nothrow;
     /// Cursor movement callback function.
-    alias CursorCallback = void delegate(Figure figure, double xpos, double ypos) nothrow;
+    alias CursorCallback = void delegate(Figure figure, double xpos, double ypos) @nogc nothrow;
     /// Figure closing callback function.
-    alias CloseCallback = void delegate(Figure figure) nothrow;
+    alias CloseCallback = void delegate(Figure figure) @nogc nothrow;
 
     private
     {
@@ -896,7 +896,7 @@ version(UseLegacyGL){ } else {
         }
     }
 
-    private void defaultCloseCallback(Figure figure) nothrow
+    private void defaultCloseCallback(Figure figure) @nogc nothrow
     {
         glfwHideWindow(figure._glfwWindow);
     }
@@ -1014,9 +1014,9 @@ enum checkContextInit = q{
 static this()
 {
     import std.stdio;
-
+version(GLFW_D){}else{
     enforce(loadGLFWLib() == glfwSupport, "Problem loading GLFW dynamic library!");
-
+}
     GLFW_STATUS = glfwInit();
 
     setCharCallback((uint key) { _lastKey = key; });
@@ -1040,7 +1040,7 @@ int _lastKey = -1; // last hit key
 KeyPressCallback _keyPressCallback; // global key press callback
 CharCallback _charCallback; // global char callback
 
-extern (C) nothrow {
+extern (C) @nogc nothrow {
     void keyCallbackWrapper(GLFWwindow* window, int mods, int action, int scancode, int key)
     {
         if (_keyPressCallback)
