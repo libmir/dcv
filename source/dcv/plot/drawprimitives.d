@@ -18,9 +18,8 @@ int DISPLAY_FORMAT(int format) @nogc nothrow
     } else
     if(format == 3){
         return GL_BGR;
-    } else {
-        debug assert(0, "unsopported format for imshow."); // it will never come here :)
     }
+    
     return -1;
 }
 

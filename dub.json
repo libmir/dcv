@@ -87,7 +87,6 @@
             },
             "dependencies":{
                 "dcv:core": "*",
-                "bindbc-glfw": "~>1.0.0",
                 "bindbc-opengl": "~>1.0.0"
             },
             "versions": ["GLFW_31"],
@@ -95,16 +94,32 @@
                 {
                     "name": "default",
                     "versions": [
-                        "GL_31"
-                    ]
+                        "GL_31", "BindGLFW_NoGC_Callbacks"
+                    ],
+                    "dependencies": {
+                        "bindbc-glfw": "~>1.0.0"
+                    }
                 },
                 {
                     "name": "legacygl",
                     "versions": [
                         "GL_11",
                         "GL_AllowDeprecated",
-                        "UseLegacyGL"
-                    ]
+                        "UseLegacyGL",
+                        "BindGLFW_NoGC_Callbacks"
+                    ],
+                    "dependencies": {
+                        "bindbc-glfw": "~>1.0.0"
+                    }
+                },
+                {
+                    "name": "use-glfw-d",
+                    "versions": [
+                        "GL_31", "GLFW_D"
+                    ],
+                    "dependencies": {
+                        "glfw-d": "~>1.1.0"
+                    }
                 }
             ]
         }

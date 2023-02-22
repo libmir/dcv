@@ -1,8 +1,13 @@
 module dcv.plot.bindings.glfw;
 
-public import bindbc.glfw;
+version(GLFW_D){
+    public import glfw3.api;
 
-auto loadGLFWLib(){
-    auto ret = loadGLFW();
-    return ret;
+}else{
+    public import bindbc.glfw;
+
+    auto loadGLFWLib(){
+        auto ret = loadGLFW();
+        return ret;
+    }
 }
