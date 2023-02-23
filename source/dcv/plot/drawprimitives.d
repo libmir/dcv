@@ -32,6 +32,8 @@ import mir.appender;
 
 import dcv.plot.bindings;
 
+import dcv.plot.ttf;
+
 alias PlotPoint = Tuple!(float, "x", float, "y"); 
 alias PPoint = PlotPoint;
 
@@ -57,15 +59,14 @@ package:
 struct TextureRenderer {
 
 @disable this();
-
+    uint textureId;
     private {
         ubyte* imptr;
         uint width;
         uint height;
         int dispFormat;
-        GLTexturedRect drafter;
+        GLTexturedRect!false drafter;
         GLuint shaderPrg;
-        uint textureId;
     }
 
     @nogc nothrow:
@@ -78,13 +79,17 @@ struct TextureRenderer {
         textureId = loadTexture(imptr, width, height, DISPLAY_FORMAT(dispFormat));
 
         shaderPrg = loadShaderTextured();
-        drafter = GLTexturedRect(shaderPrg);
+        drafter = GLTexturedRect!false(shaderPrg);
     }
 
     void render(){
         updateTexture(imptr, width, height, textureId, DISPLAY_FORMAT(dispFormat));
         drafter.set(Rect(0,0,width,height), textureId, 0.0f);
         drafter.draw();
+    }
+
+    ~this(){
+        glDeleteTextures(1, &textureId);
     }
 }
 
@@ -148,6 +153,20 @@ void launchRectangle(ref GLRect drafter,
 {
     drafter.set(r, color, lineWidth);
     drafter.draw();
+}
+
+import dcv.plot.figure : Figure;
+
+void launchText(ref GLTexturedRect!true drafter, ref GLuint tid,
+        PlotPoint pos, float orientation, int w, int h, PlotColor color, Figure fig){
+    
+    drafter.set(Rect(cast(int)pos.x, cast(int)pos.y, w, h), tid, orientation, color);
+    drafter.draw();
+    
+    if(fig.inVideoLoop)
+        glDeleteTextures(1, &tid);
+    else
+        fig.allocatedTextures ~= &tid;
 }
 /+++++++++++++++++++++++++++++       shader code        +++++++++++++++++++++++++++++++/
 
@@ -456,7 +475,7 @@ struct GLRect {
     }
 }
 
-struct GLTexturedRect {
+struct GLTexturedRect(bool forText = false) {
     
     GLuint shaderProgram;
     GLuint vao = 0;
@@ -476,7 +495,7 @@ struct GLTexturedRect {
         
     }
 
-    void set(Rect r, GLuint textureId, float angle){
+    void set(Rect r, GLuint textureId, float angle, PlotColor color = plotBlack){
         this.textureId = textureId;
 
         vertices = [
@@ -504,7 +523,13 @@ struct GLTexturedRect {
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projectionMat"), 1, GL_FALSE, ortho.ptr);
         glUniform1i(glGetUniformLocation(shaderProgram, "userTexture"), 0);
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "modelMat"), 1, GL_FALSE, model.ptr);
-
+        
+        static if(forText){
+            // set color
+            auto cAtt = glGetUniformLocation(shaderProgram, "color");
+            glUniform4fv(cAtt, 1, color.ptr);
+        }
+        
         glBindVertexArray(0);
     }
 
@@ -627,4 +652,34 @@ GLuint loadShaderColor(){
     
     return initShader(vert, frag);
     
+}
+
+GLuint loadShaderText(){
+    enum vert = verth ~ q{
+        in vec4 vertex;
+        out vec2 TexCoords;
+
+        uniform mat4 projectionMat;
+        uniform mat4 modelMat;
+
+        void main()
+        {
+            TexCoords = vertex.zw;
+            gl_Position = projectionMat * modelMat * vec4(vertex.xy, 0.0, 1.0);
+        }
+    };
+    enum frag = fragh ~ `
+        in vec2 TexCoords;
+        out vec4 FragColor;
+
+        uniform sampler2D userTexture;
+        uniform vec4 color;
+
+        void main()
+        {
+            FragColor = vec4(1, 1, 1, texture2D(userTexture, TexCoords).r) * color;
+        }
+    `;
+
+    return initShader(vert, frag);
 }
