@@ -102,11 +102,12 @@ module dcv.plot.figure;
 import std.string : toStringz;
 import std.exception;
 import std.conv : to;
-import std.container : DList;
+import std.container : DList, Array;
 
 import mir.ndslice.slice;
 
 import dcv.plot.drawprimitives;
+import dcv.plot.ttf;
 
 version(ggplotd)
 {
@@ -332,8 +333,11 @@ version(UseLegacyGL){ } else {
         if (count && count < mixin("stopwatch.peek.total!\"" ~ unit ~ "\"")){
             // showing video frames or similar
             version(UseLegacyGL){ } else {
-                foreach (f; _figures)
+                foreach (f; _figures){
+                    f.inVideoLoop = true;
                     f.clearPrimitives();
+                }
+                    
             }
             break;
         }    
@@ -479,9 +483,15 @@ class Figure
             GLCircle hcircleDrafter;
             GLSolidCircle scircleDrafter;
             GLRect rectangleDrafter;
+            GLTexturedRect!true ttfDrafter;
 
             DList!(void delegate() @nogc nothrow ) primitiveQueue;
         }
+    }
+
+    package {
+        Array!(uint*) allocatedTextures;
+        bool inVideoLoop = false;
     }
 
     @disable this();
@@ -555,6 +565,12 @@ class Figure
                 imageRenderer = null;
             }
         }
+
+        foreach (uint* tidptr; allocatedTextures.data)
+        {
+            glDeleteTextures(1, tidptr);
+        }
+        allocatedTextures.clear;
     }
 
     /// Assign mouse callback function.
@@ -857,6 +873,34 @@ version(UseLegacyGL){ } else {
         primitiveQueue.insertFront(launch);
     }
     
+    void drawText(ref TtfFont font, in char[] text, in PlotPoint posTopLeft, 
+            float orientation = 0.0f, int size = 20, PlotColor color = plotRed){
+        
+        import mir.rc;
+        import std.container.array;
+
+        int w, h;
+        RCArray!ubyte bitmap;
+
+        // handle null termination
+        Array!char buff;
+        if(text[$] != '\0'){
+            buff.length = text.length + 1;
+            buff.data[0..$-1] = text[];
+            bitmap = font.renderString(buff.data[], size, w, h);
+            buff.clear;
+        }else{
+            bitmap = font.renderString(text, size, w, h);
+        }
+
+        auto tid = loadTexture(bitmap.ptr, w, h, GL_DEPTH_COMPONENT);
+
+        auto launch = () @nogc nothrow {
+            launchText(this.ttfDrafter, tid, posTopLeft, orientation, w, h, color, this);
+        };
+        primitiveQueue.insertFront(launch);
+    }
+
     /** 
         copy rendered figure to a slice. Useful with plot primitives.
     */
@@ -893,6 +937,7 @@ version(UseLegacyGL){ } else {
             hcircleDrafter = GLCircle(sc);
             scircleDrafter = GLSolidCircle(sc);
             rectangleDrafter = GLRect(sc);
+            ttfDrafter = GLTexturedRect!true(loadShaderText());
         }
     }
 
