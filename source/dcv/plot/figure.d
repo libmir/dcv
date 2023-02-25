@@ -490,7 +490,7 @@ class Figure
     }
 
     package {
-        Array!(uint*) allocatedTextures;
+        Array!(uint) allocatedTexts;
         bool inVideoLoop = false;
     }
 
@@ -565,12 +565,6 @@ class Figure
                 imageRenderer = null;
             }
         }
-
-        foreach (uint* tidptr; allocatedTextures.data)
-        {
-            glDeleteTextures(1, tidptr);
-        }
-        allocatedTextures.clear;
     }
 
     /// Assign mouse callback function.
@@ -843,6 +837,11 @@ version(UseLegacyGL){ } else {
 
     void clearPrimitives(){
         primitiveQueue.clear();
+        foreach (tid; allocatedTexts.data)
+        {
+            glDeleteTextures(1, &tid);
+        }
+        allocatedTexts.clear;
     }
 
     void drawCircle(PlotCircle circle, PlotColor color = [1.0f, 0.0f, 0.0f, 0.5f], bool filled = false, float lineWidth = 1.0f){
@@ -894,9 +893,10 @@ version(UseLegacyGL){ } else {
         }
 
         auto tid = loadTexture(bitmap.ptr, w, h, GL_DEPTH_COMPONENT);
-
+        this.allocatedTexts ~= tid;
+        
         auto launch = () @nogc nothrow {
-            launchText(this.ttfDrafter, tid, posTopLeft, orientation, w, h, color, this);
+            launchText(this.ttfDrafter, tid, posTopLeft, orientation, w, h, color);
         };
         primitiveQueue.insertFront(launch);
     }
