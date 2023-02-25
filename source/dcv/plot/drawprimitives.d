@@ -155,18 +155,11 @@ void launchRectangle(ref GLRect drafter,
     drafter.draw();
 }
 
-import dcv.plot.figure : Figure;
-
 void launchText(ref GLTexturedRect!true drafter, ref GLuint tid,
-        PlotPoint pos, float orientation, int w, int h, PlotColor color, Figure fig){
+        PlotPoint pos, float orientation, int w, int h, PlotColor color){
     
     drafter.set(Rect(cast(int)pos.x, cast(int)pos.y, w, h), tid, orientation, color);
     drafter.draw();
-    
-    if(fig.inVideoLoop)
-        glDeleteTextures(1, &tid);
-    else
-        fig.allocatedTextures ~= &tid;
 }
 /+++++++++++++++++++++++++++++       shader code        +++++++++++++++++++++++++++++++/
 
