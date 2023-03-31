@@ -5,6 +5,8 @@ Boost Software License - Version 1.0 - August 17th, 2003
 
 module dcv.plot.drawprimitives;
 
+import dplug.core.nogc;
+
 // must match with enum ImageFormat
 int DISPLAY_FORMAT(int format) @nogc nothrow
 {
@@ -22,6 +24,8 @@ int DISPLAY_FORMAT(int format) @nogc nothrow
     
     return -1;
 }
+
+alias Ortho = Slice!(RCI!float, 2LU, Contiguous);
 
 version(UseLegacyGL){ } else:
 
@@ -56,7 +60,7 @@ struct PlotCircle {
 
 package:
 
-struct TextureRenderer {
+class TextureRenderer {
 
 @disable this();
     uint textureId;
@@ -70,7 +74,7 @@ struct TextureRenderer {
     }
 
     @nogc nothrow:
-    this(ubyte* imptr, uint width, uint height, int dformat){
+    this(Ortho ortho, ubyte* imptr, uint width, uint height, int dformat){
         this.imptr = imptr;
         this.width = width;
         this.height = height;
@@ -79,17 +83,19 @@ struct TextureRenderer {
         textureId = loadTexture(imptr, width, height, DISPLAY_FORMAT(dispFormat));
 
         shaderPrg = loadShaderTextured();
-        drafter = GLTexturedRect!false(shaderPrg);
+        drafter = mallocNew!(GLTexturedRect!false)(ortho, shaderPrg);
     }
 
     void render(){
         updateTexture(imptr, width, height, textureId, DISPLAY_FORMAT(dispFormat));
-        drafter.set(Rect(0,0,width,height), textureId, 0.0f);
+        GLTexturedRectParams params = GLTexturedRectParams(Rect(0,0,width,height), textureId, 0.0f);
+        drafter.set(cast(void*)&params);
         drafter.draw();
     }
 
     ~this(){
         glDeleteTextures(1, &textureId);
+        destroyFree(drafter);
     }
 }
 
@@ -127,40 +133,6 @@ void updateTexture(ubyte* imptr, uint w, uint h, uint textureId, int dispFormat)
     glBindTexture( GL_TEXTURE_2D, 0);
 }
 
-void launchLine(ref GLLine drafter,
-    const ref PlotPoint p1, const ref PlotPoint p2, const ref PlotColor color, const ref float lineWidth)
-{
-    drafter.set(p1, p2, color, lineWidth);
-    drafter.draw();
-}
-
-void launchHollowCircle(ref GLCircle drafter,
-    const ref PlotCircle circle, const ref PlotColor color, const ref float lineWidth)
-{  
-    drafter.set(circle.centerx, circle.centery, circle.radius, color, lineWidth);
-    drafter.draw();
-}
-
-void launchSolidCircle(ref GLSolidCircle drafter,
-    const ref PlotCircle circle, const ref PlotColor color)
-{
-    drafter.set(circle.centerx, circle.centery, circle.radius, color);
-    drafter.draw();
-}
-
-void launchRectangle(ref GLRect drafter,
-    const ref PlotPoint[2] r, const ref PlotColor color, const ref float lineWidth)
-{
-    drafter.set(r, color, lineWidth);
-    drafter.draw();
-}
-
-void launchText(ref GLTexturedRect!true drafter, ref GLuint tid,
-        PlotPoint pos, float orientation, int w, int h, PlotColor color){
-    
-    drafter.set(Rect(cast(int)pos.x, cast(int)pos.y, w, h), tid, orientation, color);
-    drafter.draw();
-}
 /+++++++++++++++++++++++++++++       shader code        +++++++++++++++++++++++++++++++/
 
 import core.stdc.math: cos, sin;
@@ -169,8 +141,6 @@ import core.stdc.stdio: printf;
 
 import mir.ndslice;
 import mir.rc;
-
-package __gshared Slice!(RCI!float, 2LU, Contiguous) ortho;
 
 package auto getOrtho(float left, float right, float bottom, float top, float near = -1, float far = 1)
 {
@@ -211,9 +181,19 @@ private auto getModel(const ref Rect r, float angle){
 
 private enum PI = 3.14159265359f;
 
-struct GLLine{
+interface IPrimitive{
+    void set(void* params) @nogc nothrow;
+    void draw() @nogc nothrow;
+}
+
+struct PrimLauncher {
+    IPrimitive drafter;
+    void* params;
+}
+
+class GLLine : IPrimitive {
     float[4] vertices;
-    
+    Ortho ortho;
     GLuint shaderProgram;
     GLuint vbo;
 
@@ -221,24 +201,28 @@ struct GLLine{
 
     @nogc nothrow:
 
-    this(GLuint shaderProgram){
+    this(Ortho ortho, GLuint shaderProgram){
         this.shaderProgram = shaderProgram;
-
+        this.ortho = ortho;
         vertices = [0.0f, 0.0f, 0.0f, 0.0f];
-
         glGenBuffers(1, &vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, vertices.length * float.sizeof, vertices.ptr, GL_STATIC_DRAW);
     }
 
-    void set(const ref PlotPoint point1, const ref PlotPoint point2, const ref PlotColor color, const ref float lineWidth){
-        this.lineWidth = lineWidth;
+    void set(void* params){
+        auto prm = cast(GLLineParams*)params;
+
+        PlotPoint point1 = prm.point1;
+        PlotPoint point2 = prm.point2;
+        PlotColor color = prm.color;
+        
+        this.lineWidth = prm.lineWidth;
         
         vertices[0] = float(point1.x);
         vertices[1] = float(point1.y);
         vertices[2] = float(point2.x);
         vertices[3] = float(point2.y);
 
+        
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBufferData(GL_ARRAY_BUFFER, vertices.length * float.sizeof, vertices.ptr, GL_STATIC_DRAW);
 
@@ -267,22 +251,24 @@ struct GLLine{
     }
 
     ~this(){
-        
+        glDeleteBuffers(1, &vbo);
     }
 }
+struct GLLineParams {PlotPoint point1; PlotPoint point2; PlotColor color; float lineWidth;}
 
-struct GLCircle {
+class GLCircle : IPrimitive {
     
     ScopedBuffer!float vertices;
+    Ortho ortho;
     GLuint shaderProgram;
     GLuint vbo;
     float lineWidth;
 
     @nogc nothrow:
 
-    this(GLuint shaderProgram){
+    this(Ortho ortho, GLuint shaderProgram){
         this.shaderProgram = shaderProgram;
-
+        this.ortho = ortho;
         enum numVertices = 1000;
 
         float increment = 2.0f * PI / float(numVertices);
@@ -298,8 +284,14 @@ struct GLCircle {
         glBufferData(GL_ARRAY_BUFFER, vertices.length * float.sizeof, vertices.data.ptr, GL_STATIC_DRAW);
     }
 
-    void set(const ref float x, const ref float y, const ref float radius, const ref PlotColor color, const ref float lineWidth){
-        this.lineWidth = lineWidth;
+    void set(void* params){
+        auto prm = cast(GLCircleParams*)params;
+
+        float x = prm.x;
+        float y = prm.y;
+        float radius = prm.radius;
+        PlotColor color = prm.color;
+        this.lineWidth = prm.lineWidth;
 
         enum numVertices = 1000;
 
@@ -338,20 +330,25 @@ struct GLCircle {
         glDisableVertexAttribArray(0);
         glUseProgram(0);
     }
-}
 
-struct GLSolidCircle {
+    ~this(){
+        glDeleteBuffers(1, &vbo);
+    }
+}
+struct GLCircleParams {float x; float y; float radius; PlotColor color; float lineWidth;}
+
+class GLSolidCircle : IPrimitive {
     
     ScopedBuffer!float vertices;
-
+    Ortho ortho;
     GLuint shaderProgram;
     GLuint vbo;
 
     @nogc nothrow:
 
-    this(GLuint shaderProgram){
+    this(Ortho ortho, GLuint shaderProgram){
         this.shaderProgram = shaderProgram;      
-
+        this.ortho = ortho;
         enum quality = 0.125;
         int triangleAmount = cast(int)(300 * quality);
 
@@ -365,7 +362,14 @@ struct GLSolidCircle {
         glBufferData(GL_ARRAY_BUFFER, vertices.length * float.sizeof, vertices.data.ptr, GL_STREAM_DRAW);
     }
 
-    void set(const ref float x, const ref float y, const ref float radius, const ref PlotColor color){        
+    void set(void* params){      
+        auto prm = cast(GLSolidCircleParams*)params;
+
+        float x = prm.x;
+        float y = prm.y;
+        float radius = prm.radius;
+        PlotColor color = prm.color;
+
         import std.range : chunks;
 
         enum quality = 0.125;
@@ -403,34 +407,36 @@ struct GLSolidCircle {
     }
 
     ~this(){
-        
+        glDeleteBuffers(1, &vbo);
     }
 }
+struct GLSolidCircleParams {float x; float y; float radius; PlotColor color;}
 
-private struct Rect {
+package struct Rect {
     int x, y, w, h;
 }
 
-struct GLRect {
+class GLRect : IPrimitive {
     float[8] vertices;
     
     GLuint shaderProgram;
     GLuint vbo;
-
+    Ortho ortho;
     float lineWidth;
 
     @nogc nothrow:
 
-    this(GLuint shaderProgram){
+    this(Ortho ortho, GLuint shaderProgram){
         this.shaderProgram = shaderProgram;
-
+        this.ortho = ortho;
         glGenBuffers(1, &vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, vertices.length * float.sizeof, vertices.ptr, GL_STATIC_DRAW);
     }
 
-    void set(const ref PlotPoint[2] r, const ref PlotColor color, const ref float lineWidth){
-        this.lineWidth = lineWidth;
+    void set(void* params){
+        auto prm = cast(GLRectParams*)params;
+        PlotPoint[2] r = prm.r;
+        PlotColor color = prm.color;
+        this.lineWidth = prm.lineWidth;
 
         immutable p1 = r[0];
         immutable p2 = r[1];
@@ -440,23 +446,24 @@ struct GLRect {
                     p2.x, p2.y,
                     p2.x, p1.y
         ];
-
+        
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBufferData(GL_ARRAY_BUFFER, vertices.length * float.sizeof, vertices.ptr, GL_STATIC_DRAW);
         
         glUseProgram(shaderProgram);
-
-        GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
+        
+        GLint posAttrib = glGetAttribLocation(shaderProgram, "position"); 
         auto vertexSize = float.sizeof*2;
         glVertexAttribPointer(posAttrib, 2, GL_FLOAT, false, cast(uint)vertexSize, null);
         glEnableVertexAttribArray(posAttrib);
 
         auto pmAtt = glGetUniformLocation(shaderProgram, "projectionMat");
+
         glUniformMatrix4fv(pmAtt, 1, GL_FALSE, ortho.ptr);
 
         // set color
-        auto cAtt = glGetUniformLocation(shaderProgram, "ucolor");
-        glUniform4fv(cAtt, 1, color.ptr);
+        auto cAtt = glGetUniformLocation(shaderProgram, "ucolor"); 
+        glUniform4fv(cAtt, 1, color.ptr);import core.stdc.stdio;
     }
 
     void draw() {
@@ -466,30 +473,39 @@ struct GLRect {
         glDisableVertexAttribArray(0);
         glUseProgram(0);
     }
-}
 
-struct GLTexturedRect(bool forText = false) {
+    ~this(){
+        glDeleteBuffers(1, &vbo);
+    }
+}
+struct GLRectParams {PlotPoint[2] r; PlotColor color; float lineWidth;}
+
+class GLTexturedRect(bool forText = false) : IPrimitive {
     
     GLuint shaderProgram;
     GLuint vao = 0;
     GLuint vbo = 0;
-
+    Ortho ortho;
     GLuint textureId;
 
     float[24] vertices;
 
     @nogc nothrow:
 
-    this(GLuint shaderProgram){
+    this(Ortho ortho, GLuint shaderProgram){
         this.shaderProgram = shaderProgram;
-
+        this.ortho = ortho;
         glGenVertexArrays(1, &vao);
         glGenBuffers(1, &vbo);
         
     }
 
-    void set(Rect r, GLuint textureId, float angle, PlotColor color = plotBlack){
-        this.textureId = textureId;
+    void set(void* params){
+        auto prm = cast(GLTexturedRectParams*)params;
+        Rect r = prm.r;
+        float angle = prm.angle;
+        PlotColor color = prm.color;
+        this.textureId = prm.textureId;
 
         vertices = [
             r.x, r.y+r.h,      0.0f, 1.0f,
@@ -513,6 +529,7 @@ struct GLTexturedRect(bool forText = false) {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         glUseProgram(shaderProgram);
+        
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projectionMat"), 1, GL_FALSE, ortho.ptr);
         glUniform1i(glGetUniformLocation(shaderProgram, "userTexture"), 0);
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "modelMat"), 1, GL_FALSE, model.ptr);
@@ -534,7 +551,13 @@ struct GLTexturedRect(bool forText = false) {
 
         glBindVertexArray(0);
     }
+
+    ~this(){
+        glDeleteVertexArrays(1, &vao);
+        glDeleteBuffers(1, &vbo);
+    }
 }
+struct GLTexturedRectParams {Rect r; GLuint textureId; float angle; PlotColor color;}
 
 GLuint initShader(const char* vShader, const char* fShader) {
     struct Shader {
@@ -593,7 +616,13 @@ GLuint initShader(const char* vShader, const char* fShader) {
     return program;
 }
 
+/*
+enum verth = "#version 300 es\n
+";
+enum fragh = "#version 300 es\n
+precision mediump float;\n";
 
+*/
 enum verth = "#version 140\n
 ";
 enum fragh = "#version 140\n";
