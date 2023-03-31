@@ -753,11 +753,11 @@ class Figure
 
         alias T = ElementType!Iterator;
 
-        Slice!(ubyte*, N, SliceKind.contiguous) showImage;
+        Slice!(RCI!ubyte, N, SliceKind.contiguous) showImage;
         static if ( is(T == ubyte) )
             showImage = image.assumeContiguous; // TODO: test if its contiguous
         else
-            showImage = image.as!ubyte.slice;
+            showImage = image.as!ubyte.rcslice;
 
         if (format == ImageFormat.IF_UNASSIGNED)
             draw( showImage.asImage() );
