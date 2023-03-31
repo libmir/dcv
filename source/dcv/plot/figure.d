@@ -102,12 +102,16 @@ module dcv.plot.figure;
 import std.string : toStringz;
 import std.exception;
 import std.conv : to;
-import std.container : DList, Array;
+import std.container : Array;
+import std.array : _sa = staticArray;
 
 import mir.ndslice.slice;
 
 import dcv.plot.drawprimitives;
 import dcv.plot.ttf;
+import dcv.core.utils : dlist;
+
+import dplug.core;
 
 version(ggplotd)
 {
@@ -324,10 +328,6 @@ int waitKey(string unit = "msecs")(ulong count = 0)
     _lastKey = -1;
     auto hiddenLoopCheck = 0;
 
-version(UseLegacyGL){ } else {
-    foreach (f; _figures)
-        f.prepareRender();
-}
     while (true)
     {
         if (count && count < mixin("stopwatch.peek.total!\"" ~ unit ~ "\"")){
@@ -437,7 +437,7 @@ alias CharCallback = void delegate(uint key) @nogc nothrow;
 /**
 Assign key press callback function.
 */
-void setKeyPressCallback(KeyPressCallback clbck)
+void setKeyPressCallback(KeyPressCallback clbck) @nogc nothrow
 {
     _keyPressCallback = clbck;
 }
@@ -445,7 +445,7 @@ void setKeyPressCallback(KeyPressCallback clbck)
 /**
 Assign character input callback function.
 */
-void setCharCallback(CharCallback clbck)
+void setCharCallback(CharCallback clbck) @nogc nothrow
 {
     _charCallback = clbck;
 }
@@ -468,7 +468,7 @@ class Figure
 
         int _width = 0;
         int _height = 0;
-        ubyte[] _data = null;
+        RCArray!ubyte _data;
         string _title = "";
         int dispFormat = -1;
 
@@ -477,16 +477,21 @@ class Figure
         CloseCallback _closeCallback = null;
 
         version(UseLegacyGL){ } else {
-            TextureRenderer* imageRenderer;
+            TextureRenderer imageRenderer = null;
 
-            GLLine lineDrafter;
-            GLCircle hcircleDrafter;
-            GLSolidCircle scircleDrafter;
-            GLRect rectangleDrafter;
-            GLTexturedRect!true ttfDrafter;
+            GLuint shaderColor;
+            GLuint shaderText;
 
-            DList!(void delegate() @nogc nothrow ) primitiveQueue;
+            dlist!(PrimLauncher) primitiveQueue;
+
+            GLSolidCircle solidCircleDrafter = null;
+            GLCircle circleDrafter = null;
+            GLLine lineDrafter = null;
+            GLRect rectDrafter = null;
+            GLTexturedRect!true textDrafter = null;
         }
+
+        Slice!(RCI!float, 2LU, Contiguous) ortho;
     }
 
     package {
@@ -496,7 +501,7 @@ class Figure
 
     @disable this();
 
-    private void setupCallbacks()
+    private void setupCallbacks() @nogc nothrow
     {
         glfwSetInputMode(_glfwWindow, GLFW_STICKY_KEYS, 1);
 
@@ -521,12 +526,10 @@ class Figure
         _title = title;
         _width = width;
         _height = height;
-        _data = new ubyte[_width * _height * 3];
-
+        _data = RCArray!ubyte(_width * _height * 3);
+        
         setupWindow();
         fitWindow();
-        
-        setupCallbacks();
     }
 
     /// Construct figure window with given title, and fill it with given image.
@@ -561,79 +564,101 @@ class Figure
         version(UseLegacyGL){} else {
             clearPrimitives();
             if(imageRenderer){
-                free(cast(void*)imageRenderer);
+                destroyFree(imageRenderer);
                 imageRenderer = null;
+            }
+            if(solidCircleDrafter !is null){
+                destroyFree(solidCircleDrafter);
+                solidCircleDrafter = null;
+            }
+            if(circleDrafter !is null){
+                destroyFree(circleDrafter);
+                circleDrafter = null;
+            }
+            if(lineDrafter !is null){
+                destroyFree(lineDrafter);
+                lineDrafter = null;
+
+            } 
+            if(rectDrafter !is null){
+                destroyFree(rectDrafter);
+                rectDrafter = null;
+            }
+            if(textDrafter !is null){
+                destroyFree(textDrafter);
+                textDrafter = null;
             }
         }
     }
 
     /// Assign mouse callback function.
-    Figure setMouseCallback(MouseCallback clbck)
+    Figure setMouseCallback(MouseCallback clbck) @nogc nothrow
     {
         _mouseCallback = clbck;
         return this;
     }
 
-    Figure setCursorCallback(CursorCallback clbck)
+    Figure setCursorCallback(CursorCallback clbck) @nogc nothrow
     {
         _cursorCallback = clbck;
         return this;
     }
 
-    Figure setCloseCallback(CloseCallback clbck)
+    Figure setCloseCallback(CloseCallback clbck) @nogc nothrow
     {
         _closeCallback = clbck;
         return this;
     }
 
-    @property width() inout
+    @property width() inout @nogc nothrow
     {
         return _width;
     }
 
-    @property height() inout
+    @property height() inout @nogc nothrow
     {
         return _height;
     }
 
-    @property title() inout
+    @property title() inout @nogc nothrow
     {
         return _title;
     }
 
-    @property title(inout string newTitle)
+    @property title(inout string newTitle) @nogc nothrow
     {
         if (_glfwWindow)
         {
-            glfwSetWindowTitle(_glfwWindow, toStringz(newTitle));
+            glfwSetWindowTitle(_glfwWindow, CString(newTitle));
         }
     }
 
-    @property visible() inout
+    @property visible() inout @nogc nothrow
     {
         if (_glfwWindow is null)
             return false;
         return glfwGetWindowAttrib(cast(GLFWwindow*)_glfwWindow, GLFW_VISIBLE) == 1;
     }
 
-    @property position() const
+    @property int[2] position() const @nogc nothrow
     {
         int x;
         int y;
         glfwGetWindowPos(cast(GLFWwindow*)_glfwWindow, &x, &y);
-        return [x, y];
+        return [x, y]._sa;
     }
 
-    @property size() const
+    @property int[2] size() const @nogc nothrow
     {
         int w, h;
         glfwGetWindowSize(cast(GLFWwindow*)_glfwWindow, &w, &h);
-        return [w, h];
+        return [w, h]._sa;
     }
 
 
     /// Get a copy of image currently drawn on figure's canvas.
-    @property image() const 
+    /*
+    @property image() const
     in
     {
         assert(width && height);
@@ -644,49 +669,49 @@ class Figure
         im.data[] = _data[];
         return im;
     }
-
+    */
     /// Show the figure window.
-    void show()
+    void show() @nogc nothrow
     {
         if (_glfwWindow)
             glfwShowWindow(_glfwWindow);
     }
 
     /// Show the figure window.
-    void hide()
+    void hide() @nogc nothrow
     {
         if (_glfwWindow)
             glfwHideWindow(_glfwWindow);
     }
 
     /// Clear canvas content of this figure.
-    void clear()
+    void clear() @nogc nothrow
     {
-        _data[] = cast(ubyte)0;
+        _data.asSlice[] = cast(ubyte)0;
     }
 
     /// Move figure window to given position on screen.
-    void moveTo(int x, int y)
+    void moveTo(int x, int y) @nogc nothrow
     {
         glfwSetWindowPos(_glfwWindow, x, y);
     }
 
     /// ditto
-    void moveTo(int[] pos)
+    void moveTo(int[2] pos) @nogc nothrow
     {
         assert(pos.length == 2);
         move(pos[0], pos[1]);
     }
 
     /// Offset figure window position by given values.
-    void move(int x, int y)
+    void move(int x, int y) @nogc nothrow
     {
         auto p = this.position;
         glfwSetWindowPos(_glfwWindow, p[0] + x, p[1] + y);
     }
 
     /// ditto
-    void move(int[] offset)
+    void move(int[2] offset) @nogc nothrow
     {
         move(offset[0], offset[1]);
     }
@@ -702,15 +727,18 @@ class Figure
         {
             _width = cast(int)showImage.width;
             _height = cast(int)showImage.height;
-            _data = showImage.data.dup;
+            _data = rcarray!ubyte(showImage.data[]);
         }
         else
         {
             assert(_data.length == showImage.data.length);
-            _data[] = showImage.data[];
+            _data.asSlice[] = showImage.data[];
         }
-
+        
         fitWindow();
+        version(UseLegacyGL){ } else {
+            prepareRender();
+        }
     }
 
     /// Draw slice of image onto figure canvas.
@@ -725,11 +753,11 @@ class Figure
 
         alias T = ElementType!Iterator;
 
-        Slice!(ubyte*, N, SliceKind.contiguous) showImage;
+        Slice!(RCI!ubyte, N, SliceKind.contiguous) showImage;
         static if ( is(T == ubyte) )
             showImage = image.assumeContiguous; // TODO: test if its contiguous
         else
-            showImage = image.as!ubyte.slice;
+            showImage = image.as!ubyte.rcslice;
 
         if (format == ImageFormat.IF_UNASSIGNED)
             draw( showImage.asImage() );
@@ -753,9 +781,10 @@ class Figure
         fitWindow();
     }
 
-    private void fitWindow()
+    private void fitWindow() @nogc nothrow
     {
         glfwSetWindowSize(_glfwWindow, _width, _height);
+        this.ortho = getOrtho(0.0f, cast(float)_width, cast(float)_height, 0.0f);
     }
 
     private void render()
@@ -804,7 +833,7 @@ class Figure
             glClearColor(0.5f, 0.0f, 0.5f, 1.0f);
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+            
             imageRenderer.render();
 
             drawPrimitives();
@@ -815,28 +844,50 @@ class Figure
 
 version(UseLegacyGL){ } else {
 
-    private void prepareRender(){
-        glfwMakeContextCurrent(_glfwWindow);
+    private void prepareRender() @nogc nothrow
+    {
         if(imageRenderer is null){
-            ortho = getOrtho(0.0f, cast(float)width, cast(float)height, 0.0f);
-            imageRenderer = cast(TextureRenderer*)malloc(TextureRenderer.sizeof);
-            *imageRenderer = TextureRenderer(_data.ptr, width, height, dispFormat);
+            imageRenderer = mallocNew!TextureRenderer(ortho, _data.ptr, width, height, dispFormat);
         }
+
+        if(solidCircleDrafter is null)
+            solidCircleDrafter = mallocNew!GLSolidCircle(ortho, shaderColor);
+        if(circleDrafter is null)
+            circleDrafter = mallocNew!GLCircle(ortho, shaderColor);
+        if(lineDrafter is null)
+            lineDrafter = mallocNew!GLLine(ortho, shaderColor);
+        if(rectDrafter is null)
+            rectDrafter = mallocNew!GLRect(ortho, shaderColor);
+        if(textDrafter is null)
+            textDrafter = mallocNew!(GLTexturedRect!true)(ortho, shaderText);
     }
 
-    private void drawPrimitives(){
+    private void drawPrimitives() @nogc nothrow
+    {
         import std.range;
-
         auto primRange = primitiveQueue[];
         while(!primRange.empty){
-            const fun = primRange.back;
-            fun();
+            auto launcher = primRange.back;
+            launcher.drafter.set(launcher.params);
+            launcher.drafter.draw();
             primRange.popBackN(1);
         }
     }
 
-    void clearPrimitives(){
+    void clearPrimitives() @nogc nothrow
+    {
+        import std.range;
+        import core.stdc.stdlib : free;
+
+        auto primRange = primitiveQueue[];
+        while(!primRange.empty){
+            auto launcher = primRange.back;
+            if(launcher.params)
+                free(launcher.params);
+            primRange.popBackN(1);
+        }
         primitiveQueue.clear();
+        
         foreach (tid; allocatedTexts.data)
         {
             glDeleteTextures(1, &tid);
@@ -844,34 +895,36 @@ version(UseLegacyGL){ } else {
         allocatedTexts.clear;
     }
 
+    @nogc nothrow
     void drawCircle(PlotCircle circle, PlotColor color = [1.0f, 0.0f, 0.0f, 0.5f], bool filled = false, float lineWidth = 1.0f){
-       void delegate() @nogc nothrow launch;
         if(filled){
-            launch = () @nogc nothrow {
-                launchSolidCircle(this.scircleDrafter, circle, color);
-            };
+            GLSolidCircleParams* params = mallocNew!GLSolidCircleParams(circle.centerx, circle.centery, circle.radius, color);
+            PrimLauncher launcher = PrimLauncher(solidCircleDrafter, cast(void*)params);
+            primitiveQueue.insertFront(launcher);
+
         }else{
-            launch = () @nogc nothrow {
-                launchHollowCircle(this.hcircleDrafter, circle, color, lineWidth);
-            };
+            GLCircleParams* params = mallocNew!GLCircleParams(circle.centerx, circle.centery, circle.radius, color, lineWidth);
+            PrimLauncher launcher = PrimLauncher(circleDrafter, cast(void*)params);
+            primitiveQueue.insertFront(launcher);
         }
-        primitiveQueue.insertFront(launch);
     }
 
-    void drawLine(PlotPoint p1, PlotPoint p2, PlotColor color, float lineWidth){
-        auto launch = () @nogc nothrow {
-            launchLine(this.lineDrafter, p1, p2, color, lineWidth);
-        };
-        primitiveQueue.insertFront(launch);
+    @nogc nothrow
+    void drawLine(PlotPoint point1, PlotPoint point2, PlotColor color, float lineWidth){
+        GLLineParams* params = mallocNew!GLLineParams(point1, point2, color, lineWidth);
+        PrimLauncher launcher = PrimLauncher(lineDrafter, cast(void*)params);
+        primitiveQueue.insertFront(launcher);
     }
 
+    @nogc nothrow
     void drawRectangle(PlotPoint[2] rect, PlotColor color, float lineWidth){
-        auto launch = () @nogc nothrow {
-            launchRectangle(this.rectangleDrafter, rect, color, lineWidth);
-        };
-        primitiveQueue.insertFront(launch);
+        GLRectParams* params = mallocNew!GLRectParams(rect, color, lineWidth);
+        PrimLauncher launcher = PrimLauncher(rectDrafter, cast(void*)params);
+        primitiveQueue.insertFront(launcher);
+        
     }
     
+    @nogc nothrow
     void drawText(ref TtfFont font, in char[] text, in PlotPoint posTopLeft, 
             float orientation = 0.0f, int size = 20, PlotColor color = plotRed){
         
@@ -894,17 +947,18 @@ version(UseLegacyGL){ } else {
 
         auto tid = loadTexture(bitmap.ptr, w, h, GL_DEPTH_COMPONENT);
         this.allocatedTexts ~= tid;
-        
-        auto launch = () @nogc nothrow {
-            launchText(this.ttfDrafter, tid, posTopLeft, orientation, w, h, color);
-        };
-        primitiveQueue.insertFront(launch);
+
+        GLTexturedRectParams* params = mallocNew!GLTexturedRectParams(Rect(cast(int)posTopLeft.x, 
+            cast(int)posTopLeft.y, w, h), tid, orientation, color);
+        PrimLauncher launcher = PrimLauncher(textDrafter, cast(void*)params);
+        primitiveQueue.insertFront(launcher);
     }
 
     /** 
         copy rendered figure to a slice. Useful with plot primitives.
     */
-    auto plot2imslice(){
+    auto plot2imslice() @nogc nothrow
+    {
         import mir.rc;
 
         glfwMakeContextCurrent(_glfwWindow);
@@ -930,14 +984,10 @@ version(UseLegacyGL){ } else {
         
         glfwMakeContextCurrent(_glfwWindow);
         initGL();
-
+        
         version(UseLegacyGL){}else{
-            auto sc = loadShaderColor();
-            lineDrafter = GLLine(sc);
-            hcircleDrafter = GLCircle(sc);
-            scircleDrafter = GLSolidCircle(sc);
-            rectangleDrafter = GLRect(sc);
-            ttfDrafter = GLTexturedRect!true(loadShaderText());
+            shaderColor = loadShaderColor();
+            shaderText = loadShaderText();
         }
     }
 
