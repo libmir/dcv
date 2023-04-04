@@ -50,30 +50,3 @@ PRs and any form of help is most appreciated. Also, you can file an issue for fe
 
 ## License
 Library is licensed under Boost Software License - Version 1.0. Some modules in the library contain code that is licensed under some other terms. If a module in the library states different license terms in it's header, then the Boost Software License does not apply to that module.
-
-## dcv revision/revival notes
-
-* This is an effort to make dcv work with the recent versions of LDC, mir libraries and stuff
-
-## Done so far:
-
-* Slice types were updated as to be Slice!(T*, N, SliceKind).
-* Many other updates to comply with recent mir and Phobos libraries.
- uninitialized slice factory was changed to makeUninitSlice!T(GCAllocator.instance, someShape);
-* bindbc libraries (bindbc-glfw and bindbc-opengl) replaced internal bindings for plotting.
-* FFmpeg 4.4.1 binding was created from scratch.
-* dub packaging system was changed to use dcv modules as separate dependecies such as dcv:core, dcv:video, dcv:ffmpeg441
-
-## newly-implemented functionality:
-* Otsu's method for threshold calculation
-* dcv.measure module with refcounted image types: labelling connected regions, moments, ellipsefit, convexhull, findContours, area, perimeter
-* dcv.morphology module with distanceTransform (more planned like watershed, ~~skeletonize~~, end-points, junctions)
-* Switched to modern OpenGL for rendering, by reserving the legacy gl support. use "subConfigurations": {"dcv:core": "legacygl"} for the legacy GL support.
-* New plot primitives like drawLine and drawCircle at Opengl rendering level. the function plot2imslice copies the rendered buffer to a slice. Take a look at the convexhull examples for more.
-
-## Need help for
-* testing.
-* updating unittests.
-* solving any issue encountered during tests.
-* fixing multiview module. Start here: unrevised/multiview/stereo/matching.d line 242
-* re-binding ggplot backend or doing something better (my primitive drawing implementation can be improved)

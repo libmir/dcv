@@ -4,9 +4,10 @@ module dcv.example.video;
  * Video streaming example using dcv library.
  */
 
-import std.stdio;
-import std.datetime.stopwatch : StopWatch;
+import core.stdc.stdio;
 import core.stdc.stdlib;
+
+import std.datetime.stopwatch : StopWatch;
 
 import dcv.videoio;
 import dcv.imgproc.color;
@@ -18,9 +19,11 @@ import mir.ndslice;
 // executable -l "video=Lenovo EasyCamera"
 // executable -f ../data/centaur_1.mpg
 
+@nogc nothrow:
+
 void main(string[] args)
 {
-    if (args.length == 2 && args[1] == "-h")
+    if (args.length < 2 || (args.length == 2 && args[1] == "-h"))
     {
         printHelp();
         return;
@@ -36,7 +39,7 @@ void main(string[] args)
 
     if (!parseArgs(args, path, type))
     {
-        writeln("Error occurred while parsing arguments.\n\n");
+        printf("Error occurred while parsing arguments.\n\n");
         printHelp();
         return;
     }
@@ -48,7 +51,7 @@ void main(string[] args)
     // Check if video has been opened correctly
     if (!inStream.isOpen)
     {
-        writeln("Cannot open input video stream");
+        printf("Cannot open input video stream");
         exit(-1);
     }
 
@@ -100,12 +103,12 @@ void main(string[] args)
         if (!fig.visible)
             break;
     }
-
+    imdestroy(); // destroy all figures allocated
 }
 
 void printHelp()
 {
-    writeln(`
+    printf(`
 DCV Video Streaming Example.
 
 Run example program without arguments, to load and show the example video file centaur_1.mpg.
@@ -146,7 +149,7 @@ bool parseArgs(in string[] args, out string path, out InputStreamType type)
         type = InputStreamType.LIVE;
         break;
     default:
-        writeln("Invalid input type argument: ", args[2]);
+        printf("Invalid input type argument: ", args[2].ptr);
         exit(-1);
     }
 

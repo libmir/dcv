@@ -2,16 +2,19 @@ module dcv.plot.bindings.gl;
 
 public import bindbc.opengl;
 
-import std.stdio;
+import mir.exception;
+import core.stdc.stdio;
 import std.format;
 
-void initGL(){
+void initGL() @nogc nothrow
+{
 
     GLSupport retVal = loadOpenGL();
     if(retVal > GLSupport.noContext) {
-        debug writefln("configure renderer for GL-%d \n", retVal);
+        printf("configure renderer for GL-%d \n", retVal);
     }
     else {
-        throw new Exception(format("OpenGl library load failed due to: GLSupport - %d", retVal));
+        try enforce!"OpenGl library load failed"(false);
+        catch(Exception e) assert(false, e.msg);
     }
 }
