@@ -69,7 +69,7 @@ class StereoMatcher
 
         This method assumes the images have been rectified.
         */
-        DisparityMap evaluate(inout Image left, inout Image right, DisparityMap prealloc = emptyDisparityMap())
+        DisparityMap evaluate(Image left, Image right, DisparityMap prealloc = emptyDisparityMap())
         in
         {
             assert(left.width == right.width && left.height == right.height, "left and right must have the same dimensions");
@@ -92,11 +92,11 @@ class StereoMatcher
 
     protected
     {
-        abstract void evaluateImpl(inout Image left, inout Image right, DisparityMap disp);
+        abstract void evaluateImpl(Image left, Image right, DisparityMap disp);
     }
 }
 
-alias StereoCostFunction = void delegate(const ref StereoPipelineProperties properties, inout Image left, inout Image right, CostVolume cost);
+alias StereoCostFunction = void delegate(const ref StereoPipelineProperties properties, Image left, Image right, CostVolume cost);
 alias StereoCostAggregator = void delegate(const ref StereoPipelineProperties props, CostVolume costVol);
 alias DisparityMethod = void delegate(const ref StereoPipelineProperties props, CostVolume costVol, DisparityMap disp);
 alias DisparityRefiner = void delegate(const ref StereoPipelineProperties props, DisparityMap disp);
@@ -163,7 +163,7 @@ class StereoPipeline : StereoMatcher
         DisparityMethod mDisparityMethod;
         DisparityRefiner mDisparityRefiner;
 
-        override void evaluateImpl(inout Image left, inout Image right, DisparityMap disp)
+        override void evaluateImpl(Image left, Image right, DisparityMap disp)
         {
             mCostFunction(mProperties, left, right, mCost);
             mCostAggregator(mProperties, mCost);
@@ -215,16 +215,11 @@ StereoCostFunction normalisedCrossCorrelation(uint windowSize = 5)
 
 private StereoCostFunction windowCost(alias fun)(uint windowSize)
 {
-    void costFunc(const ref StereoPipelineProperties props, inout Image left, inout Image right, CostVolume costVol)
+    void costFunc(const ref StereoPipelineProperties props, Image left, Image right, CostVolume costVol)
     {
         //Get the images as slices
-        auto l = left
-                .asType!CostType
-                .sliced!CostType;
-
-        auto r = right
-                .asType!CostType
-                .sliced!CostType;
+        auto l = left.sliced.as!CostType;
+        auto r = right.sliced.as!CostType;
 
         auto lpad = slice([l.shape[0] + windowSize - 1, l.shape[1] + windowSize - 1, l.shape[2]], CostType(0));
         auto rpad = slice([l.shape[0] + windowSize - 1, l.shape[1] + windowSize - 1, l.shape[2]], CostType(0));
@@ -274,16 +269,12 @@ StereoCostFunction squaredDifference()
 /**
 Generic method that can be used for computing pointwise matching costs
 */
-private void pointwiseCost(alias fun)(const ref StereoPipelineProperties properties, inout Image left, inout Image right, CostVolume costVol)
+private void pointwiseCost(alias fun)(const ref StereoPipelineProperties properties, Image left, Image right, CostVolume costVol)
 {
     //Get the images as slices
-    auto l = left
-            .asType!CostType
-            .sliced!CostType;
+    auto l = left.sliced.as!CostType;
 
-    auto r = right
-            .asType!CostType
-            .sliced!CostType;
+    auto r = right.sliced.as!CostType;
 
     for(size_t d = 0; d < properties.disparityRange; d++)
     {

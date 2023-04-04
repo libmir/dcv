@@ -190,9 +190,9 @@ path = Path where the image will be written.
 return:
 Status of the writing as bool.
 */
-bool imwrite(in Image image, in string path)
+bool imwrite(Image image, in string path)
 {
-    return imwrite(path, image.width, image.height, image.format, image.depth, image.data!ubyte);
+    return imwrite(path, image.width, image.height, image.format, image.depth, image.data);
 }
 
 /**

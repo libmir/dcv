@@ -35,7 +35,7 @@ interface SparseOpticalFlow
     Returns:
         Array of 2 floating point values which represent movement of each given feature point, from f1 to f2.
     */
-    float[2][] evaluate(inout Image f1, inout Image f2, in float[2][] points,
+    float[2][] evaluate(Image f1, Image f2, in float[2][] points,
             in float[2][] searchRegions, float[2][] prevflow = null, bool usePrevious = false);
 }
 
@@ -59,6 +59,6 @@ interface DenseOpticalFlow
     Returns:
         Calculated flow field.
     */
-    DenseFlow evaluate(inout Image f1, inout Image f2, DenseFlow prealloc = emptySlice!(3, float),
+    DenseFlow evaluate(Image f1, Image f2, DenseFlow prealloc = emptySlice!(3, float),
             bool usePrevious = false);
 }

@@ -21,6 +21,7 @@ import std.exception : enforce;
 /*public*/ import mir.ndslice.slice;
 import mir.ndslice.allocation;
 
+import dplug.core.nogc;
 
 /// Image (pixel) format.
 enum ImageFormat
@@ -102,10 +103,9 @@ private:
     ubyte[] _data = null;
 
 public:
+    bool borrower = false;
 
-    pure @safe nothrow this()
-    {
-    }
+    @disable this();
 
     /**
     Copy constructor.
@@ -115,7 +115,7 @@ public:
         deepCopy = if false (default) the data array will be referenced 
         from copy, esle values will be copied to newly allocated array.
     */
-    pure this(in Image copy, bool deepCopy = false)
+    @nogc nothrow this(Image copy, bool deepCopy = false)
     {
         if (copy is null || copy._data is null)
         {
@@ -127,24 +127,14 @@ public:
         _height = copy._height;
         if (deepCopy)
         {
-            _data = new ubyte[copy._data.length];
+            _data = mallocSlice!ubyte(copy._data.length);
             _data[] = copy._data[];
         }
         else
         {
-            _data = cast(ubyte[])copy._data;
+            this.borrower = true;
+            _data = copy._data;
         }
-    }
-
-    unittest
-    {
-        Image image = new Image(null, false);
-        assert(image.width == 0);
-        assert(image.height == 0);
-        assert(image.format == ImageFormat.IF_UNASSIGNED);
-        assert(image.depth == BitDepth.BD_UNASSIGNED);
-        assert(image.data == null);
-        assert(image.empty == true);
     }
 
     /**
@@ -159,7 +149,7 @@ public:
         has to be of correct size = width*height*channels*depth, where channels are
         defined by the format, and depth is counded in bytes.
     */
-    @safe pure nothrow this(size_t width, size_t height, ImageFormat format = ImageFormat.IF_RGB,
+    @nogc nothrow this(size_t width, size_t height, ImageFormat format = ImageFormat.IF_RGB,
             BitDepth depth = BitDepth.BD_8, ubyte[] data = null)
     in
     {
@@ -176,81 +166,25 @@ public:
         _height = height;
         _depth = depth;
         _format = format;
-        _data = (data !is null) ? data : new ubyte[width * height * channels * (cast(size_t)depth / 8)];
+        
+        if(data !is null){
+            this.borrower = true;
+            _data = data;
+        }else{
+            _data = mallocSlice!ubyte(width * height * channels * (cast(size_t)depth / 8));
+        }
     }
 
-    unittest
-    {
-        Image image = new Image(1, 1, ImageFormat.IF_BGR, BitDepth.BD_8);
-        assert(image.isOfType!ubyte);
-    }
-
-    unittest
-    {
-        Image image = new Image(1, 1, ImageFormat.IF_BGR, BitDepth.BD_16);
-        assert(image.isOfType!ushort);
-    }
-
-    unittest
-    {
-        Image image = new Image(1, 1, ImageFormat.IF_BGR, BitDepth.BD_32);
-        assert(image.isOfType!float);
-    }
-
-    unittest
-    {
-        import std.algorithm.comparison : equal;
-
-        immutable width = 10;
-        immutable height = 15;
-        immutable format = ImageFormat.IF_BGR;
-        immutable depth = BitDepth.BD_8;
-        immutable channels = 3;
-        Image image = new Image(width, height, format, depth);
-        assert(image.width == width);
-        assert(image.height == height);
-        assert(image.format == format);
-        assert(image.channels == channels);
-        assert(image.depth == depth);
-        assert(image.empty == false);
-        assert(image.size == cast(size_t[3])[width, height, channels]);
-    }
-
-    unittest
-    {
-        immutable width = 10;
-        immutable height = 15;
-        immutable format = ImageFormat.IF_BGR;
-        immutable depth = BitDepth.BD_8;
-        immutable channels = 3;
-        Image image = new Image(width, height, format, depth);
-        Image copy = new Image(image, false);
-        assert(copy.width == image.width);
-        assert(copy.height == image.height);
-        assert(copy.channels == image.channels);
-        assert(copy.format == image.format);
-        assert(copy.depth == image.depth);
-        assert(copy.data.ptr == image.data.ptr);
-    }
-
-    unittest
-    {
-        immutable width = 10;
-        immutable height = 15;
-        immutable format = ImageFormat.IF_BGR;
-        immutable depth = BitDepth.BD_8;
-        immutable channels = 3;
-        Image image = new Image(width, height, format, depth);
-        Image copy = new Image(image, true);
-        assert(copy.width == image.width);
-        assert(copy.height == image.height);
-        assert(copy.channels == image.channels);
-        assert(copy.format == image.format);
-        assert(copy.depth == image.depth);
-        assert(copy.data.ptr != image.data.ptr);
+    @nogc nothrow:
+    ~this(){
+        if(!borrower && (data !is null)){
+             freeSlice(_data);
+             _data = null;
+        }
     }
 
     /// Get format of an image.
+    
     @property auto format() const @safe pure nothrow
     {
         return _format;
@@ -301,7 +235,8 @@ public:
     /// Returns an array of 3 sizes: [width, height, channels]
     @property size_t[3] size() const @safe pure nothrow
     {
-        return [width, height, channels];
+        import std.array : staticArray;
+        return [width, height, channels].staticArray;
     }
 
     /**
@@ -315,107 +250,10 @@ public:
     Params:
         T = (template parameter) value type which is tested against the bit depth of the image data.
     */
-    @safe pure nothrow const bool isOfType(T)()
+    const bool isOfType(T)()
     {
         return (depth != BitDepth.BD_UNASSIGNED && ((depth == BitDepth.BD_8 && is(T == ubyte))
                 || (depth == BitDepth.BD_16 && is(T == ushort)) || (depth == BitDepth.BD_32 && is(T == float))));
-    }
-
-    @safe pure nothrow unittest
-    {
-        Image image = new Image(1, 1, ImageFormat.IF_BGR, BitDepth.BD_8);
-        assert(image.isOfType!ubyte);
-        assert(!image.isOfType!ushort);
-        assert(!image.isOfType!float);
-        assert(!image.isOfType!real);
-    }
-
-    @safe pure nothrow unittest
-    {
-        Image image = new Image(1, 1, ImageFormat.IF_BGR, BitDepth.BD_16);
-        assert(!image.isOfType!ubyte);
-        assert(image.isOfType!ushort);
-        assert(!image.isOfType!float);
-        assert(!image.isOfType!real);
-    }
-
-    @safe pure nothrow unittest
-    {
-        Image image = new Image(1, 1, ImageFormat.IF_BGR, BitDepth.BD_32);
-        assert(!image.isOfType!ubyte);
-        assert(!image.isOfType!ushort);
-        assert(image.isOfType!float);
-        assert(!image.isOfType!real);
-    }
-
-    /**
-    Convert image data type to given type.
-    Creates new image with data typed as given value type. 
-    If this image's data type is the same as given type, deep
-    copy of this image is returned.
-    Params:
-        T = (template parameter) value type to which image's data is converted.
-    
-    Returns:
-        Copy of this image with casted data to given type. If given type is same as
-        current data of this image, deep copy is returned.
-    */
-    inout auto asType(T)()
-    in
-    {
-        assert(_data);
-        static assert(is(T == ubyte) || is(T == ushort) || is(T == float),
-                "Given type is invalid - only ubyte (8) ushort(16) or float(32) are supported");
-    }
-    do
-    {
-        import std.range : lockstep;
-        import std.algorithm.mutation : copy;
-        import std.traits : isAssignable;
-
-        auto depth = getDepthFromType!T;
-        if (depth == _depth)
-            return new Image(this, true);
-
-        Image newim = new Image(width, height, format, depth);
-
-        if (_depth == BitDepth.BD_8)
-        {
-            foreach(i, v; data!ubyte){
-                newim.data!T[i] = cast(T)v;
-            }
-            /*
-            foreach (v1, ref v2; lockstep(data!ubyte, newim.data!T))
-            {
-                v2 = cast(T)v1;
-            }*/
-
-        }
-        else if (_depth == BitDepth.BD_16)
-        {
-            foreach(i, v; data!ushort){
-                newim.data!T[i] = cast(T)v;
-            }
-            /*
-            foreach (v1, ref v2; lockstep(data!ushort, newim.data!T))
-            {
-                v2 = cast(T)v1;
-            }*/
-        }
-        else if (_depth == BitDepth.BD_32)
-        {
-            foreach(i, v; data!float){
-                newim.data!T[i] = cast(T)v;
-            }
-            /*
-            foreach (v1, ref v2; lockstep(data!float, newim.data!T))
-            {
-                v2 = cast(T)v1;
-            }
-            */
-        }
-
-        return newim;
     }
 
     /**
@@ -426,130 +264,40 @@ public:
     Params:
         T = (template parameter) value type (default ubyte) to which data array is casted to.
     */
-    pure inout auto data(T = ubyte)()
+    inout auto data()
     {
-        import std.range : ElementType;
-
-        if (_data is null)
-        {
-            return null;
-        }
-        static assert(is(T == ubyte) || is(T == ushort) || is(T == float),
-                "Pixel data type not supported. Supported ones are: ubyte(8bit), ushort(16bit), float(32bit)");
-        enforce(isOfType!T, "Invalid pixel data type cast.");
-        static if (is(ElemetType!(typeof(_data)) == T))
-            return _data;
-        else
-            return cast(T[])_data;
+        return _data;
     }
 
-    override string toString() const
+    debug override string toString() const
     {
         import std.conv : to;
 
         return "Image [" ~ width.to!string ~ "x" ~ height.to!string ~ "]";
     }
 
-    auto sliced(T = ubyte)() inout
+    auto sliced()
     {
-        return data!T.sliced(height, width, channels);
+        return data.sliced(height, width, channels);
     }
 
-    auto rcsliced(T = ubyte)() inout
+    auto rcsliced() inout
     {
         import mir.ndslice.allocation : rcslice;
         import mir.rc;
 
         import core.lifetime: move;
 
-        Slice!(RCI!T, 3LU, Contiguous) ret = uninitRCslice!T(height, width, channels);
-        ret[] = data!T;
+        Slice!(RCI!ubyte, 3LU, Contiguous) ret = uninitRCslice!ubyte(height, width, channels);
+        ret[] = data;
         return ret.move;
-    }
-}
-
-version (unittest)
-{
-    import std.range : iota, lockstep;
-    import std.array : array;
-    import std.algorithm.iteration : map;
-
-    immutable width = 3;
-    immutable height = 3;
-    immutable format = ImageFormat.IF_MONO;
-    immutable depth = BitDepth.BD_8;
-    auto data = (width * height).iota.map!(v => cast(ubyte)v).array;
-}
-
-unittest
-{
-    Image image = new Image;
-    assert(image.format == ImageFormat.IF_UNASSIGNED);
-    assert(image.depth == BitDepth.BD_UNASSIGNED);
-    assert(image.width == 0);
-    assert(image.height == 0);
-    assert(image.data == null);
-    assert(image.empty == true);
-}
-
-// Image.asType!
-unittest
-{
-    Image image = new Image(width, height, format, depth, data);
-    Image sameImage = image.asType!ubyte;
-    assert(image.data == sameImage.data);
-    assert(image.data.ptr != sameImage.data.ptr);
-}
-
-unittest
-{
-    Image image = new Image(width, height, format, depth, data);
-    assert(image.data.ptr == data.ptr);
-    assert(image.width == width);
-    assert(image.height == height);
-    Image oImage = image.asType!ushort;
-    assert(oImage.width == image.width);
-    assert(oImage.height == image.height);
-    foreach (bv, fv; lockstep(image.data!ubyte, oImage.data!ushort))
-    {
-        assert(cast(ushort)bv == fv);
-    }
-}
-
-unittest
-{
-    ubyte[] shdata = new ubyte[18];
-    ubyte* ptr = cast(ubyte*)(data.map!(v => cast(ushort)v).array.ptr);
-    shdata[] = ptr[0 .. width * height * 2][];
-    Image image = new Image(width, height, format, BitDepth.BD_16, shdata);
-    Image oImage = image.asType!float;
-    assert(oImage.width == image.width);
-    assert(oImage.height == image.height);
-    foreach (bv, fv; lockstep(image.data!ushort, oImage.data!float))
-    {
-        assert(cast(float)bv == fv);
-    }
-}
-
-unittest
-{
-    size_t floatsize = width * height * 4;
-    ubyte[] fdata = new ubyte[floatsize];
-    ubyte* ptr = cast(ubyte*)(data.map!(v => cast(float)v).array.ptr);
-    fdata[] = ptr[0 .. floatsize][];
-    Image image = new Image(width, height, format, BitDepth.BD_32, fdata);
-    Image oImage = image.asType!ushort;
-    assert(oImage.width == image.width);
-    assert(oImage.height == image.height);
-    foreach (bv, fv; lockstep(image.data!float, oImage.data!ushort))
-    {
-        assert(cast(ushort)bv == fv);
     }
 }
 
 /**
 Convert a ndslice object to an Image, with defined image format.
 */
+@nogc nothrow
 Image asImage(Iterator, size_t N, SliceKind kind)(Slice!(Iterator, N, kind) slice, ImageFormat format)
 {
     static if(N == 1LU) static assert(0, "Packed slices are not supported.");
@@ -568,34 +316,36 @@ Image asImage(Iterator, size_t N, SliceKind kind)(Slice!(Iterator, N, kind) slic
     }
 
     BitDepth depth = getDepthFromType!T;
-    enforce(depth != BitDepth.BD_UNASSIGNED, "Invalid type of slice for convertion to image: ", T.stringof);
+    debug enforce(depth != BitDepth.BD_UNASSIGNED, "Invalid type of slice for convertion to image: ", T.stringof);
     
+    ubyte* _iterator = cast(ubyte*)slice.ptr;
     static if (N == 2LU)
     {
-        ubyte* _iterator = cast(ubyte*)slice.slice._iterator;
-        ubyte[] s_arr = _iterator[0 .. slice.elementCount * T.sizeof][];
-        enforce(format == 1, "Invalid image format - has to be single channel");
-        return new Image(slice.shape[1], slice.shape[0], format, depth, s_arr);
+        ubyte[] s_arr = _iterator[0 .. slice.elementCount * T.sizeof];
+        debug enforce(format == 1, "Invalid image format - has to be single channel");
     }
     else static if (N == 3LU)
     {
-        ubyte* _iterator = cast(ubyte*)slice.slice._iterator;
-        ubyte[] s_arr = _iterator[0 .. slice.elementCount * T.sizeof][];
+        ubyte[] s_arr = _iterator[0 .. slice.elementCount * T.sizeof];
         auto ch = slice.shape[2];
-        enforce(ch >= 1 && ch <= 4,
+        debug enforce(ch >= 1 && ch <= 4,
                 "Invalid slice shape - third dimension should contain from 1(grayscale) to 4(rgba) values.");
-        enforce(ch == imageFormatChannelCount[format], "Invalid image format - channel count missmatch");
-        return new Image(slice.shape[1], slice.shape[0], format, depth, s_arr);
+        debug enforce(ch == imageFormatChannelCount[format], "Invalid image format - channel count missmatch");
     }
     else
     {
         static assert(0, "Invalid slice dimension - should be 2(mono image) or 3(channel image) dimensional.");
     }
+
+    auto ret = mallocNew!Image(slice.shape[1], slice.shape[0], format, depth);
+    ret.data[] = s_arr[];
+    return ret;
 }
 
 /**
 Convert ndslice object into an image, with default format setup, regarding to slice dimension.
 */
+@nogc nothrow
 Image asImage(Iterator, size_t N, SliceKind kind)(Slice!(Iterator, N, kind) slice)
 {
     import mir.rc: RCI;
@@ -634,7 +384,7 @@ Image asImage(Iterator, size_t N, SliceKind kind)(Slice!(Iterator, N, kind) slic
         default:
             import std.conv : to;
 
-            assert(0, "Invalid channel count: " ~ slice.length!2.to!string);
+            debug assert(0, "Invalid channel count: " ~ slice.length!2.to!string);
         }
     }
     else

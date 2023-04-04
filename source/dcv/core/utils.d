@@ -10,7 +10,7 @@ import std.traits;
 import std.meta : allSatisfy;
 import std.experimental.allocator.gc_allocator;
 
-import mir.ndslice.slice;
+import mir.ndslice.slice, mir.rc;
 import mir.ndslice.topology: iota, flattened;
 import mir.ndslice.allocation;
 
@@ -18,6 +18,11 @@ import mir.ndslice.allocation;
 static Slice!(V*, N, SliceKind.contiguous) emptySlice(size_t N, V)() pure @safe nothrow
 {
     return Slice!(V*, N, SliceKind.contiguous)();
+}
+
+static Slice!(RCI!V, N, SliceKind.contiguous) emptyRCSlice(size_t N, V)() pure @safe nothrow
+{
+    return Slice!(RCI!V, N, SliceKind.contiguous)();
 }
 
 package(dcv) @nogc pure nothrow

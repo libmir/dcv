@@ -71,7 +71,7 @@ class HornSchunckFlow : DenseOpticalFlow
     Returns:
         Calculated flow field.
     */
-    override DenseFlow evaluate(inout Image f1, inout Image f2, DenseFlow prealloc = emptySlice!(3,
+    override DenseFlow evaluate(Image f1, Image f2, DenseFlow prealloc = emptySlice!(3,
             float), bool usePrevious = false)
     in
     {
@@ -89,8 +89,8 @@ class HornSchunckFlow : DenseOpticalFlow
         import mir.ndslice.topology;
         if (current.shape == [height, width] && next.shape == [height, width] && f1.depth == BitDepth.BD_32)
         {
-            auto f1s = f1.sliced!float.flattened.sliced([height, width]);
-            auto f2s = f2.sliced!float.flattened.sliced([height, width]);
+            auto f1s = f1.sliced.as!float.flattened.sliced([height, width]);
+            auto f2s = f2.sliced.as!float.flattened.sliced([height, width]);
 
             current[] = f1s[];
             next[] = f2s[];
@@ -100,12 +100,12 @@ class HornSchunckFlow : DenseOpticalFlow
             switch (f1.depth)
             {
             case BitDepth.BD_32:
-                current = f1.sliced!float.flattened.sliced([f1.height, f1.width]);
-                next = f2.sliced!float.flattened.sliced([f2.height, f2.width]);
+                current = f1.sliced.as!float.flattened.sliced([f1.height, f1.width]).slice;
+                next = f2.sliced.as!float.flattened.sliced([f2.height, f2.width]).slice;
                 break;
             case BitDepth.BD_16:
-                current = f1.sliced!ushort.flattened.sliced([f1.height, f1.width]).as!float.slice;
-                next = f2.sliced!ushort.flattened.sliced([f2.height, f2.width]).as!float.slice;
+                current = f1.sliced.as!ushort.flattened.sliced([f1.height, f1.width]).as!float.slice;
+                next = f2.sliced.as!ushort.flattened.sliced([f2.height, f2.width]).as!float.slice;
                 break;
             default:
                 current = f1.sliced.flattened.sliced([f1.height, f1.width]).as!float.slice;
