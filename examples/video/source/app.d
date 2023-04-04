@@ -28,7 +28,8 @@ void main(string[] args)
 
     //////////// Open the video stream ////////////////
 
-    InputStream inStream = new InputStream;
+    InputStream inStream = mallocNew!InputStream;
+    scope(exit) destroyFree(inStream);
 
     string path; // path to the video
     InputStreamType type; // type of the stream (file or live)
