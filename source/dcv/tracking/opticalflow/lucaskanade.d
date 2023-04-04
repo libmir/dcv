@@ -46,7 +46,7 @@ class LucasKanadeFlow : SparseOpticalFlow
         dcv.features.corner
     
     */
-    override float[2][] evaluate(inout Image f1, inout Image f2, in float[2][] points,
+    override float[2][] evaluate(Image f1, Image f2, in float[2][] points,
             in float[2][] searchRegions, float[2][] flow = null, bool usePrevious = false)
     in
     {
@@ -92,12 +92,12 @@ class LucasKanadeFlow : SparseOpticalFlow
         switch (f1.depth)
         {
         case BitDepth.BD_32:
-            current = f1.sliced!float.flattened.sliced(f1.height, f1.width);
-            next = f2.sliced!float.flattened.sliced(f2.height, f2.width);
+            current = f1.sliced.as!float.flattened.sliced(f1.height, f1.width).slice;
+            next = f2.sliced.as!float.flattened.sliced(f2.height, f2.width).slice;
             break;
         case BitDepth.BD_16:
-            current = f1.sliced!ushort.flattened.sliced(f1.height, f1.width).as!float.slice;
-            next = f2.sliced!ushort.flattened.sliced(f2.height, f2.width).as!float.slice;
+            current = f1.sliced.as!ushort.flattened.sliced(f1.height, f1.width).as!float.slice;
+            next = f2.sliced.as!ushort.flattened.sliced(f2.height, f2.width).as!float.slice;
             break;
         default:
             current = f1.sliced.flattened.sliced(f1.height, f1.width).as!float.slice;

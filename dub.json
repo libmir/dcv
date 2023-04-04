@@ -38,6 +38,7 @@
             {
                 "mir-algorithm": ">=3.15.3",
                 "mir-random": "2.2.19",
+                "mir-core": "~>1.5.3",
                 "bcaa": "~>0.0.8",
                 "dvector": "~>0.0.5",
                 "dplug:core": "~>13.4.9"

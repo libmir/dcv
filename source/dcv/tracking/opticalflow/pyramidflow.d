@@ -52,7 +52,7 @@ class SparsePyramidFlow : SparseOpticalFlow
         levelCount = levels;
     }
 
-    override float[2][] evaluate(inout Image f1, inout Image f2, in float[2][] points,
+    override float[2][] evaluate(Image f1, Image f2, in float[2][] points,
             in float[2][] searchRegions, float[2][] flow = null, bool usePrevious = false)
     in
     {
@@ -112,16 +112,16 @@ class SparsePyramidFlow : SparseOpticalFlow
         switch (f1.depth) 
         {
             case BitDepth.BD_32:
-                f1s = f1.sliced!float.flattened.sliced(f1.height, f1.width);
-                f2s = f2.sliced!float.flattened.sliced(f2.height, f2.width);
+                f1s = f1.sliced.as!float.flattened.sliced(f1.height, f1.width).slice;
+                f2s = f2.sliced.as!float.flattened.sliced(f2.height, f2.width).slice;
                 break;
             case BitDepth.BD_16:
-                f1s = f1.sliced!ushort.flattened.sliced(f1.height, f1.width).as!float.slice;
-                f2s = f2.sliced!ushort.flattened.sliced(f2.height, f2.width).as!float.slice;
+                f1s = f1.sliced.as!ushort.flattened.sliced(f1.height, f1.width).as!float.slice;
+                f2s = f2.sliced.as!ushort.flattened.sliced(f2.height, f2.width).as!float.slice;
                 break;
             default:
-                f1s = f1.sliced!ubyte.flattened.sliced(f1.height, f1.width).as!float.slice;
-                f2s = f2.sliced!ubyte.flattened.sliced(f2.height, f2.width).as!float.slice;
+                f1s = f1.sliced.as!ubyte.flattened.sliced(f1.height, f1.width).as!float.slice;
+                f2s = f2.sliced.as!ubyte.flattened.sliced(f2.height, f2.width).as!float.slice;
         }
 
         // calculate pyramid flow
@@ -179,7 +179,7 @@ class DensePyramidFlow : DenseOpticalFlow
         levelCount = levels;
     }
 
-    override DenseFlow evaluate(inout Image f1, inout Image f2, DenseFlow prealloc = emptySlice!(3,
+    override DenseFlow evaluate(Image f1, Image f2, DenseFlow prealloc = emptySlice!(3,
             float), bool usePrevious = false)
     in
     {
@@ -230,12 +230,12 @@ class DensePyramidFlow : DenseOpticalFlow
         switch (f1.depth) 
         {
             case BitDepth.BD_32:
-                corig = f1.sliced!float.flattened.sliced(f1.height, f1.width);
-                norig = f2.sliced!float.flattened.sliced(f2.height, f2.width);
+                corig = f1.sliced.as!float.flattened.sliced(f1.height, f1.width).slice;
+                norig = f2.sliced.as!float.flattened.sliced(f2.height, f2.width).slice;
                 break;
             case BitDepth.BD_16:
-                corig = f1.sliced!ushort.flattened.sliced(f1.height, f1.width).as!float.slice;
-                norig = f2.sliced!ushort.flattened.sliced(f2.height, f2.width).as!float.slice;
+                corig = f1.sliced.as!ushort.flattened.sliced(f1.height, f1.width).as!float.slice;
+                norig = f2.sliced.as!ushort.flattened.sliced(f2.height, f2.width).as!float.slice;
                 break;
             default:
                 corig = f1.sliced.flattened.sliced(f1.height, f1.width).as!float.slice;
@@ -307,7 +307,7 @@ version (unittest)
 
     class DummySparseFlow : SparseOpticalFlow
     {
-        override float[2][] evaluate(inout Image f1, inout Image f2, in float[2][] points,
+        override float[2][] evaluate(Image f1, Image f2, in float[2][] points,
                 in float[2][] searchRegions, float[2][] prevflow = null, bool usePrevious = false)
         {
             import std.array : uninitializedArray;
@@ -318,7 +318,7 @@ version (unittest)
 
     class DummyDenseFlow : DenseOpticalFlow
     {
-        override DenseFlow evaluate(inout Image f1, inout Image f2, DenseFlow prealloc = emptySlice!(3,
+        override DenseFlow evaluate(Image f1, Image f2, DenseFlow prealloc = emptySlice!(3,
                 float), bool usePrevious = false)
         {
             return new float[f1.height * f1.width * 2].sliced(f1.height, f1.width, 2);

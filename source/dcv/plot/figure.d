@@ -105,7 +105,8 @@ import std.conv : to;
 import std.container : Array;
 import std.array : _sa = staticArray;
 
-import mir.ndslice.slice;
+import mir.ndslice;
+import mir.rc;
 
 import dcv.plot.drawprimitives;
 import dcv.plot.ttf;
@@ -717,11 +718,12 @@ class Figure
     }
 
     /// Draw image onto figure canvas.
-    void draw(Image image)
+    void draw(Image image) @nogc nothrow
     {
         auto tup = adoptImage(image);
         Image showImage = tup[0];
         dispFormat = tup[1];
+        auto mustFreeAfter = tup[2];
 
         if (_width != showImage.width || _height != showImage.height)
         {
@@ -735,6 +737,9 @@ class Figure
             _data.asSlice[] = showImage.data[];
         }
         
+        if(mustFreeAfter)
+            destroyFree(showImage);
+        
         fitWindow();
         version(UseLegacyGL){ } else {
             prepareRender();
@@ -742,12 +747,12 @@ class Figure
     }
 
     /// Draw slice of image onto figure canvas.
+    @nogc nothrow
     void draw(SliceKind kind, size_t N, Iterator)
         (Slice!(Iterator, N, kind) image, ImageFormat format = ImageFormat.IF_UNASSIGNED)
     {
         import std.range.primitives : ElementType;
         import mir.ndslice.topology : as;
-        import mir.ndslice.allocation : slice;
 
         //static assert(packs.length == 1, "Cannot draw packed slices.");
 
@@ -759,10 +764,13 @@ class Figure
         else
             showImage = image.as!ubyte.rcslice;
 
+        Image toDraw;
         if (format == ImageFormat.IF_UNASSIGNED)
-            draw( showImage.asImage() );
+            toDraw = showImage.asImage();
         else
-            draw(showImage.asImage(format) );
+            toDraw = showImage.asImage(format);
+        draw(toDraw);
+        destroyFree(toDraw);
     }
 
     /**
@@ -790,7 +798,7 @@ class Figure
     private void render()
     {
         version(UseLegacyGL){
-            import dvc.plot.drawPrimitives : DISPLAY_FORMAT;
+            import dcv.plot.drawprimitives : DISPLAY_FORMAT;
             
             glfwMakeContextCurrent(_glfwWindow);
 
@@ -1190,11 +1198,22 @@ extern (C) @nogc nothrow {
 
 import std.typecons : Tuple, tuple;
 
-Tuple!(Image, int) adoptImage(Image image)
+private Tuple!(Image, int, bool) adoptImage(Image image) @nogc nothrow
 {
     import dcv.imgproc.color : yuv2rgb, gray2rgb;
+    import mir.ndslice.topology : as;
 
-    Image showImage = (image.depth != BitDepth.BD_8) ? image.asType!ubyte : image;
+    bool mustFreeAfter;
+
+    Image showImage;
+    if(image.depth != BitDepth.BD_8){
+        showImage = mallocNew!Image(image.width, image.height, ImageFormat.IF_RGB, BitDepth.BD_8);
+        showImage.data.sliced(image.height, image.width, image.channels)[] = 
+            image.data.sliced(image.height, image.width, image.channels).as!ubyte[];
+        mustFreeAfter = true;
+    }else{
+        showImage = image;
+    } 
     import mir.ndslice.topology;
 
     int dispFormat = cast(int)ImageFormat.IF_RGB;
@@ -1205,8 +1224,13 @@ Tuple!(Image, int) adoptImage(Image image)
         dispFormat = cast(int)ImageFormat.IF_BGR;
         break;
     case ImageFormat.IF_YUV:
-        showImage = showImage.sliced.yuv2rgb!ubyte.asImage(ImageFormat.IF_RGB);
+        if(showImage is null)
+            showImage = mallocNew!Image(image.width, image.height, ImageFormat.IF_RGB, BitDepth.BD_8);
+
+        auto imrgb = image.sliced.yuv2rgb!ubyte;
+        showImage.data.sliced(image.height, image.width, image.channels)[] = imrgb[];
         dispFormat = cast(int)ImageFormat.IF_RGB;
+        mustFreeAfter = true;
         break;
     case ImageFormat.IF_MONO:
         dispFormat = cast(int)ImageFormat.IF_MONO;
@@ -1214,7 +1238,7 @@ Tuple!(Image, int) adoptImage(Image image)
     default:
         break;
     }
-    return tuple(showImage, dispFormat);
+    return tuple(showImage, dispFormat, mustFreeAfter);
 }
 
 version(ggplotd) void drawGGPlotD(GGPlotD gg,  ubyte[] data,  int width, int height)

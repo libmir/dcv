@@ -10,8 +10,10 @@ import core.stdc.stdlib;
 
 import dcv.videoio;
 import dcv.imgproc.color;
-import dcv.core.utils;
+import dcv.core;
 import dcv.plot.figure;
+
+import mir.ndslice;
 
 // executable -l "video=Lenovo EasyCamera"
 // executable -f ../data/centaur_1.mpg
@@ -26,7 +28,8 @@ void main(string[] args)
 
     //////////// Open the video stream ////////////////
 
-    InputStream inStream = new InputStream;
+    InputStream inStream = mallocNew!InputStream;
+    scope(exit) destroyFree(inStream);
 
     string path; // path to the video
     InputStreamType type; // type of the stream (file or live)
@@ -38,16 +41,9 @@ void main(string[] args)
         return;
     }
 
-    try
-    {
-        // Open the example video
-        inStream.open(path, type);
-    }
-    catch(Exception e)
-    {
-        writeln("Cannot open input video stream: " ~ e.message);
-        exit(-1);
-    }
+    inStream.setVideoSizeRequest(640, 480);
+    // Open the example video
+    inStream.open(path, type);
 
     // Check if video has been opened correctly
     if (!inStream.isOpen)
@@ -68,6 +64,8 @@ void main(string[] args)
     StopWatch s;
     s.start;
 
+    auto fig = imshow(rcslice!ubyte(480, 640, 3), path);
+
     // Read each next frame of the video in the loop.
     while (inStream.readFrame(frame))
     {
@@ -76,11 +74,14 @@ void main(string[] args)
         s.reset;
 
         // If video frame pixel format is YUV, convert the data to RGB, then show it on screen
-        if (frame.format == ImageFormat.IF_YUV)
-            frame.sliced.yuv2rgb!ubyte.imshow(path);
-        else
-            frame.imshow(path);
+        if (frame.format == ImageFormat.IF_YUV){
+            auto toShow = frame.sliced.yuv2rgb!ubyte;
+            fig.draw(toShow, ImageFormat.IF_RGB);
+        }else
+            fig.draw(frame);
 
+        destroyFree(frame);
+        frame = null;
         // Compensate fps wait for lost time on color conversion.
         int wait = max(1, cast(int)waitFrame - cast(int)s.peek.total!"msecs");
 
@@ -96,7 +97,7 @@ void main(string[] args)
         So, if user presses the 'x' button, normal behavior would be to break the 
         streaming loop.
         */
-        if (!figure(path).visible)
+        if (!fig.visible)
             break;
     }
 

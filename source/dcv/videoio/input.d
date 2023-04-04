@@ -27,8 +27,9 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 
 module dcv.videoio.input;
 
-import std.exception : enforce;
-import std.string;
+import mir.exception;
+import core.stdc.stdio : printf;
+import dplug.core;
 
 debug
 {
@@ -60,12 +61,8 @@ Exception thrown when seeking a frame fails.
 */
 class SeekFrameException : Exception
 {
-    @safe this(size_t frame, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
-    {
-        import std.conv : to;
-
-        super("Internal error occurred while seeking frame: " ~ frame.to!string, file, line, next);
-    }
+    mixin MirThrowableImpl;
+    // "Internal error occurred while seeking a video frame."
 }
 
 /**
@@ -73,12 +70,8 @@ Exception thrown when seeking a time fails.
 */
 class SeekTimeException : Exception
 {
-    @safe this(double time, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
-    {
-        import std.conv : to;
-
-        super("Internal error occurred while seeking time: " ~ time.to!string, file, line, next);
-    }
+    mixin MirThrowableImpl;
+    // super("Internal error occurred while seeking time: " ~ time.to!string, file, line, next);
 }
 
 /**
@@ -92,6 +85,7 @@ private:
     InputStreamType type = InputStreamType.INVALID;
     AVDictionary* options = null;
 public:
+    @nogc nothrow:
     this()
     {
         AVStarter AV_STARTER_INSTANCE = AVStarter.instance();
@@ -106,8 +100,10 @@ public:
     {
         private auto checkStream()
         {
-            if (stream is null)
-                throw new StreamNotOpenException;
+            if (stream is null){
+                try enforce!"Stream is not opened."(false);
+                catch(Exception e) assert(false, e.msg);
+            }
         }
 
         /// Check if stream is open.
@@ -191,8 +187,10 @@ public:
 
     void dumpFormat() const
     {
-        if (!isOpen)
-            throw new StreamNotOpenException;
+        if (!isOpen){
+            try enforce!"Stream is not opened."(false);
+            catch(Exception e) assert(false, e.msg);
+        }
         av_dump_format(cast(AVFormatContext*)formatContext, 0, "", 0);
     }
 
@@ -205,13 +203,13 @@ public:
 
     return:
     Stream opening status - true if succeeds, false otherwise.
-    
-    throws:
-    StreamNotOpenException
     */
     bool open(in string path, InputStreamType type = InputStreamType.FILE)
     {
-        enforce(type != InputStreamType.INVALID, "Input stream type cannot be defined as invalid.");
+        try enforce!"Input stream type cannot be defined as invalid."(type != InputStreamType.INVALID);
+        catch(Exception e){
+            assert(false, e.msg);
+        } 
         
         this.type = type;
 
@@ -241,7 +239,8 @@ public:
             }
             if (fmt is null)
             {
-                throw new StreamNotOpenException("Cannot find corresponding file live format for the platform");
+                try enforce!"Cannot find corresponding file live format for the platform"(false);
+                catch(Exception e) assert(false, e.msg);
             }
         }
 
@@ -266,14 +265,18 @@ public:
     /// Seek the video timeline to given frame index.
     void seekFrame(size_t frame)
     {
-        enforce(isFileStream, "Only input file streams can be seeked.");
+        try enforce!"Only input file streams can be seeked."(isFileStream);
+        catch(Exception e) assert(false, e.msg);
 
-        if (stream is null)
-            throw new Exception("Stream is not open");
+        if (stream is null){
+            try enforce!"Stream is not opened."(false);
+            catch(Exception e) assert(false, e.msg);
+        }
 
         if (!(frame < frameCount))
         {
-            throw new SeekFrameException(frame);
+            try enforce!"Internal error occurred while seeking a video frame."(false);
+            catch(Exception e) assert(false, e.msg);
         }
 
         double frameDuration = 1. / frameRate;
@@ -282,23 +285,31 @@ public:
 
         if (av_seek_frame(formatContext, cast(int)streamIndex, seekTarget, AVSEEK_FLAG_ANY) < 0)
         {
-            throw new SeekFrameException(frame);
+            try enforce!"Internal error occurred while seeking a video frame."(false);
+            catch(Exception e) assert(false, e.msg);
         }
     }
 
     /// Seek the video timeline to given time.
     void seekTime(double time)
     {
-        enforce(isFileStream, "Only input file streams can be seeked.");
+        try enforce!"Only input file streams can be seeked."(isFileStream);
+        catch(Exception e) assert(false, e.msg);
 
-        if (stream is null)
-            throw new StreamNotOpenException;
+        if (stream is null){
+            try enforce!"Stream is not opened."(false);
+            catch(Exception e) assert(false, e.msg);
+        }
 
         int seekTarget = cast(int)(time * (stream.time_base.den)) / (stream.time_base.num);
 
         if (av_seek_frame(formatContext, cast(int)streamIndex, seekTarget, AVSEEK_FLAG_ANY) < 0)
         {
-            throw new SeekTimeException(time);
+            try enforce!"Internal error occurred while seeking time."(false);
+            catch(Exception e){
+                printf("At time: %f -> ", time);
+                assert(false, e.msg);
+            } 
         }
     }
 
@@ -307,22 +318,33 @@ public:
 
     params:
     image = Image where next video frame will be stored.
+    Allocates a new image using mallocNew. This must be freed after use with destroyFree.
     */
     bool readFrame(ref Image image)
     {
+        if(image !is null){
+            try enforce!"Input instance of Image must be null!"(false);
+            catch(Exception e) assert(false, e.msg);
+        }
+
         if (isOpen)
         {
             return readFrameImpl(image);
         }
         else
         {
-            throw new StreamNotOpenException;
+            try enforce!"Stream is not opened."(false);
+            catch(Exception e) assert(false, e.msg);
         }
+
+        return false;
     }
 
     void setVideoSizeRequest(int width, int height){
-        import std.format;
-        av_dict_set(&options, "video_size", format!"%dx%d"(width, height).toStringz, 0);
+        import core.stdc.stdio : sprintf;
+        char[64] _str;
+        sprintf(_str.ptr, "%dx%d", width, height);
+        av_dict_set(&options, "video_size", _str.ptr, 0);
     }
 
 private:
@@ -337,8 +359,10 @@ private:
         // allocating an AVFrame
         AVFrame* frame = av_frame_alloc();
         if (!frame)
-        {
-            throw new Exception("Could not allocate frame.");
+        {   
+            try enforce!"Could not allocate frame."(false);
+            catch(Exception e) assert(false, e.msg);
+        
         }
 
         scope (exit)
@@ -358,7 +382,8 @@ private:
                     ret = avcodec_decode_video2(stream.codec, frame, &gotFrame, &packet);
                     if (ret < 0)
                     {
-                        throw new StreamException("Error decoding video frame.");
+                        try enforce!"Error decoding video frame."(false);
+                        catch(Exception e) assert(false, e.msg);
                     }
                     if (gotFrame)
                         break;
@@ -367,10 +392,7 @@ private:
                 {
                     stat = true;
 
-                    if (image is null || image.byteSize != frameSize)
-                    {
-                        image = new Image(width, height, AVPixelFormat_to_ImageFormat(pixelFormat), BitDepth.BD_8);
-                    }
+                    image = mallocNew!Image(width, height, AVPixelFormat_to_ImageFormat(pixelFormat), BitDepth.BD_8);
 
                     adoptFormat(pixelFormat, frame, image.data);
                     break;
@@ -382,12 +404,11 @@ private:
 
     bool openInputStreamImpl(AVInputFormat* inputFormat, in string filepath)
     {
-        const char* file = toStringz(filepath);
         int streamIndex = -1;
 
         scope(exit) av_dict_free(&options);
         // open file, and allocate format context
-        if (avformat_open_input(&formatContext, file, inputFormat, &options) < 0)
+        if (avformat_open_input(&formatContext, CString(filepath), inputFormat, &options) < 0)
         {
             debug writeln("Could not open stream for file: " ~ filepath);
             return false;
@@ -460,8 +481,10 @@ private:
 
     @property AVPixelFormat pixelFormat() const
     {
-        if (stream is null)
-            throw new StreamNotOpenException;
+        if (stream is null){
+            try enforce!"Stream is not opened."(false);
+            catch(Exception e) assert(false, e.msg);
+        }
         return convertDepricatedPixelFormat(stream.codec.pix_fmt);
     }
 

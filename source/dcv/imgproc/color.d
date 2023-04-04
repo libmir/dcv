@@ -34,6 +34,7 @@ import std.traits : isFloatingPoint, isNumeric;
 import mir.math.common : fastmath;
 
 import mir.ndslice.slice;
+import mir.rc;
 import mir.ndslice.topology;
 //import mir.algorithm;
 import mir.ndslice.allocation;
@@ -389,7 +390,7 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(V*, 3, SliceKind.contiguous) yuv2rgb(V)(Slice!(V*, 3, SliceKind.contiguous) input, Slice!(V*, 3, SliceKind.contiguous) prealloc = emptySlice!(3, V)) pure nothrow
+Slice!(RCI!V, 3, SliceKind.contiguous) yuv2rgb(V)(Slice!(V*, 3, SliceKind.contiguous) input, Slice!(RCI!V, 3, SliceKind.contiguous) prealloc = emptyRCSlice!(3, V)) @nogc nothrow
 in
 {
     assert(input.length!2 == 3, "Invalid channel count.");
@@ -401,7 +402,7 @@ do
     import mir.algorithm.iteration: each;
 
     if (prealloc.shape != input.shape)
-        prealloc = makeUninitSlice!V(GCAllocator.instance, input.shape); // uninitializedSlice!V(input.shape);
+        prealloc = rcslice!V(input.shape); // uninitializedSlice!V(input.shape);
 
     assert(input.strides == prealloc.strides,
             "Input image and pre-allocated buffer strides are not identical.");
@@ -671,7 +672,7 @@ void rgb2yuvImpl(V, RGBYUV)(RGBYUV pack)
     }
 }
 
-void yuv2rgbImpl(V, YUVRGB)(YUVRGB pack)
+void yuv2rgbImpl(V, YUVRGB)(YUVRGB pack) @nogc nothrow
 {
     auto y = cast(int)(pack[0].a) - 16;
     auto u = cast(int)(pack[1].a) - 128;
