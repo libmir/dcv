@@ -99,9 +99,7 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 
 module dcv.plot.figure;
 
-import std.string : toStringz;
-import std.exception;
-import std.conv : to;
+import mir.exception;
 import std.container : Array;
 import std.array : _sa = staticArray;
 
@@ -113,6 +111,7 @@ import dcv.plot.ttf;
 import dcv.core.utils : dlist;
 
 import dplug.core;
+import dvector;
 
 version(ggplotd)
 {
@@ -154,13 +153,22 @@ Returns:
     If figure with given title exists already, that figure is returned,
     otherwise new figure is created and returned.
 */
+
+@nogc nothrow:
+
 Figure figure(string title = "")
 {
     mixin(checkContextInit);
 
     Figure f = null;
-    if (title == "")
-        title = "Figure " ~ _figures.length.to!string;
+    if (title == ""){
+        import std.exception: assumeUnique;
+        import core.stdc.stdio;
+        char[64] buff;
+        sprintf(buff.ptr, "Figure %llu", _figures.length);
+        title = assumeUnique(buff[]);
+    }
+    
     foreach (e; _figures)
     {
         if (e.title == title)
@@ -171,7 +179,7 @@ Figure figure(string title = "")
     }
     if (f is null)
     {
-        f = new Figure(title);
+        f = mallocNew!Figure(title);
         if (_figures.length != 0)
         {
             auto p = _figures[$ - 1].position;
@@ -409,20 +417,18 @@ void imdestroy(string title = "")
         foreach (f; _figures)
         {
             f.hide();
-            destroy(f);
+            destroyFree(f);
         }
-        _figures = [];
+        _figures.free;
     }
     else
     {
-        import std.algorithm.mutation : remove;
-
         foreach (i, f; _figures)
         {
             if (f.title == title)
             {
                 f.hide();
-                destroy(f);
+                destroyFree(f);
                 _figures.remove(i);
                 break;
             }
@@ -502,7 +508,9 @@ class Figure
 
     @disable this();
 
-    private void setupCallbacks() @nogc nothrow
+    @nogc nothrow:
+
+    private void setupCallbacks()
     {
         glfwSetInputMode(_glfwWindow, GLFW_STICKY_KEYS, 1);
 
@@ -516,7 +524,7 @@ class Figure
     }
 
     /// Construct figure window with given title.
-    private this(string title, int width = 512, int height = 512)
+    this(string title, int width = 512, int height = 512)
     in
     {
         assert(width > 0);
@@ -593,40 +601,40 @@ class Figure
     }
 
     /// Assign mouse callback function.
-    Figure setMouseCallback(MouseCallback clbck) @nogc nothrow
+    Figure setMouseCallback(MouseCallback clbck)
     {
         _mouseCallback = clbck;
         return this;
     }
 
-    Figure setCursorCallback(CursorCallback clbck) @nogc nothrow
+    Figure setCursorCallback(CursorCallback clbck)
     {
         _cursorCallback = clbck;
         return this;
     }
 
-    Figure setCloseCallback(CloseCallback clbck) @nogc nothrow
+    Figure setCloseCallback(CloseCallback clbck)
     {
         _closeCallback = clbck;
         return this;
     }
 
-    @property width() inout @nogc nothrow
+    @property width() inout
     {
         return _width;
     }
 
-    @property height() inout @nogc nothrow
+    @property height() inout
     {
         return _height;
     }
 
-    @property title() inout @nogc nothrow
+    @property title() inout
     {
         return _title;
     }
 
-    @property title(inout string newTitle) @nogc nothrow
+    @property title(inout string newTitle)
     {
         if (_glfwWindow)
         {
@@ -634,14 +642,14 @@ class Figure
         }
     }
 
-    @property visible() inout @nogc nothrow
+    @property visible() inout 
     {
         if (_glfwWindow is null)
             return false;
         return glfwGetWindowAttrib(cast(GLFWwindow*)_glfwWindow, GLFW_VISIBLE) == 1;
     }
 
-    @property int[2] position() const @nogc nothrow
+    @property int[2] position() const
     {
         int x;
         int y;
@@ -649,7 +657,7 @@ class Figure
         return [x, y]._sa;
     }
 
-    @property int[2] size() const @nogc nothrow
+    @property int[2] size() const
     {
         int w, h;
         glfwGetWindowSize(cast(GLFWwindow*)_glfwWindow, &w, &h);
@@ -672,53 +680,53 @@ class Figure
     }
     */
     /// Show the figure window.
-    void show() @nogc nothrow
+    void show() 
     {
         if (_glfwWindow)
             glfwShowWindow(_glfwWindow);
     }
 
     /// Show the figure window.
-    void hide() @nogc nothrow
+    void hide() 
     {
         if (_glfwWindow)
             glfwHideWindow(_glfwWindow);
     }
 
     /// Clear canvas content of this figure.
-    void clear() @nogc nothrow
+    void clear() 
     {
         _data.asSlice[] = cast(ubyte)0;
     }
 
     /// Move figure window to given position on screen.
-    void moveTo(int x, int y) @nogc nothrow
+    void moveTo(int x, int y) 
     {
         glfwSetWindowPos(_glfwWindow, x, y);
     }
 
     /// ditto
-    void moveTo(int[2] pos) @nogc nothrow
+    void moveTo(int[2] pos)
     {
         assert(pos.length == 2);
         move(pos[0], pos[1]);
     }
 
     /// Offset figure window position by given values.
-    void move(int x, int y) @nogc nothrow
+    void move(int x, int y) 
     {
         auto p = this.position;
         glfwSetWindowPos(_glfwWindow, p[0] + x, p[1] + y);
     }
 
     /// ditto
-    void move(int[2] offset) @nogc nothrow
+    void move(int[2] offset)
     {
         move(offset[0], offset[1]);
     }
 
     /// Draw image onto figure canvas.
-    void draw(Image image) @nogc nothrow
+    void draw(Image image)
     {
         auto tup = adoptImage(image);
         Image showImage = tup[0];
@@ -747,7 +755,6 @@ class Figure
     }
 
     /// Draw slice of image onto figure canvas.
-    @nogc nothrow
     void draw(SliceKind kind, size_t N, Iterator)
         (Slice!(Iterator, N, kind) image, ImageFormat format = ImageFormat.IF_UNASSIGNED)
     {
@@ -789,7 +796,7 @@ class Figure
         fitWindow();
     }
 
-    private void fitWindow() @nogc nothrow
+    private void fitWindow()
     {
         glfwSetWindowSize(_glfwWindow, _width, _height);
         this.ortho = getOrtho(0.0f, cast(float)_width, cast(float)_height, 0.0f);
@@ -981,13 +988,16 @@ version(UseLegacyGL){ } else {
 
 }
     
-    private void setupWindow()
+    private void setupWindow() @nogc nothrow
     {
+        import core.stdc.stdio : printf;
+        import core.stdc.stdlib : exit;
         glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-        _glfwWindow = glfwCreateWindow(_width, _height, toStringz(_title), null, null);
+        _glfwWindow = glfwCreateWindow(_width, _height, CString(_title), null, null);
         if (!_glfwWindow)
         {
-            throw new Exception("Cannot create window of size " ~ [_width, height].to!string);
+            printf("Cannot create window of size %dx%d %s:%lu", _width, _height, __FILE__.ptr, __LINE__);
+            exit(-1);
         }
         
         glfwMakeContextCurrent(_glfwWindow);
@@ -1108,9 +1118,8 @@ static int GLFW_STATUS;
 
 // Checks if drawing context has been initialized.
 enum checkContextInit = q{
-    if (GLFW_STATUS == GLFW_FALSE) {
-        throw new ContextNotInitialized();
-    }
+    try enforce!"Drawing context has not been initialized properly."(GLFW_STATUS != GLFW_FALSE);
+    catch(Exception e) assert(false, e.msg);
 };
 
 // initialize glfw and global callbacks
@@ -1118,7 +1127,8 @@ static this()
 {
     import std.stdio;
 version(GLFW_D){}else{
-    enforce(loadGLFWLib() == glfwSupport, "Problem loading GLFW dynamic library!");
+    try enforce!"Problem loading GLFW dynamic library!"(loadGLFWLib() == glfwSupport);
+    catch(Exception e) assert(false, e.msg);
 }
     GLFW_STATUS = glfwInit();
 
@@ -1137,7 +1147,7 @@ version(GLFW_D){}else{
 
 private:
 
-Figure[] _figures; // book-keeping of each running figure.
+Dvector!Figure _figures; // book-keeping of each running figure.
 int _lastKey = -1; // last hit key
 
 KeyPressCallback _keyPressCallback; // global key press callback
