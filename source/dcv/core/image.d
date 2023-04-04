@@ -268,13 +268,14 @@ public:
     {
         return _data;
     }
-
-    debug override string toString() const
+    /*
+    override string toString() const
     {
         import std.conv : to;
 
         return "Image [" ~ width.to!string ~ "x" ~ height.to!string ~ "]";
     }
+    */
 
     auto sliced()
     {

@@ -105,7 +105,8 @@ import std.conv : to;
 import std.container : Array;
 import std.array : _sa = staticArray;
 
-import mir.ndslice.slice;
+import mir.ndslice;
+import mir.rc;
 
 import dcv.plot.drawprimitives;
 import dcv.plot.ttf;
@@ -797,7 +798,7 @@ class Figure
     private void render()
     {
         version(UseLegacyGL){
-            import dvc.plot.drawPrimitives : DISPLAY_FORMAT;
+            import dcv.plot.drawprimitives : DISPLAY_FORMAT;
             
             glfwMakeContextCurrent(_glfwWindow);
 
@@ -1200,6 +1201,8 @@ import std.typecons : Tuple, tuple;
 private Tuple!(Image, int, bool) adoptImage(Image image) @nogc nothrow
 {
     import dcv.imgproc.color : yuv2rgb, gray2rgb;
+    import mir.ndslice.topology : as;
+
     bool mustFreeAfter;
 
     Image showImage;

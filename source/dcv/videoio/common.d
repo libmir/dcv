@@ -9,8 +9,7 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 */
 module dcv.videoio.common;
 
-import std.stdio : writeln;
-import std.exception : enforce;
+import mir.exception;
 
 import ffmpeg.libavcodec;
 import ffmpeg.libavformat;
@@ -23,15 +22,15 @@ import ffmpeg.libavfilter;
 
 public import dcv.imageio.image;
 
+import dplug.core.nogc;
+
+/+
 /**
 Exception related to streaming operations.
 */
 class StreamException : Exception
 {
-    @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
-    {
-        super(msg, file, line, next);
-    }
+    mixin MirThrowableImpl;
 }
 
 /**
@@ -39,12 +38,10 @@ Exception thrown on failed video stream opening.
 */
 class StreamNotOpenException : StreamException
 {
-    @safe pure nothrow this(string file = __FILE__, size_t line = __LINE__, Throwable next = null)
-    {
-        super("Stream is not opened.", file, line, next);
-    }
+    mixin MirThrowableImpl;
+    // "Stream is not opened."
 }
-
++/
 /**
 Video codec identifiers.
 */
@@ -61,6 +58,7 @@ enum CodecID
 
 package:
 
+@nogc nothrow
 string getCodecString(CodecID codec)
 {
     switch (codec)
@@ -87,10 +85,12 @@ string getCodecString(CodecID codec)
 class AVStarter
 {
     private static AVStarter _instance = null;
+    
+    @nogc nothrow:
     static AVStarter instance()
     {
         if (AVStarter._instance is null)
-            AVStarter._instance = new AVStarter;
+            AVStarter._instance = mallocNew!AVStarter();
         return AVStarter._instance;
     }
 
@@ -101,6 +101,10 @@ class AVStarter
         avcodec_register_all();
         avfilter_register_all();
         avdevice_register_all();
+    }
+
+    ~this(){
+        destroyFree(AVStarter._instance);
     }
 }
 
@@ -136,6 +140,8 @@ alias IF_BGR_PREFERED = AVPixelFormat.AV_PIX_FMT_BGR24;
 // alias IF_BGR_ALPHA_PREFERED = AVPixelFormat.AV_PIX_FMT_BGRA;
 alias IF_YUV_PREFERED = AVPixelFormat.AV_PIX_FMT_YUV444P;
 
+@nogc nothrow:
+
 AVPixelFormat convertDepricatedPixelFormat(AVPixelFormat pix)
 {
     AVPixelFormat pixFormat = pix;
@@ -161,7 +167,6 @@ AVPixelFormat convertDepricatedPixelFormat(AVPixelFormat pix)
 
 ImageFormat AVPixelFormat_to_ImageFormat(AVPixelFormat format)
 {
-    import std.exception : enforce;
     import std.algorithm.searching : find;
 
     if (IF_YUV_TYPES.find(format))
@@ -199,7 +204,8 @@ ImageFormat AVPixelFormat_to_ImageFormat(AVPixelFormat format)
     +/
     else
     {
-        enforce(0, "Format type is not supported");
+        try enforce!"Format type is not supported!"(false);
+        catch(Exception e) assert(false, e.msg);
     }
     return ImageFormat.IF_UNASSIGNED;
 }
@@ -229,8 +235,6 @@ AVPixelFormat ImageFormat_to_AVPixelFormat(ImageFormat format)
 
 void adoptFormat(AVPixelFormat format, AVFrame* frame, ubyte[] data)
 {
-
-    import std.exception : enforce;
     import std.algorithm.searching : find;
 
     if (IF_YUV_TYPES.find(format))
@@ -239,11 +243,13 @@ void adoptFormat(AVPixelFormat format, AVFrame* frame, ubyte[] data)
     }
     else if (IF_RGB_TYPES.find(format))
     {
-        throw new Exception("Not implemented");
+        try enforce!"Not implemented"(false);
+        catch(Exception e) assert(false, e.msg);
     }
     else if (IF_BGR_TYPES.find(format))
     {
-        throw new Exception("Not implemented");
+        try enforce!"Not implemented"(false);
+        catch(Exception e) assert(false, e.msg);
     }
     /+else if (IF_RGB_ALPHA_TYPES.find(format))
     {
@@ -255,7 +261,8 @@ void adoptFormat(AVPixelFormat format, AVFrame* frame, ubyte[] data)
     }+/
     else if (IF_MONO_TYPES.find(format))
     {
-        throw new Exception("Not implemented");
+        try enforce!"Not implemented"(false);
+        catch(Exception e) assert(false, e.msg);
     }
     /+else if (IF_MONO_ALPHA_TYPES.find(format))
     {
@@ -263,11 +270,12 @@ void adoptFormat(AVPixelFormat format, AVFrame* frame, ubyte[] data)
     }+/
     else
     {
-        enforce(0, "Format type is not supported");
+        try enforce!"Format type is not supported"(false);
+        catch(Exception e) assert(false, e.msg);
     }
 }
 
-void adoptYUV(AVPixelFormat format, AVFrame* frame, ubyte[] data)
+void adoptYUV(AVPixelFormat format, AVFrame* frame, ref ubyte[] data)
 {
     switch (format)
     {
@@ -292,7 +300,7 @@ void adoptYUV(AVPixelFormat format, AVFrame* frame, ubyte[] data)
     }
 }
 
-void adoptYUVGrouped(AVFrame* frame, ubyte[] data)
+void adoptYUVGrouped(AVFrame* frame, ref ubyte[] data)
 {
     auto ysize = frame.linesize[0];
     auto usize = frame.linesize[1];
@@ -304,8 +312,11 @@ void adoptYUVGrouped(AVFrame* frame, ubyte[] data)
     int w = frame.width;
     int h = frame.height;
 
-    if (data.length != w * h * 3)
-        data.length = w * h * 3;
+    if (data.length != w * h * 3){
+        import core.stdc.stdlib;
+        ubyte* _ptrnew = cast(ubyte*)realloc(data.ptr, w * h * 3 * ubyte.sizeof);
+        data =_ptrnew[0..w * h * 3];
+    }
 
     auto ydata = frame.data[0];
     auto udata = frame.data[1];
@@ -325,7 +336,7 @@ void adoptYUVGrouped(AVFrame* frame, ubyte[] data)
     }
 }
 
-void adoptYUV411P(AVFrame* frame, ubyte[] data)
+void adoptYUV411P(AVFrame* frame, ref ubyte[] data)
 {
 
     int w = frame.width;
@@ -363,7 +374,7 @@ void adoptYUV411P(AVFrame* frame, ubyte[] data)
     }
 }
 
-void adoptYUV422P(AVFrame* frame, ubyte[] data)
+void adoptYUV422P(AVFrame* frame, ref ubyte[] data)
 {
 
     int w = frame.width;
@@ -420,7 +431,7 @@ void adoptYUYV422(AVFrame* frame, ubyte[] data)
     }
 }
 
-void adoptYUV444P(AVFrame* frame, ubyte[] data)
+void adoptYUV444P(AVFrame* frame, ref ubyte[] data)
 {
     foreach (i; 0 .. frame.width * frame.height)
     {

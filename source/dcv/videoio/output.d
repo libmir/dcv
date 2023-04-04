@@ -426,7 +426,7 @@ CodecID AVCodecIDToCodecID(AVCodecID avcodecId)
     return c;
 }
 
-void extractDataFromImage(in Image image, ref ubyte*[] data, ref int[] linesize)
+void extractDataFromImage(Image image, ref ubyte*[] data, ref int[] linesize)
 {
     enforce(image.depth == BitDepth.BD_8, "Image bit depth not supported so far."); // todo: support other types
 

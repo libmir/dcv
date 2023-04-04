@@ -7,6 +7,9 @@ module dcv.plot.drawprimitives;
 
 import dplug.core.nogc;
 
+import mir.ndslice;
+import mir.rc;
+
 // must match with enum ImageFormat
 int DISPLAY_FORMAT(int format) @nogc nothrow
 {
@@ -26,6 +29,25 @@ int DISPLAY_FORMAT(int format) @nogc nothrow
 }
 
 alias Ortho = Slice!(RCI!float, 2LU, Contiguous);
+import mir.ndslice;
+import mir.rc;
+
+package auto getOrtho(float left, float right, float bottom, float top, float near = -1, float far = 1)
+{
+    Slice!(RCI!float, 2LU, Contiguous) result = uninitRCslice!(float)(4, 4);
+    result[] = 0;
+
+    result[0, 0] = 2.0 / (right - left);
+    result[1, 1] = 2.0 / (top - bottom);
+    result[2, 2] = 2.0 / (near - far);
+    result[3, 3] = 1.0;
+
+    result[3, 0] = (left + right) / (left - right);
+    result[3, 1] = (bottom + top) / (bottom - top);
+    result[3, 2] = (far + near) / (near - far);
+
+    return result;
+}
 
 version(UseLegacyGL){ } else:
 
@@ -138,26 +160,6 @@ void updateTexture(ubyte* imptr, uint w, uint h, uint textureId, int dispFormat)
 import core.stdc.math: cos, sin;
 import core.stdc.stdlib: malloc, free, exit;
 import core.stdc.stdio: printf;
-
-import mir.ndslice;
-import mir.rc;
-
-package auto getOrtho(float left, float right, float bottom, float top, float near = -1, float far = 1)
-{
-    Slice!(RCI!float, 2LU, Contiguous) result = uninitRCslice!(float)(4, 4);
-    result[] = 0;
-
-    result[0, 0] = 2.0 / (right - left);
-    result[1, 1] = 2.0 / (top - bottom);
-    result[2, 2] = 2.0 / (near - far);
-    result[3, 3] = 1.0;
-
-    result[3, 0] = (left + right) / (left - right);
-    result[3, 1] = (bottom + top) / (bottom - top);
-    result[3, 2] = (far + near) / (near - far);
-
-    return result;
-}
 
 private auto getModel(const ref Rect r, float angle){
     float[3] zeroTranslation = [-r.x - r.w*0.5, -r.y - r.h*0.5, 0.0f];
