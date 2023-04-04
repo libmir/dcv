@@ -44,8 +44,10 @@ debug
     import std.stdio;
 }
 
-import std.exception : enforce;
+import mir.exception;
 import std.string;
+import dplug.core;
+import core.stdc.stdlib : malloc, free;
 
 import ffmpeg.libavcodec;
 import ffmpeg.libavformat;
@@ -88,6 +90,7 @@ private:
     OutputDefinition properties;
 
 public:
+    @nogc nothrow:
     /// Default initialization.
     this()
     {
@@ -115,15 +118,16 @@ public:
     bool open(in string filepath, in OutputDefinition props = OutputDefinition())
     {
         this.properties = props;
-        const char* path = toStringz(filepath);
-        char* formatString = null;
+        auto cstr = CString(filepath);
+        const(char)* path = cstr.storage;
+        string formatString;
 
         // Determinate output format
         AVOutputFormat* outputFormat = null;
         if (cast(int)props.codecId)
         {
-            formatString = (getCodecString(props.codecId).dup ~ '\0').ptr;
-            outputFormat = av_guess_format(formatString, null, null);
+            formatString = getCodecString(props.codecId);
+            outputFormat = av_guess_format(CString(formatString), null, null);
         }
         else
         {
@@ -164,7 +168,7 @@ public:
         AVCodec* codec = avcodec_find_encoder(outputFormat.video_codec);
         if (!codec)
         {
-            codec = avcodec_find_encoder_by_name(formatString);
+            codec = avcodec_find_encoder_by_name(CString(formatString));
             if (!codec)
             {
                 debug writeln("Cannot find encoder.");
@@ -274,9 +278,14 @@ public:
     {
         import ffmpeg.libavutil.mathematics;
 
-        enforce(image.format == properties.imageFormat, "Image format does not match the output configuration.");
-        enforce(image.height == properties.height, "Image height does not match the output configuration.");
-        enforce(image.width == properties.width, "Image width does not match the output configuration.");
+        try enforce!"Image format does not match the output configuration."(image.format == properties.imageFormat);
+        catch(Exception e) assert(false, e.msg);
+
+        try enforce!"Image height does not match the output configuration."(image.height == properties.height);
+        catch(Exception e) assert(false, e.msg);
+
+        try enforce!"Image width does not match the output configuration."(image.width == properties.width);
+        catch(Exception e) assert(false, e.msg);
 
         AVPacket packet;
         av_init_packet(&packet);
@@ -293,6 +302,16 @@ public:
         int[] linesize;
 
         extractDataFromImage(image, data, linesize);
+
+        scope(exit){
+            if(data.length > 1){
+                foreach (dt; data){
+                    free(cast(void*)dt);
+                }
+            }
+            freeSlice(data);
+            freeSlice(linesize);
+        }
 
         sws_scale(swsContext, data.ptr, linesize.ptr, 0, cast(int)height, frame.data.ptr, frame.linesize.ptr);
 
@@ -346,7 +365,7 @@ public:
         }
     }
 
-    @property const
+    @property @nogc nothrow const
     {
         /// Width of the frame image.
         auto width()
@@ -391,7 +410,7 @@ private:
         }
 
         size = avpicture_get_size(pix_fmt, width, height);
-        picture_buf.length = size;
+        picture_buf = mallocSlice!ubyte(size);
         avpicture_fill(cast(AVPicture*)picture, picture_buf.ptr, pix_fmt, width, height);
 
         picture.format = pix_fmt;
@@ -399,6 +418,7 @@ private:
         picture.height = height;
         picture.pts = 0;
 
+        freeSlice(picture_buf);
         return picture;
     }
 
@@ -409,6 +429,8 @@ private:
 }
 
 private:
+
+@nogc nothrow:
 
 CodecID AVCodecIDToCodecID(AVCodecID avcodecId)
 {
@@ -428,7 +450,8 @@ CodecID AVCodecIDToCodecID(AVCodecID avcodecId)
 
 void extractDataFromImage(Image image, ref ubyte*[] data, ref int[] linesize)
 {
-    enforce(image.depth == BitDepth.BD_8, "Image bit depth not supported so far."); // todo: support other types
+    try enforce!"Image bit depth not supported so far."(image.depth == BitDepth.BD_8);
+        catch(Exception e) assert(false, e.msg);
 
     auto pixelCount = image.width * image.height;
     auto imdata = image.data;
@@ -438,30 +461,39 @@ void extractDataFromImage(Image image, ref ubyte*[] data, ref int[] linesize)
     switch (image.format)
     {
     case ImageFormat.IF_MONO:
-        data = [image.data.ptr];
-        linesize = [w];
+        data = mallocSlice!(ubyte*)(1);
+        data[0] = image.data.ptr;
+        linesize = mallocSlice!(int)(1);
+        linesize[0] = w;
         break;
     /+case ImageFormat.IF_MONO_ALPHA:
         data = [image.data.ptr];
         linesize = [w * 2];
         break;+/
     case ImageFormat.IF_RGB, ImageFormat.IF_BGR:
-        data = [image.data.ptr];
-        linesize = [w * 3];
+        data = mallocSlice!(ubyte*)(1);
+        data[0] = image.data.ptr;
+        linesize = mallocSlice!(int)(1);
+        linesize[0] = w * 3;
         break;
     /+case ImageFormat.IF_RGB_ALPHA, ImageFormat.IF_BGR_ALPHA:
         data = [image.data.ptr];
         linesize = [w * 4];
         break;+/
     case ImageFormat.IF_YUV:
-        data = [new ubyte[w * h].ptr, new ubyte[w * h].ptr, new ubyte[w * h].ptr];
+        data = mallocSlice!(ubyte*)(3);
+        data[0] = cast(ubyte*)malloc(w * h * ubyte.sizeof);
+        data[1] = cast(ubyte*)malloc(w * h * ubyte.sizeof);
+        data[2] = cast(ubyte*)malloc(w * h * ubyte.sizeof);
+        
         foreach (i; 0 .. pixelCount)
         {
             data[0][i] = imdata[i * 3 + 0];
             data[0][i] = imdata[i * 3 + 1];
             data[0][i] = imdata[i * 3 + 2];
         }
-        linesize = [w, w, w];
+        linesize = mallocSlice!(int)(3);
+        linesize[] = w;
         break;
     default:
         assert(0);
