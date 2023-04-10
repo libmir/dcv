@@ -9,13 +9,13 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 */
 module dcv.imgproc.threshold;
 
-import mir.ndslice;
+import mir.ndslice, mir.rc;
 import mir.algorithm.iteration : each;
 import mir.ndslice.allocation;
 
 import std.experimental.allocator.gc_allocator;
 
-import dcv.core.utils : emptySlice;
+import dcv.core.utils : emptyRCSlice;
 
 /**
 Clip slice values by a given threshold value.
@@ -43,13 +43,13 @@ Note:
     (i.e. have same strides). If prealloc buffer is not given, and is
     allocated anew, input slice memory must be contiguous.
 */
-nothrow Slice!(OutputType*, N, Contiguous) threshold(OutputType, InputType, size_t N, SliceKind kind)
+nothrow Slice!(RCI!OutputType, 2, Contiguous) threshold(OutputType, InputType, size_t N, SliceKind kind)
 (
     Slice!(InputType*, N, kind) input,
     InputType lowThresh,
     InputType highThresh,
     bool inverse = false,
-    Slice!(OutputType*, N, Contiguous) prealloc = emptySlice!(N, OutputType)
+    Slice!(RCI!OutputType, 2, Contiguous) prealloc = emptyRCSlice!(2, OutputType)
 )
 in
 {
@@ -66,7 +66,7 @@ do
 
     if (prealloc.shape != input.shape)
     {
-        prealloc = makeUninitSlice!OutputType(GCAllocator.instance, input.shape); //uninitializedSlice!OutputType(input.shape);
+        prealloc = uninitRCslice!OutputType(input.shape); //uninitializedSlice!OutputType(input.shape);
     }
 
     assert(input.structure.strides == prealloc.structure.strides,
@@ -115,12 +115,12 @@ Note:
     (i.e. have same strides). If prealloc buffer is not given, and is
     allocated anew, input slice memory must be contiguous.
 */
-nothrow Slice!(OutputType*, N, Contiguous) threshold(OutputType, InputType, size_t N, SliceKind kind)
+nothrow Slice!(RCI!OutputType, 2, Contiguous) threshold(OutputType, InputType, size_t N, SliceKind kind)
 (
     Slice!(InputType*, N, kind) input,
     InputType thresh,
     bool inverse = false,
-    Slice!(OutputType*, N, Contiguous) prealloc = emptySlice!(N, OutputType)
+    Slice!(RCI!OutputType, 2, Contiguous) prealloc = emptyRCSlice!(2, OutputType)
 )
 {
     return threshold!(OutputType)(input, thresh, thresh, inverse, prealloc);

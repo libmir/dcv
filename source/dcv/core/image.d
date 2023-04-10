@@ -16,7 +16,7 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 */
 module dcv.core.image;
 
-import std.exception : enforce;
+import mir.exception;
 
 /*public*/ import mir.ndslice.slice;
 import mir.ndslice.allocation;
@@ -306,32 +306,40 @@ Image asImage(Iterator, size_t N, SliceKind kind)(Slice!(Iterator, N, kind) slic
     import mir.rc: RCI;
     import std.traits;
     
+    
     static if (__traits(isSame, TemplateOf!(IteratorOf!(typeof(slice))), RCI))
     { // is refcounted?
         alias ASeq = TemplateArgsOf!(IteratorOf!(typeof(slice)));
         alias T = ASeq[0];
-    }else{ // is custom (GC) allocated
+        //ubyte* _iterator = cast(ubyte*)slice._iterator._array.ptr;
+    }else{ // is regular Slice!(T*, N)
         alias PointerOf(T : T*) = T;
         alias P = IteratorOf!(typeof(slice));
         alias T = PointerOf!P;
+        //ubyte* _iterator = cast(ubyte*)slice.ptr;
     }
-
-    BitDepth depth = getDepthFromType!T;
-    debug enforce(depth != BitDepth.BD_UNASSIGNED, "Invalid type of slice for convertion to image: ", T.stringof);
     
-    ubyte* _iterator = cast(ubyte*)slice.ptr;
+    BitDepth depth = getDepthFromType!T;
+    
+    try enforce!("Invalid type of slice for convertion to image: " ~ T.stringof)(depth != BitDepth.BD_UNASSIGNED);
+    catch(Exception e) assert(false, e.msg);
+    
+    
     static if (N == 2LU)
     {
-        ubyte[] s_arr = _iterator[0 .. slice.elementCount * T.sizeof];
-        debug enforce(format == 1, "Invalid image format - has to be single channel");
+        //ubyte[] s_arr = _iterator[0 .. slice.elementCount * T.sizeof];
+        try enforce!("Invalid image format - has to be single channel" ~ T.stringof)(format == 1);
+        catch(Exception e) assert(false, e.msg);
     }
     else static if (N == 3LU)
     {
-        ubyte[] s_arr = _iterator[0 .. slice.elementCount * T.sizeof];
+        //ubyte[] s_arr = _iterator[0 .. slice.elementCount * T.sizeof];
         auto ch = slice.shape[2];
-        debug enforce(ch >= 1 && ch <= 4,
-                "Invalid slice shape - third dimension should contain from 1(grayscale) to 4(rgba) values.");
-        debug enforce(ch == imageFormatChannelCount[format], "Invalid image format - channel count missmatch");
+        try enforce!"Invalid slice shape - third dimension should contain from 1(grayscale) to 4(rgba) values."(ch >= 1 && ch <= 4);
+        catch(Exception e) assert(false, e.msg);
+
+        try enforce!"Invalid image format - channel count missmatch"(ch == imageFormatChannelCount[format]);
+        catch(Exception e) assert(false, e.msg);
     }
     else
     {
@@ -339,7 +347,15 @@ Image asImage(Iterator, size_t N, SliceKind kind)(Slice!(Iterator, N, kind) slic
     }
 
     auto ret = mallocNew!Image(slice.shape[1], slice.shape[0], format, depth);
-    ret.data[] = s_arr[];
+    //static if(is(T==ubyte)){
+    //    ret.data[] = slice[];
+    //}else{
+        foreach (i; 0..slice.elementCount) {
+            T ta = slice.accessFlat(i);
+            ret.data[i..i+T.sizeof] = (cast(ubyte*)&slice.accessFlat(i))[0..T.sizeof];
+        }
+    //}
+    
     return ret;
 }
 

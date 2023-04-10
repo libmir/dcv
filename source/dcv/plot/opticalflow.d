@@ -8,6 +8,8 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 module dcv.plot.opticalflow;
 
 import mir.ndslice.slice : Slice, sliced, SliceKind;
+import mir.ndslice.topology : reshape;
+import mir.rc;
 
 /**
  * Draw color-coded optical flow.
@@ -22,11 +24,11 @@ import mir.ndslice.slice : Slice, sliced, SliceKind;
  * returns:
  * RGB image of color-coded optical flow.
  */
-Slice!(ubyte*, 3LU, SliceKind.contiguous) colorCode(Slice!(float*, 3LU, SliceKind.contiguous) flow, float maxSize = 0)
+@nogc nothrow:
+
+Slice!(RCI!ubyte, 3LU, SliceKind.contiguous) colorCode(Slice!(float*, 3LU, SliceKind.contiguous) flow, float maxSize = 0)
 {
     import std.math : sqrt;
-    import std.array : array;
-
     import dcv.core.algorithm : ranged;
     import dcv.imgproc.color : hsv2rgb;
 
@@ -36,7 +38,9 @@ Slice!(ubyte*, 3LU, SliceKind.contiguous) colorCode(Slice!(float*, 3LU, SliceKin
         maxSize *= 0.1; // expect max flow displacement to be 10% of the diagonal
     }
 
-    auto hsv = new float[flow.length!0 * flow.length!1 * 3].sliced(flow.length!0, flow.length!1, 3);
+    int err;
+    auto hsv = RCArray!float(flow.length!0 * flow.length!1 * 3)
+        .moveToSlice.reshape([flow.length!0, flow.length!1, 3], err);
 
     foreach (r; 0 .. flow.length!0)
     {
@@ -59,5 +63,5 @@ Slice!(ubyte*, 3LU, SliceKind.contiguous) colorCode(Slice!(float*, 3LU, SliceKin
 
     hsv[0 .. $, 0 .. $, 1].ranged(0.0f, maxSize)[] /= maxSize;
 
-    return hsv.hsv2rgb!ubyte; // Convert to RGB, and return...
+    return hsv.lightScope.hsv2rgb!ubyte; // Convert to RGB, and return...
 }

@@ -16,8 +16,8 @@ import dcv.plot.figure;
 
 import mir.ndslice;
 
-// executable -l "video=Lenovo EasyCamera"
-// executable -f ../data/centaur_1.mpg
+// video -l "video=Lenovo EasyCamera"
+// video -f ../data/centaur_1.mpg
 
 @nogc nothrow:
 
@@ -103,7 +103,7 @@ void main(string[] args)
         if (!fig.visible)
             break;
     }
-    imdestroy(); // destroy all figures allocated
+    destroyFigures(); // destroy all figures allocated
 }
 
 void printHelp()

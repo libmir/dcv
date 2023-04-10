@@ -20,7 +20,7 @@ static Slice!(V*, N, SliceKind.contiguous) emptySlice(size_t N, V)() pure @safe 
     return Slice!(V*, N, SliceKind.contiguous)();
 }
 
-static Slice!(RCI!V, N, SliceKind.contiguous) emptyRCSlice(size_t N, V)() pure @safe nothrow
+static Slice!(RCI!V, N, SliceKind.contiguous) emptyRCSlice(size_t N, V)() @nogc nothrow
 {
     return Slice!(RCI!V, N, SliceKind.contiguous)();
 }
@@ -35,7 +35,7 @@ package(dcv) @nogc pure nothrow
     {
         //enum N = packs[0];
         size_t[N-1] shape = slice.shape[0 .. N-1];
-        T[CH]* ptr = cast(T[CH]*)slice._iterator;
+        T[CH]* ptr = cast(T[CH]*)slice.ptr;
         alias Ret = Slice!(T[CH]*, N-1, kind);
         return Ret(shape,  ptr);
     }
@@ -45,7 +45,7 @@ package(dcv) @nogc pure nothrow
         if (N == 2LU)
     {
         size_t[N+1] shape = [slice.shape[0], slice.shape[1], CH];
-        T* ptr = cast(T*)slice._iterator;
+        T* ptr = cast(T*)slice.ptr;
         alias Ret = Slice!(T*, N+1, kind);
         return Ret(shape, ptr);
     }

@@ -12,9 +12,10 @@ import mir.rc;
 
 // Draw convexhull of randomly-generated points
 
-int main(string[] args)
+int main(string[] args) @nogc nothrow
 {
-    import std.random;
+    import mir.random;
+    import mir.random.variable;
     
     enum nPoints = 20;
 
@@ -23,14 +24,12 @@ int main(string[] args)
     immutable size_t margin = 80;
 
     // create an empty image
-    Slice!(RCI!ubyte, 3LU, Contiguous) img = uninitRCslice!ubyte(imHeight, imWidth, 3);
-    
+    Slice!(RCI!ubyte, 3LU, Contiguous) img = rcslice!ubyte(imHeight, imWidth, 3);
+
+    // show a dummy image, and get a plot handle
+    auto figure = imshow(img, "img");
+
     for(;;){
-        img[] = 0;
-
-        // show a dummy image, and get a plot handle
-        auto figure = imshow(img, "img");
-
         // allocate a slice for points
         Slice!(RCI!size_t, 2LU, Contiguous) points = uninitRCslice!size_t(nPoints, 2);
         
@@ -39,8 +38,8 @@ int main(string[] args)
 
         foreach (i; 0..nPoints)
         {
-            size_t x = uniform!"[]"(margin, imWidth - margin, gen);
-            size_t y = uniform!"[]"(margin, imWidth - margin, gen);
+            size_t x = uniformVar(margin, imWidth - margin)(gen);
+            size_t y = uniformVar(margin, imWidth - margin)(gen);
             points[i, 0] = x;
             points[i, 1] = y;
 
@@ -69,9 +68,15 @@ int main(string[] args)
         // figure.plot2imslice().imwrite(ImageFormat.IF_RGB, "hull.png");
         
         int key = waitKey();
+        
         if(key == cast(int)'q' || key == cast(int)'Q' )
             break;
+
+        if (!figure.visible)
+            break;
+        figure.clearPrimitives();
     }
 
+    destroyFigures();
     return 0;
 }

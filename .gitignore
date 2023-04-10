@@ -4,6 +4,7 @@ docs.json
 __dummy.html
 docs/
 /ddcv
+*.pdb
 *.so
 *.dylib
 *.dll

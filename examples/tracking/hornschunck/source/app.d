@@ -5,8 +5,9 @@ module dcv.example.opticalflow;
  * pyramidal Horn-Schunck implementation in dcv.
  */
 
-import std.stdio;
-import std.conv : to;
+import core.stdc.stdio;
+import core.stdc.stdlib : atoi, atof;
+import std.exception : assumeUnique;
 import mir.ndslice;
 
 import dcv.core;
@@ -14,11 +15,11 @@ import dcv.imageio;
 
 import dcv.imgproc.imgmanip : warp;
 import dcv.tracking.opticalflow : HornSchunckFlow, HornSchunckProperties, DensePyramidFlow;
-import dcv.plot.opticalflow : colorCode;
+import dcv.plot;
 
-void printHelp()
+void printHelp() @nogc nothrow
 {
-    writeln(`
+    printf(`
 DCV Optical DenseFlow example.
 
 If only one parameter is given it is considered to be
@@ -52,6 +53,8 @@ with gaussian filter with sigma value 3.0, sized 5x5.
         `);
 }
 
+@nogc nothrow:
+
 void main(string[] args)
 {
 
@@ -65,11 +68,14 @@ void main(string[] args)
     auto rparams = ReadParams(ImageFormat.IF_MONO, BitDepth.BD_8);
 
     string currentPath, nextPath;
-
+    char[256] buff1, buff2;
     if (args.length == 2)
     {
-        currentPath = "../../data/optflow/" ~ args[1] ~ "/frame10.png";
-        nextPath = "../../data/optflow/" ~ args[1] ~ "/frame11.png";
+        sprintf(buff1.ptr, "../../data/optflow/%s/frame10.png", args[1].ptr);
+        currentPath = buff1[].assumeUnique;
+
+        sprintf(buff2.ptr, "../../data/optflow/%s/frame11.png", args[1].ptr);
+        nextPath = buff2[].assumeUnique;
     }
     else
     {
@@ -80,22 +86,31 @@ void main(string[] args)
     auto current = imread(currentPath, rparams);
     auto next = imread(nextPath, rparams);
 
+    scope(exit){
+        destroyFree(current);
+        destroyFree(next);
+    }
+
     // Setup algorithm parameters.
     HornSchunckProperties props = HornSchunckProperties();
-    props.iterationCount = args.length >= 4 ? args[3].to!int : 100;
-    props.alpha = args.length >= 5 ? args[4].to!float : 10.0f;
-    props.gaussSigma = args.length >= 6 ? args[5].to!float : 1.0f;
-    props.gaussKernelSize = args.length >= 7 ? args[6].to!uint : 3;
+    props.iterationCount = args.length >= 4 ? args[3].ptr.atoi : 100;
+    props.alpha = args.length >= 5 ? args[4].ptr.atof : 10.0f;
+    props.gaussSigma = args.length >= 6 ? args[5].ptr.atof : 1.0f;
+    props.gaussKernelSize = args.length >= 7 ? cast(uint)args[6].ptr.atoi : 3;
 
-    uint pyramidLevels = args.length >= 8 ? args[7].to!int : 3;
+    uint pyramidLevels = args.length >= 8 ? args[7].ptr.atoi : 3;
 
-    HornSchunckFlow hsFlow = new HornSchunckFlow(props);
-    DensePyramidFlow densePyramid = new DensePyramidFlow(hsFlow, pyramidLevels);
+    HornSchunckFlow hsFlow = mallocNew!HornSchunckFlow(props);
+    DensePyramidFlow densePyramid = mallocNew!DensePyramidFlow(hsFlow, pyramidLevels);
 
+    scope(exit){
+        destroyFree(hsFlow);
+        destroyFree(densePyramid);
+    }
     auto flow = densePyramid.evaluate(current, next);
 
-    auto flowColor = flow.colorCode;
-    auto flowWarp = current.sliced.warp(flow);
+    auto flowColor = flow.lightScope.colorCode;
+    auto flowWarp = warp(current.sliced, flow.lightScope);
 
     current.imwrite("./result/1_current.png");
     flowColor.imwrite(ImageFormat.IF_RGB, "./result/2_flowColor.png");

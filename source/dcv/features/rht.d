@@ -38,7 +38,10 @@ module dcv.features.rht;
 
 import std.typecons, std.range.primitives;
 
-import mir.ndslice;
+import mir.ndslice, mir.rc;
+import mir.ndslice : filter;
+
+@nogc nothrow:
 
 /++
     A template that bootstraps a full Randomized Hough transform implementation.
@@ -56,6 +59,8 @@ mixin template BaseRht()
     int _epouchs = 50; // number of epouchs to iterate (attempts to find a shape)
     int _iters = 1000; // iterations in each epouch
     int _minCurve = 25; // minimal curve length in pixels
+
+    @nogc nothrow:
 
     static auto toInt(double a)
     {
@@ -109,9 +114,9 @@ mixin template BaseRht()
     /// Run RHT using non-zero points in image as edge points.
     auto opCall(T, SliceKind kind)(Slice!(T*, 2LU, kind) image)
     {
-        import std.array : appender;
+        import mir.appender : scopedBuffer;
 
-        auto points = appender!(Point[])();
+        auto points = scopedBuffer!Point;
         int x, y = 0;
 
         foreach(row; image)
@@ -143,13 +148,20 @@ mixin template BaseRht()
         import mir.random;
         import mir.random.engine.xorshift;
 
+        import std.typecons : RefCounted, refCounted, RefCountedAutoInitialize;
+        import std.algorithm.mutation : move;
+        import bcaa : Bcaa;
+
         This _rht; // RHT struct with key primitives and parameters
         Slice!(T*, 2LU, kind) _image; // image with edge points
-        Tuple!(Curve, int)[Key] _accum; // accumulator, parametrized on Key/Curve tuples
+        Bcaa!(Key, Tuple!(Curve, int)) _accum; // accumulator, parametrized on Key/Curve tuples
         Array!P _points; // extracted edge points
         int _epouch; // current epouch of iteration
         Curve _current; // current detected curve
-        Xorshift _rng = void;
+        RefCounted!(Xorshift, RefCountedAutoInitialize.no) _rng;
+
+        @nogc nothrow:
+
         this(Range)(This rht, Slice!(T*, 2LU, kind) image, Range points)
         {
             _rht = rht;
@@ -192,7 +204,7 @@ mixin template BaseRht()
         {
             Curve best;
             int maxW = 0;
-            foreach (_, v; _accum)
+            foreach (v; _accum.byValue)
             {
                 if (v[1] > maxW)
                 {
@@ -217,29 +229,45 @@ mixin template BaseRht()
         void popFront()
         {
             import std.algorithm, std.range;
+            import mir.random.algorithm : sample;
 
             foreach (e; _epouch .. _rht._epouchs)
             {
-                _accum.clear();
+                _accum.free();
                 Curve best;
                 foreach (i; 0 .. _rht._iters)
                 {
                     if (_points.length < _rht.sampleSize)
                         break;
-                    // TODO: avoid heap allocation
-                    auto sample = _points[].sample(_rng, _rht.sampleSize).array;
-                    auto curve = _rht.fitCurve(_image, sample);
+                    
+                    auto _sample = sample(_rng, _points[], _rht.sampleSize);
+                    typeof(_points[0])[_rht.sampleSize] samplesa;
+
+                    size_t _i;
+                    foreach (s; _sample)
+                        samplesa[_i++] = s;
+
+                    auto curve = _rht.fitCurve(_image, samplesa[]);
                     if (!isInvalidCurve(curve))
                         accumulate(curve);
                 }
                 best = bestCurve();
                 if (isInvalidCurve(best))
                     continue;
-                auto newPoints = make!Array(_points[].filter!(x => !_rht.onCurve(best, x)));
+                //auto newPoints = make!Array(_points.filter!(x => !onCurve(best, x, _rht._curveTol)));
+                import mir.appender : scopedBuffer;
+                auto newPoints = scopedBuffer!(typeof(_points[0]));
+                foreach (po; _points)
+                {
+                    if(!.onCurve(best, po, _rht._curveTol))
+                        newPoints.put(po);
+                }
+
                 if (_points.length - newPoints.length > _rht._minCurve)
                 {
                     // remove fitted curve from the set of points
-                    copy(newPoints[], _points[0 .. newPoints.length]);
+                    _points.data[0 .. newPoints.length] = newPoints.data[];
+                    //copy(newPoints[], _points[0 .. newPoints.length]);
                     _points.length = newPoints.length;
                     _current = best;
                     _epouch = e + 1; // skip current epouch
@@ -269,6 +297,8 @@ struct RhtLines
     double _curveTol = 1.5; // tolerance of on-curve check (pixels)
     mixin BaseRht;
 
+    @nogc nothrow:
+
     // does coarsening to the multiple of tolerance
     auto curveKey(Curve c)
     {
@@ -292,18 +322,20 @@ struct RhtLines
         }
     }
 
-    bool onCurve(Curve curve, Point p)
-    {
-        import std.math;
+    
+}
 
-        int x = p.x, y = p.y;
-        double m = curve.m, b = curve.b;
-        if (m == double.infinity && fabs(x - b) < _curveTol)
-            return true;
-        else if (fabs(x * m + b - y) < _curveTol)
-            return true;
-        return false;
-    }
+private bool onCurve(Curve, Point)(Curve curve, Point p, double _curveTol)
+{
+    import std.math;
+
+    int x = p.x, y = p.y;
+    double m = curve[0], b = curve[1];
+    if (m == double.infinity && fabs(x - b) < _curveTol)
+        return true;
+    else if (fabs(x * m + b - y) < _curveTol)
+        return true;
+    return false;
 }
 
 struct RhtCircles
@@ -315,6 +347,8 @@ struct RhtCircles
     double _radiusTol = 5.0; // tolerance of radius approfixmation (pixels)
     double _curveTol = 8; // tolerance of on-curve check (proportional to radius)
     mixin BaseRht;
+
+    @nogc nothrow:
 
     // does coarsening to the multiple of tolerance
     auto curveKey(Curve c)
@@ -362,6 +396,7 @@ struct RhtEllipses
     double _curveTol = 0.05; // tolerance of on-curve check (proportional to axis)
     mixin BaseRht;
 
+    @nogc nothrow:
     // does coarsening to the multiple of tolerance
     auto curveKey(Curve c)
     {

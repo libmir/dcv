@@ -89,14 +89,14 @@ do
     static if (isFloatingPoint!T)
     {
         import mir.math.common : fmin, fmax;
-        auto _max = reduce!fmax(T.min_normal, tensor);
-        auto _min = reduce!fmin(T.max, tensor);
+        auto _max = reduce!fmax(T.min_normal, tensor.lightScope);
+        auto _min = reduce!fmin(T.max, tensor.lightScope);
     }
     else
     {
         import mir.utility : min, max;
-        auto _max = reduce!max(T.min, tensor);
-        auto _min = reduce!min(T.max, tensor);
+        auto _max = reduce!max(T.min, tensor.lightScope);
+        auto _min = reduce!min(T.max, tensor.lightScope);
     }
 
     auto rn_val = _max - _min;

@@ -11,11 +11,12 @@ v0.1 norm:
 Implemented and tested Image class.
 */
 
-import std.exception : enforce;
-import std.range : array;
+import mir.exception;
 import std.algorithm : reduce;
 import std.string : toLower;
 import std.path : extension;
+
+import dplug.core;
 
 import gamut : GamutImage = Image,
                 LOAD_NO_ALPHA,
@@ -85,6 +86,8 @@ struct ReadParams
     BitDepth depth = BitDepth.BD_UNASSIGNED;
 }
 
+@nogc nothrow:
+
 /** 
 Read image from the file system.
 params:
@@ -101,25 +104,6 @@ Exception and ImageIOException from imageformats library.
 Image imread(in string path, ReadParams params = ReadParams(ImageFormat.IF_UNASSIGNED, BitDepth.BD_UNASSIGNED))
 {
     return imreadImpl_imageformats(path, params);
-}
-
-unittest
-{
-    // should read all images.
-    foreach (f; dirEntries("./tests/", SpanMode.breadth))
-    {
-        auto ext = f.extension.toLower;
-        if (ext == ".png" || ext == ".bmp" || ext == ".tga")
-        {
-            Image im = imread(f);
-            assert(im);
-        }
-    }
-}
-
-unittest
-{
-
 }
 
 /**
@@ -140,7 +124,7 @@ bool imwrite(in string path, size_t width, size_t height, ImageFormat format, Bi
     assert(width > 0 && height > 0);
     if (depth == BitDepth.BD_8)
     {
-        GamutImage gimage = GamutImage(cast(int)width, cast(int)height, gamutPixelTypeFromFormat[format]);
+        GamutImage gimage = GamutImage(cast(int)width, cast(int)height, gamutPixelTypeFromFormat(format));
 
         if(data.length == width * height){ // single channel
             size_t kk;
@@ -164,20 +148,27 @@ bool imwrite(in string path, size_t width, size_t height, ImageFormat format, Bi
                 }
             }
         }else {
-            throw new Exception("Only 1 and 3 channel images can be written.");
+            try enforce!"Only 1 and 3 channel images can be written."(false);
+            catch(Exception e) assert(false, e.msg);
         }
         
-        if (!gimage.saveToFile(path))
-                throw new Exception("Writing " ~ path ~ " failed");
+        if (!gimage.saveToFile(path)){
+            import core.stdc.stdio : printf;
+            import core.stdc.stdlib : exit;
+            debug printf("Writing %s failed.", CString(path).storage);
+            return false;
+        }
         // write_image(path, cast(long)width, cast(long)height, data, imageFormatChannelCount[format]);
     }
     else if (depth == BitDepth.BD_16)
     {
-        throw new Exception("Writting image format not supported.");
+        try enforce!"Writting image format not supported."(false);
+            catch(Exception e) assert(false, e.msg);
     }
     else
     {
-        throw new Exception("Writting image format not supported.");
+        try enforce!"Writting image format not supported."(false);
+            catch(Exception e) assert(false, e.msg);
     }
     return true;
 }
@@ -222,32 +213,33 @@ bool imwrite(SliceKind kind, size_t N, Iterator)
     { // is refcounted?
         alias ASeq = TemplateArgsOf!(IteratorOf!(typeof(slice)));
         alias T = ASeq[0];
-    }else{ // is custom (GC) allocated
+    }else{ // is T*?
         alias PointerOf(T : T*) = T;
         alias P = IteratorOf!(typeof(slice));
         alias T = PointerOf!P;
     }
 
-    int err;
-    auto sdata = slice.reshape([slice.elementCount], err).array;
-    assert(err == 0, "Internal error, cannot reshape the slice."); // should never happen, right?
-
     static if (is(T == ubyte))
     {
-        return imwrite(path, slice.shape[1], slice.shape[0], format, BitDepth.BD_8, sdata);
+        return imwrite(path, slice.shape[1], slice.shape[0], format, BitDepth.BD_8, slice.ptr[0..slice.elementCount]);
     }
     else static if (is(T == ushort))
     {
-        throw new Exception("Writting image format not supported.");
+        try enforce!"Writting image format not supported."(false);
+            catch(Exception e) assert(false, e.msg);
     }
     else static if (is(T == float))
     {
-        throw new Exception("Writting image format not supported.");
+        try enforce!"Writting image format not supported."(false);
+            catch(Exception e) assert(false, e.msg);
     }
     else
     {
-        throw new Exception("Writting image format not supported.");
+        try enforce!"Writting image format not supported."(false);
+            catch(Exception e) assert(false, e.msg);
     }
+
+    //return false;
 }
 
 
@@ -398,7 +390,8 @@ int readParams2LoadFlags(ReadParams params){
 
 Image imreadImpl_imageformats(in string path, ReadParams params)
 {
-    enforce(params.depth != BitDepth.BD_32, "Currenly reading of 32-bit image data is not supported");
+    try enforce!"Currenly reading of 32-bit image data is not supported"(params.depth != BitDepth.BD_32);
+    catch(Exception e) assert(false, e.msg);
 
     if (params.format == ImageFormat.IF_UNASSIGNED)
         params.format = ImageFormat.IF_RGB;
@@ -411,46 +404,74 @@ Image imreadImpl_imageformats(in string path, ReadParams params)
     if (params.depth == BitDepth.BD_UNASSIGNED || params.depth == BitDepth.BD_8)
     {
         //IFImage ifim = read_image(path, ch);
-        gimage.loadFromFile(path, LOAD_NO_ALPHA | LOAD_RGB | LOAD_8BIT);
+        if(params.format == ImageFormat.IF_MONO){
+            gimage.loadFromFile(path, LOAD_NO_ALPHA | LOAD_GREYSCALE | LOAD_8BIT);
+        }else{
+            gimage.loadFromFile(path, LOAD_NO_ALPHA | LOAD_RGB | LOAD_8BIT);
+        }
+        
         //gimage.setSize(gimage.width, gimage.height, PixelType.rgb8, LAYOUT_GAPLESS | LAYOUT_VERT_STRAIGHT); // make contiguous
 
         //ubyte[] allpixels = gimage.allPixelsAtOnce().dup;
 
-        ubyte[] allpixels = new ubyte[gimage.width*gimage.height*3];
-        size_t kk;
-        for (int y = 0; y < gimage.height(); ++y)
-        {
-            ubyte* scan = cast(ubyte*) gimage.scanline(y);
-            for (int x = 0; x < gimage.width(); ++x)
+        im = mallocNew!Image(cast(size_t)gimage.width, cast(size_t)gimage.height, params.format, BitDepth.BD_8);
+
+        if(params.format == ImageFormat.IF_RGB){
+            size_t kk;
+            for (int y = 0; y < gimage.height(); ++y)
             {
-                allpixels[kk++] = scan[3*x + 0];
-                allpixels[kk++] = scan[3*x + 1];
-                allpixels[kk++] = scan[3*x + 2];
+                ubyte* scan = cast(ubyte*) gimage.scanline(y);
+                for (int x = 0; x < gimage.width(); ++x)
+                {
+                    im.data[kk++] = scan[3*x + 0];
+                    im.data[kk++] = scan[3*x + 1];
+                    im.data[kk++] = scan[3*x + 2];
+                }
             }
+            
+            if (gimage.errored){
+                import core.stdc.stdio : printf;
+                debug printf("Gamut error: %s\n", gimage.errorMessage.ptr);
+                destroyFree(im);
+                im = null;
+                return null;
+            }
+        }else if(params.format == ImageFormat.IF_MONO){
+            size_t kk;
+            for (int y = 0; y < gimage.height(); ++y)
+            {
+                ubyte* scan = cast(ubyte*) gimage.scanline(y);
+                for (int x = 0; x < gimage.width(); ++x)
+                {
+                    im.data[kk++] = scan[x];
+                }
+            }
+            
+            if (gimage.errored){
+                import core.stdc.stdio : printf;
+                debug printf("Gamut error: %s\n", gimage.errorMessage.ptr);
+                destroyFree(im);
+                im = null;
+                return null;
+            }
+        }else{
+            try enforce!"Only 1 and 3 channel images can be read."(false);
+            catch(Exception e) assert(false, e.msg);
         }
-        
-        import std.conv : to;
-        if (gimage.errored)
-            throw new Exception(gimage.errorMessage.to!string);
-        im = new Image(cast(size_t)gimage.width, cast(size_t)gimage.height, params.format, BitDepth.BD_8, allpixels);
+        return im;
     }
     else if (params.depth == BitDepth.BD_16)
     {
-        // This should be revised according to gamut. Probably will not work as its present form
-
-        enforce(path.extension.toLower == ".png", "Reading 16-bit image has to be in PNG format.");
-        gimage.loadFromFile(path, LOAD_NO_ALPHA | LOAD_RGB | LOAD_16BIT);
-        gimage.setSize(gimage.width, gimage.height, PixelType.rgb16, LAYOUT_GAPLESS | LAYOUT_VERT_STRAIGHT);
-        ubyte[] allpixels = gimage.allPixelsAtOnce().dup;
-        //IFImage16 ifim = read_png16(path, ch);
-        im = new Image(cast(size_t)gimage.width, cast(size_t)gimage.height, params.format, BitDepth.BD_16, allpixels);
+        try enforce!"Cuurently reading 16-bit image is not supported."(false);
+        catch(Exception e) assert(false, e.msg);
     }
     else
     {
-        throw new Exception("Reading image depth not supported.");
+        try enforce!"Reading image depth not supported."(false);
+        catch(Exception e) assert(false, e.msg);
     }
 
-    return im;
+    return null;
 }
 
 unittest
@@ -495,21 +516,6 @@ unittest
     assert(im.format == ImageFormat.IF_RGB);
 }
 
-unittest
-{
-    // test if 32-bit read request fails
-    // TODO: support, and remove the test.
-    try
-    {
-        imreadImpl_imageformats("", ReadParams(ImageFormat.IF_UNASSIGNED, BitDepth.BD_32));
-        assert(0);
-    }
-    catch (Exception e)
-    {
-        // should enter here...
-    }
-}
-
 int imreadImpl_imageformats_adoptFormat(ImageFormat format)
 {
     int ch = 0;
@@ -528,16 +534,19 @@ int imreadImpl_imageformats_adoptFormat(ImageFormat format)
     //    ch = 2;
     //    break;
     default:
-        throw new Exception("Format not supported");
+        try enforce!"Format not supported."(false);
+        catch(Exception e) assert(false, e.msg);
     }
     return ch;
 }
-package enum gamutPixelTypeFromFormat = [
-    ImageFormat.IF_UNASSIGNED : PixelType.unknown,
-    ImageFormat.IF_MONO : PixelType.l8,
-    ImageFormat.IF_RGB : PixelType.rgb8
+package auto gamutPixelTypeFromFormat(ImageFormat fmt){
+    if(fmt == ImageFormat.IF_UNASSIGNED) return PixelType.unknown;
+    if(fmt == ImageFormat.IF_MONO) return PixelType.l8;
+    if(fmt == ImageFormat.IF_RGB) return PixelType.rgb8;
+    return PixelType.unknown;
     // TODO: 16 bit formats
-];
+}
+    
 /*
 unittest
 {

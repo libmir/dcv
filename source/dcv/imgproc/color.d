@@ -36,9 +36,9 @@ import mir.math.common : fastmath;
 import mir.ndslice.slice;
 import mir.rc;
 import mir.ndslice.topology;
-//import mir.algorithm;
+import mir.ndslice.chunks;
+
 import mir.ndslice.allocation;
-import std.experimental.allocator.gc_allocator;
 
 import dcv.core.utils;
 
@@ -50,6 +50,8 @@ enum Rgb2GrayConvertion
     MEAN, /// Mean the RGB values and assign to gray.
     LUMINANCE_PRESERVE /// Use luminance preservation (0.2126R + 0.715G + 0.0722B). 
 }
+
+@nogc nothrow:
 
 /**
 Convert RGB image to grayscale.
@@ -66,7 +68,7 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(V*, 2, SliceKind.contiguous) rgb2gray(V)(Slice!(V*, 3, SliceKind.contiguous) input, Slice!(V*, 2, SliceKind.contiguous) prealloc = emptySlice!(2, V),
+Slice!(RCI!V, 2, SliceKind.contiguous) rgb2gray(V)(Slice!(V*, 3, SliceKind.contiguous) input, Slice!(RCI!V, 2, SliceKind.contiguous) prealloc = emptyRCSlice!(2, V),
         Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
 {
     return rgbbgr2gray!(false, V)(input, prealloc, conv);
@@ -115,7 +117,7 @@ unittest
     assert(gray.flattened == [0, 1, 2, 3]);
 }
 
-private Slice!(V*, 2LU, SliceKind.contiguous) rgbbgr2gray(bool isBGR, V)(Slice!(V*, 3LU, SliceKind.contiguous) input, Slice!(V*, 2LU, SliceKind.contiguous) prealloc = emptySlice!(2, V),
+private Slice!(RCI!V, 2LU, SliceKind.contiguous) rgbbgr2gray(bool isBGR, V)(Slice!(V*, 3LU, SliceKind.contiguous) input, Slice!(RCI!V, 2LU, SliceKind.contiguous) prealloc = emptyRCSlice!(2, V),
         Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
 in
 {
@@ -124,7 +126,7 @@ in
 do
 {
     if (prealloc.shape != input.shape[0 .. 2])
-        prealloc = makeUninitSlice!V(GCAllocator.instance, input.shape[0..2]);
+        prealloc = uninitRCslice!V(input.shape[0], input.shape[1]);
 
     auto rgb = staticPack!3(input);
 
@@ -162,29 +164,24 @@ Note:
 */
 import mir.algorithm.iteration: each;
 
-Slice!(V*, 3, SliceKind.contiguous) gray2rgb(V)(Slice!(V*, 2, SliceKind.contiguous) input, Slice!(V*, 3, SliceKind.contiguous) prealloc = emptySlice!(3, V)) pure nothrow
+Slice!(RCI!V, 3, SliceKind.contiguous) gray2rgb(V)(Slice!(V*, 2, SliceKind.contiguous) input, Slice!(RCI!V, 3, SliceKind.contiguous) prealloc = emptyRCSlice!(3, V)) pure nothrow
 {
-    Slice!(V[3]*, 2, SliceKind.contiguous) rgb;
+    Slice!(RCI!V, 3, SliceKind.contiguous) rgb;
     if (input.shape != prealloc.shape[0 .. 2])
     {
-        rgb = makeUninitSlice!(V[3])(GCAllocator.instance, input.length!0, input.length!1);//uninitSlice!(V, 3)(input.length!0, input.length!1, input.length!2);
+        rgb = uninitRCslice!V(input.shape[0], input.shape[1], 3);//uninitSlice!(V, 3)(input.length!0, input.length!1, input.length!2);
         
     }
-    else
-    {
-        import mir.ndslice.topology : pack;
-        rgb = staticPack!3(prealloc);
-    }
 
-    assert(rgb.strides == input.strides,
-            "Input and pre-allocated slices' strides are not identical.");
+    //assert(rgb.strides == input.strides,
+    //        "Input and pre-allocated slices' strides are not identical.");
 
-    auto pack = zip!true(input, rgb);
+    auto pack = zip(input.flattened, rgb.flattened.blocks(3));
     alias PT = DeepElementType!(typeof(pack));
 
     pack.each!(gray2rgbImpl!PT);
 
-    return staticUnpack!3(rgb);
+    return rgb;
 }
 
 unittest
@@ -217,7 +214,7 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(R*, 3LU, SliceKind.contiguous) rgb2hsv(R, V)(Slice!(V*, 3LU, SliceKind.contiguous) input, Slice!(R*, 3LU, SliceKind.contiguous) prealloc = emptySlice!(3, R)) pure nothrow
+Slice!(RCI!R, 3LU, SliceKind.contiguous) rgb2hsv(R, V)(Slice!(V*, 3LU, SliceKind.contiguous) input, Slice!(RCI!R, 3LU, SliceKind.contiguous) prealloc = emptyRCSlice!(3, R)) pure nothrow
         if (isNumeric!R && isNumeric!V)
 in
 {
@@ -227,12 +224,12 @@ in
 do
 {
     if (prealloc.shape != input.shape)
-        prealloc = makeUninitSlice!R(GCAllocator.instance, input.shape);
+        prealloc = uninitRCslice!R(input.shape);
 
     assert(input.strides == prealloc.strides,
             "Input image and pre-allocated buffer strides are not identical.");
 
-    auto pack = zip!true(input.staticPack!3, prealloc.staticPack!3);
+    auto pack = zip!true(input.staticPack!3, prealloc.lightScope.staticPack!3);
     pack.each!(rgb2hsvImpl!(DeepElementType!(typeof(pack))));
 
     return prealloc;
@@ -287,7 +284,7 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(R*, 3LU, SliceKind.contiguous) hsv2rgb(R, V)(Slice!(V*, 3LU, SliceKind.contiguous) input, Slice!(R*, 3LU, SliceKind.contiguous) prealloc = emptySlice!(3, R)) pure nothrow
+Slice!(RCI!R, 3LU, SliceKind.contiguous) hsv2rgb(R, V)(Slice!(V*, 3LU, SliceKind.contiguous) input, Slice!(RCI!R, 3LU, SliceKind.contiguous) prealloc = emptyRCSlice!(3, R)) pure nothrow
         if (isNumeric!R && isNumeric!V)
 in
 {
@@ -296,12 +293,12 @@ in
 do
 {
     if (prealloc.shape != input.shape)
-        prealloc = makeUninitSlice!R(GCAllocator.instance, input.shape);
+        prealloc = uninitRCslice!R(input.shape);
 
     assert(input.strides == prealloc.strides,
             "Input image and pre-allocated buffer strides are not identical.");
 
-    auto pack = zip!true(input.staticPack!3, prealloc.staticPack!3);
+    auto pack = zip!true(input.staticPack!3, prealloc.lightScope.staticPack!3);
     pack.each!(hsv2rgbImpl!(DeepElementType!(typeof(pack))));
 
     return prealloc;
@@ -358,7 +355,7 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(V*, 3, SliceKind.contiguous) rgb2yuv(V)(Slice!(V*, 3, SliceKind.contiguous) input, Slice!(V*, 3, SliceKind.contiguous) prealloc = emptySlice!(3, V)) pure nothrow
+Slice!(RCI!V, 3, SliceKind.contiguous) rgb2yuv(V)(Slice!(V*, 3, SliceKind.contiguous) input, Slice!(RCI!V, 3, SliceKind.contiguous) prealloc = emptyRCSlice!(3, V)) pure nothrow
 in
 {
     assert(input.length!2 == 3, "Invalid channel count.");
@@ -366,7 +363,7 @@ in
 do
 {
     if (prealloc.shape != input.shape)
-        prealloc = makeUninitSlice!V(GCAllocator.instance, input.shape);
+        prealloc = uninitRCslice!V(input.shape);
 
     assert(input.strides == prealloc.strides,
             "Input image and pre-allocated buffer strides are not identical.");
@@ -402,7 +399,7 @@ do
     import mir.algorithm.iteration: each;
 
     if (prealloc.shape != input.shape)
-        prealloc = rcslice!V(input.shape); // uninitializedSlice!V(input.shape);
+        prealloc = uninitRCslice!V(input.shape); // uninitializedSlice!V(input.shape);
 
     assert(input.strides == prealloc.strides,
             "Input image and pre-allocated buffer strides are not identical.");

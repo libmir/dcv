@@ -6,19 +6,23 @@ import dcv.plot;
 import dcv.imgproc;
 import dcv.morphology;
 
+import mir.ndslice;
 import mir.rc;
 
-void main()
+void main() @nogc nothrow
 {
     Image img = imread("../data/test_labels.png");
+    scope(exit) destroyFree(img);
 
-    Slice!(ubyte*, 2, Contiguous) gray = img.sliced.rgb2gray; // the test image is already binary here
+    Slice!(RCI!ubyte, 2, Contiguous) gray = img.sliced.lightScope.rgb2gray; // the test image is already binary here
 
     auto skel = skeletonize2D(gray);
 
     imwrite(skel.asImage(ImageFormat.IF_MONO), "result/skel.png");
 
     imshow(skel, "skel");
-    
+
     waitKey();
+
+    destroyFigures();
 }

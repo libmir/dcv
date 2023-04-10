@@ -21,16 +21,20 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 */
 module dcv.tracking.opticalflow.pyramidflow;
 
+import std.array : staticArray;
 import mir.algorithm.iteration: each;
 
-import dcv.core.utils : emptySlice;
+import dcv.core.utils : emptyRCSlice;
 import dcv.core.image;
 import dcv.imgproc.imgmanip : warp, resize;
 import dcv.tracking.opticalflow.base;
 
-import mir.ndslice.allocation: slice;
-import mir.ndslice.topology: as, flattened, iota;
+import mir.ndslice.allocation;
+import mir.ndslice.topology: as, flattened, iota, reshape;
+import mir.rc;
+import mir.exception;
 
+import dplug.core.nogc;
 /**
 Sparse pyramidal optical flow utility class.
 */
@@ -39,6 +43,8 @@ class SparsePyramidFlow : SparseOpticalFlow
 
     private SparseOpticalFlow flowAlgorithm;
     private uint levelCount;
+
+    @nogc nothrow:
 
     this(SparseOpticalFlow flow, uint levels)
     in
@@ -52,76 +58,81 @@ class SparsePyramidFlow : SparseOpticalFlow
         levelCount = levels;
     }
 
-    override float[2][] evaluate(Image f1, Image f2, in float[2][] points,
-            in float[2][] searchRegions, float[2][] flow = null, bool usePrevious = false)
+    override Slice!(RCI!(float[2]), 1) evaluate(Image f1, Image f2, float[2][] points,
+            float[2][] searchRegions, Slice!(RCI!(float[2]), 1) flow = emptyRCSlice!(1, float[2]), bool usePrevious = false)
     in
     {
         assert(!f1.empty && !f2.empty && f1.size == f2.size && f1.channels == 1 && f1.depth == f2.depth);
         assert(points.length == searchRegions.length);
         if (usePrevious)
         {
-            assert(flow !is null);
+            assert(!flow.empty);
             assert(points.length == flow.length);
         }
     }
     do
     {
-        import std.array : uninitializedArray;
         import mir.ndslice.slice: sliced;
 
         size_t[2] size = [f1.height, f1.width];
         const auto pointCount = points.length;
 
         // pyramid flow array - each item is double sized flow from the next
-        size_t[2][] flowPyramid;
-        flowPyramid.length = levelCount;
-        flowPyramid[$ - 1] = size.dup;
+        size_t[2][] flowPyramid = mallocSlice!(size_t[2])(levelCount);
+        scope(exit) freeSlice(flowPyramid);
+
+        flowPyramid[$ - 1] = size;
 
         foreach_reverse (i; 0 .. (levelCount - 1))
         {
             size[] /= 2;
-            if (size[0] < 1 || size[1] < 1)
-                throw new Exception("Pyramid downsampling exceeded minimal image size");
-            flowPyramid[i] = size.dup;
+            if (size[0] < 1 || size[1] < 1){
+                try enforce!"Pyramid downsampling exceeded minimal image size."(false);
+                catch(Exception e) assert(false, e.msg);
+            }
+            flowPyramid[i] = size;
         }
 
-        auto flowScale = [cast(float)f1.height / cast(float)flowPyramid[0][0],
+        float[2] flowScale = [cast(float)f1.height / cast(float)flowPyramid[0][0],
             cast(float)f1.width / cast(float)flowPyramid[0][1]];
 
-        auto lpoints = points.dup;
-        auto lsearchRegions = searchRegions.dup;
+        float[2][] lpoints = mallocSlice!(float[2])(points.length); lpoints[] = points[]; // dup here
+        scope(exit) freeSlice(lpoints);
+        
+        float[2][] lsearchRegions = mallocSlice!(float[2])(searchRegions.length); lsearchRegions[] = searchRegions[]; // dup here
+        scope(exit) freeSlice(lsearchRegions);
 
         alias scale = (ref v) { v[0] /= flowScale[0]; v[1] /= flowScale[1]; };
-        lpoints.sliced.each!scale;
-        lsearchRegions.sliced.each!scale;
+        lpoints.sliced(lpoints.length).each!scale;
+        lsearchRegions.sliced(lsearchRegions.length).each!scale;
 
         if (usePrevious)
         {
-            flow.sliced.each!scale;
+            flow.each!scale;
         }
         else
         {
-            flow = uninitializedArray!(float[2][])(pointCount);
-            flow[] = [0.0f, 0.0f];
+            flow = uninitRCslice!(float[2])(pointCount);
+            flow[] = [0.0f, 0.0f].staticArray;
         }
 
         auto h = f1.height;
         auto w = f1.width;
 
-        Slice!(float*, 2LU, SliceKind.contiguous) current, next, f1s, f2s;
+        Slice!(RCI!float, 2LU, SliceKind.contiguous) current, next, f1s, f2s;
         switch (f1.depth) 
         {
             case BitDepth.BD_32:
-                f1s = f1.sliced.as!float.flattened.sliced(f1.height, f1.width).slice;
-                f2s = f2.sliced.as!float.flattened.sliced(f2.height, f2.width).slice;
+                f1s = f1.sliced.as!float.flattened.sliced(f1.height, f1.width).rcslice;
+                f2s = f2.sliced.as!float.flattened.sliced(f2.height, f2.width).rcslice;
                 break;
             case BitDepth.BD_16:
-                f1s = f1.sliced.as!ushort.flattened.sliced(f1.height, f1.width).as!float.slice;
-                f2s = f2.sliced.as!ushort.flattened.sliced(f2.height, f2.width).as!float.slice;
+                f1s = f1.sliced.as!ushort.flattened.sliced(f1.height, f1.width).as!float.rcslice;
+                f2s = f2.sliced.as!ushort.flattened.sliced(f2.height, f2.width).as!float.rcslice;
                 break;
             default:
-                f1s = f1.sliced.as!ubyte.flattened.sliced(f1.height, f1.width).as!float.slice;
-                f2s = f2.sliced.as!ubyte.flattened.sliced(f2.height, f2.width).as!float.slice;
+                f1s = f1.sliced.as!ubyte.flattened.sliced(f1.height, f1.width).as!float.rcslice;
+                f2s = f2.sliced.as!ubyte.flattened.sliced(f2.height, f2.width).as!float.rcslice;
         }
 
         // calculate pyramid flow
@@ -133,8 +144,8 @@ class SparsePyramidFlow : SparseOpticalFlow
 
             if (lh != h || lw != w)
             {
-                current = f1s.resize([lh, lw]);
-                next = f2s.resize([lh, lw]);
+                current = f1s.lightScope.resize([lh, lw]);
+                next = f2s.lightScope.resize([lh, lw]);
             }
             else
             {
@@ -142,15 +153,21 @@ class SparsePyramidFlow : SparseOpticalFlow
                 next = f2s;
             }
 
-            flowAlgorithm.evaluate(current.asImage(f1.format), next.asImage(f2.format), lpoints,
+            auto n_im = next.asImage(f2.format);
+            scope(exit) destroyFree(n_im);
+
+            auto inim = current.asImage(f1.format);
+            scope(exit) destroyFree(inim);
+
+            flowAlgorithm.evaluate(inim, n_im, lpoints,
                     lsearchRegions, flow, true);
 
             if (i < levelCount - 1)
             {
                 alias twice = (ref v) { v[0] += v[0]; v[1] += v[1]; };
-                flow.sliced.each!twice;
-                lpoints.sliced.each!twice;
-                lsearchRegions.sliced.each!twice;
+                flow.each!twice;
+                lpoints.sliced(lpoints.length).each!twice;
+                lsearchRegions.sliced(lsearchRegions.length).each!twice;
             }
         }
 
@@ -167,6 +184,8 @@ class DensePyramidFlow : DenseOpticalFlow
     private DenseOpticalFlow flowAlgorithm;
     private uint levelCount;
 
+    @nogc nothrow:
+
     this(DenseOpticalFlow flow, uint levels)
     in
     {
@@ -179,7 +198,7 @@ class DensePyramidFlow : DenseOpticalFlow
         levelCount = levels;
     }
 
-    override DenseFlow evaluate(Image f1, Image f2, DenseFlow prealloc = emptySlice!(3,
+    override DenseFlow evaluate(Image f1, Image f2, DenseFlow prealloc = emptyRCSlice!(3,
             float), bool usePrevious = false)
     in
     {
@@ -198,48 +217,53 @@ class DensePyramidFlow : DenseOpticalFlow
         uint level = 0;
 
         // pyramid flow array - each item is double sized flow from the next
-        size_t[2][] flowPyramid;
-        flowPyramid.length = levelCount;
-        flowPyramid[$ - 1] = size.dup;
+        size_t[2][] flowPyramid = mallocSlice!(size_t[2])(levelCount);
+        scope(exit) freeSlice(flowPyramid);
+
+        flowPyramid[$ - 1] = size;
 
         DenseFlow flow;
 
         foreach_reverse (i; 0 .. (levelCount - 1))
         {
             size[] /= 2;
-            if (size[0] < 1 || size[1] < 1)
-                throw new Exception("Pyramid downsampling exceeded minimal image size");
-            flowPyramid[i] = size.dup;
+            if (size[0] < 1 || size[1] < 1){
+                try enforce!"Pyramid downsampling exceeded minimal image size"(false);
+                catch(Exception e) assert(false, e.msg);
+            }
+            flowPyramid[i] = size;
         }
 
         // allocate flow for each pyramid level
         if (usePrevious)
         {
-            flow = prealloc.resize(flowPyramid[0]);
+            flow = prealloc.lightScope.resize(flowPyramid[0]);
         }
         else
         {
-            flow = new float[flowPyramid[0][0] * flowPyramid[0][1] * 2].sliced(flowPyramid[0][0], flowPyramid[0][1], 2);
+            int err;
+            flow = RCArray!float(flowPyramid[0][0] * flowPyramid[0][1] * 2)
+                .moveToSlice.reshape([flowPyramid[0][0], flowPyramid[0][1], 2], err);
             flow[] = 0.0f;
         }
 
         auto h = f1.height;
         auto w = f1.width;
 
-        Slice!(float*, 2LU, SliceKind.contiguous) current, next, corig, norig;
+        Slice!(RCI!float, 2LU, SliceKind.contiguous) current, next, corig, norig;
         switch (f1.depth) 
         {
             case BitDepth.BD_32:
-                corig = f1.sliced.as!float.flattened.sliced(f1.height, f1.width).slice;
-                norig = f2.sliced.as!float.flattened.sliced(f2.height, f2.width).slice;
+                corig = f1.sliced.as!float.flattened.sliced(f1.height, f1.width).rcslice;
+                norig = f2.sliced.as!float.flattened.sliced(f2.height, f2.width).rcslice;
                 break;
             case BitDepth.BD_16:
-                corig = f1.sliced.as!ushort.flattened.sliced(f1.height, f1.width).as!float.slice;
-                norig = f2.sliced.as!ushort.flattened.sliced(f2.height, f2.width).as!float.slice;
+                corig = f1.sliced.as!ushort.flattened.sliced(f1.height, f1.width).as!float.rcslice;
+                norig = f2.sliced.as!ushort.flattened.sliced(f2.height, f2.width).as!float.rcslice;
                 break;
             default:
-                corig = f1.sliced.flattened.sliced(f1.height, f1.width).as!float.slice;
-                norig = f2.sliced.flattened.sliced(f2.height, f2.width).as!float.slice;
+                corig = f1.sliced.flattened.sliced(f1.height, f1.width).as!float.rcslice;
+                norig = f2.sliced.flattened.sliced(f2.height, f2.width).as!float.rcslice;
         }
 
         // first flow used as indicator to skip the first warp.
@@ -253,8 +277,8 @@ class DensePyramidFlow : DenseOpticalFlow
 
             if (lh != h || lw != w)
             {
-                current = corig.resize([lh, lw]);
-                next = norig.resize([lh, lw]);
+                current = corig.lightScope.resize([lh, lw]);
+                next = norig.lightScope.resize([lh, lw]);
             }
             else
             {
@@ -270,15 +294,21 @@ class DensePyramidFlow : DenseOpticalFlow
                 current = warp(current, flow);
             }
 
+            auto curim = current.asImage(f1.format);
+            scope(exit) destroyFree(curim);
+
+            auto nextim = next.asImage(f2.format);
+            scope(exit) destroyFree(nextim);
+
             // evaluate the flow algorithm
-            auto lflow = flowAlgorithm.evaluate(current.asImage(f1.format), next.asImage(f2.format));
+            auto lflow = flowAlgorithm.evaluate(curim, nextim);
 
             // add flow calculated in this iteration to previous one.
             flow[] += lflow;
 
             if (i < levelCount - 1)
             {
-                flow = flow.resize(flowPyramid[i + 1]);
+                flow = flow.lightScope.resize(flowPyramid[i + 1]);
                 flow[] *= 2.0f;
             }
             // assign the first flow indicator to false.
@@ -307,21 +337,21 @@ version (unittest)
 
     class DummySparseFlow : SparseOpticalFlow
     {
-        override float[2][] evaluate(Image f1, Image f2, in float[2][] points,
-                in float[2][] searchRegions, float[2][] prevflow = null, bool usePrevious = false)
+        override Slice!(RCI!(float[2]), 1) evaluate(Image f1, Image f2, in float[2][],
+                in float[2][] searchRegions, Slice!(RCI!(float[2]), 1) prevflow = null, bool usePrevious = false)
         {
             import std.array : uninitializedArray;
 
-            return uninitializedArray!(float[2][])(points.length);
+            return uninitRCslice!(float[2])(points.length);
         }
     }
 
     class DummyDenseFlow : DenseOpticalFlow
     {
-        override DenseFlow evaluate(Image f1, Image f2, DenseFlow prealloc = emptySlice!(3,
+        override DenseFlow evaluate(Image f1, Image f2, DenseFlow prealloc = emptyRCSlice!(3,
                 float), bool usePrevious = false)
         {
-            return new float[f1.height * f1.width * 2].sliced(f1.height, f1.width, 2);
+            return RCArray!float(f1.height * f1.width * 2).sliced(f1.height, f1.width, 2);
         }
     }
 }
