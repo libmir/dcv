@@ -85,7 +85,7 @@ $(DL Module contains:
             $(LINK2 #imshow,imshow)
             $(LINK2 #plot,plot)
             $(LINK2 #waitKey,waitKey)
-            $(LINK2 #imdestroy,imdestroy)
+            $(LINK2 #destroyFigures,destroyFigures)
             $(LINK2 #Figure,Figure)
     )
 )
@@ -408,7 +408,7 @@ Params:
 Throws:
     ContextNotInitialized
 */
-void imdestroy(string title = "")
+void destroyFigures(string title = "")
 {
     mixin(checkContextInit);
 
@@ -539,6 +539,8 @@ class Figure
         
         setupWindow();
         fitWindow();
+
+        setupCallbacks();
     }
 
     /// Construct figure window with given title, and fill it with given image.
@@ -737,12 +739,26 @@ class Figure
         {
             _width = cast(int)showImage.width;
             _height = cast(int)showImage.height;
-            _data = rcarray!ubyte(showImage.data[]);
-        }
-        else
-        {
-            assert(_data.length == showImage.data.length);
-            _data.asSlice[] = showImage.data[];
+            _data = showImage.data[].rcarray;
+        }else {
+            if(showImage.format == ImageFormat.IF_MONO){
+                _data = RCArray!ubyte(width * height * 3);
+                int err;
+                auto shell = _data.asSlice.reshape([showImage.height, showImage.width, 3], err);
+                
+                shell[0..$, 0..$, 0] = showImage.data.sliced(height, width);
+                shell[0..$, 0..$, 1] = showImage.data.sliced(height, width);
+                shell[0..$, 0..$, 2] = showImage.data.sliced(height, width);
+
+                dispFormat = cast(int)ImageFormat.IF_RGB;
+                
+            }
+            else
+            {
+                //debug {import std.stdio; writeln(_data.length, " == ", showImage.data.length);}
+                assert(_data.length == showImage.data.length);
+                _data.asSlice[] = showImage.data[];
+            }
         }
         
         if(mustFreeAfter)

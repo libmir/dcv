@@ -15,12 +15,16 @@ import std.experimental.allocator.gc_allocator;
 import mir.math.common : fastmath;
 
 import mir.ndslice;
+import mir.rc;
 import mir.algorithm.iteration : each;
 import mir.ndslice.allocation;
 
-import dcv.core.utils : emptySlice;
+import dcv.core.utils : emptyRCSlice;
 import dcv.imgproc.filter : calcPartialDerivatives;
 
+import dplug.core;
+
+@nogc nothrow:
 /**
 Calculate per-pixel corner impuls response using Harris corner detector.
 
@@ -37,14 +41,13 @@ Returns:
     corner response value - the bigger the value, more probably it represents the
     actual corner in the image.
  */
-Slice!(OutputType*, 2LU, SliceKind.contiguous) harrisCorners(InputType, OutputType = InputType, SliceKind inputKind)
+Slice!(RCI!T, 2LU, SliceKind.contiguous) harrisCorners(T, SliceKind inputKind)
 (
-    Slice!(InputType*, 2LU, inputKind) image,
+    Slice!(T*, 2LU, inputKind) image,
     in uint winSize = 3,
     in float k = 0.64f,
     in float gauss = 0.84f,
-    Slice!(OutputType*, 2LU, SliceKind.contiguous) prealloc = emptySlice!(2, OutputType),
-    TaskPool pool = taskPool
+    Slice!(RCI!T, 2LU, SliceKind.contiguous) prealloc = emptyRCSlice!(2, T)
 )
 in
 {
@@ -55,9 +58,12 @@ in
 }
 do
 {
+    ThreadPool pool = mallocNew!ThreadPool;
+    scope(exit) destroyFree(pool);
+
     if (prealloc.shape != image.shape)
     {
-        prealloc = makeUninitSlice!OutputType(GCAllocator.instance, image.shape);//uninitializedSlice!OutputType(image.shape);
+        prealloc = uninitRCslice!T(image.shape);//uninitializedSlice!T(image.shape);
     }
     HarrisDetector detector;
     detector.k = k;
@@ -79,13 +85,12 @@ Returns:
     corner response value - the bigger the value, more probably it represents the
     actual corner in the image.
  */
-Slice!(OutputType*, 2LU, SliceKind.contiguous) shiTomasiCorners(InputType, OutputType = InputType, SliceKind inputKind)
+Slice!(RCI!T, 2LU, SliceKind.contiguous) shiTomasiCorners(T, SliceKind inputKind)
 (
-    Slice!(InputType*, 2LU, inputKind) image,
+    Slice!(T*, 2LU, inputKind) image,
     in uint winSize = 3,
     in float gauss = 0.84f,
-    Slice!(OutputType*, 2LU, SliceKind.contiguous) prealloc = emptySlice!(2, OutputType),
-    TaskPool pool = taskPool
+    Slice!(RCI!T, 2LU, SliceKind.contiguous) prealloc = emptyRCSlice!(2, T)
 )
 in
 {
@@ -95,9 +100,12 @@ in
 }
 do
 {
-    if (prealloc.shape != image.shape)
+    ThreadPool pool = mallocNew!ThreadPool;
+    scope(exit) destroyFree(pool);
+
+    if (prealloc.empty)
     {
-        prealloc = makeUninitSlice!OutputType(GCAllocator.instance, image.shape); //uninitializedSlice!OutputType(image.shape);
+        prealloc = uninitRCslice!T(image.shape); //uninitializedSlice!T(image.shape);
     }
 
     ShiTomasiDetector detector;
@@ -199,21 +207,25 @@ struct ShiTomasiDetector
     }
 }
 
-Slice!(OutputType*, 2LU, SliceKind.contiguous) calcCorners(Detector, InputType, SliceKind inputKind, OutputType)
+Slice!(RCI!OutputType, 2LU, SliceKind.contiguous) calcCorners(Detector, InputType, SliceKind inputKind, OutputType)
     (Slice!(InputType*, 2LU, inputKind) image, uint winSize, float gaussSigma,
-    Slice!(OutputType*, 2LU, SliceKind.contiguous) prealloc, Detector detector, TaskPool pool)
+    Slice!(RCI!OutputType, 2LU, SliceKind.contiguous) prealloc, Detector detector, ThreadPool pool)
 {
     import mir.ndslice.topology : zip, iota;
 
     // TODO: implement gaussian weighting!
 
-    Slice!(InputType*, 2, SliceKind.contiguous) fx, fy;
+    Slice!(RCI!InputType, 2, SliceKind.contiguous) fx, fy;
     calcPartialDerivatives(image, fx, fy);
 
     auto windowPack = zip(prealloc, fx, fy).windows(winSize, winSize);
 
-    foreach (windowRow; pool.parallel(windowPack))
+    auto iterable = windowPack;
+    void worker(int i, int threadIndex) nothrow @nogc {
+        auto windowRow = iterable[i];
         windowRow.each!(win => calcCornersImpl(win, detector));
+    }
+    pool.parallelFor(cast(int)iterable.length, &worker);
 
     return prealloc;
 }

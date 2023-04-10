@@ -6,6 +6,7 @@ import std.stdio;
 
 import mir.algorithm.iteration : reduce;
 
+import dcv.core;
 import dcv.imgproc;
 import dcv.imageio.image;
 import dcv.plot;
@@ -24,6 +25,11 @@ void main(string[] args)
     auto right = imread(args[2]);
     auto groundTruth = imread(args[3]);
 
+    scope(exit){
+        left.destroyFree;
+        right.destroyFree;
+        groundTruth.destroyFree;
+    }
     //Create a matcher
     auto props = StereoPipelineProperties(left.width, left.height, left.channels);
     auto matcher = semiGlobalMatchingPipeline(props);
@@ -57,5 +63,8 @@ void main(string[] args)
     //Display estimated disparity and true disparity
     imshow(estimate);
     imshow(groundTruth);
+
     waitKey();
+
+    destroyFigures();
 }

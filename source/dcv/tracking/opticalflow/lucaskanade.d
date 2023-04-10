@@ -16,6 +16,11 @@ import dcv.core.image;
 import dcv.imgproc.convolution;
 import dcv.tracking.opticalflow.base;
 public import dcv.imgproc.interpolate;
+import std.array : staticArray;
+
+import mir.rc;
+
+import dplug.core;
 
 /**
 Lucas-Kanade optical flow method implementation.
@@ -26,7 +31,7 @@ class LucasKanadeFlow : SparseOpticalFlow
     public
     {
         float sigma = 0.84f;
-        float[] cornerResponse;
+        RCArray!float cornerResponse;
         size_t iterationCount = 10;
     }
 
@@ -46,8 +51,8 @@ class LucasKanadeFlow : SparseOpticalFlow
         dcv.features.corner
     
     */
-    override float[2][] evaluate(Image f1, Image f2, in float[2][] points,
-            in float[2][] searchRegions, float[2][] flow = null, bool usePrevious = false)
+    override Slice!(RCI!(float[2]), 1) evaluate(Image f1, Image f2, float[2][] points,
+            float[2][] searchRegions, Slice!(RCI!(float[2]), 1) flow = emptyRCSlice!(1, float[2]), bool usePrevious = false)
     in
     {
         assert(!f1.empty && !f2.empty && f1.size == f2.size && f1.channels == 1 && f1.depth == f2.depth);
@@ -61,7 +66,6 @@ class LucasKanadeFlow : SparseOpticalFlow
     do
     {
         import std.array : uninitializedArray;
-        import std.parallelism : parallel;
 
         import mir.ndslice.allocation;
         import mir.ndslice.topology;
@@ -82,26 +86,26 @@ class LucasKanadeFlow : SparseOpticalFlow
         if (!usePrevious)
         {
             if (flow.length != pointCount)
-                flow = uninitializedArray!(float[2][])(pointCount);
-            flow[] = [0.0f, 0.0f];
+                flow = uninitRCslice!(float[2])(pointCount);
+            flow[] = [0.0f, 0.0f].staticArray;
         }
         
         import mir.ndslice.slice: sliced;
 
-        Slice!(float*, 2LU, SliceKind.contiguous) current, next;
+        Slice!(RCI!float, 2LU, SliceKind.contiguous) current, next;
         switch (f1.depth)
         {
         case BitDepth.BD_32:
-            current = f1.sliced.as!float.flattened.sliced(f1.height, f1.width).slice;
-            next = f2.sliced.as!float.flattened.sliced(f2.height, f2.width).slice;
+            current = f1.sliced.as!float.flattened.sliced(f1.height, f1.width).rcslice;
+            next = f2.sliced.as!float.flattened.sliced(f2.height, f2.width).rcslice;
             break;
         case BitDepth.BD_16:
-            current = f1.sliced.as!ushort.flattened.sliced(f1.height, f1.width).as!float.slice;
-            next = f2.sliced.as!ushort.flattened.sliced(f2.height, f2.width).as!float.slice;
+            current = f1.sliced.as!ushort.flattened.sliced(f1.height, f1.width).as!float.rcslice;
+            next = f2.sliced.as!ushort.flattened.sliced(f2.height, f2.width).as!float.rcslice;
             break;
         default:
-            current = f1.sliced.flattened.sliced(f1.height, f1.width).as!float.slice;
-            next = f2.sliced.flattened.sliced(f2.height, f2.width).as!float.slice;
+            current = f1.sliced.flattened.sliced(f1.height, f1.width).as!float.rcslice;
+            next = f2.sliced.flattened.sliced(f2.height, f2.width).as!float.rcslice;
         }
 
         float gaussMul = 1.0f / (2.0f * PI * sigma);
@@ -109,26 +113,26 @@ class LucasKanadeFlow : SparseOpticalFlow
 
         // Temporary buffers, used in algorithm -------------------------------
         // TODO: cache these in class, and reuse
-        auto floatPool = [
+        /*auto floatPool = [
             alignedAlloc!float(pixelCount), alignedAlloc!float(pixelCount),
             alignedAlloc!float(pixelCount), alignedAlloc!float(pixelCount)
-        ];
-        auto ubytePool = [alignedAlloc!ubyte(pixelCount), alignedAlloc!ubyte(pixelCount)];
+        ].staticArray;*/
+        //auto ubytePool = [alignedAlloc!ubyte(pixelCount), alignedAlloc!ubyte(pixelCount)].staticArray;
 
-        scope (exit)
+        /*scope (exit)
         {
             import std.algorithm.iteration : each;
-            floatPool.each!(v => alignedFree(v));
-            ubytePool.each!(v => alignedFree(v));
-        }
+            //floatPool[].each!(v => alignedFree(v));
+            //ubytePool[].each!(v => alignedFree(v));
+        }*/
         // --------------------------------------------------------------------
 
-        auto f1s = floatPool[0].sliced(rows, cols);
-        auto f2s = floatPool[1].sliced(rows, cols);
-        auto fxs = floatPool[2].sliced(rows, cols);
-        auto fys = floatPool[3].sliced(rows, cols);
-        auto fxmask = ubytePool[0].sliced(rows, cols);
-        auto fymask = ubytePool[1].sliced(rows, cols);
+        auto f1s = uninitRCslice!float(rows, cols); //floatPool[0].sliced(rows, cols);
+        auto f2s = uninitRCslice!float(rows, cols); //floatPool[1].sliced(rows, cols);
+        auto fxs = uninitRCslice!float(rows, cols); //floatPool[2].sliced(rows, cols);
+        auto fys = uninitRCslice!float(rows, cols); //floatPool[3].sliced(rows, cols);
+        auto fxmask = uninitRCslice!ubyte(rows, cols); // ubytePool[0].sliced(rows, cols); 
+        auto fymask = uninitRCslice!ubyte(rows, cols); // ubytePool[1].sliced(rows, cols); 
 
         if (f1.depth == BitDepth.BD_32)
         {
@@ -152,9 +156,11 @@ class LucasKanadeFlow : SparseOpticalFlow
         fymask[] = ubyte(0);
 
         // Fill-in masks where points are present
-        import std.range : lockstep;
-        foreach (p, r; lockstep(points, searchRegions))
+        //import std.range : lockstep;
+        foreach (e; zip(points.sliced(points.length), searchRegions.sliced(searchRegions.length)))
         {
+            auto p = e.a; 
+            auto r = e.b;
             auto rb = cast(int)(p[0] - r[0] / 2.0f);
             auto re = cast(int)(p[0] + r[0] / 2.0f);
             auto cb = cast(int)(p[1] - r[1] / 2.0f);
@@ -176,11 +182,18 @@ class LucasKanadeFlow : SparseOpticalFlow
         f1s.conv(sobel!float(GradientDirection.DIR_X), fxs, fxmask);
         f1s.conv(sobel!float(GradientDirection.DIR_Y), fys, fymask);
 
-        cornerResponse.length = pointCount;
+        cornerResponse = RCArray!float(pointCount);
 
-        foreach (ptn; iota(pointCount).parallel)
+        auto pool = mallocNew!ThreadPool;
+        scope(exit) destroyFree(pool);
+
+        auto iterable = iota(pointCount);
+
+        void worker(int _i, int threadIndex) nothrow @nogc
         {
             import std.math : sqrt, exp;
+
+            auto ptn = iterable[_i];
 
             auto p = points[ptn];
             auto r = searchRegions[ptn];
@@ -197,7 +210,7 @@ class LucasKanadeFlow : SparseOpticalFlow
 
             if (re - rb <= 0 || ce - cb <= 0)
             {
-                continue;
+                return;
             }
 
             float a1, a2, a3;
@@ -233,7 +246,7 @@ class LucasKanadeFlow : SparseOpticalFlow
                         // TODO: consider subpixel precision for gradient sampling.
                         const float fx = fxs[i, j];
                         const float fy = fys[i, j];
-                        const float ft = cast(float)(linear(next, ny, nx) - current[i, j]);
+                        const float ft = cast(float)(linear(next.lightScope, ny, nx) - current[i, j]);
 
                         const float fxx = fx * fx;
                         const float fyy = fy * fy;
@@ -261,6 +274,7 @@ class LucasKanadeFlow : SparseOpticalFlow
                 }
             }
         }
+        pool.parallelFor(cast(int)iterable.length, &worker);
 
         return flow;
     }

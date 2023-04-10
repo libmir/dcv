@@ -36,20 +36,23 @@ module dcv.imgproc.convolution;
 
 import std.traits : isAssignable, ReturnType;
 import std.conv : to;
-import std.parallelism : parallel, taskPool, TaskPool;
-import std.experimental.allocator.gc_allocator;
+import dplug.core.thread : ThreadPool;
+import dplug.core.nogc;
+
 
 import mir.math.common : fastmath;
 
 import mir.ndslice.slice;
 import mir.ndslice.topology;
 import mir.algorithm.iteration : reduce;
-import mir.ndslice.allocation: slice;
+import mir.rc;
 import mir.ndslice.allocation;
 
 
 import dcv.core.memory;
 import dcv.core.utils;
+
+@nogc nothrow:
 
 /**
 Perform convolution to given tensor, using given kernel.
@@ -75,10 +78,9 @@ Returns:
 Note:
     Input, mask and pre-allocated slices' strides must be the same.
 */
-InputTensor conv
-    (alias bc = neumann, InputTensor, KernelTensor, MaskTensor = KernelTensor)
-    (InputTensor input, KernelTensor kernel, InputTensor prealloc = InputTensor.init,
-     MaskTensor mask = MaskTensor.init, TaskPool pool = taskPool)
+InputTensor conv(alias bc = neumann, InputTensor, PreAl, KernelTensor, MaskTensor = KernelTensor)
+    (InputTensor input, KernelTensor kernel, PreAl prealloc = InputTensor.init,
+     MaskTensor mask = MaskTensor.init)
 in
 {
     static assert(isSlice!InputTensor, "Input tensor has to be of type mir.ndslice.slice.Slice");
@@ -103,7 +105,7 @@ in
     else
         static assert(0, "Convolution not implemented for given tensor dimension.");
 
-    assert(input._iterator != prealloc._iterator, "Preallocated and input buffer cannot point to the same memory.");
+    //assert(input.ptr != prealloc.ptr, "Preallocated and input buffer cannot point to the same memory.");
 
     if (!mask.empty)
     {
@@ -121,9 +123,9 @@ do
 {
     static if (prealloc._strides.length == 0)
         if (prealloc.shape != input.shape)
-            prealloc = makeUninitSlice!(DeepElementType!InputTensor)(GCAllocator.instance, input.shape); // uninitializedSlice!(DeepElementType!InputTensor)(input.shape);
+            prealloc = uninitRCslice!(DeepElementType!InputTensor)(input.shape); // uninitializedSlice!(DeepElementType!InputTensor)(input.shape);
 
-    return convImpl!bc(input, kernel, prealloc, mask, pool);
+    return convImpl!bc(input, kernel, prealloc, mask);
 }
 
 unittest
@@ -161,10 +163,13 @@ nothrow @nogc @fastmath auto kapply(T)(const T r, const T i, const T k)
 private:
 
 auto convImpl
-    (alias bc = neumann, InputTensor, KernelTensor, MaskTensor)
-    (InputTensor input, KernelTensor kernel, InputTensor prealloc, MaskTensor mask, TaskPool pool) 
+    (alias bc = neumann, InputTensor, PreTensor, KernelTensor, MaskTensor)
+    (InputTensor input, KernelTensor kernel, PreTensor prealloc, MaskTensor mask) 
 if (InputTensor.init.shape.length == 1)
 {
+    ThreadPool pool = mallocNew!ThreadPool;
+    scope(exit) destroyFree(pool);
+
     alias InputType = DeepElementType!InputTensor;
 
     auto kl = kernel.length;
@@ -173,20 +178,24 @@ if (InputTensor.init.shape.length == 1)
     if (mask.empty)
     {
         auto packedWindows = zip!true(prealloc, input).windows(kl);
-        foreach (p; pool.parallel(packedWindows))
-        {
+        
+        void worker(int i, int threadIndex) nothrow @nogc {
+            auto p = packedWindows[i];
             p[kh].a = reduce!(kapply!InputType)(0.0f, p.unzip!'b', kernel);
         }
+        pool.parallelFor(cast(int)packedWindows.length, &worker);
     }
     else
     {
         // TODO: extract masked convolution as separate function?
         auto packedWindows = zip!true(prealloc, input, mask).windows(kl);
-        foreach (p; pool.parallel(packedWindows))
-        {
+
+        void worker(int i, int threadIndex) nothrow @nogc {
+            auto p = packedWindows[i];
             if (p[$ / 2].c)
                 p[$ / 2].a = reduce!(kapply!InputType)(0.0f, p.unzip!'b', kernel);
         }
+        pool.parallelFor(cast(int)packedWindows.length, &worker);
     }
 
     handleEdgeConv1d!bc(input, prealloc, kernel, mask, 0, kl);
@@ -196,10 +205,13 @@ if (InputTensor.init.shape.length == 1)
 }
 
 auto convImpl
-    (alias bc = neumann, InputTensor, KernelTensor, MaskTensor)
-    (InputTensor input, KernelTensor kernel, InputTensor prealloc, MaskTensor mask, TaskPool pool) 
+    (alias bc = neumann, InputTensor, PreAlloc, KernelTensor, MaskTensor)
+    (InputTensor input, KernelTensor kernel, PreAlloc prealloc, MaskTensor mask) 
 if (InputTensor.init.shape.length == 2)
 {
+    ThreadPool pool = mallocNew!ThreadPool;
+    scope(exit) destroyFree(pool);
+
     auto krs = kernel.length!0; // kernel rows
     auto kcs = kernel.length!1; // kernel rows
 
@@ -211,39 +223,44 @@ if (InputTensor.init.shape.length == 2)
     if (mask.empty)
     {
         auto packedWindows = zip!true(prealloc, input).windows(krs, kcs);
-        foreach (prow; pool.parallel(packedWindows))
+        void worker(int i, int threadIndex) nothrow @nogc {
+            auto prow = packedWindows[i];
             foreach (p; prow)
-            {
-                p[krh, kch].a = reduce!kapply(0.0f, p.unzip!'b', kernel);
-            }
+                p[krh, kch].a = reduce!kapply(0.0f, p.unzip!'b'.lightScope, kernel.lightScope);
+        }
+        pool.parallelFor(cast(int)packedWindows.length, &worker);
     }
     else
     {
         auto packedWindows = zip!true(prealloc, input, mask).windows(krs, kcs);
-        foreach (prow; pool.parallel(packedWindows))
+        void worker(int i, int threadIndex) nothrow @nogc {
+            auto prow = packedWindows[i];
             foreach (p; prow)
                 if (p[krh, kch].c)
-                    p[krh, kch].a = reduce!kapply(0.0f, p.unzip!'b', kernel);
+                    p[krh, kch].a = reduce!kapply(0.0f, p.unzip!'b'.lightScope, kernel.lightScope);
+        }
+        pool.parallelFor(cast(int)packedWindows.length, &worker);
     }
 
-    handleEdgeConv2d!bc(input, prealloc, kernel, mask, [0, input.length!0], [0, kch]); // upper row
-    handleEdgeConv2d!bc(input, prealloc, kernel, mask, [0, input.length!0], [input.length!1 - kch, input.length!1]); // lower row
-    handleEdgeConv2d!bc(input, prealloc, kernel, mask, [0, krh], [0, input.length!1]); // left column
-    handleEdgeConv2d!bc(input, prealloc, kernel, mask, [input.length!0 - krh, input.length!0], [0, input.length!1]); // right column
+    handleEdgeConv2d!bc(input.lightScope, prealloc.lightScope, kernel.lightScope, mask.lightScope, [0, input.length!0], [0, kch]); // upper row
+    handleEdgeConv2d!bc(input.lightScope, prealloc.lightScope, kernel.lightScope, mask.lightScope, [0, input.length!0], [input.length!1 - kch, input.length!1]); // lower row
+    handleEdgeConv2d!bc(input.lightScope, prealloc.lightScope, kernel.lightScope, mask.lightScope, [0, krh], [0, input.length!1]); // left column
+    handleEdgeConv2d!bc(input.lightScope, prealloc.lightScope, kernel.lightScope, mask.lightScope, [input.length!0 - krh, input.length!0], [0, input.length!1]); // right column
 
     return prealloc;
 }
 
 auto convImpl
-    (alias bc = neumann, InputTensor, KernelTensor, MaskTensor)
-    (InputTensor input, KernelTensor kernel, InputTensor prealloc, MaskTensor mask, TaskPool pool) 
+    (alias bc = neumann, InputTensor, PreAlloc, KernelTensor, MaskTensor)
+    (InputTensor input, KernelTensor kernel, PreAlloc prealloc, MaskTensor mask) 
 if (InputTensor.init.shape.length == 3)
 {
     foreach (i; 0 .. input.length!2)
     {
         auto r_c = input[0 .. $, 0 .. $, i];
         auto p_c = prealloc[0 .. $, 0 .. $, i];
-        r_c.conv(kernel, p_c, mask, pool);
+        
+        r_c.conv(kernel, p_c, mask);
     }
 
     return prealloc;

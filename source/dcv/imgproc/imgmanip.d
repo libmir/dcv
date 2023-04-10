@@ -20,18 +20,23 @@ $(DL Module contains:
 */
 module dcv.imgproc.imgmanip;
 
-import std.exception : enforce;
+import mir.exception;
 import std.parallelism : TaskPool, taskPool, parallel;
 import std.range.primitives : ElementType;
 import std.traits;
+import mir.rc;
 
 import dcv.core.utils;
 public import dcv.imgproc.interpolate;
 
-import mir.ndslice.slice;
+import mir.ndslice;
 import mir.ndslice.topology;
 import mir.ndslice.allocation;
 import std.experimental.allocator.gc_allocator;
+
+import dplug.core;
+
+@nogc nothrow:
 
 /**
 Resize array using custom interpolation function.
@@ -55,10 +60,13 @@ Params:
 
 TODO: consider size input as array, and add prealloc
 */
-Slice!(V*, N, SliceKind.contiguous) resize(alias interp = linear, SliceKind kind, size_t N, V, size_t SN)(Slice!(V*, N, kind) slice, size_t[SN] newsize, TaskPool pool = taskPool)
+Slice!(RCI!V, N, SliceKind.contiguous) resize(alias interp = linear, SliceKind kind, size_t N, V, size_t SN)(Slice!(V*, N, kind) slice, size_t[SN] newsize)
     //if (packs.length == 1)
     //if (isInterpolationFunc!interp)
 {
+    ThreadPool pool = mallocNew!ThreadPool;
+    scope(exit) destroyFree(pool);
+
     static if (N == 1LU)
     {
         static assert(SN == 1, "Invalid new-size setup - dimension does not match with input slice.");
@@ -108,9 +116,14 @@ using scaled shape of the input slice as:
 $(D_CODE scaled = resize(input, input.shape*scale))
 
  */
-Slice!(V*, N, kind) scale(alias interp = linear, V, ScaleValue, SliceKind kind, size_t N, size_t SN)(Slice!(V*, N, kind) slice, ScaleValue[SN] scale, TaskPool pool = taskPool)
+Slice!(RCI!V, N, kind) scale(alias interp = linear, V, ScaleValue, SliceKind kind, size_t N, size_t SN)(Slice!(V*, N, kind) slice, ScaleValue[SN] scale)
         if (isFloatingPoint!ScaleValue && isInterpolationFunc!interp)
 {
+    debug import std.exception : std_enforce = enforce;
+
+    auto pool = mallocNew!ThreadPool;
+    scope(exit) destroyFree(pool);
+
     foreach (v; scale)
         assert(v > 0., "Invalid scale values (v > 0.0)");
 
@@ -118,21 +131,21 @@ Slice!(V*, N, kind) scale(alias interp = linear, V, ScaleValue, SliceKind kind, 
     {
         static assert(SN == 1, "Invalid scale setup - dimension does not match with input slice.");
         size_t newsize = cast(size_t)(slice.length * scale[0]);
-        enforce(newsize > 0, "Scaling value invalid - after scaling array size is zero.");
+        debug std_enforce(newsize > 0, "Scaling value invalid - after scaling array size is zero.");
         return resizeImpl_1!interp(slice, newsize, pool);
     }
     else static if (N == 2LU)
     {
         static assert(SN == 2, "Invalid scale setup - dimension does not match with input slice.");
-        size_t [2]newsize = [cast(size_t)(slice.length!0 * scale[0]), cast(size_t)(slice.length!1 * scale[1])];
-        enforce(newsize[0] > 0 && newsize[1] > 0, "Scaling value invalid - after scaling array size is zero.");
+        size_t[2] newsize = [cast(size_t)(slice.length!0 * scale[0]), cast(size_t)(slice.length!1 * scale[1])];
+        debug std_enforce(newsize[0] > 0 && newsize[1] > 0, "Scaling value invalid - after scaling array size is zero.");
         return resizeImpl_2!interp(slice, newsize[0], newsize[1], pool);
     }
     else static if (N == 3LU)
     {
         static assert(SN == 2, "Invalid scale setup - 3D scale is performed as 2D."); // TODO: find better way to say this...
-        size_t [2]newsize = [cast(size_t)(slice.length!0 * scale[0]), cast(size_t)(slice.length!1 * scale[1])];
-        enforce(newsize[0] > 0 && newsize[1] > 0, "Scaling value invalid - after scaling array size is zero.");
+        size_t[2] newsize = [cast(size_t)(slice.length!0 * scale[0]), cast(size_t)(slice.length!1 * scale[1])];
+        debug std_enforce(newsize[0] > 0 && newsize[1] > 0, "Scaling value invalid - after scaling array size is zero.");
         return resizeImpl_3!interp(slice, newsize[0], newsize[1], pool);
     }
     else
@@ -176,10 +189,10 @@ Params:
 Returns:
     Warped input image by given map.
 */
-pure auto warp(alias interp = linear, ImageTensor, MapTensor)(ImageTensor image, MapTensor map,
-        ImageTensor prealloc = ImageTensor.init)
+pure auto warp(alias interp = linear, ImageTensor, MapTensor, PreAl)(ImageTensor image, MapTensor map,
+        PreAl prealloc = emptyRCSlice!(ImageTensor.N, DeepElementType!ImageTensor))
 {
-    return pixelWiseDisplacement!(linear, DisplacementType.WARP, ImageTensor, MapTensor)
+    return pixelWiseDisplacement!(linear, DisplacementType.WARP, ImageTensor, MapTensor, PreAl)
         (image, map, prealloc);
 }
 
@@ -263,8 +276,8 @@ private enum DisplacementType
     REMAP
 }
 
-private pure auto pixelWiseDisplacement(alias interp, DisplacementType disp, ImageTensor, MapTensor)
-    (ImageTensor image, MapTensor map, ImageTensor prealloc)
+private pure auto pixelWiseDisplacement(alias interp, DisplacementType disp, ImageTensor, MapTensor, PreAl)
+    (ImageTensor image, MapTensor map, PreAl prealloc)
 in
 {
     assert(!image.empty, "Input image is empty");
@@ -281,7 +294,7 @@ do
 
     if (prealloc.shape != image.shape)
     {
-        prealloc = makeUninitSlice!(DeepElementType!ImageTensor)(GCAllocator.instance, image.shape); //uninitializedSlice!(DeepElementType!ImageTensor)(image.shape);
+        prealloc = uninitRCslice!(DeepElementType!ImageTensor)(image.shape); //uninitializedSlice!(DeepElementType!ImageTensor)(image.shape);
     }
 
     static if (N == 2)
@@ -305,8 +318,8 @@ do
     return prealloc;
 }
 
-private pure void displacementImpl(alias interp, DisplacementType disp, ImageMatrix, MapTensor)
-    (ImageMatrix image, MapTensor map, ImageMatrix result)
+private pure void displacementImpl(alias interp, DisplacementType disp, ImageMatrix, MapTensor, Result)
+    (ImageMatrix image, MapTensor map, Result result)
 {
     static if (disp == DisplacementType.WARP)
         float r = 0.0f, c;
@@ -332,7 +345,7 @@ private pure void displacementImpl(alias interp, DisplacementType disp, ImageMat
             }
             if (rr >= 0.0f && rr < rf && cc >= 0.0f && cc < cf)
             {
-                rrow.front = interp(image, rr, cc);
+                rrow.front = interp(image.lightScope, rr, cc);
             }
             static if (disp == DisplacementType.WARP) ++c;
         }
@@ -411,7 +424,7 @@ Note:
 Returns:
     Transformed image.
 */
-Slice!(V*, N, kind) transformAffine(alias interp = linear, V, TransformMatrix, SliceKind kind, size_t N)(Slice!(V*, N, kind) slice, inout TransformMatrix transform, size_t[2] outSize = [0, 0])
+Slice!(RCI!V, N, kind) transformAffine(alias interp = linear, V, TransformMatrix, SliceKind kind, size_t N)(Slice!(V*, N, kind) slice, inout TransformMatrix transform, size_t[2] outSize = [0, 0])
 {
     static if (isTransformMatrix!TransformMatrix)
     {
@@ -440,7 +453,7 @@ Note:
 Returns:
     Transformed image.
 */
-Slice!(V*, N, kind) transformPerspective(alias interp = linear, V, TransformMatrix, SliceKind kind, size_t N)(
+Slice!(RCI!V, N, kind) transformPerspective(alias interp = linear, V, TransformMatrix, SliceKind kind, size_t N)(
     Slice!(V*, N, kind) slice,
     TransformMatrix transform,
     size_t[2] outSize = [0, 0])
@@ -497,31 +510,35 @@ unittest
 }
 
 private:
+@nogc nothrow:
 
 // 1d resize implementation
-Slice!(V*, 1LU, SliceKind.contiguous) resizeImpl_1(alias interp, V)(Slice!(V*, 1LU, SliceKind.contiguous) slice, size_t newsize, TaskPool pool)
+Slice!(RCI!V, 1LU, SliceKind.contiguous) resizeImpl_1(alias interp, V)(Slice!(V*, 1LU, SliceKind.contiguous) slice, size_t newsize, ThreadPool pool)
 {
 
-    enforce(!slice.empty && newsize > 0);
+    assert(!slice.empty && newsize > 0);
 
-    auto retval = new V[newsize];
+    auto retval = RCArray!V(newsize);
     auto resizeRatio = cast(float)(newsize - 1) / cast(float)(slice.length - 1);
 
-    foreach (i; pool.parallel(newsize.iota))
-    {
+    auto iterable = newsize.iota;
+    void worker(int _i, int threadIndex) nothrow @nogc {
+        auto i = iterable[_i];
         retval[i] = interp(slice, cast(float)i / resizeRatio);
     }
+    pool.parallelFor(cast(int)iterable.length, &worker);
 
-    return retval.sliced(newsize);
+    return retval.moveToSlice;
 }
 
 // 1d resize implementation
-Slice!(V*, 2LU, SliceKind.contiguous) resizeImpl_2(alias interp, SliceKind kind, V)(Slice!(V*, 2LU, kind) slice, size_t height, size_t width, TaskPool pool)
+Slice!(RCI!V, 2LU, SliceKind.contiguous) resizeImpl_2(alias interp, SliceKind kind, V)(Slice!(V*, 2LU, kind) slice, size_t height, size_t width, ThreadPool pool)
 {
 
-    enforce(!slice.empty && width > 0 && height > 0);
+    assert(!slice.empty && width > 0 && height > 0);
 
-    auto retval = new V[width * height].sliced(height, width);
+    int err;
+    auto retval = RCArray!V(width * height).moveToSlice.reshape([height, width], err);
 
     auto rows = slice.length!0;
     auto cols = slice.length!1;
@@ -529,29 +546,32 @@ Slice!(V*, 2LU, SliceKind.contiguous) resizeImpl_2(alias interp, SliceKind kind,
     auto r_v = cast(float)(height - 1) / cast(float)(rows - 1); // horizontaresize ratio
     auto r_h = cast(float)(width - 1) / cast(float)(cols - 1);
 
-    foreach (i; pool.parallel(iota(height)))
-    {
+    auto iterable = iota(height);
+    void worker(int _i, int threadIndex) nothrow @nogc {
+        auto i = iterable[_i];
         auto row = retval[i, 0 .. width];
         foreach (j; iota(width))
         {
             row[j] = interp(slice, cast(float)i / r_v, cast(float)j / r_h);
         }
     }
+    pool.parallelFor(cast(int)iterable.length, &worker);
 
     return retval;
 }
 
 // 1d resize implementation
-Slice!(V*, 3LU, SliceKind.contiguous) resizeImpl_3(alias interp, SliceKind kind, V)(Slice!(V*, 3LU, kind) slice, size_t height, size_t width, TaskPool pool)
+Slice!(RCI!V, 3LU, SliceKind.contiguous) resizeImpl_3(alias interp, SliceKind kind, V)(Slice!(V*, 3LU, kind) slice, size_t height, size_t width, ThreadPool pool)
 {
 
-    enforce(!slice.empty && width > 0 && height > 0);
+    assert(!slice.empty && width > 0 && height > 0);
 
     auto rows = slice.length!0;
     auto cols = slice.length!1;
     auto channels = slice.length!2;
 
-    auto retval = new V[width * height * channels].sliced(height, width, channels);
+    int err;
+    auto retval = RCArray!V(width * height * channels).moveToSlice.reshape([height, width, channels], err);
 
     auto r_v = cast(float)(height - 1) / cast(float)(rows - 1); // horizontaresize ratio
     auto r_h = cast(float)(width - 1) / cast(float)(cols - 1);
@@ -560,27 +580,31 @@ Slice!(V*, 3LU, SliceKind.contiguous) resizeImpl_3(alias interp, SliceKind kind,
     {
         auto sl_ch = slice[0 .. rows, 0 .. cols, c];
         auto ret_ch = retval[0 .. height, 0 .. width, c];
-        foreach (i; pool.parallel(iota(height)))
-        {
+
+        auto iterable = iota(height);
+        void worker(int _i, int threadIndex) nothrow @nogc {
+            auto i = iterable[_i];
             auto row = ret_ch[i, 0 .. width];
             foreach (j; iota(width))
             {
                 row[j] = interp(sl_ch, cast(float)i / r_v, cast(float)j / r_h);
             }
         }
+        pool.parallelFor(cast(int)iterable.length, &worker);
     }
 
     return retval;
 }
 
-Slice!(float*, 2LU, SliceKind.contiguous) invertTransformMatrix(TransformMatrix)(TransformMatrix t)
+Slice!(RCI!float, 2LU, SliceKind.contiguous) invertTransformMatrix(TransformMatrix)(TransformMatrix t)
 {
-    auto result = slice!float(3, 3);
+    auto result = rcslice!float(3, 3);
 
     double determinant = +t[0][0] * (t[1][1] * t[2][2] - t[2][1] * t[1][2]) - t[0][1] * (
             t[1][0] * t[2][2] - t[1][2] * t[2][0]) + t[0][2] * (t[1][0] * t[2][1] - t[1][1] * t[2][0]);
 
-    enforce(determinant != 0.0f, "Transform matrix determinant is zero.");
+    try enforce!"Transform matrix determinant is zero."(determinant != 0.0f);
+    catch(Exception e) assert(false, e.msg);
 
     double invdet = 1 / determinant;
     result[0][0] = (t[1][1] * t[2][2] - t[2][1] * t[1][2]) * invdet;
@@ -596,7 +620,7 @@ Slice!(float*, 2LU, SliceKind.contiguous) invertTransformMatrix(TransformMatrix)
     return result;
 }
 
-Slice!(V*, N, kind) transformImpl(TransformType transformType, alias interp, V, TransformMatrix, SliceKind kind, size_t N)
+Slice!(RCI!V, N, kind) transformImpl(TransformType transformType, alias interp, V, TransformMatrix, SliceKind kind, size_t N)
     (Slice!(V*, N, kind) slice, TransformMatrix transform, size_t[2] outSize)
 in
 {
@@ -617,14 +641,15 @@ do
         outSize[0] = slice.length!1;
     if (outSize[1] == 0)
         outSize[1] = slice.length!0;
-
+    
+    int err;
     static if (N == 2LU)
     {
-        auto tSlice = new V[outSize[0] * outSize[1]].sliced(outSize[1], outSize[0]);
+        auto tSlice = RCArray!V(outSize[0] * outSize[1]).moveToSlice.reshape([outSize[1], outSize[0]], err);
     }
     else
     {
-        auto tSlice = new V[outSize[0] * outSize[1] * slice.length!2].sliced(outSize[1], outSize[0], slice.length!2);
+        auto tSlice = RCArray!V(outSize[0] * outSize[1] * slice.length!2).moveToSlice.reshape([outSize[1], outSize[0], slice.length!2], err);
     }
 
     tSlice[] = cast(V)0;
@@ -633,7 +658,7 @@ do
 
     static if (N == 3LU)
     {
-        auto sliceChannels = new typeof(slice[0..$, 0..$, 0])[N];
+        typeof(slice[0..$, 0..$, 0])[N] sliceChannels;
         foreach (c; iota(slice.length!2))
         {
             sliceChannels[c] = slice[0 .. $, 0 .. $, c];

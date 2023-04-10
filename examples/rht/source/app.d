@@ -9,7 +9,8 @@ import std.datetime.stopwatch : StopWatch;
 import std.math : fabs, PI, sin, cos, rint;
 import std.typecons : tuple;
 
-import mir.ndslice;
+import mir.ndslice, mir.rc;
+import dplug.core.nogc;
 
 import dcv.core.image : Image, ImageFormat;
 import dcv.core.utils : clip;
@@ -17,7 +18,7 @@ import dcv.imageio : imread, imwrite;
 import dcv.imgproc;
 import dcv.features.rht;
 
-void plotLine(T, Line, Color)(Slice!(T*, 3, Contiguous) img, Line line, Color color)
+void plotLine(Input, Line, Color)(Input img, Line line, Color color)
 {
     int height = cast(int)img.length!0;
     int width = cast(int)img.length!1;
@@ -43,7 +44,7 @@ void plotLine(T, Line, Color)(Slice!(T*, 3, Contiguous) img, Line line, Color co
     }
 }
 
-void plotCircle(T, Circle, Color)(Slice!(T*, 3, Contiguous) img, Circle circle, Color color)
+void plotCircle(Input, Circle, Color)(Input img, Circle circle, Color color)
 {
     int height = cast(int)img.length!0;
     int width = cast(int)img.length!1;
@@ -63,6 +64,7 @@ int main(string[] args)
     string impath = (args.length < 2) ? "../data/img.png" : args[1];
 
     Image img = imread(impath); // read an image from filesystem.
+    scope(exit) destroyFree(img);
 
     if (img.empty)
     { // check if image is properly read.
@@ -70,19 +72,19 @@ int main(string[] args)
         return 1;
     }
 
-    Slice!(float*, 3, Contiguous) imslice = img.sliced.as!float.slice; // convert Image data type from ubyte to float
+    auto imslice = img.sliced.as!float.rcslice; // convert Image data type from ubyte to float
 
-    auto gray = imslice.rgb2gray; // convert rgb image to grayscale
+    auto gray = imslice.lightScope.rgb2gray; // convert rgb image to grayscale
 
     auto gaussianKernel = gaussian!float(2, 3, 3); // create gaussian convolution kernel (sigma, kernel width and height)
 
     auto blur = gray.conv(gaussianKernel);
-    auto canny = blur.canny!ubyte(150);
+    auto canny = blur.lightScope.canny!ubyte(150);
 
     auto lines = RhtLines().epouchs(35).iterations(500).minCurve(70);
     StopWatch s;
     s.start;
-    auto linesRange = lines(canny);
+    auto linesRange = lines(canny.lightScope);
     foreach (line; linesRange)
     {
         writeln(line);
@@ -94,7 +96,7 @@ int main(string[] args)
     auto circles = RhtCircles().epouchs(15).iterations(2000).minCurve(50);
     s.reset;
     s.start;
-    foreach (circle; circles(canny, linesRange.points[]))
+    foreach (circle; circles(canny.lightScope, linesRange.points[]))
     {
         writeln(circle);
         plotCircle(imslice, circle, [1.0, 1.0, 1.0]);
@@ -103,9 +105,9 @@ int main(string[] args)
     writeln("RHT circles took ", s.peek.total!"msecs", "ms");
 
     // write resulting images on the filesystem.
-    blur.map!(v => v.clip!ubyte).slice.imwrite(ImageFormat.IF_RGB, "./result/outblur.png");
-    canny.map!(v => v.clip!ubyte).slice.imwrite(ImageFormat.IF_MONO, "./result/canny.png");
-    imslice.map!(v => v.clip!ubyte).slice.imwrite(ImageFormat.IF_RGB, "./result/rht.png");
+    blur.lightScope.map!(v => v.clip!ubyte).rcslice.imwrite(ImageFormat.IF_RGB, "./result/outblur.png");
+    canny.lightScope.map!(v => v.clip!ubyte).rcslice.imwrite(ImageFormat.IF_MONO, "./result/canny.png");
+    imslice.lightScope.map!(v => v.clip!ubyte).rcslice.imwrite(ImageFormat.IF_RGB, "./result/rht.png");
 
     return 0;
 }

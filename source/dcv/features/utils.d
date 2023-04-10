@@ -13,6 +13,7 @@ module dcv.features.utils;
 import std.traits : isNumeric;
 
 import mir.ndslice;
+import mir.rc;
 
 /**
 Feature point.
@@ -49,7 +50,7 @@ Returns:
     Lazy array of size_t[2], as in array of 2D points, of corner reponses
     which fit the given criteria.
 */
-pure nothrow
+@nogc nothrow
 auto extractCorners(T)
 (
     Slice!(T*, 2, Contiguous) cornerResponse,
@@ -62,25 +63,26 @@ in
 }
 do
 {
-    import std.array : Appender;
+    import mir.appender;
     import std.typecons : Tuple;
 
     import mir.ndslice.sorting : sort;
     import mir.ndslice.topology : zip, flattened, ndiota;
+    import std.array : _sa = staticArray;
 
     alias Pair = Tuple!(T, "value", size_t[2], "position");
 
     // TODO: test if corner response is contiguous, or better yet - change
     //       the implementation not to depend on contiguous slice.
 
-    auto resultAppender = Appender!(Pair[])();
+    auto resultAppender = scopedBuffer!Pair;
 
     size_t r = 0, c;
     foreach(row; cornerResponse) {
         c = 0;
         foreach(value; row) {
             if (value > threshold) {
-                resultAppender.put(Pair(value, [r, c]));
+                resultAppender.put(Pair(value, [r, c]._sa));
             }
             c++;
         }
@@ -97,7 +99,8 @@ do
         result = result[0..count];
     }
 
-    return result;
+    auto ret = result[].rcarray;
+    return ret;
 }
 
 ///

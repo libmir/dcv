@@ -11,10 +11,11 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 module dcv.tracking.opticalflow.hornschunck;
 
 import mir.ndslice;
+import mir.rc;
 
 import dcv.core.image;
 import dcv.tracking.opticalflow.base;
-import dcv.core.utils : emptySlice;
+import dcv.core.utils : emptyRCSlice;
 
 public import dcv.tracking.opticalflow.base : DenseFlow;
 
@@ -42,10 +43,12 @@ class HornSchunckFlow : DenseOpticalFlow
 {
     private
     {
-        Slice!(float*, 2LU, SliceKind.contiguous) current;
-        Slice!(float*, 2LU, SliceKind.contiguous) next;
+        Slice!(RCI!float, 2LU, SliceKind.contiguous) current;
+        Slice!(RCI!float, 2LU, SliceKind.contiguous) next;
         HornSchunckProperties props;
     }
+
+    @nogc nothrow:
 
     /**
     Initialize the algorithm with given set of properties.
@@ -71,7 +74,7 @@ class HornSchunckFlow : DenseOpticalFlow
     Returns:
         Calculated flow field.
     */
-    override DenseFlow evaluate(Image f1, Image f2, DenseFlow prealloc = emptySlice!(3,
+    override DenseFlow evaluate(Image f1, Image f2, DenseFlow prealloc = emptyRCSlice!(3,
             float), bool usePrevious = false)
     in
     {
@@ -100,21 +103,21 @@ class HornSchunckFlow : DenseOpticalFlow
             switch (f1.depth)
             {
             case BitDepth.BD_32:
-                current = f1.sliced.as!float.flattened.sliced([f1.height, f1.width]).slice;
-                next = f2.sliced.as!float.flattened.sliced([f2.height, f2.width]).slice;
+                current = f1.sliced.as!float.flattened.sliced([f1.height, f1.width]).rcslice;
+                next = f2.sliced.as!float.flattened.sliced([f2.height, f2.width]).rcslice;
                 break;
             case BitDepth.BD_16:
-                current = f1.sliced.as!ushort.flattened.sliced([f1.height, f1.width]).as!float.slice;
-                next = f2.sliced.as!ushort.flattened.sliced([f2.height, f2.width]).as!float.slice;
+                current = f1.sliced.as!ushort.flattened.sliced([f1.height, f1.width]).as!float.rcslice;
+                next = f2.sliced.as!ushort.flattened.sliced([f2.height, f2.width]).as!float.rcslice;
                 break;
             default:
-                current = f1.sliced.flattened.sliced([f1.height, f1.width]).as!float.slice;
-                next = f2.sliced.flattened.sliced([f2.height, f2.width]).as!float.slice;
+                current = f1.sliced.flattened.sliced([f1.height, f1.width]).as!float.rcslice;
+                next = f2.sliced.flattened.sliced([f2.height, f2.width]).as!float.rcslice;
             }
         }
 
         if (prealloc.shape[0 .. 2] != current.shape)
-            prealloc = slice!float([current.length!0, current.length!1, 2], 0.0f);
+            prealloc = rcslice!float([current.length!0, current.length!1, 2], 0.0f);
         else if (!usePrevious)
             prealloc[] = 0.0f;
 
@@ -134,7 +137,7 @@ class HornSchunckFlow : DenseOpticalFlow
         int iter = 0;
         float err = props.tol;
 
-        auto flow_b = slice!float(prealloc.shape);
+        auto flow_b = rcslice!float(prealloc.shape);
 
         auto const rows = cast(int)current.length!0;
         auto const cols = cast(int)current.length!1;
@@ -144,7 +147,7 @@ class HornSchunckFlow : DenseOpticalFlow
         {
             err = 0;
             flow_b[] = prealloc[];
-            hsflowImpl(rows, cols, current._iterator, next._iterator, flow_b._iterator, prealloc._iterator, a2, err);
+            hsflowImpl(rows, cols, current.ptr, next.ptr, flow_b.ptr, prealloc.ptr, a2, err);
         }
 
         return prealloc;

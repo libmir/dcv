@@ -6,6 +6,7 @@
 	"dependencies": {
 		"dcv:core": {"path": "../../"},
         "dcv:plot": {"path": "../../"},
-        "dcv:imageio": {"path": "../../"}
+        "dcv:imageio": {"path": "../../"},
+		"mir-random": "*"
 	}
 }
