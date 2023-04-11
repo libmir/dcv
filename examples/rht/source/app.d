@@ -94,8 +94,8 @@ int main(string[] args)
         plotLine(imslice, line, [1.0, 1.0, 1.0].staticArray);
     }
     s.stop;
-    printf("RHT lines took %d ms\n", s.peek.total!"msecs");
-    printf("Points left after lines: %d\n", linesRange.points.length);
+    printf("RHT lines took %zu ms\n", s.peek.total!"msecs");
+    printf("Points left after lines: %zu\n", linesRange.points.length);
     auto circles = RhtCircles().epouchs(15).iterations(2000).minCurve(50);
     s.reset;
     s.start;
@@ -105,7 +105,7 @@ int main(string[] args)
         plotCircle(imslice, circle, [1.0, 1.0, 1.0].staticArray);
     }
     s.stop;
-    printf("RHT circles took %d ms \n", s.peek.total!"msecs");
+    printf("RHT circles took %zu ms \n", s.peek.total!"msecs");
 
     // write resulting images on the filesystem.
     blur.lightScope.map!(v => v.clip!ubyte).rcslice.imwrite(ImageFormat.IF_MONO, "./result/outblur.png");
