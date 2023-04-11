@@ -207,6 +207,13 @@ bool imwrite(SliceKind kind, size_t N, Iterator)
     //static assert(packs.length == 1, "Packed slices are not allowed in imwrite.");
     static assert(N == 2LU || N == 3LU, "Slice has to be 2 or 3 dimensional.");
 
+    static if (N == 2){
+        assert(format == ImageFormat.IF_MONO, "ImageFormat must be IF_MONO for 2D slices");
+    } else 
+    static if (N == 3){
+        assert(format != ImageFormat.IF_MONO, "ImageFormat must be one of IF_RGB, IF_BGR, or IF_YUV for 3D slices");
+    }
+
     import mir.rc: RCI;
     import std.traits;
     static if (__traits(isSame, TemplateOf!(IteratorOf!(typeof(slice))), RCI))

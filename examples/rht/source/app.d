@@ -4,10 +4,11 @@ module dcv.example.rht;
  * Randomized Hough Transform example using dcv library.
  */
 
-import std.stdio : writeln;
+import core.stdc.stdio : printf;
 import std.datetime.stopwatch : StopWatch;
 import std.math : fabs, PI, sin, cos, rint;
 import std.typecons : tuple;
+import std.array : staticArray;
 
 import mir.ndslice, mir.rc;
 import dplug.core.nogc;
@@ -17,6 +18,8 @@ import dcv.core.utils : clip;
 import dcv.imageio : imread, imwrite;
 import dcv.imgproc;
 import dcv.features.rht;
+
+@nogc nothrow:
 
 void plotLine(Input, Line, Color)(Input img, Line line, Color color)
 {
@@ -68,7 +71,7 @@ int main(string[] args)
 
     if (img.empty)
     { // check if image is properly read.
-        writeln("Cannot read image at: " ~ impath);
+        printf("Cannot read image at the path provided.");
         return 1;
     }
 
@@ -87,25 +90,25 @@ int main(string[] args)
     auto linesRange = lines(canny.lightScope);
     foreach (line; linesRange)
     {
-        writeln(line);
-        plotLine(imslice, line, [1.0, 1.0, 1.0]);
+        printf("m=%f, b=%f\n", line.tupleof);
+        plotLine(imslice, line, [1.0, 1.0, 1.0].staticArray);
     }
     s.stop;
-    writeln("RHT lines took ", s.peek.total!"msecs", "ms");
-    writeln("Points left after lines:", linesRange.points.length);
+    printf("RHT lines took %zu ms\n", s.peek.total!"msecs");
+    printf("Points left after lines: %zu\n", linesRange.points.length);
     auto circles = RhtCircles().epouchs(15).iterations(2000).minCurve(50);
     s.reset;
     s.start;
     foreach (circle; circles(canny.lightScope, linesRange.points[]))
     {
-        writeln(circle);
-        plotCircle(imslice, circle, [1.0, 1.0, 1.0]);
+        printf("x=%f, y=%f, r=%f\n", circle.tupleof);
+        plotCircle(imslice, circle, [1.0, 1.0, 1.0].staticArray);
     }
     s.stop;
-    writeln("RHT circles took ", s.peek.total!"msecs", "ms");
+    printf("RHT circles took %zu ms \n", s.peek.total!"msecs");
 
     // write resulting images on the filesystem.
-    blur.lightScope.map!(v => v.clip!ubyte).rcslice.imwrite(ImageFormat.IF_RGB, "./result/outblur.png");
+    blur.lightScope.map!(v => v.clip!ubyte).rcslice.imwrite(ImageFormat.IF_MONO, "./result/outblur.png");
     canny.lightScope.map!(v => v.clip!ubyte).rcslice.imwrite(ImageFormat.IF_MONO, "./result/canny.png");
     imslice.lightScope.map!(v => v.clip!ubyte).rcslice.imwrite(ImageFormat.IF_RGB, "./result/rht.png");
 
