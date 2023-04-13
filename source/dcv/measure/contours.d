@@ -205,8 +205,8 @@ double contourArea(C)(auto ref C contour)
     
     foreach(i; 0..npoints){
         auto j = (i + 1) % npoints;
-        area += xx[i] * yy[j];
-        area -= xx[j] * yy[i];
+        area += cast(double)xx[i] * cast(double)yy[j];
+        area -= cast(double)xx[j] * cast(double)yy[i];
     }
     area = abs(area) / 2.0;
     return area;
@@ -218,13 +218,13 @@ double arcLength(C)(auto ref C contour)
     auto yy = contour[0..$, 1];
     
     double perimeter = 0.0, xDiff = 0.0, yDiff = 0.0;
-    for( auto k = 0; k < xx.length-1; k++ ) {
-        xDiff = xx[k+1] - xx[k];
-        yDiff = yy[k+1] - yy[k];
+    foreach(k; 0..xx.length-1) {
+        xDiff = cast(double)xx[k+1] - cast(double)xx[k];
+        yDiff = cast(double)yy[k+1] - cast(double)yy[k];
         perimeter += pow( xDiff*xDiff + yDiff*yDiff, 0.5 );
     }
-    xDiff = xx[xx.length-1] - xx[0];
-    yDiff = yy[yy.length-1] - yy[0];
+    xDiff = cast(double)xx[xx.length-1] - cast(double)xx[0];
+    yDiff = cast(double)yy[yy.length-1] - cast(double)yy[0];
     perimeter += pow( xDiff*xDiff + yDiff*yDiff, 0.5 );
     
     return perimeter;

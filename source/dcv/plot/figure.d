@@ -992,12 +992,40 @@ version(UseLegacyGL){ } else {
     {
         import mir.rc;
 
-        glfwMakeContextCurrent(_glfwWindow);
-        
-        Slice!(RCI!ubyte, 3LU, Contiguous) imgslice = uninitRCslice!ubyte(width, height, 3);
-        imgslice[] = 0;
+        Slice!(RCI!ubyte, 3LU, Contiguous) imgslice = rcslice!ubyte([height, width, 3], 0);
 
+        glfwMakeContextCurrent(_glfwWindow);
+
+        // create and bind framebuffer
+        GLuint fbo;
+        glGenFramebuffers(1, &fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+        // create and bind texture
+        GLuint texture;
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, null);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+
+        // render scene to framebuffer
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        
+        // render scene here
+        render();
+
+        // read pixel data from framebuffer
         glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, imgslice.ptr);
+
+        import mir.utility : swap;
+        // flip image vertically to correct generated image
+        foreach (y; 0..height / 2) {
+            each!swap(imgslice[y], imgslice[height - y - 1]);
+        }
+        // unbind framebuffer and cleanup
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDeleteTextures(1, &texture);
+        glDeleteFramebuffers(1, &fbo);
 
         return imgslice;
     }

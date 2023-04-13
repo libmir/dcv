@@ -26,18 +26,23 @@ Returns struct Ellipse
 */
 Ellipse ellipseFit(M)(auto ref M moments) @nogc nothrow
 {
+    import std.math.traits : isNaN;
     const double center_x = moments.m10/moments.m00;
     const double center_y = moments.m01/moments.m00;
     
     // central moments
-    const double a = moments.m20/moments.m00 - center_x^^2 + 1.0/12.0;
+    const double a = moments.m20/moments.m00 - center_x*center_x + 1.0/12.0;
     const double b = 2*(moments.m11/moments.m00 - center_x*center_y);
-    const double c = moments.m02/moments.m00 - center_y^^2 + 1.0/12.0;
+    const double c = moments.m02/moments.m00 - center_y*center_y + 1.0/12.0;
+
+    assert(!a.isNaN, "a is nan. There should be problem with the value of moments.m00 (area)");
+    assert(!b.isNaN, "b is nan. There should be problem with the value of moments.m00 (area)");
+    assert(!c.isNaN, "c is nan. There should be problem with the value of moments.m00 (area)");
 
     const double theta = 0.5*atan(b/(a-c)) + (a<c)*PI/2;
 
-    const double axis1 = sqrt(8*(a+c-sqrt(b^^2+(a-c)^^2)))/2.0;
-    const double axis2 = sqrt(8*(a+c+sqrt(b^^2+(a-c)^^2)))/2.0;
+    const double axis1 = sqrt(8*(a+c-sqrt(b*b+(a-c)*(a-c))))/2.0;
+    const double axis2 = sqrt(8*(a+c+sqrt(b*b+(a-c)*(a-c))))/2.0;
 
     double orientation;
     if (axis1 == axis2)
@@ -48,6 +53,6 @@ Ellipse ellipseFit(M)(auto ref M moments) @nogc nothrow
         if (abs(orientation) > PI_2)
             orientation = PI - abs(orientation);
     }
-        
+    
     return Ellipse(orientation, center_x + 1, center_y + 1, 2*axis2, 2*axis1);
 }
