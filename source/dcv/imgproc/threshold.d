@@ -17,6 +17,8 @@ import std.experimental.allocator.gc_allocator;
 
 import dcv.core.utils : emptyRCSlice;
 
+@nogc nothrow:
+
 /**
 Clip slice values by a given threshold value.
 
@@ -43,7 +45,7 @@ Note:
     (i.e. have same strides). If prealloc buffer is not given, and is
     allocated anew, input slice memory must be contiguous.
 */
-nothrow Slice!(RCI!OutputType, 2, Contiguous) threshold(OutputType, InputType, size_t N, SliceKind kind)
+Slice!(RCI!OutputType, 2, Contiguous) threshold(OutputType, InputType, size_t N, SliceKind kind)
 (
     Slice!(InputType*, N, kind) input,
     InputType lowThresh,
@@ -115,7 +117,7 @@ Note:
     (i.e. have same strides). If prealloc buffer is not given, and is
     allocated anew, input slice memory must be contiguous.
 */
-nothrow Slice!(RCI!OutputType, 2, Contiguous) threshold(OutputType, InputType, size_t N, SliceKind kind)
+Slice!(RCI!OutputType, 2, Contiguous) threshold(OutputType, InputType, size_t N, SliceKind kind)
 (
     Slice!(InputType*, N, kind) input,
     InputType thresh,
@@ -133,7 +135,7 @@ enum THR_INVERSE = true;
 Params:
     hist = Input histogram.
 */
-int getOtsuThresholdValue(alias N = size_t)(int[N] hist) @nogc nothrow
+int getOtsuThresholdValue(alias N = size_t)(int[N] hist)
 {
     // Based on: https://github.com/scikit-image/scikit-image/blob/602d94d35d3a04e6b66583c3a1a355bfbe381224/skimage/filters/thresholding.py#L371
     
@@ -147,21 +149,21 @@ int getOtsuThresholdValue(alias N = size_t)(int[N] hist) @nogc nothrow
     import std.stdio;
     
     
-    auto binCenters = std_iota!int(N).staticArray!N.as!int.rcslice;
+    auto binCenters = std_iota!int(N).staticArray!N.as!int;
     
-    auto weight1 = cumulativeFold!"a + b"(hist[], 0).staticArray!N.as!float.rcslice;
-    auto weight2 = cumulativeFold!"a + b"(hist[].retro, 0).staticArray!N.as!float.rcslice.retro;
+    auto weight1 = cumulativeFold!"a + b"(hist[], 0).staticArray!N.as!float;
+    auto weight2 = cumulativeFold!"a + b"(hist[].retro, 0).staticArray!N.as!float.retro;
     
 
-    auto counts = hist.as!float.rcslice;
+    auto counts = hist.as!float;
 
     auto mult = counts * binCenters;
 
-    auto csmult = cumulativeFold!"a + b"(mult, 0.0).staticArray!N.as!float.rcslice;
+    auto csmult = cumulativeFold!"a + b"(mult, 0.0).staticArray!N.as!float;
     
     auto mean1 = csmult / weight1;
 
-    auto csmult2 = cumulativeFold!"a + b"(mult.retro, 0.0).staticArray!N.as!float.rcslice;
+    auto csmult2 = cumulativeFold!"a + b"(mult.retro, 0.0).staticArray!N.as!float;
     
     auto mean2 = (csmult2 / weight2.retro).retro.rcslice;
     mean2.each!((ref v){if(v.isNaN) v=cast(float)(N-1); });
