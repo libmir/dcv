@@ -45,7 +45,7 @@ destroyFigures(); // free all allocated figures
 - In the new API, all functions accept slice shells as Slice!(T*, N) as input. On the other hand, API functions return RC-allocated Slice!(RCI!T, N). In this way, ref-counted slices can be passed to API functions like input.lightScope.
 - nogc capabilities of mir libraries and dplug:core are utilized when needed.
 - ThreadPool of dplug:core is used in the entire library for parallelism.
-- class Image and class Figure use manual memory management. A call of function destroyFigures deallocates all allocated figures automatically. If an Image instance is initialized with non-null ubyte[] data, this time, the Image instance behaves like a slice shell, and it does not try to deallocate the borrowed data slice.
+- class Image and class Figure use manual memory management. A call of function destroyFigures deallocates all allocated figures automatically. If an Image instance is initialized with non-null ubyte[] data, this time, the Image instance behaves like a slice shell, and it does not attempt to deallocate the borrowed data slice.
 - All examples are up-to-date. Please refer to the examples instead of the docs at the moment.
 
 ## Documentation (outdated at the moment)
