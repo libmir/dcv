@@ -34,18 +34,18 @@ auto slice = image.sliced; // slice image data (calls mir.ndslice.slice.sliced o
 
 slice[0..$, 0..$, 1] // take the green channel only.
     .as!float // convert slice data to float. Returns a lazy range
-    .rcslice // allocate make a copy (ref counted slice)
+    .rcslice // allocate and make a copy with new type (ref counted slice)
     .conv!symmetric(sobel!float(GradientDirection.DIR_X)) // convolve image with horizontal Sobel kernel.
     .ranged(0, 255) // scale values to fit the range between the 0 and 255
     .imshow("Sobel derivatives"); // preview changes on screen.
 
-destroyFigures(); // free all allocated figures
 waitKey();
+destroyFigures(); // free all allocated figures
 ```
 - In the new API, all functions accept slice shells as Slice!(T*, N) as input. On the other hand, API functions return RC-allocated Slice!(RCI!T, N). In this way, ref-counted slices can be passed to API functions like input.lightScope.
 - nogc capabilities of mir libraries and dplug:core are utilized when needed.
 - ThreadPool of dplug:core is used in the entire library for parallelism.
-- class Image and class Figure use manual memory management. A call of function destroyFigures deallocates all allocated figures automatically. If an Image instance is initialized with non-null ubyte[] data, this time, the Image instance behaves like a slice shell, and it does not try to deallocate the borrowed data slice.
+- class Image and class Figure use manual memory management. A call of function destroyFigures deallocates all allocated figures automatically. If an Image instance is initialized with non-null ubyte[] data, this time, the Image instance behaves like a slice shell, and it does not attempt to deallocate the borrowed data slice.
 - All examples are up-to-date. Please refer to the examples instead of the docs at the moment.
 
 ## Documentation (outdated at the moment)
