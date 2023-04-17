@@ -21,16 +21,25 @@ void main() @nogc nothrow
     imwrite(skel.asImage(ImageFormat.IF_MONO), "result/skel.png");
 
     auto points = skel.endsAndjunctions;
+    auto junctions = junctions(points, skel);
 
     auto fig = imshow(skel, "skel");
     
     foreach (row; points)
     {
+        fig.drawCircle(PlotCircle(row[1], row[0], 5), plotRed, true);
+    }
+
+    foreach (row; junctions)
+    {
         fig.drawCircle(PlotCircle(row[1], row[0], 5), plotGreen, true);
     }
     
-
+    imwrite(fig.plot2imslice, ImageFormat.IF_RGB, "result/skel.png");
+    
     waitKey();
+
+    junctions.clear;
 
     destroyFigures();
 }
@@ -78,12 +87,34 @@ auto endsAndjunctions(InputType, int whiteValue = 255)(auto ref InputType binary
     auto cntrs_h = findContours(pointsMask);
     auto cntrs = cntrs_h[0];
 
-    auto points = uninitRCslice!double([cntrs.length, 2]);
+    auto points = uninitRCslice!size_t([cntrs.length, 2]);
     size_t i;
     foreach(contour; cntrs){
-        points[i][0] = contour[0..$, 0].mean;
-        points[i++][1] = contour[0..$, 1].mean;
+        points[i][0] = cast(size_t)contour[0..$, 0].mean;
+        points[i++][1] = cast(size_t)contour[0..$, 1].mean;
     }
 
     return points;
+}
+
+auto junctions(P, S)(P points, S binary){
+    import std.container.array;
+    import std.array: staticArray;
+
+    immutable size_t[8] dx8 = [1, -1, 1, 0, -1,  1,  0, -1];
+    immutable size_t[8] dy8 = [0,  0, 1, 1,  1, -1, -1, -1];
+
+    Array!(size_t[2]) junc;
+    foreach(p; points){
+        ubyte n_neighbors;
+        foreach(n; 0..8){
+            if(binary[p[0]+dx8[n], p[1]+dy8[n]] == 255)
+                if(++n_neighbors > 1){
+                    junc ~= [p[0], p[1]].staticArray;
+                    break;
+                }
+        }
+    }
+
+    return junc;
 }
