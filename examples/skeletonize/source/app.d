@@ -35,8 +35,8 @@ void main() @nogc nothrow
         fig.drawCircle(PlotCircle(row[1], row[0], 5), plotGreen, true);
     }
     
-    imwrite(fig.plot2imslice, ImageFormat.IF_RGB, "result/skel.png");
-    
+    imwrite(fig.plot2imslice, ImageFormat.IF_RGB, "result/junctions_ends.png");
+
     waitKey();
 
     junctions.clear;
