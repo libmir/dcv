@@ -54,6 +54,18 @@ import dcv.core.utils;
 
 @nogc nothrow:
 
+private static ThreadPool pool;
+
+static this(){
+    if(pool is null)
+        pool = mallocNew!ThreadPool;
+}
+
+static ~this(){
+    if(pool !is null)
+        destroyFree(pool);
+}
+
 /**
 Perform convolution to given tensor, using given kernel.
 Convolution is supported for 1, 2, and 3 dimensional tensors.
@@ -167,39 +179,41 @@ auto convImpl
     (InputTensor input, KernelTensor kernel, PreTensor prealloc, MaskTensor mask) 
 if (InputTensor.init.shape.length == 1)
 {
-    ThreadPool pool = mallocNew!ThreadPool;
-    scope(exit) destroyFree(pool);
-
     alias InputType = DeepElementType!InputTensor;
 
     auto kl = kernel.length;
     auto kh = kl / 2;
 
+    auto input_ls = input.lightScope;
+    auto kernel_ls = kernel.lightScope;
+    auto prealloc_ls = prealloc.lightScope;
+    auto mask_ls = mask.lightScope;
+
     if (mask.empty)
     {
-        auto packedWindows = zip!true(prealloc, input).windows(kl);
+        auto packedWindows = zip!true(prealloc_ls, input_ls).windows(kl);
         
         void worker(int i, int threadIndex) nothrow @nogc {
             auto p = packedWindows[i];
-            p[kh].a = reduce!(kapply!InputType)(0.0f, p.unzip!'b', kernel);
+            p[kh].a = reduce!(kapply!InputType)(0.0f, p.unzip!'b', kernel_ls);
         }
         pool.parallelFor(cast(int)packedWindows.length, &worker);
     }
     else
     {
         // TODO: extract masked convolution as separate function?
-        auto packedWindows = zip!true(prealloc, input, mask).windows(kl);
+        auto packedWindows = zip!true(prealloc_ls, input_ls, mask_ls).windows(kl);
 
         void worker(int i, int threadIndex) nothrow @nogc {
             auto p = packedWindows[i];
             if (p[$ / 2].c)
-                p[$ / 2].a = reduce!(kapply!InputType)(0.0f, p.unzip!'b', kernel);
+                p[$ / 2].a = reduce!(kapply!InputType)(0.0f, p.unzip!'b', kernel_ls);
         }
         pool.parallelFor(cast(int)packedWindows.length, &worker);
     }
 
-    handleEdgeConv1d!bc(input, prealloc, kernel, mask, 0, kl);
-    handleEdgeConv1d!bc(input, prealloc, kernel, mask, input.length - 1 - kh, input.length);
+    handleEdgeConv1d!bc(input_ls, prealloc_ls, kernel_ls, mask_ls, 0, kl);
+    handleEdgeConv1d!bc(input_ls, prealloc_ls, kernel_ls, mask_ls, input.length - 1 - kh, input.length);
 
     return prealloc;
 }
@@ -209,43 +223,43 @@ auto convImpl
     (InputTensor input, KernelTensor kernel, PreAlloc prealloc, MaskTensor mask) 
 if (InputTensor.init.shape.length == 2)
 {
-    ThreadPool pool = mallocNew!ThreadPool;
-    scope(exit) destroyFree(pool);
-
     auto krs = kernel.length!0; // kernel rows
     auto kcs = kernel.length!1; // kernel rows
 
     auto krh = krs / 2;
     auto kch = kcs / 2;
 
-    auto useMask = !mask.empty;
+    auto input_ls = input.lightScope;
+    auto kernel_ls = kernel.lightScope;
+    auto prealloc_ls = prealloc.lightScope;
+    auto mask_ls = mask.lightScope;
 
     if (mask.empty)
     {
-        auto packedWindows = zip!true(prealloc, input).windows(krs, kcs);
+        auto packedWindows = zip!true(prealloc_ls, input_ls).windows(krs, kcs);
         void worker(int i, int threadIndex) nothrow @nogc {
             auto prow = packedWindows[i];
             foreach (p; prow)
-                p[krh, kch].a = reduce!kapply(0.0f, p.unzip!'b'.lightScope, kernel.lightScope);
+                p[krh, kch].a = reduce!kapply(0.0f, p.unzip!'b', kernel_ls);
         }
         pool.parallelFor(cast(int)packedWindows.length, &worker);
     }
     else
     {
-        auto packedWindows = zip!true(prealloc, input, mask).windows(krs, kcs);
+        auto packedWindows = zip!true(prealloc_ls, input_ls, mask_ls).windows(krs, kcs);
         void worker(int i, int threadIndex) nothrow @nogc {
             auto prow = packedWindows[i];
             foreach (p; prow)
                 if (p[krh, kch].c)
-                    p[krh, kch].a = reduce!kapply(0.0f, p.unzip!'b'.lightScope, kernel.lightScope);
+                    p[krh, kch].a = reduce!kapply(0.0f, p.unzip!'b', kernel_ls);
         }
         pool.parallelFor(cast(int)packedWindows.length, &worker);
     }
 
-    handleEdgeConv2d!bc(input.lightScope, prealloc.lightScope, kernel.lightScope, mask.lightScope, [0, input.length!0], [0, kch]); // upper row
-    handleEdgeConv2d!bc(input.lightScope, prealloc.lightScope, kernel.lightScope, mask.lightScope, [0, input.length!0], [input.length!1 - kch, input.length!1]); // lower row
-    handleEdgeConv2d!bc(input.lightScope, prealloc.lightScope, kernel.lightScope, mask.lightScope, [0, krh], [0, input.length!1]); // left column
-    handleEdgeConv2d!bc(input.lightScope, prealloc.lightScope, kernel.lightScope, mask.lightScope, [input.length!0 - krh, input.length!0], [0, input.length!1]); // right column
+    handleEdgeConv2d!bc(input_ls, prealloc_ls, kernel_ls, mask_ls, [0, input.length!0], [0, kch]); // upper row
+    handleEdgeConv2d!bc(input_ls, prealloc_ls, kernel_ls, mask_ls, [0, input.length!0], [input.length!1 - kch, input.length!1]); // lower row
+    handleEdgeConv2d!bc(input_ls, prealloc_ls, kernel_ls, mask_ls, [0, krh], [0, input.length!1]); // left column
+    handleEdgeConv2d!bc(input_ls, prealloc_ls, kernel_ls, mask_ls, [input.length!0 - krh, input.length!0], [0, input.length!1]); // right column
 
     return prealloc;
 }

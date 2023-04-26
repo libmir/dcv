@@ -62,6 +62,18 @@ import dcv.core.utils;
 
 @nogc nothrow:
 
+private static ThreadPool pool;
+
+static this(){
+    if(pool is null)
+        pool = mallocNew!ThreadPool;
+}
+
+static ~this(){
+    if(pool !is null)
+        destroyFree(pool);
+}
+
 /**
 Box kernel creation.
 
@@ -439,9 +451,6 @@ in
 }
 do
 {
-    ThreadPool pool = mallocNew!ThreadPool;
-    scope(exit) destroyFree(pool);
-
     if (input.empty)
         return;
 
@@ -565,9 +574,6 @@ do
     
     assert(fx.strides == mag.strides || fx.strides == orient.strides,
         "Magnitude and orientation slices must be contiguous.");
-    
-    auto pool = mallocNew!ThreadPool;
-    scope(exit) destroyFree(pool);
 
     if (mag.strides == orient.strides && mag.strides == fx.strides)
     {
@@ -635,9 +641,6 @@ in
 }
 do
 {
-    ThreadPool pool = mallocNew!ThreadPool;
-    scope(exit) destroyFree(pool);
-
     import std.math : PI;
 
     alias F = DeepElementType!InputTensor;
@@ -779,18 +782,13 @@ do
 private void bilateralFilter2(OutputType, alias bc = neumann,
     SliceKind outputKind, SliceKind kind, V)(Slice!(V*, 2LU, kind) input,
     float sigmaCol, float sigmaSpace, size_t kernelSize,
-    Slice!(RCI!OutputType, 2LU, outputKind) prealloc, ThreadPool pool = mallocNew!ThreadPool)
+    Slice!(RCI!OutputType, 2LU, outputKind) prealloc)
 in
 {
     assert(prealloc.shape == input.shape);
 }
 do
 {
-    scope(exit){
-        if(pool !is null)
-            destroyFree(pool);
-    }
-
     auto ks = kernelSize;
     auto kh = max(1u, ks / 2);
 
@@ -799,7 +797,7 @@ do
     auto inShape = innerBody.shape;
     auto shape = input.shape;
 
-    auto tmask = rcslice!float([ks, ks], 0.0f);// pool.workerLocalStorage(slice!float(ks, ks));
+    auto tmask = rcslice!float([ks, ks], 0.0f).lightScope;// pool.workerLocalStorage(slice!float(ks, ks));
 
     auto iterable = iota(inShape[0]);
         
@@ -877,9 +875,6 @@ in
 }
 do
 {
-    ThreadPool pool = mallocNew!ThreadPool;
-    scope(exit) destroyFree(pool);
-
     if (prealloc.shape != slice.shape)
         prealloc = uninitRCslice!O(slice.shape);// uninitializedSlice!O(slice.shape);
 
@@ -892,7 +887,7 @@ do
     else
         static assert(0, "Invalid slice dimension for median filtering.");
 
-    medianFilterImpl!BoundaryConditionTest(slice, prealloc.lightScope, kernelSize, pool);
+    medianFilterImpl!BoundaryConditionTest(slice, prealloc.lightScope, kernelSize);
 
     return prealloc;
 }
@@ -1380,12 +1375,12 @@ auto bilateralFilterImpl(Window, Mask)(Window window, Mask mask, float sigmaCol,
     alias T = DeepElementType!Window;
     alias M = DeepElementType!Mask;
 
-    return reduce!(calcBilateralValue!(T, M))(T(0), window, mask.lightScope);
+    return reduce!(calcBilateralValue!(T, M))(T(0), window, mask);
 }
 
 void medianFilterImpl1(alias bc, T, O, SliceKind kind0, SliceKind kind1)(
     Slice!(T*, 1LU, kind0) slice, Slice!(O*, 1LU, kind1) filtered,
-    size_t kernelSize, ThreadPool pool)
+    size_t kernelSize)
 {
     import std.parallelism;
 
@@ -1414,7 +1409,7 @@ void medianFilterImpl1(alias bc, T, O, SliceKind kind0, SliceKind kind1)(
 
 void medianFilterImpl2(alias bc, T, O, SliceKind kind0, SliceKind kind1)(
     Slice!(T*, 2LU, kind0) slice, Slice!(O*, 2LU, kind1) filtered,
-    size_t kernelSize, ThreadPool pool)
+    size_t kernelSize)
 {
     int kh = max(1, cast(int)kernelSize / 2);
     int n = cast(int)(kernelSize * kernelSize);
@@ -1444,11 +1439,11 @@ void medianFilterImpl2(alias bc, T, O, SliceKind kind0, SliceKind kind1)(
 }
 
 void medianFilterImpl3(alias bc, T, O, SliceKind kind)
-    (Slice!(T*, 3LU, kind) slice, Slice!(O*, 3LU, Contiguous) filtered, size_t kernelSize, ThreadPool pool)
+    (Slice!(T*, 3LU, kind) slice, Slice!(O*, 3LU, Contiguous) filtered, size_t kernelSize)
 {
     foreach (channel; 0 .. slice.length!2)
     {
-        medianFilterImpl2!bc(slice[0 .. $, 0 .. $, channel], filtered[0 .. $, 0 .. $, channel], kernelSize, pool);
+        medianFilterImpl2!bc(slice[0 .. $, 0 .. $, channel], filtered[0 .. $, 0 .. $, channel], kernelSize);
     }
 }
 
@@ -1474,9 +1469,6 @@ in
 }
 do
 {
-    ThreadPool pool = mallocNew!ThreadPool;
-    scope(exit) destroyFree(pool);
-
     if (prealloc.shape != slice.shape)
         prealloc = uninitRCslice!T(slice.shape);//uninitializedSlice!T(slice.shape);
 
