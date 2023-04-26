@@ -325,6 +325,9 @@ private pure void displacementImpl(alias interp, DisplacementType disp, ImageMat
         float r = 0.0f, c;
     immutable rf = cast(float)image.length!0;
     immutable cf = cast(float)image.length!1;
+
+    auto image_ls = image.lightScope;
+
     for (; !result.empty; result.popFront, map.popFront)
     {
         auto rrow = result.front;
@@ -345,7 +348,7 @@ private pure void displacementImpl(alias interp, DisplacementType disp, ImageMat
             }
             if (rr >= 0.0f && rr < rf && cc >= 0.0f && cc < cf)
             {
-                rrow.front = interp(image.lightScope, rr, cc);
+                rrow.front = interp(image_ls, rr, cc);
             }
             static if (disp == DisplacementType.WARP) ++c;
         }

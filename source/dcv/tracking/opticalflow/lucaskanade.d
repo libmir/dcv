@@ -22,6 +22,21 @@ import mir.rc;
 
 import dplug.core;
 
+
+private static ThreadPool pool;
+
+@nogc nothrow:
+
+static this(){
+    if(pool is null)
+        pool = mallocNew!ThreadPool;
+}
+
+static ~this(){
+    if(pool !is null)
+        destroyFree(pool);
+}
+
 /**
 Lucas-Kanade optical flow method implementation.
 */
@@ -35,6 +50,8 @@ class LucasKanadeFlow : SparseOpticalFlow
         size_t iterationCount = 10;
     }
 
+    @nogc nothrow:
+    
     /**
     Lucas-Kanade optical flow algorithm implementation.
     
@@ -184,8 +201,7 @@ class LucasKanadeFlow : SparseOpticalFlow
 
         cornerResponse = RCArray!float(pointCount);
 
-        auto pool = mallocNew!ThreadPool;
-        scope(exit) destroyFree(pool);
+        auto next_ls = next.lightScope;
 
         auto iterable = iota(pointCount);
 
@@ -246,7 +262,7 @@ class LucasKanadeFlow : SparseOpticalFlow
                         // TODO: consider subpixel precision for gradient sampling.
                         const float fx = fxs[i, j];
                         const float fy = fys[i, j];
-                        const float ft = cast(float)(linear(next.lightScope, ny, nx) - current[i, j]);
+                        const float ft = cast(float)(linear(next_ls, ny, nx) - current[i, j]);
 
                         const float fxx = fx * fx;
                         const float fyy = fy * fy;
@@ -278,7 +294,6 @@ class LucasKanadeFlow : SparseOpticalFlow
 
         return flow;
     }
-
 }
 
 // TODO: implement functional tests.

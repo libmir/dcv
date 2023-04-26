@@ -86,17 +86,19 @@ do
 {
     alias T = DeepElementType!Tensor;
 
+    auto tensor_ls = tensor.lightScope;
+
     static if (isFloatingPoint!T)
     {
         import mir.math.common : fmin, fmax;
-        auto _max = reduce!fmax(T.min_normal, tensor.lightScope);
-        auto _min = reduce!fmin(T.max, tensor.lightScope);
+        auto _max = reduce!fmax(T.min_normal, tensor_ls);
+        auto _min = reduce!fmin(T.max, tensor_ls);
     }
     else
     {
         import mir.utility : min, max;
-        auto _max = reduce!max(T.min, tensor.lightScope);
-        auto _min = reduce!min(T.max, tensor.lightScope);
+        auto _max = reduce!max(T.min, tensor_ls);
+        auto _min = reduce!min(T.max, tensor_ls);
     }
 
     auto rn_val = _max - _min;

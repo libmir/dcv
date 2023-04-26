@@ -42,7 +42,7 @@ slice[0..$, 0..$, 1] // take the green channel only.
 waitKey();
 destroyFigures(); // free all allocated figures
 ```
-- In the new API, all functions accept slice shells as Slice!(T*, N) as input. On the other hand, API functions return RC-allocated Slice!(RCI!T, N). In this way, ref-counted slices can be passed to API functions like input.lightScope.
+- In the new API, all functions accept slice shells as Slice!(T*, N) as input. On the other hand, API functions return RC-allocated Slice!(RCI!T, N). In this way, ref-counted slices can be passed to API functions like input.lightScope. It is recommended to avoid using lightScope in loop bodies; instead, create a lightScope outside of the loop body before using it. It has a performance bottleneck.
 - nogc capabilities of mir libraries and dplug:core are utilized when needed.
 - ThreadPool of dplug:core is used in the entire library for parallelism.
 - class Image and class Figure use manual memory management. A call of function destroyFigures deallocates all allocated figures automatically. If an Image instance is initialized with non-null ubyte[] data, this time, the Image instance behaves like a slice shell, and it does not attempt to deallocate the borrowed data slice.

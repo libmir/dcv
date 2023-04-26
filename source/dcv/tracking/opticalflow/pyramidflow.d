@@ -136,6 +136,9 @@ class SparsePyramidFlow : SparseOpticalFlow
         }
 
         // calculate pyramid flow
+        auto f1s_ls = f1s.lightScope;
+        auto f2s_ls = f1s.lightScope;
+
         foreach (i; 0 .. levelCount)
         {
 
@@ -144,8 +147,8 @@ class SparsePyramidFlow : SparseOpticalFlow
 
             if (lh != h || lw != w)
             {
-                current = f1s.lightScope.resize([lh, lw]);
-                next = f2s.lightScope.resize([lh, lw]);
+                current = f1s_ls.resize([lh, lw]);
+                next = f2s_ls.resize([lh, lw]);
             }
             else
             {
@@ -270,6 +273,10 @@ class DensePyramidFlow : DenseOpticalFlow
         bool firstFlow = usePrevious;
 
         // calculate pyramid flow
+        auto corig_ls = corig.lightScope;
+        auto norig_ls = norig.lightScope;
+        auto flow_ls = flow.lightScope;
+
         foreach (i; 0 .. levelCount)
         {
             auto lh = flow.length!0;
@@ -277,8 +284,8 @@ class DensePyramidFlow : DenseOpticalFlow
 
             if (lh != h || lw != w)
             {
-                current = corig.lightScope.resize([lh, lw]);
-                next = norig.lightScope.resize([lh, lw]);
+                current = corig_ls.resize([lh, lw]);
+                next = norig_ls.resize([lh, lw]);
             }
             else
             {
@@ -308,7 +315,7 @@ class DensePyramidFlow : DenseOpticalFlow
 
             if (i < levelCount - 1)
             {
-                flow = flow.lightScope.resize(flowPyramid[i + 1]);
+                flow = flow_ls.resize(flowPyramid[i + 1]);
                 flow[] *= 2.0f;
             }
             // assign the first flow indicator to false.
