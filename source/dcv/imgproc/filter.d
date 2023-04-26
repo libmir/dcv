@@ -797,15 +797,17 @@ do
     auto inShape = innerBody.shape;
     auto shape = input.shape;
 
-    auto tmask = rcslice!float([ks, ks], 0.0f).lightScope;// pool.workerLocalStorage(slice!float(ks, ks));
-
     auto iterable = iota(inShape[0]);
         
     void worker(int i, int threadIndex) nothrow @nogc {
-
         auto r = iterable[i];
+
+        float[] maskBuff = mallocSlice!float(ks*ks); // workerLocalStorage here
+        scope(exit) freeSlice(maskBuff);
+
         foreach (c; 0 .. inShape[1])
         {
+            auto tmask = maskBuff.sliced(ks, ks);
             innerBody[r, c] = bilateralFilterImpl(inputWindows[r, c], tmask, sigmaCol, sigmaSpace);
         }
     }
@@ -814,6 +816,10 @@ do
     auto iterable2 = input.shape.borders(ks);
     void worker2(int i, int threadIndex) nothrow @nogc {
         auto border = iterable2[i];
+
+        float[] maskBuff = mallocSlice!float(ks*ks); // workerLocalStorage here
+        scope(exit) freeSlice(maskBuff);
+        auto tmask = maskBuff.sliced(ks, ks);
 
         foreach (r; border.rows)
             foreach (c; border.cols)
