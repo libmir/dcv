@@ -13,7 +13,6 @@ module dcv.tracking.opticalflow.hornschunck;
 import mir.ndslice;
 import mir.rc;
 
-import dcv.core.image;
 import dcv.tracking.opticalflow.base;
 import dcv.core.utils : emptyRCSlice;
 
@@ -74,46 +73,31 @@ class HornSchunckFlow : DenseOpticalFlow
     Returns:
         Calculated flow field.
     */
-    override DenseFlow evaluate(Image f1, Image f2, DenseFlow prealloc = emptyRCSlice!(3,
+    override DenseFlow evaluate(Slice!(float*, 2, Contiguous) f1, Slice!(float*, 2, Contiguous) f2, DenseFlow prealloc = emptyRCSlice!(3,
             float), bool usePrevious = false)
     in
     {
-        assert(!f1.empty && !f2.empty && f1.channels == 1 && f1.size == f2.size && f1.depth == f2.depth);
+        assert(!f1.empty && !f2.empty && f1.N == 2 && f1.shape == f2.shape);
         if (usePrevious)
         {
-            assert(prealloc.length!0 == f1.height && prealloc.length!1 == f1.width && prealloc.length!2 == 2);
+            assert(prealloc.length!0 == f1.shape[0] && prealloc.length!1 == f1.shape[1] && prealloc.length!2 == 2);
         }
     }
     do
     {
-        size_t height = f1.height;
-        size_t width = f1.width;
+        size_t height = f1.shape[0];
+        size_t width = f1.shape[1];
         import mir.ndslice.allocation;
         import mir.ndslice.topology;
-        if (current.shape == [height, width] && next.shape == [height, width] && f1.depth == BitDepth.BD_32)
+        if (current.shape == [height, width] && next.shape == [height, width])
         {
-            auto f1s = f1.sliced.as!float.flattened.sliced([height, width]);
-            auto f2s = f2.sliced.as!float.flattened.sliced([height, width]);
-
-            current[] = f1s[];
-            next[] = f2s[];
+            current[] = f1[];
+            next[] = f2[];
         }
         else
         {
-            switch (f1.depth)
-            {
-            case BitDepth.BD_32:
-                current = f1.sliced.as!float.flattened.sliced([f1.height, f1.width]).rcslice;
-                next = f2.sliced.as!float.flattened.sliced([f2.height, f2.width]).rcslice;
-                break;
-            case BitDepth.BD_16:
-                current = f1.sliced.as!ushort.flattened.sliced([f1.height, f1.width]).as!float.rcslice;
-                next = f2.sliced.as!ushort.flattened.sliced([f2.height, f2.width]).as!float.rcslice;
-                break;
-            default:
-                current = f1.sliced.flattened.sliced([f1.height, f1.width]).as!float.rcslice;
-                next = f2.sliced.flattened.sliced([f2.height, f2.width]).as!float.rcslice;
-            }
+            current = f1.rcslice;
+            next = f2.rcslice;
         }
 
         if (prealloc.shape[0 .. 2] != current.shape)

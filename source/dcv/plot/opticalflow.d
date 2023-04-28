@@ -31,6 +31,8 @@ Slice!(RCI!ubyte, 3LU, SliceKind.contiguous) colorCode(Slice!(float*, 3LU, Slice
     import std.math : sqrt;
     import dcv.core.algorithm : ranged;
     import dcv.imgproc.color : hsv2rgb;
+    import mir.ndslice;
+    import mir.rc;
 
     if (maxSize == 0)
     {
@@ -38,9 +40,7 @@ Slice!(RCI!ubyte, 3LU, SliceKind.contiguous) colorCode(Slice!(float*, 3LU, Slice
         maxSize *= 0.1; // expect max flow displacement to be 10% of the diagonal
     }
 
-    int err;
-    auto hsv = RCArray!float(flow.length!0 * flow.length!1 * 3)
-        .moveToSlice.reshape([flow.length!0, flow.length!1, 3], err);
+    auto hsv = rcslice!float([flow.length!0, flow.length!1, 3], 0f);
 
     foreach (r; 0 .. flow.length!0)
     {
@@ -63,5 +63,5 @@ Slice!(RCI!ubyte, 3LU, SliceKind.contiguous) colorCode(Slice!(float*, 3LU, Slice
 
     hsv[0 .. $, 0 .. $, 1].ranged(0.0f, maxSize)[] /= maxSize;
 
-    return hsv.lightScope.hsv2rgb!ubyte; // Convert to RGB, and return...
+    return hsv2rgb!ubyte(hsv.lightScope); // Convert to RGB, and return...
 }

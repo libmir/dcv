@@ -54,18 +54,6 @@ import dcv.core.utils;
 
 @nogc nothrow:
 
-private static ThreadPool pool;
-
-static this(){
-    if(pool is null)
-        pool = mallocNew!ThreadPool;
-}
-
-static ~this(){
-    if(pool !is null)
-        destroyFree(pool);
-}
-
 /**
 Perform convolution to given tensor, using given kernel.
 Convolution is supported for 1, 2, and 3 dimensional tensors.

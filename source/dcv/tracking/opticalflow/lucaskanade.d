@@ -12,30 +12,17 @@ module dcv.tracking.opticalflow.lucaskanade;
 
 import std.math : PI, floor;
 
-import dcv.core.image;
+import dcv.core.utils : pool;
 import dcv.imgproc.convolution;
 import dcv.tracking.opticalflow.base;
 public import dcv.imgproc.interpolate;
 import std.array : staticArray;
 
+import mir.ndslice;
 import mir.rc;
 
 import dplug.core;
 
-
-private static ThreadPool pool;
-
-@nogc nothrow:
-
-static this(){
-    if(pool is null)
-        pool = mallocNew!ThreadPool;
-}
-
-static ~this(){
-    if(pool !is null)
-        destroyFree(pool);
-}
 
 /**
 Lucas-Kanade optical flow method implementation.
@@ -68,15 +55,15 @@ class LucasKanadeFlow : SparseOpticalFlow
         dcv.features.corner
     
     */
-    override Slice!(RCI!(float[2]), 1) evaluate(Image f1, Image f2, float[2][] points,
+    override Slice!(RCI!(float[2]), 1) evaluate(Slice!(float*, 2, Contiguous) f1, Slice!(float*, 2, Contiguous) f2, float[2][] points,
             float[2][] searchRegions, Slice!(RCI!(float[2]), 1) flow = emptyRCSlice!(1, float[2]), bool usePrevious = false)
     in
     {
-        assert(!f1.empty && !f2.empty && f1.size == f2.size && f1.channels == 1 && f1.depth == f2.depth);
+        assert(!f1.empty && !f2.empty && f1.shape == f2.shape && f1.N == 2);
         assert(points.length == searchRegions.length);
         if (usePrevious)
         {
-            assert(flow !is null);
+            assert(!flow.empty);
             assert(points.length == flow.length);
         }
     }
@@ -93,8 +80,8 @@ class LucasKanadeFlow : SparseOpticalFlow
         import dcv.imgproc.filter;
         import dcv.core.memory;
 
-        const auto rows = f1.height;
-        const auto cols = f1.width;
+        const auto rows = f1.shape[0];
+        const auto cols = f1.shape[1];
         const auto rl = cast(int)(rows - 1);
         const auto cl = cast(int)(cols - 1);
         const auto pointCount = points.length;
@@ -110,20 +97,9 @@ class LucasKanadeFlow : SparseOpticalFlow
         import mir.ndslice.slice: sliced;
 
         Slice!(RCI!float, 2LU, SliceKind.contiguous) current, next;
-        switch (f1.depth)
-        {
-        case BitDepth.BD_32:
-            current = f1.sliced.as!float.flattened.sliced(f1.height, f1.width).rcslice;
-            next = f2.sliced.as!float.flattened.sliced(f2.height, f2.width).rcslice;
-            break;
-        case BitDepth.BD_16:
-            current = f1.sliced.as!ushort.flattened.sliced(f1.height, f1.width).as!float.rcslice;
-            next = f2.sliced.as!ushort.flattened.sliced(f2.height, f2.width).as!float.rcslice;
-            break;
-        default:
-            current = f1.sliced.flattened.sliced(f1.height, f1.width).as!float.rcslice;
-            next = f2.sliced.flattened.sliced(f2.height, f2.width).as!float.rcslice;
-        }
+        
+        current = f1.rcslice;
+        next = f2.rcslice;
 
         float gaussMul = 1.0f / (2.0f * PI * sigma);
         float gaussDel = 2.0f * (sigma ^^ 2);
@@ -151,21 +127,9 @@ class LucasKanadeFlow : SparseOpticalFlow
         auto fxmask = uninitRCslice!ubyte(rows, cols); // ubytePool[0].sliced(rows, cols); 
         auto fymask = uninitRCslice!ubyte(rows, cols); // ubytePool[1].sliced(rows, cols); 
 
-        if (f1.depth == BitDepth.BD_32)
-        {
-            f1s[] = current[];
-            f2s[] = next[];
-        }
-        else
-        {
-            auto f1d = f1.data.sliced(f1s.shape);
-            auto f2d = f2.data.sliced(f2s.shape);
 
-            zip!true(f1s, f2s, f1d, f2d).each!((v) {
-                v.a = cast(float)v.c;
-                v.b = cast(float)v.d;
-            });
-        }
+        f1s[] = current[];
+        f2s[] = next[];
 
         fxs[] = 0.0f;
         fys[] = 0.0f;
@@ -174,10 +138,22 @@ class LucasKanadeFlow : SparseOpticalFlow
 
         // Fill-in masks where points are present
         //import std.range : lockstep;
-        foreach (e; zip(points.sliced(points.length), searchRegions.sliced(searchRegions.length)))
+
+        import mir.ndslice.iterator : ZipIterator;
+        import std.algorithm : min;
+
+        auto A = points.sliced(points.length);
+        auto B = searchRegions.sliced(searchRegions.length);
+
+        alias ItZ = ZipIterator!(typeof(A._iterator), typeof(B._iterator));
+        auto zipp = ItZ(A._iterator, B._iterator);
+        auto mlen = min(A.length, B.length);
+
+        foreach(_; 0..mlen)
         {
-            auto p = e.a; 
-            auto r = e.b;
+            auto p = (*zipp).a;
+            auto r = (*zipp).b;
+
             auto rb = cast(int)(p[0] - r[0] / 2.0f);
             auto re = cast(int)(p[0] + r[0] / 2.0f);
             auto cb = cast(int)(p[1] - r[1] / 2.0f);
@@ -194,6 +170,8 @@ class LucasKanadeFlow : SparseOpticalFlow
 
             fxmask[rb .. re, cb .. ce][] = ubyte(1);
             fymask[rb .. re, cb .. ce][] = ubyte(1);
+
+            ++zipp;
         }
 
         f1s.conv(sobel!float(GradientDirection.DIR_X), fxs, fxmask);

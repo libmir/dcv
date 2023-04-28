@@ -211,7 +211,7 @@ bool imwrite(SliceKind kind, size_t N, Iterator)
         assert(format == ImageFormat.IF_MONO, "ImageFormat must be IF_MONO for 2D slices");
     } else 
     static if (N == 3){
-        assert(format != ImageFormat.IF_MONO, "ImageFormat must be one of IF_RGB, IF_BGR, or IF_YUV for 3D slices");
+        assert(format != ImageFormat.IF_MONO || slice.shape[2] == 1, "ImageFormat must be one of IF_RGB, IF_BGR, or IF_YUV for 3D slices");
     }
 
     import mir.rc: RCI;
@@ -246,6 +246,7 @@ bool imwrite(SliceKind kind, size_t N, Iterator)
             catch(Exception e) assert(false, e.msg);
     }
 
+    assert(0);
     //return false;
 }
 

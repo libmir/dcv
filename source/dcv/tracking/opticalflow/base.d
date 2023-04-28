@@ -9,9 +9,8 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 */
 module dcv.tracking.opticalflow.base;
 
-public import mir.ndslice.slice : Slice, SliceKind;
+public import mir.ndslice.slice : Slice, Contiguous;
 import mir.rc;
-public import dcv.core.image : Image;
 public import dcv.core.utils : emptyRCSlice;
 
 /**
@@ -36,12 +35,12 @@ interface SparseOpticalFlow
         Array of 2 floating point values which represent movement of each given feature point, from f1 to f2.
     */
     @nogc nothrow
-    Slice!(RCI!(float[2]), 1) evaluate(Image f1, Image f2, float[2][] points,
+    Slice!(RCI!(float[2]), 1) evaluate(Slice!(float*, 2, Contiguous) f1, Slice!(float*, 2, Contiguous) f2, float[2][] points,
             float[2][] searchRegions, Slice!(RCI!(float[2]), 1) prevflow = emptyRCSlice!(1, float[2]), bool usePrevious = false);
 }
 
 /// Alias to a type used to define the dense optical flow field.
-alias DenseFlow = Slice!(RCI!float, 3LU, SliceKind.contiguous);
+alias DenseFlow = Slice!(RCI!float, 3LU, Contiguous);
 
 /**
 Dense Optical Flow algorithm interface.
@@ -61,6 +60,6 @@ interface DenseOpticalFlow
         Calculated flow field.
     */
     @nogc nothrow
-    DenseFlow evaluate(Image f1, Image f2, DenseFlow prealloc = emptyRCSlice!(3, float),
+    DenseFlow evaluate(Slice!(float*, 2, Contiguous) f1, Slice!(float*, 2, Contiguous) f2, DenseFlow prealloc = emptyRCSlice!(3, float),
             bool usePrevious = false);
 }

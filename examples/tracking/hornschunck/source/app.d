@@ -83,13 +83,15 @@ void main(string[] args)
         nextPath = args.length >= 3 ? args[2] : "../../data/optflow/Army/frame11.png";
     }
 
-    auto current = imread(currentPath, rparams);
-    auto next = imread(nextPath, rparams);
-
+    auto _current = imread(currentPath, rparams);
+    auto _next = imread(nextPath, rparams);
+    
     scope(exit){
-        destroyFree(current);
-        destroyFree(next);
+        destroyFree(_current);
+        destroyFree(_next);
     }
+    auto current = _current.sliced2D.as!float.rcslice;
+    auto next = _next.sliced2D.as!float.rcslice;
 
     // Setup algorithm parameters.
     HornSchunckProperties props = HornSchunckProperties();
@@ -102,18 +104,24 @@ void main(string[] args)
 
     HornSchunckFlow hsFlow = mallocNew!HornSchunckFlow(props);
     DensePyramidFlow densePyramid = mallocNew!DensePyramidFlow(hsFlow, pyramidLevels);
-
+    
     scope(exit){
         destroyFree(hsFlow);
         destroyFree(densePyramid);
     }
-    auto flow = densePyramid.evaluate(current, next);
+    auto flow = densePyramid.evaluate(current.lightScope, next.lightScope);
 
-    auto flowColor = flow.lightScope.colorCode;
-    auto flowWarp = warp(current.sliced, flow.lightScope);
+    auto flowColor = colorCode(flow.lightScope);
+    auto flowWarp = warp(current.lightScope, flow.lightScope);
 
-    current.imwrite("./result/1_current.png");
+    current.as!ubyte.rcslice.imwrite(ImageFormat.IF_MONO,"./result/1_current.png");
     flowColor.imwrite(ImageFormat.IF_RGB, "./result/2_flowColor.png");
-    flowWarp.imwrite(ImageFormat.IF_MONO, "./result/3_flowWarp.png");
-    next.imwrite("./result/4_next.png");
+    flowWarp.as!ubyte.rcslice.imwrite(ImageFormat.IF_MONO, "./result/3_flowWarp.png");
+    next.as!ubyte.rcslice.imwrite(ImageFormat.IF_MONO, "./result/4_next.png");
+
+    imshow(flowColor, "flowColor");
+
+    waitKey();
+
+    destroyFigures();
 }

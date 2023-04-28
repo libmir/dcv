@@ -21,7 +21,7 @@ $(DL Module contains:
 module dcv.imgproc.imgmanip;
 
 import mir.exception;
-import std.parallelism : TaskPool, taskPool, parallel;
+
 import std.range.primitives : ElementType;
 import std.traits;
 import mir.rc;
@@ -56,7 +56,6 @@ Params:
     newsize = tuple that defines new shape. New dimension has to be
     the same as input slice in the 1D and 2D resize, where in the 
     3D resize newsize has to be 2D.
-    pool = Optional TaskPool instance used to parallelize computation.
 
 TODO: consider size input as array, and add prealloc
 */
@@ -64,23 +63,21 @@ Slice!(RCI!V, N, SliceKind.contiguous) resize(alias interp = linear, SliceKind k
     //if (packs.length == 1)
     //if (isInterpolationFunc!interp)
 {
-    ThreadPool pool = mallocNew!ThreadPool;
-    scope(exit) destroyFree(pool);
 
     static if (N == 1LU)
     {
         static assert(SN == 1, "Invalid new-size setup - dimension does not match with input slice.");
-        return resizeImpl_1!interp(slice, newsize[0], pool);
+        return resizeImpl_1!interp(slice, newsize[0]);
     }
     else static if (N == 2LU)
     {
         static assert(SN == 2, "Invalid new-size setup - dimension does not match with input slice.");
-        return resizeImpl_2!interp(slice, newsize[0], newsize[1], pool);
+        return resizeImpl_2!interp(slice, newsize[0], newsize[1]);
     }
     else static if (N == 3LU)
     {
         static assert(SN == 2, "Invalid new-size setup - 3D resize is performed as 2D."); // TODO: find better way to say this...
-        return resizeImpl_3!interp(slice, newsize[0], newsize[1], pool);
+        return resizeImpl_3!interp(slice, newsize[0], newsize[1]);
     }
     else
     {
@@ -121,9 +118,6 @@ Slice!(RCI!V, N, kind) scale(alias interp = linear, V, ScaleValue, SliceKind kin
 {
     debug import std.exception : std_enforce = enforce;
 
-    auto pool = mallocNew!ThreadPool;
-    scope(exit) destroyFree(pool);
-
     foreach (v; scale)
         assert(v > 0., "Invalid scale values (v > 0.0)");
 
@@ -132,21 +126,21 @@ Slice!(RCI!V, N, kind) scale(alias interp = linear, V, ScaleValue, SliceKind kin
         static assert(SN == 1, "Invalid scale setup - dimension does not match with input slice.");
         size_t newsize = cast(size_t)(slice.length * scale[0]);
         debug std_enforce(newsize > 0, "Scaling value invalid - after scaling array size is zero.");
-        return resizeImpl_1!interp(slice, newsize, pool);
+        return resizeImpl_1!interp(slice, newsize);
     }
     else static if (N == 2LU)
     {
         static assert(SN == 2, "Invalid scale setup - dimension does not match with input slice.");
         size_t[2] newsize = [cast(size_t)(slice.length!0 * scale[0]), cast(size_t)(slice.length!1 * scale[1])];
         debug std_enforce(newsize[0] > 0 && newsize[1] > 0, "Scaling value invalid - after scaling array size is zero.");
-        return resizeImpl_2!interp(slice, newsize[0], newsize[1], pool);
+        return resizeImpl_2!interp(slice, newsize[0], newsize[1]);
     }
     else static if (N == 3LU)
     {
         static assert(SN == 2, "Invalid scale setup - 3D scale is performed as 2D."); // TODO: find better way to say this...
         size_t[2] newsize = [cast(size_t)(slice.length!0 * scale[0]), cast(size_t)(slice.length!1 * scale[1])];
         debug std_enforce(newsize[0] > 0 && newsize[1] > 0, "Scaling value invalid - after scaling array size is zero.");
-        return resizeImpl_3!interp(slice, newsize[0], newsize[1], pool);
+        return resizeImpl_3!interp(slice, newsize[0], newsize[1]);
     }
     else
     {
@@ -516,7 +510,7 @@ private:
 @nogc nothrow:
 
 // 1d resize implementation
-Slice!(RCI!V, 1LU, SliceKind.contiguous) resizeImpl_1(alias interp, V)(Slice!(V*, 1LU, SliceKind.contiguous) slice, size_t newsize, ThreadPool pool)
+Slice!(RCI!V, 1LU, SliceKind.contiguous) resizeImpl_1(alias interp, V)(Slice!(V*, 1LU, SliceKind.contiguous) slice, size_t newsize)
 {
 
     assert(!slice.empty && newsize > 0);
@@ -535,13 +529,12 @@ Slice!(RCI!V, 1LU, SliceKind.contiguous) resizeImpl_1(alias interp, V)(Slice!(V*
 }
 
 // 1d resize implementation
-Slice!(RCI!V, 2LU, SliceKind.contiguous) resizeImpl_2(alias interp, SliceKind kind, V)(Slice!(V*, 2LU, kind) slice, size_t height, size_t width, ThreadPool pool)
+Slice!(RCI!V, 2LU, SliceKind.contiguous) resizeImpl_2(alias interp, SliceKind kind, V)(Slice!(V*, 2LU, kind) slice, size_t height, size_t width)
 {
 
     assert(!slice.empty && width > 0 && height > 0);
 
-    int err;
-    auto retval = RCArray!V(width * height).moveToSlice.reshape([height, width], err);
+    auto retval = uninitRCslice!V(height, width);
 
     auto rows = slice.length!0;
     auto cols = slice.length!1;
@@ -564,7 +557,7 @@ Slice!(RCI!V, 2LU, SliceKind.contiguous) resizeImpl_2(alias interp, SliceKind ki
 }
 
 // 1d resize implementation
-Slice!(RCI!V, 3LU, SliceKind.contiguous) resizeImpl_3(alias interp, SliceKind kind, V)(Slice!(V*, 3LU, kind) slice, size_t height, size_t width, ThreadPool pool)
+Slice!(RCI!V, 3LU, SliceKind.contiguous) resizeImpl_3(alias interp, SliceKind kind, V)(Slice!(V*, 3LU, kind) slice, size_t height, size_t width)
 {
 
     assert(!slice.empty && width > 0 && height > 0);
@@ -573,8 +566,7 @@ Slice!(RCI!V, 3LU, SliceKind.contiguous) resizeImpl_3(alias interp, SliceKind ki
     auto cols = slice.length!1;
     auto channels = slice.length!2;
 
-    int err;
-    auto retval = RCArray!V(width * height * channels).moveToSlice.reshape([height, width, channels], err);
+    auto retval = uninitRCslice!V(height, width, channels);
 
     auto r_v = cast(float)(height - 1) / cast(float)(rows - 1); // horizontaresize ratio
     auto r_h = cast(float)(width - 1) / cast(float)(cols - 1);

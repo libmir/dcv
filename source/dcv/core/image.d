@@ -157,7 +157,7 @@ public:
         assert(depth != BitDepth.BD_UNASSIGNED && format != ImageFormat.IF_UNASSIGNED);
         if (data !is null)
         {
-            assert(data.length == width * height * imageFormatChannelCount[cast(size_t)format] * (cast(size_t)depth / 8));
+            //assert(data.length == width * height * imageFormatChannelCount[cast(size_t)format] * (cast(size_t)depth / 8));
         }
     }
     do
@@ -277,21 +277,16 @@ public:
     }
     */
 
-    auto sliced()
+    Slice!(ubyte*, 3) sliced()
     {
+        assert(channels > 1);
         return data.sliced(height, width, channels);
     }
 
-    auto rcsliced() inout
+    Slice!(ubyte*, 2) sliced2D()
     {
-        import mir.ndslice.allocation : rcslice;
-        import mir.rc;
-
-        import core.lifetime: move;
-
-        Slice!(RCI!ubyte, 3LU, Contiguous) ret = uninitRCslice!ubyte(height, width, channels);
-        ret[] = data;
-        return ret.move;
+        assert(channels == 1);
+        return data.sliced(height, width);
     }
 }
 
@@ -347,14 +342,10 @@ Image asImage(Iterator, size_t N, SliceKind kind)(Slice!(Iterator, N, kind) slic
     }
 
     auto ret = mallocNew!Image(slice.shape[1], slice.shape[0], format, depth);
-    //static if(is(T==ubyte)){
-    //    ret.data[] = slice[];
-    //}else{
-        foreach (i; 0..slice.elementCount) {
-            T ta = slice.accessFlat(i);
-            ret.data[i..i+T.sizeof] = (cast(ubyte*)&slice.accessFlat(i))[0..T.sizeof];
-        }
-    //}
+
+    foreach (i; 0..slice.elementCount) {
+        ret.data[i..i+T.sizeof] = (cast(ubyte*)&slice.accessFlat(i))[0..T.sizeof];
+    }
     
     return ret;
 }

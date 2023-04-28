@@ -31,6 +31,7 @@ import dcv.tracking.opticalflow.base;
 
 import mir.ndslice.allocation;
 import mir.ndslice.topology: as, flattened, iota, reshape;
+import mir.ndslice : Contiguous;
 import mir.rc;
 import mir.exception;
 
@@ -58,11 +59,11 @@ class SparsePyramidFlow : SparseOpticalFlow
         levelCount = levels;
     }
 
-    override Slice!(RCI!(float[2]), 1) evaluate(Image f1, Image f2, float[2][] points,
+    override Slice!(RCI!(float[2]), 1) evaluate(Slice!(float*, 2, Contiguous) f1, Slice!(float*, 2, Contiguous) f2, float[2][] points,
             float[2][] searchRegions, Slice!(RCI!(float[2]), 1) flow = emptyRCSlice!(1, float[2]), bool usePrevious = false)
     in
     {
-        assert(!f1.empty && !f2.empty && f1.size == f2.size && f1.channels == 1 && f1.depth == f2.depth);
+        assert(!f1.empty && !f2.empty && f1.shape == f2.shape && f1.N == 2);
         assert(points.length == searchRegions.length);
         if (usePrevious)
         {
@@ -74,7 +75,7 @@ class SparsePyramidFlow : SparseOpticalFlow
     {
         import mir.ndslice.slice: sliced;
 
-        size_t[2] size = [f1.height, f1.width];
+        size_t[2] size = [f1.shape[0], f1.shape[1]];
         const auto pointCount = points.length;
 
         // pyramid flow array - each item is double sized flow from the next
@@ -93,8 +94,8 @@ class SparsePyramidFlow : SparseOpticalFlow
             flowPyramid[i] = size;
         }
 
-        float[2] flowScale = [cast(float)f1.height / cast(float)flowPyramid[0][0],
-            cast(float)f1.width / cast(float)flowPyramid[0][1]];
+        float[2] flowScale = [cast(float)f1.shape[0] / cast(float)flowPyramid[0][0],
+            cast(float)f1.shape[1] / cast(float)flowPyramid[0][1]];
 
         float[2][] lpoints = mallocSlice!(float[2])(points.length); lpoints[] = points[]; // dup here
         scope(exit) freeSlice(lpoints);
@@ -116,28 +117,12 @@ class SparsePyramidFlow : SparseOpticalFlow
             flow[] = [0.0f, 0.0f].staticArray;
         }
 
-        auto h = f1.height;
-        auto w = f1.width;
+        auto h = f1.shape[0];
+        auto w = f1.shape[1];
 
-        Slice!(RCI!float, 2LU, SliceKind.contiguous) current, next, f1s, f2s;
-        switch (f1.depth) 
-        {
-            case BitDepth.BD_32:
-                f1s = f1.sliced.as!float.flattened.sliced(f1.height, f1.width).rcslice;
-                f2s = f2.sliced.as!float.flattened.sliced(f2.height, f2.width).rcslice;
-                break;
-            case BitDepth.BD_16:
-                f1s = f1.sliced.as!ushort.flattened.sliced(f1.height, f1.width).as!float.rcslice;
-                f2s = f2.sliced.as!ushort.flattened.sliced(f2.height, f2.width).as!float.rcslice;
-                break;
-            default:
-                f1s = f1.sliced.as!ubyte.flattened.sliced(f1.height, f1.width).as!float.rcslice;
-                f2s = f2.sliced.as!ubyte.flattened.sliced(f2.height, f2.width).as!float.rcslice;
-        }
+        Slice!(RCI!float, 2LU, Contiguous) current, next;
 
         // calculate pyramid flow
-        auto f1s_ls = f1s.lightScope;
-        auto f2s_ls = f1s.lightScope;
 
         foreach (i; 0 .. levelCount)
         {
@@ -147,22 +132,16 @@ class SparsePyramidFlow : SparseOpticalFlow
 
             if (lh != h || lw != w)
             {
-                current = f1s_ls.resize([lh, lw]);
-                next = f2s_ls.resize([lh, lw]);
+                current = f1.resize([lh, lw]);
+                next = f2.resize([lh, lw]);
             }
             else
             {
-                current = f1s;
-                next = f2s;
+                current = f1.rcslice;
+                next = f2.rcslice;
             }
 
-            auto n_im = next.asImage(f2.format);
-            scope(exit) destroyFree(n_im);
-
-            auto inim = current.asImage(f1.format);
-            scope(exit) destroyFree(inim);
-
-            flowAlgorithm.evaluate(inim, n_im, lpoints,
+            flowAlgorithm.evaluate(current.lightScope, next.lightScope, lpoints,
                     lsearchRegions, flow, true);
 
             if (i < levelCount - 1)
@@ -201,22 +180,22 @@ class DensePyramidFlow : DenseOpticalFlow
         levelCount = levels;
     }
 
-    override DenseFlow evaluate(Image f1, Image f2, DenseFlow prealloc = emptyRCSlice!(3,
+    override DenseFlow evaluate(Slice!(float*, 2, Contiguous) f1, Slice!(float*, 2, Contiguous) f2, DenseFlow prealloc = emptyRCSlice!(3,
             float), bool usePrevious = false)
     in
     {
         assert(prealloc.length!2 == 2);
-        assert(!f1.empty && f1.size == f2.size && f1.depth == f2.depth && f1.depth == BitDepth.BD_8);
+        assert(!f1.empty && f1.shape == f2.shape);
         if (usePrevious)
         {
-            assert(prealloc.length!0 == f1.height && prealloc.length!1 == f1.width);
+            assert(prealloc.length!0 == f1.shape[0] && prealloc.length!1 == f1.shape[1]);
         }
     }
     do
     {
         import mir.ndslice.slice: sliced;
         
-        size_t[2] size = [f1.height, f1.width];
+        size_t[2] size = f1.shape;
         uint level = 0;
 
         // pyramid flow array - each item is double sized flow from the next
@@ -244,38 +223,21 @@ class DensePyramidFlow : DenseOpticalFlow
         }
         else
         {
-            int err;
-            flow = RCArray!float(flowPyramid[0][0] * flowPyramid[0][1] * 2)
-                .moveToSlice.reshape([flowPyramid[0][0], flowPyramid[0][1], 2], err);
-            flow[] = 0.0f;
+            flow = rcslice!float([flowPyramid[0][0], flowPyramid[0][1], 2], 0f);
         }
 
-        auto h = f1.height;
-        auto w = f1.width;
+        auto h = f1.shape[0];
+        auto w = f1.shape[1];
 
-        Slice!(RCI!float, 2LU, SliceKind.contiguous) current, next, corig, norig;
-        switch (f1.depth) 
-        {
-            case BitDepth.BD_32:
-                corig = f1.sliced.as!float.flattened.sliced(f1.height, f1.width).rcslice;
-                norig = f2.sliced.as!float.flattened.sliced(f2.height, f2.width).rcslice;
-                break;
-            case BitDepth.BD_16:
-                corig = f1.sliced.as!ushort.flattened.sliced(f1.height, f1.width).as!float.rcslice;
-                norig = f2.sliced.as!ushort.flattened.sliced(f2.height, f2.width).as!float.rcslice;
-                break;
-            default:
-                corig = f1.sliced.flattened.sliced(f1.height, f1.width).as!float.rcslice;
-                norig = f2.sliced.flattened.sliced(f2.height, f2.width).as!float.rcslice;
-        }
+        Slice!(RCI!float, 2LU, Contiguous) current, next;
 
         // first flow used as indicator to skip the first warp.
         bool firstFlow = usePrevious;
 
         // calculate pyramid flow
-        auto corig_ls = corig.lightScope;
-        auto norig_ls = norig.lightScope;
-        auto flow_ls = flow.lightScope;
+
+        // we cannot use lightScope of current and next before the loop because 
+        // refs of current and next changes with assignments like current = f1.rcslice;
 
         foreach (i; 0 .. levelCount)
         {
@@ -284,13 +246,13 @@ class DensePyramidFlow : DenseOpticalFlow
 
             if (lh != h || lw != w)
             {
-                current = corig_ls.resize([lh, lw]);
-                next = norig_ls.resize([lh, lw]);
+                current = f1.resize([lh, lw]);
+                next = f2.resize([lh, lw]);
             }
             else
             {
-                current = corig;
-                next = norig;
+                current = f1.rcslice;
+                next = f2.rcslice;
             }
 
             if (!firstFlow)
@@ -301,21 +263,15 @@ class DensePyramidFlow : DenseOpticalFlow
                 current = warp(current, flow);
             }
 
-            auto curim = current.asImage(f1.format);
-            scope(exit) destroyFree(curim);
-
-            auto nextim = next.asImage(f2.format);
-            scope(exit) destroyFree(nextim);
-
             // evaluate the flow algorithm
-            auto lflow = flowAlgorithm.evaluate(curim, nextim);
+            auto lflow = flowAlgorithm.evaluate(current.lightScope, next.lightScope);
 
             // add flow calculated in this iteration to previous one.
             flow[] += lflow;
 
             if (i < levelCount - 1)
             {
-                flow = flow_ls.resize(flowPyramid[i + 1]);
+                flow = flow.lightScope.resize(flowPyramid[i + 1]);
                 flow[] *= 2.0f;
             }
             // assign the first flow indicator to false.

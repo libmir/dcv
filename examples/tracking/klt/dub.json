@@ -5,7 +5,6 @@
     "authors": ["relja"],
     "dependencies": {
         "dcv:core": {"path": "../../../"},
-        "dcv:videoio": {"path": "../../../"},
         "dcv:imageio": {"path": "../../../"},
         "dcv:plot": {"path": "../../../"}
     }
