@@ -79,6 +79,20 @@ package(dcv) @nogc pure nothrow
     }
 }
 
+import dplug.core;
+
+static ThreadPool pool;
+
+static this() @nogc nothrow {
+    if(pool is null)
+        pool = mallocNew!ThreadPool;
+}
+
+static ~this() @nogc nothrow {
+    if(pool !is null)
+        destroyFree(pool);
+}
+
 /**
 Clip value by it's value range.
 Params:

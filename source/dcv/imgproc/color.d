@@ -229,7 +229,7 @@ do
     assert(input.strides == prealloc.strides,
             "Input image and pre-allocated buffer strides are not identical.");
 
-    auto pack = zip!true(input.staticPack!3, prealloc.lightScope.staticPack!3);
+    auto pack = zip!true(input.flattened.blocks(3), prealloc.flattened.blocks(3));
     pack.each!(rgb2hsvImpl!(DeepElementType!(typeof(pack))));
 
     return prealloc;
@@ -298,7 +298,7 @@ do
     assert(input.strides == prealloc.strides,
             "Input image and pre-allocated buffer strides are not identical.");
 
-    auto pack = zip!true(input.staticPack!3, prealloc.lightScope.staticPack!3);
+    auto pack = zip!true(input.flattened.blocks(3), prealloc.flattened.blocks(3));
     pack.each!(hsv2rgbImpl!(DeepElementType!(typeof(pack))));
 
     return prealloc;

@@ -6,15 +6,15 @@ module dcv.example.opticalflow;
 
 import std.stdio;
 import std.conv : to;
-import std.algorithm : copy, map, each;
+import std.algorithm : copy, map, each, min;
 import std.range : lockstep, repeat;
 import std.array : staticArray;
 import mir.ndslice;
+import mir.rc;
 import mir.appender;
 
 import dcv.core;
 import dcv.imageio;
-import dcv.videoio;
 import dcv.imgproc.filter : filterNonMaximum;
 import dcv.imgproc.color : gray2rgb;
 import dcv.features.corner.harris : shiTomasiCorners;
@@ -50,13 +50,15 @@ Example:
 enum H = 240;
 enum W = 320;
 
+// @nogc nothrow: // only pipeProcess allocates with GC
+
 int main(string[] args)
 {
     auto pipes = pipeProcess(["ffmpeg", "-i", "../../data/centaur_1.mpg", "-f", "image2pipe",
         "-vcodec", "rawvideo", "-pix_fmt", "rgb24", "-"],
         Redirect.stdout);
 
-    Image prevFrame, thisFrame; // image frames, for tracking
+    Slice!(RCI!float, 2) prevFrame, thisFrame; // image frames, for tracking
 
     auto cornerW = 15.0f; // size of the tracking kernel
     auto cornerCount = 20; // numer of corners tracked
@@ -85,14 +87,12 @@ int main(string[] args)
 
     // read first frame and use it to detect initial corners for tracking
     const ubyte[] _dt = pipes.stdout.rawRead(buffSlice.ptr[0..H*W*3]);
-    prevFrame = buffSlice.asImage(ImageFormat.IF_RGB);
-    
-    // take the r channel and form an image
-    auto _prevFrame = prevFrame.sliced[0 .. $, 0 .. $, 0].asImage(ImageFormat.IF_MONO);
-    destroyFree(prevFrame); prevFrame = null;
 
-    auto h = _prevFrame.height;
-    auto w = _prevFrame.width;
+    // take the r channel and form an image
+    prevFrame = buffSlice[0..$, 0..$, 0].as!float.rcslice;
+
+    auto h = prevFrame.shape[0];
+    auto w = prevFrame.shape[1];
     auto frame = 0; // frame counter
 
     while (1)
@@ -100,27 +100,25 @@ int main(string[] args)
         auto thisSlice = uninitRCslice!ubyte(h, w, 3);
         const ubyte[] dt = pipes.stdout.rawRead(thisSlice.ptr[0..h*w*3]);
         
-        writeln("Tracking frame no. " ~ frame.to!string ~ "...");
+        printf("Tracking frame no. %d...\n", frame);
 
         // take the y channel, and form an image of it.
-        thisFrame = thisSlice[0 .. $, 0 .. $, 0].asImage(ImageFormat.IF_MONO);
+        thisFrame = thisSlice[0 .. $, 0 .. $, 0].as!float.rcslice;
 
         // if corner count has dropped below 50% of original count, try to detect new points.
         if (corners.length < (cornerCount / 2))
         {
-            writeln("Search features again...");
-            int err;
-            auto c = shiTomasiCorners(_prevFrame.sliced.reshape([h, w], err).as!float.rcslice.lightScope, cast(uint)cornerW)
-                .filterNonMaximum.lightScope.extractCorners(cornerCount);
+            printf("Search features again...\n");
             
-            assert(err == 0);
+            auto c = shiTomasiCorners(prevFrame.lightScope, cast(uint)cornerW)
+                .filterNonMaximum.lightScope.extractCorners(cornerCount);
 
             foreach (v; c)
                 corners.put([cast(float)v[0], cast(float)v[1]].staticArray);
         }
 
         // evaluate the optical flow
-        auto flow = spFlow.evaluate(_prevFrame, thisFrame, corners.data, reg);
+        auto flow = spFlow.evaluate(prevFrame.lightScope, thisFrame.lightScope, corners.data, reg);
         
         // discard faulty tracked corners
         float[2][] fback = mallocSlice!(float[2])(corners.length);
@@ -137,21 +135,28 @@ int main(string[] args)
             }
             else
             {
-                writeln("Removing corner no. ", id, " with score: ", e);
+                printf("Removing corner no. %zu with score: %f\n", id, e);
             }
         }
         
         // Displace previous corner coordinates with newly estimated flow vectors
-        foreach (ref c, f; lockstep(corners.data, flow))
+        // nogc lockStep workaround
+        auto A = corners.data.sliced;
+        alias B = flow;
+
+        alias ItZ = ZipIterator!(typeof(A._iterator), typeof(B._iterator));
+        auto zipp = ItZ(A._iterator, B._iterator);
+        auto mlen = min(A.length, B.length);
+        
+        foreach(_; 0..mlen)
         {
-            c[0] = c[0] + f[1];
-            c[1] = c[1] + f[0];
+            (*zipp).a[0] = (*zipp).a[0] + (*zipp).b[1];
+            (*zipp).a[1] = (*zipp).a[1] + (*zipp).b[0];
+            ++zipp;
         }
 
         // draw tracked corners and write the image
-        int err;
-        auto f2c = thisFrame.sliced.reshape([h, w], err).gray2rgb;
-        assert(err == 0);
+        auto f2c = thisFrame.lightScope.gray2rgb;
 
         // plot tracked points on screen.
         figureKLT.draw(f2c, ImageFormat.IF_RGB);
@@ -165,8 +170,7 @@ int main(string[] args)
             break;
 
         // take this frame as next one's previous
-        destroyFree(_prevFrame);
-        _prevFrame = thisFrame;
+        prevFrame = thisFrame;
 
         if (!figureKLT.visible)
             break;

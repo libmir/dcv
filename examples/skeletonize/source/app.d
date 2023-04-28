@@ -18,11 +18,9 @@ void main() @nogc nothrow
 
     auto skel = skeletonize2D(gray);
 
-    auto to_write = skel.asImage(ImageFormat.IF_MONO);
-    scope(exit) destroyFree(to_write);
-
-    imwrite(to_write, "result/skel.png");
-
+    imwrite("result/skel.png", skel.shape[1], skel.shape[0], ImageFormat.IF_MONO, BitDepth.BD_8,
+                skel.rcslice.ptr[0..skel.elementCount]);
+    
     auto points = skel.endsAndjunctions;
     auto junctions = junctions(points, skel);
 

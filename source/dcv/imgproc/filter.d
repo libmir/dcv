@@ -62,18 +62,6 @@ import dcv.core.utils;
 
 @nogc nothrow:
 
-private static ThreadPool pool;
-
-static this(){
-    if(pool is null)
-        pool = mallocNew!ThreadPool;
-}
-
-static ~this(){
-    if(pool !is null)
-        destroyFree(pool);
-}
-
 /**
 Box kernel creation.
 

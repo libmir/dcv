@@ -9,7 +9,6 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 */
 module dcv.features.corner.harris;
 
-import std.parallelism : parallel, taskPool, TaskPool;
 import std.experimental.allocator.gc_allocator;
 
 import mir.math.common : fastmath;
@@ -19,12 +18,13 @@ import mir.rc;
 import mir.algorithm.iteration : each;
 import mir.ndslice.allocation;
 
-import dcv.core.utils : emptyRCSlice;
+import dcv.core.utils : emptyRCSlice, pool;
 import dcv.imgproc.filter : calcPartialDerivatives;
 
 import dplug.core;
 
 @nogc nothrow:
+
 /**
 Calculate per-pixel corner impuls response using Harris corner detector.
 
@@ -34,7 +34,6 @@ Params:
     k           = Sensitivity parameter defined in the algorithm.
     gauss       = Gauss sigma value used as window weighting parameter.
     prealloc    = Optional pre-allocated buffer for return response image.
-    pool        = TaskPool instance used parallelise the algorithm.
 
 Returns:
     Response matrix the same size of the input image, where each pixel represents
@@ -58,8 +57,6 @@ in
 }
 do
 {
-    ThreadPool pool = mallocNew!ThreadPool;
-    scope(exit) destroyFree(pool);
 
     if (prealloc.shape != image.shape)
     {
@@ -67,7 +64,7 @@ do
     }
     HarrisDetector detector;
     detector.k = k;
-    return calcCorners(image, winSize, gauss, prealloc, detector, pool);
+    return calcCorners(image, winSize, gauss, prealloc, detector);
 }
 
 /**
@@ -78,7 +75,6 @@ Params:
     winSize     = Window (square) size used in corner detection.
     gauss       = Gauss sigma value used as window weighting parameter.
     prealloc    = Optional pre-allocated buffer for return response image.
-    pool        = TaskPool instance used parallelise the algorithm.
 
 Returns:
     Response matrix the same size of the input image, where each pixel represents
@@ -100,16 +96,13 @@ in
 }
 do
 {
-    ThreadPool pool = mallocNew!ThreadPool;
-    scope(exit) destroyFree(pool);
-
     if (prealloc.empty)
     {
         prealloc = uninitRCslice!T(image.shape); //uninitializedSlice!T(image.shape);
     }
 
     ShiTomasiDetector detector;
-    return calcCorners(image, winSize, gauss, prealloc, detector, pool);
+    return calcCorners(image, winSize, gauss, prealloc, detector);
 }
 
 unittest
@@ -209,7 +202,7 @@ struct ShiTomasiDetector
 
 Slice!(RCI!OutputType, 2LU, SliceKind.contiguous) calcCorners(Detector, InputType, SliceKind inputKind, OutputType)
     (Slice!(InputType*, 2LU, inputKind) image, uint winSize, float gaussSigma,
-    Slice!(RCI!OutputType, 2LU, SliceKind.contiguous) prealloc, Detector detector, ThreadPool pool)
+    Slice!(RCI!OutputType, 2LU, SliceKind.contiguous) prealloc, Detector detector)
 {
     import mir.ndslice.topology : zip, iota;
 
@@ -218,14 +211,13 @@ Slice!(RCI!OutputType, 2LU, SliceKind.contiguous) calcCorners(Detector, InputTyp
     Slice!(RCI!InputType, 2, SliceKind.contiguous) fx, fy;
     calcPartialDerivatives(image, fx, fy);
 
-    auto windowPack = zip(prealloc, fx, fy).windows(winSize, winSize);
+    auto windowPack = zip(prealloc, fx.lightScope, fy.lightScope).windows(winSize, winSize);
 
-    auto iterable = windowPack;
     void worker(int i, int threadIndex) nothrow @nogc {
-        auto windowRow = iterable[i];
+        auto windowRow = windowPack[i];
         windowRow.each!(win => calcCornersImpl(win, detector));
     }
-    pool.parallelFor(cast(int)iterable.length, &worker);
+    pool.parallelFor(cast(int)windowPack.length, &worker);
 
     return prealloc;
 }
