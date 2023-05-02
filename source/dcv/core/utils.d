@@ -100,7 +100,7 @@ Params:
 Returns:
     Clipped value of the output type.
 */
-static pure nothrow @safe T clip(T, V)(V v) if (isNumeric!V && isNumeric!T)
+static pure @nogc nothrow @safe T clip(T, V)(V v) if (isNumeric!V && isNumeric!T)
 {
     import std.traits : isFloatingPoint;
 
@@ -155,19 +155,16 @@ static if (__VERSION__ >= 2071)
      * For input of n Slice!(T*, N, Contiguous) objects, outputs Slice!(T*, N+1, kind) object, where 
      * last dimension size is n.
      */
-    pure auto merge(Slices...)(Slices slices)
+    pure @nogc nothrow auto merge(Slices...)(Slices slices) 
             if (Slices.length > 0 && isSlice!(Slices[0]) && allSameType!Slices)
     {
-        import std.algorithm.iteration : map;
-        import std.array : uninitializedArray;
-
         alias ElementRange = typeof(slices[0].flattened);
         alias T = typeof(slices[0].flattened.front);
 
         immutable D = slices[0].shape.length;
         const auto length = slices[0].elementCount;
 
-        auto data = makeUninitSlice!(T)(GCAllocator.instance, length * slices.length);
+        auto data = uninitRCslice!T(length * slices.length);
         
         ElementRange[slices.length] elRange;
 
@@ -310,6 +307,8 @@ import core.stdc.stdlib;
 public import std.container.util;
 
 debug int nm, nf;
+
+@nogc nothrow:
 
 T* mmalloc(T)(size_t sz){
     debug ++nm;
@@ -765,6 +764,7 @@ auto bcImpl(alias bcfunc, SliceKind kind, Iterator, size_t N)(Slice!(Iterator, N
     }
 }
 
+pragma(inline, true)
 int _neumann(int x, int nx)
 {
     if (x < 0)
@@ -779,6 +779,7 @@ int _neumann(int x, int nx)
     return x;
 }
 
+pragma(inline, true)
 int _periodic(int x, int nx)
 {
     if (x < 0)
@@ -796,6 +797,7 @@ int _periodic(int x, int nx)
     return x;
 }
 
+pragma(inline, true)
 int _symmetric(int x, int nx)
 {
     if (x < 0)
