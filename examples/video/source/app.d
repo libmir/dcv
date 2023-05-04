@@ -80,8 +80,9 @@ void main(string[] args)
         if (frame.format == ImageFormat.IF_YUV){
             auto toShow = frame.sliced.yuv2rgb!ubyte;
             fig.draw(toShow, ImageFormat.IF_RGB);
-        }else
+        }else{
             fig.draw(frame);
+        }
 
         destroyFree(frame);
         frame = null;

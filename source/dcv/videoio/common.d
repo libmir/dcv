@@ -296,8 +296,13 @@ void adoptYUV(AVPixelFormat format, AVFrame* frame, ref ubyte[] data)
         adoptYUV444P(frame, data);
         break;
     default:
-        assert(0);
+        break;
     }
+}
+
+void adoptRGB24(AVFrame* frame, ubyte[] data)
+{
+    data[] = frame.data[0][0 .. frame.width * frame.height *3];
 }
 
 void adoptYUVGrouped(AVFrame* frame, ref ubyte[] data)
