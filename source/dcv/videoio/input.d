@@ -85,9 +85,18 @@ private:
     InputStreamType type = InputStreamType.INVALID;
     AVDictionary* options = null;
 public:
+    bool forceRGB = true;
+
     @nogc nothrow:
-    this()
+    /** 
+        If the constructor parameter forceRGB is set to true, 
+        the ffmpeg stream will be converted to RGB24 using the ffmpeg function sws_scale.
+        IF the frame is already coded in RGB24, there shall not be any conversion.
+    */
+    this(bool forceRGB = true)
     {
+        this.forceRGB = forceRGB;
+        
         AVStarter AV_STARTER_INSTANCE = AVStarter.instance();
     }
 
@@ -317,13 +326,13 @@ public:
     Read the next framw.
 
     params:
-    image = Image where next video frame will be stored.
+    image = Image where next video frame will be stored, image reference must be null.
     Allocates a new image using mallocNew. This must be freed after use with destroyFree.
     */
     bool readFrame(ref Image image)
     {
         if(image !is null){
-            try enforce!"Input instance of Image must be null!"(false);
+            try enforce!"Input reference of Image must be null!"(false);
             catch(Exception e) assert(false, e.msg);
         }
 
@@ -392,15 +401,83 @@ private:
                 {
                     stat = true;
 
-                    image = mallocNew!Image(width, height, AVPixelFormat_to_ImageFormat(pixelFormat), BitDepth.BD_8);
+                    if (forceRGB && pixelFormat != AVPixelFormat.AV_PIX_FMT_RGB24) {
+                        AVFrame* outputFrame = av_frame_alloc();
+                        scope(exit) av_frame_free(&outputFrame);
 
-                    adoptFormat(pixelFormat, frame, image.data);
+                        if (convertToRGB(frame, outputFrame)) {
+                            
+                            image = mallocNew!Image(width, height, ImageFormat.IF_RGB, BitDepth.BD_8);
+                            
+                            adoptRGB24(outputFrame, image.data);
+
+                            av_freep(&outputFrame.data[0]);                            
+                        } else {
+                            try enforce!"Error converting frame to RGB."(false);
+                            catch(Exception e) assert(false, e.msg);
+                        }
+                    } else {
+                        image = mallocNew!Image(width, height, AVPixelFormat_to_ImageFormat(pixelFormat), BitDepth.BD_8);
+                        adoptFormat(pixelFormat, frame, image.data);
+                    }
                     break;
                 }
             }
         }
         return stat;
     }
+
+    bool convertToRGB(AVFrame* inputFrame, AVFrame* outputFrame)
+    {
+        AVPixelFormat inputPixelFormat = cast(AVPixelFormat)inputFrame.format;
+        AVPixelFormat outputPixelFormat = AVPixelFormat.AV_PIX_FMT_RGB24;
+
+        // create SwsContext for conversion
+        SwsContext* swsCtx = sws_getContext(
+            inputFrame.width, inputFrame.height, inputPixelFormat,
+            inputFrame.width, inputFrame.height, outputPixelFormat,
+            SWS_BILINEAR, null, null, null
+        );
+
+        scope(exit){
+            sws_freeContext(swsCtx);
+        }
+
+        if (!swsCtx)
+        {
+            return false;
+        }
+
+        outputFrame.width = inputFrame.width;
+        outputFrame.height = inputFrame.height;
+        outputFrame.format = outputPixelFormat;
+
+        int[4] linesizes;
+        if(av_image_fill_linesizes(linesizes, outputPixelFormat, inputFrame.width) < 0){
+            try enforce!"Error in av_image_fill_linesizes."(false);
+            catch(Exception e) assert(false, e.msg);
+        }
+
+        // allocate output buffer for the frame
+        ubyte*[4] outputData;
+        int outputBufferSize = av_image_alloc(outputData, linesizes, inputFrame.width, 
+                                inputFrame.height, outputPixelFormat, 1);
+
+
+        // convert the input frame to RGB24 format
+        if(sws_scale(swsCtx, inputFrame.data.ptr, inputFrame.linesize.ptr, 0, inputFrame.height, 
+                                outputData.ptr, linesizes.ptr) < 0)
+        {
+            try enforce!"Error in sws_scale."(false);
+            catch(Exception e) assert(false, e.msg);
+        }
+        // Note that in the case of RGB24, the data for each pixel is stored in a single plane, 
+        // so you only need to access frame.data[0] to retrieve all the RGB values. 
+        outputFrame.data[0] = outputData[0];
+
+        return true;
+    }
+
 
     bool openInputStreamImpl(AVInputFormat* inputFormat, in string filepath)
     {
