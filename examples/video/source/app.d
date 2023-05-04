@@ -31,7 +31,7 @@ void main(string[] args)
 
     //////////// Open the video stream ////////////////
 
-    InputStream inStream = mallocNew!InputStream;
+    InputStream inStream = mallocNew!InputStream(false); // set forceRGB false to make RGB conversion using dcv
     scope(exit) destroyFree(inStream);
 
     string path; // path to the video
@@ -81,7 +81,7 @@ void main(string[] args)
             auto toShow = frame.sliced.yuv2rgb!ubyte;
             fig.draw(toShow, ImageFormat.IF_RGB);
         }else{
-            fig.draw(frame);
+            fig.draw(frame);// it never comes here since forceRGB is false
         }
 
         destroyFree(frame);
