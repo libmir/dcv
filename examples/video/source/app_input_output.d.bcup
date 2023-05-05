@@ -1,0 +1,185 @@
+module dcv.example.video;
+
+/** 
+ * Video streaming example using dcv library.
+ */
+
+import core.stdc.stdio;
+import core.stdc.stdlib;
+
+import std.datetime.stopwatch : StopWatch;
+
+import dcv.videoio;
+import dcv.imgproc.color;
+import dcv.core;
+import dcv.plot.figure;
+
+import mir.ndslice;
+
+// video -l "video=Lenovo EasyCamera"
+// video -f ../data/centaur_1.mpg
+
+@nogc nothrow:
+
+void main(string[] args)
+{
+    if (args.length < 2 || (args.length == 2 && args[1] == "-h"))
+    {
+        printHelp();
+        return;
+    }
+
+    //////////// Open the video stream ////////////////
+
+    InputStream inStream = mallocNew!InputStream(false); // set forceRGB false to make RGB conversion using dcv
+    scope(exit) destroyFree(inStream);
+
+    OutputStream outStream = mallocNew!OutputStream();
+    scope(exit) destroyFree(outStream);
+
+    string path; // path to the video
+    InputStreamType type; // type of the stream (file or live)
+
+    if (!parseArgs(args, path, type))
+    {
+        printf("Error occurred while parsing arguments.\n\n");
+        printHelp();
+        return;
+    }
+
+    inStream.setVideoSizeRequest(640, 480);
+    // Open the example video
+    inStream.open(path, type);
+
+    // Check if video has been opened correctly
+    if (!inStream.isOpen)
+    {
+        printf("Cannot open input video stream");
+        exit(-1);
+    }
+
+    //////////// Read video frames //////////////////
+
+    Image frame; // frame image buffer, where each next frame of the video is stored.
+
+    // read the frame rate, if info is available.
+    double fps = inStream.frameRate ? inStream.frameRate : 30.0;
+    // calculate frame wait time in miliseconds - if video is live, set to minimal value.
+    double waitFrame = (type == InputStreamType.LIVE) ? 1.0 : 1000.0 / fps;
+
+    StopWatch s;
+    s.start;
+
+    auto fig = imshow(rcslice!ubyte(480, 640, 3), path);
+
+    OutputDefinition props;
+
+    props.width = 704;
+    props.height = 576;
+    props.imageFormat = ImageFormat.IF_RGB;
+    props.bitRate = 90_000; // should be set according to fps and image size, otherwise this thing will crash
+    props.codecId = CodecID.H263;
+
+    outStream.open("output.mp4", props);
+
+    if (!outStream.isOpen)
+    {
+        printf("Cannot open output video stream");
+        exit(-1);
+    }
+    
+    // Read each next frame of the video in the loop.
+    while (inStream.readFrame(frame))
+    {
+        import std.algorithm.comparison : max;
+
+        s.reset;
+
+        // If video frame pixel format is YUV, convert the data to RGB, then show it on screen
+        if (frame.format == ImageFormat.IF_YUV){
+            auto toShow = frame.sliced.yuv2rgb!ubyte;
+            fig.draw(toShow, ImageFormat.IF_RGB);
+
+            import dcv.imgproc.imgmanip : resize;
+            outStream.writeSlice(toShow.lightScope.resize([props.height, props.width]), ImageFormat.IF_RGB);
+            
+        }else{
+            fig.draw(frame);// it never comes here since forceRGB is false
+        }
+
+        destroyFree(frame);
+        frame = null;
+        // Compensate fps wait for lost time on color conversion.
+        int wait = max(1, cast(int)waitFrame - cast(int)s.peek.total!"msecs");
+        
+        // If user presses escape key, stop the streaming.
+        if (waitKey(wait) == KEY_ESCAPE)
+            break;
+
+        /*
+        Ask if figure with given name is visible.
+
+        Normally, you can close the figure window by pressing the 'x' button.
+        That way, figure closes, and visible property will return false.
+        So, if user presses the 'x' button, normal behavior would be to break the 
+        streaming loop.
+        */
+        if (!fig.visible)
+            break;
+    }
+
+    outStream.close();
+    destroyFigures(); // destroy all figures allocated
+}
+
+void printHelp()
+{
+    printf(`
+DCV Video Streaming Example.
+
+Run example program without arguments, to load and show the example video file centaur_1.mpg.
+
+If multiple parameters are given, then parameters are considered to be:
+
+1 - video stream mode (-f for file, -l for webcam or live mode);
+2 - video stream name (for file mode it is the path to the file, for webcam it is the name of the stream, e.g. /dev/video0);
+
+Examples:
+./video -l /dev/video0
+./video -f ../data/centaur_1.mpg
+
+Tip:
+To run the example program in best performance, compile with one of the following configurations
+dub build --compiler=ldc2 --build=release
+dub build --compiler=dmd --build=release-nobounds
+`);
+}
+
+bool parseArgs(in string[] args, out string path, out InputStreamType type)
+{
+    if (args.length == 1)
+        return true;
+    else if (args.length != 3)
+        return false;
+
+    type = InputStreamType.FILE;
+
+    switch (args[1])
+    {
+    case "-file":
+    case "-f":
+        type = InputStreamType.FILE;
+        break;
+    case "-live":
+    case "-l":
+        type = InputStreamType.LIVE;
+        break;
+    default:
+        printf("Invalid input type argument: ", args[2].ptr);
+        exit(-1);
+    }
+
+    path = args[2];
+
+    return true;
+}
