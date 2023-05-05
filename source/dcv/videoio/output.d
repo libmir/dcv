@@ -274,17 +274,38 @@ public:
     }
 
     /// Write given image as new frame of the image.
-    bool writeFrame(Image image)
+    bool writeImage(Image image)
     {
+        if(image.format != ImageFormat.IF_MONO)
+        {
+            auto inputSlice = image.sliced;
+            return writeSlice(inputSlice, image.format);
+        }else{
+            auto inputSlice = image.sliced2D;
+            return writeSlice(inputSlice, image.format);
+        }
+    }
+
+    alias writeFrame = writeImage;
+
+    bool writeSlice(InputSlice)(InputSlice inputSlice, ImageFormat format)
+    in {
+        import mir.ndslice : isContiguousSlice;
+
+        static assert(isContiguousSlice!InputSlice, 
+            "Inpuut slice must be Contiguous. Lazy slices are not supported!\n
+            Please make your input slice Contiguous, such as input.rcslice.");
+    }
+    do{
         import ffmpeg.libavutil.mathematics;
 
-        try enforce!"Image format does not match the output configuration."(image.format == properties.imageFormat);
+        try enforce!"Format does not match the output configuration."(format == properties.imageFormat);
         catch(Exception e) assert(false, e.msg);
 
-        try enforce!"Image height does not match the output configuration."(image.height == properties.height);
+        try enforce!"Image height does not match the output configuration."(inputSlice.shape[0] == properties.height);
         catch(Exception e) assert(false, e.msg);
 
-        try enforce!"Image width does not match the output configuration."(image.width == properties.width);
+        try enforce!"Image width does not match the output configuration."(inputSlice.shape[1] == properties.width);
         catch(Exception e) assert(false, e.msg);
 
         AVPacket packet;
@@ -298,22 +319,23 @@ public:
             av_free_packet(&packet);
         }
 
-        ubyte*[] data;
-        int[] linesize;
+        ubyte*[4] data;
+        int[4] linesize;
 
-        extractDataFromImage(image, data, linesize);
-
+        extractDataFromImage(inputSlice, format, data, linesize);
+        
         scope(exit){
-            if(data.length > 1){
-                foreach (dt; data){
-                    free(cast(void*)dt);
-                }
-            }
-            freeSlice(data);
-            freeSlice(linesize);
+            if(format == ImageFormat.IF_YUV)
+                foreach (dt; data)
+                    if(dt)
+                        free(dt);
         }
 
-        sws_scale(swsContext, data.ptr, linesize.ptr, 0, cast(int)height, frame.data.ptr, frame.linesize.ptr);
+        if(sws_scale(swsContext, data.ptr, linesize.ptr, 0, cast(int)height, frame.data.ptr, frame.linesize.ptr) < 0)
+        {
+            try enforce!"Error in sws_scale."(false);
+            catch(Exception e) assert(false, e.msg);
+        }
 
         int gotPacket = 0;
 
@@ -448,22 +470,22 @@ CodecID AVCodecIDToCodecID(AVCodecID avcodecId)
     return c;
 }
 
-void extractDataFromImage(Image image, ref ubyte*[] data, ref int[] linesize)
+void extractDataFromImage(InputSlice)(InputSlice inputSlice, ImageFormat format, ref ubyte*[4] data, ref int[4] linesize)
 {
-    try enforce!"Image bit depth not supported so far."(image.depth == BitDepth.BD_8);
+    import mir.ndslice : DeepElementType;
+
+    try enforce!"Image bit depth not supported so far."(is(DeepElementType!InputSlice == ubyte));
         catch(Exception e) assert(false, e.msg);
 
-    auto pixelCount = image.width * image.height;
-    auto imdata = image.data;
-    auto w = cast(int)image.width;
-    auto h = cast(int)image.height;
+    auto pixelCount = inputSlice.shape[1] * inputSlice.shape[0];
+    
+    auto w = cast(int)inputSlice.shape[1];
+    auto h = cast(int)inputSlice.shape[0];
 
-    switch (image.format)
+    switch (format)
     {
     case ImageFormat.IF_MONO:
-        data = mallocSlice!(ubyte*)(1);
-        data[0] = image.data.ptr;
-        linesize = mallocSlice!(int)(1);
+        data[0] = inputSlice.ptr;
         linesize[0] = w;
         break;
     /+case ImageFormat.IF_MONO_ALPHA:
@@ -471,9 +493,7 @@ void extractDataFromImage(Image image, ref ubyte*[] data, ref int[] linesize)
         linesize = [w * 2];
         break;+/
     case ImageFormat.IF_RGB, ImageFormat.IF_BGR:
-        data = mallocSlice!(ubyte*)(1);
-        data[0] = image.data.ptr;
-        linesize = mallocSlice!(int)(1);
+        data[0] = inputSlice.ptr;
         linesize[0] = w * 3;
         break;
     /+case ImageFormat.IF_RGB_ALPHA, ImageFormat.IF_BGR_ALPHA:
@@ -481,19 +501,17 @@ void extractDataFromImage(Image image, ref ubyte*[] data, ref int[] linesize)
         linesize = [w * 4];
         break;+/
     case ImageFormat.IF_YUV:
-        data = mallocSlice!(ubyte*)(3);
         data[0] = cast(ubyte*)malloc(w * h * ubyte.sizeof);
         data[1] = cast(ubyte*)malloc(w * h * ubyte.sizeof);
         data[2] = cast(ubyte*)malloc(w * h * ubyte.sizeof);
         
         foreach (i; 0 .. pixelCount)
         {
-            data[0][i] = imdata[i * 3 + 0];
-            data[0][i] = imdata[i * 3 + 1];
-            data[0][i] = imdata[i * 3 + 2];
+            data[0][i] = inputSlice.ptr[i * 3 + 0];
+            data[0][i] = inputSlice.ptr[i * 3 + 1];
+            data[0][i] = inputSlice.ptr[i * 3 + 2];
         }
-        linesize = mallocSlice!(int)(3);
-        linesize[] = w;
+        linesize[0..3] = w;
         break;
     default:
         assert(0);
