@@ -8,7 +8,10 @@
         "dcv:videoio": {"path": "../../"},
         "dcv:plot": {"path": "../../"}
 	},
-    "subConfigurations": {
+    "comment-subConfigurations": {
         "dcv:plot": "legacygl"
-    }
+    },
+	"stringImportPaths": [
+		"fonts"
+	]
 }

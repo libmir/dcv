@@ -12,7 +12,7 @@ import std.datetime.stopwatch : StopWatch;
 import dcv.videoio;
 import dcv.imgproc.color;
 import dcv.core;
-import dcv.plot.figure;
+import dcv.plot;
 
 import mir.ndslice;
 
@@ -20,6 +20,12 @@ import mir.ndslice;
 // video -f ../data/centaur_1.mpg
 
 @nogc nothrow:
+
+ulong frameCount = 0;
+double elapsedTime = 0.0;
+double realTimeFPS = 0.0;
+
+TtfFont font;
 
 void main(string[] args)
 {
@@ -29,6 +35,7 @@ void main(string[] args)
         return;
     }
 
+    font = TtfFont(cast(ubyte[])import("Nunito-Regular.ttf"));
     //////////// Open the video stream ////////////////
 
     InputStream inStream = mallocNew!InputStream(false); // set forceRGB false to make RGB conversion using dcv
@@ -43,8 +50,9 @@ void main(string[] args)
         printHelp();
         return;
     }
-
-    inStream.setVideoSizeRequest(640, 480);
+    enum W = 640;
+    enum H = 480;
+    inStream.setVideoSizeRequest(W, H);
     // Open the example video
     inStream.open(path, type);
 
@@ -67,7 +75,7 @@ void main(string[] args)
     StopWatch s;
     s.start;
 
-    auto fig = imshow(rcslice!ubyte(480, 640, 3), path);
+    auto fig = imshow(rcslice!ubyte(H, W, 3), path);
 
     // Read each next frame of the video in the loop.
     while (inStream.readFrame(frame))
@@ -88,11 +96,12 @@ void main(string[] args)
         frame = null;
         // Compensate fps wait for lost time on color conversion.
         int wait = max(1, cast(int)waitFrame - cast(int)s.peek.total!"msecs");
-
+        
         // If user presses escape key, stop the streaming.
         if (waitKey(wait) == KEY_ESCAPE)
             break;
 
+        drawFPS(fig, s);
         /*
         Ask if figure with given name is visible.
 
@@ -105,6 +114,29 @@ void main(string[] args)
             break;
     }
     destroyFigures(); // destroy all figures allocated
+}
+
+void drawFPS(Figure fig, ref StopWatch s){
+    frameCount++;
+    elapsedTime += s.peek.total!"msecs" / 1000.0;
+
+    // Calculate FPS if elapsed time is non-zero
+    if (elapsedTime > 0)
+    {
+        realTimeFPS = cast(double)frameCount / elapsedTime;
+    }
+    
+    import core.stdc.stdio;
+    char[32] buff;
+    snprintf(buff.ptr, buff.length, "FPS: %.2f", realTimeFPS);
+
+    fig.drawText(font, buff[], PlotPoint(20.0f, 20.0f),
+                0.0f, 30, plotGreen);
+    
+    if (elapsedTime > 1.0) {
+        frameCount = 0;
+        elapsedTime = 0.0;
+    }
 }
 
 void printHelp()
