@@ -364,6 +364,13 @@ public:
         av_dict_set(&options, "framerate", _str.ptr, 0);
     }
 
+    // a generic function to set FFMPEG parameters for input streams
+    // it does not checks if the given key or value is a valid ffmpeg input.
+    void setAVDict(in char[] key, in char[] value){
+        import dplug.core : CString;
+        av_dict_set(&options, CString(key).storage, CString(value).storage, 0);
+    }
+
 private:
 
     bool readFrameImpl(ref Image image)

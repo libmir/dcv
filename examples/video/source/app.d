@@ -53,7 +53,9 @@ void main(string[] args)
     enum W = 640;
     enum H = 480;
     inStream.setVideoSizeRequest(W, H);
-    // inStream.setFPSRequest(60); // you can set a FPS value supported by your device
+    //inStream.setFPSRequest(60); // you can set a FPS value supported by your device
+    // or you can set ffmpeg-related parameters using a generic method:
+    // inStream.setAVDict("framerate", "60");
 
     // Open the example video
     inStream.open(path, type);
