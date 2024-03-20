@@ -53,6 +53,8 @@ void main(string[] args)
     enum W = 640;
     enum H = 480;
     inStream.setVideoSizeRequest(W, H);
+    // inStream.setFPSRequest(60); // you can set a FPS value supported by your device
+
     // Open the example video
     inStream.open(path, type);
 
@@ -87,7 +89,7 @@ void main(string[] args)
             auto toShow = frame.sliced.yuv2rgb!ubyte;
             fig.draw(toShow, ImageFormat.IF_RGB);
         }else{
-            fig.draw(frame);// it never comes here since forceRGB is false
+            fig.draw(frame); // it never comes here since forceRGB is false in InputStream(false)
         }
 
         destroyFree(frame);

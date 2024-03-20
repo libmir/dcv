@@ -3,6 +3,7 @@
 	"description": "Video streaming example for DCV library.",
 	"copyright": "Copyright © 2016, Relja Ljubobratovic",
 	"authors": ["Relja Ljubobratovic"],
+	"comment-dflags-ldc": ["-mcpu=native"],
 	"dependencies": {
 		"dcv:core": {"path": "../../"},
         "dcv:videoio": {"path": "../../"},
