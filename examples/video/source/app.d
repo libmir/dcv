@@ -82,8 +82,6 @@ void main(string[] args)
     {
         import std.algorithm.comparison : max;
 
-        s.reset;
-
         // If video frame pixel format is YUV, convert the data to RGB, then show it on screen
         if (frame.format == ImageFormat.IF_YUV){
             auto toShow = frame.sliced.yuv2rgb!ubyte;
@@ -102,6 +100,7 @@ void main(string[] args)
             break;
 
         drawFPS(fig, s);
+        s.reset;
         /*
         Ask if figure with given name is visible.
 
@@ -118,12 +117,12 @@ void main(string[] args)
 
 void drawFPS(Figure fig, ref StopWatch s){
     frameCount++;
-    elapsedTime += s.peek.total!"msecs" / 1000.0;
+    elapsedTime += s.peek.total!"msecs";
 
     // Calculate FPS if elapsed time is non-zero
     if (elapsedTime > 0)
     {
-        realTimeFPS = cast(double)frameCount / elapsedTime;
+        realTimeFPS = cast(double)frameCount / (elapsedTime / 1000.0); // Convert milliseconds to seconds
     }
     
     import core.stdc.stdio;
