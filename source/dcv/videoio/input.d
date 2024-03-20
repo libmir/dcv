@@ -356,6 +356,14 @@ public:
         av_dict_set(&options, "video_size", _str.ptr, 0);
     }
 
+    void setFPSRequest(ushort fps){
+        import core.stdc.stdio : snprintf;
+        char[8] _str;
+        snprintf(_str.ptr, _str.length, "%d", fps);
+
+        av_dict_set(&options, "framerate", _str.ptr, 0);
+    }
+
 private:
 
     bool readFrameImpl(ref Image image)
