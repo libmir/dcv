@@ -307,37 +307,39 @@ void adoptRGB24(AVFrame* frame, ubyte[] data)
 
 void adoptYUVGrouped(AVFrame* frame, ref ubyte[] data)
 {
-    auto ysize = frame.linesize[0];
-    auto usize = frame.linesize[1];
-    auto vsize = frame.linesize[2];
-
-    auto udiv = ysize / usize;
-    auto vdiv = ysize / vsize;
-
     int w = frame.width;
     int h = frame.height;
 
-    if (data.length != w * h * 3){
+    if (data.length != w * h * 3) {
         import core.stdc.stdlib;
         ubyte* _ptrnew = cast(ubyte*)realloc(data.ptr, w * h * 3 * ubyte.sizeof);
-        data =_ptrnew[0..w * h * 3];
+        data = _ptrnew[0 .. w * h * 3];
     }
 
     auto ydata = frame.data[0];
     auto udata = frame.data[1];
     auto vdata = frame.data[2];
 
-    foreach (r; 0 .. h)
+    foreach (i; 0 .. h*w)
     {
-        foreach (c; 0 .. w)
-        {
-            auto pixpos = r * w * 3 + c * 3;
-            auto ypos = r * w + c;
-            auto uvpos = r / 2 * w / 2 + c / 2;
-            data[pixpos + 0] = ydata[ypos];
-            data[pixpos + 1] = udata[uvpos];
-            data[pixpos + 2] = vdata[uvpos];
-        }
+        immutable r = i / w;
+        immutable c = i % w;
+
+        immutable pixpos = (r * w + c) * 3;
+        immutable ypos = r * frame.linesize[0] + c;
+        immutable uvpos = (r >> (frame.format == AVPixelFormat.AV_PIX_FMT_YUV440P ? 0 : 1)) * frame.linesize[1] + (c >> (frame.format == AVPixelFormat.AV_PIX_FMT_YUV440P ? 0 : 1));
+
+        immutable Y = ydata[ypos];
+        immutable U = udata[uvpos];
+        immutable V = vdata[uvpos];
+
+        int newY = Y;
+        int newU = U;
+        int newV = V;
+
+        data[pixpos + 0] = cast(ubyte)newY;
+        data[pixpos + 1] = cast(ubyte)newU;
+        data[pixpos + 2] = cast(ubyte)newV;
     }
 }
 
