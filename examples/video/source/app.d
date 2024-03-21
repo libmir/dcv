@@ -55,7 +55,6 @@ void main(string[] args)
     if(type == InputStreamType.FILE){
         W = 320;
         H = 240;
-        inStream.forceRGB = true; // test video has a color encoding that we cannot convet to RGB yet.
     }else{
         W = 640; // most web cams support this resolution
         H = 480;
@@ -94,7 +93,7 @@ void main(string[] args)
     while (inStream.readFrame(frame))
     {
         import std.algorithm.comparison : max;
-
+        
         // If video frame pixel format is YUV, convert the data to RGB, then show it on screen
         if (frame.format == ImageFormat.IF_YUV){
             auto toShow = frame.sliced.yuv2rgb!ubyte;
