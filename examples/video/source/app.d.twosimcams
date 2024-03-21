@@ -23,6 +23,10 @@ ulong frameCount = 0;
 double elapsedTime = 0.0;
 double realTimeFPS = 0.0;
 
+__gshared ulong frameCount2 = 0;
+__gshared double elapsedTime2 = 0.0;
+__gshared double realTimeFPS2 = 0.0;
+
 TtfFont font;
 
 void main()
@@ -34,11 +38,11 @@ void main()
     scope(exit) destroyFree(inStream1);
 
     
-    InputStream inStream2 = mallocNew!InputStream(false); // set forceRGB false to make RGB conversion using dcv
+    InputStream inStream2 = mallocNew!InputStream(); // set forceRGB false to make RGB conversion using dcv
     scope(exit) destroyFree(inStream2);
 
-    string path1 = "/dev/video0";
-    string path2 = "/dev/video2";
+    string path1 = "video=Lenovo EasyCamera"; // "/dev/video0";
+    string path2 = "video=PS3 Eye Universal"; // "/dev/video2";
     InputStreamType type = InputStreamType.LIVE; // type of the stream (file or live)
 
     enum W = 640;
@@ -62,6 +66,9 @@ void main()
         exit(-1);
     }
 
+    StopWatch s; s.start;
+    StopWatch s2;
+
     //////////// Read video frames //////////////////
     auto fig2 = imshow(rcslice!ubyte(H, W, 3), path2);
 
@@ -69,7 +76,8 @@ void main()
     scope nothrow @nogc ThreadDelegate readStream2 = () 
     {
         Image frame2;
-        
+        s2.start;
+
         while (inStream2.readFrame(frame2))
         {
             if (frame2.format == ImageFormat.IF_YUV){
@@ -79,11 +87,15 @@ void main()
                 fig2.draw(frame2);// it never comes here since forceRGB is false
             }
 
-            destroyFree(frame2);
-            frame2 = null;
+            drawFPS2(s2);
+
+            s2.reset;
 
             if (!fig2.visible)
                 break;
+
+            destroyFree(frame2);
+            frame2 = null;
         }
     };
 
@@ -98,8 +110,8 @@ void main()
     // calculate frame wait time in miliseconds - if video is live, set to minimal value.
     double waitFrame = (type == InputStreamType.LIVE) ? 1.0 : 1000.0 / fps;
 
-    StopWatch s;
-    s.start;
+    
+    
 
     auto fig1 = imshow(rcslice!ubyte(H, W, 3), path1);
     
@@ -108,8 +120,6 @@ void main()
     while (inStream1.readFrame(frame1))
     {
         import std.algorithm.comparison : max;
-
-        s.reset;
 
         // If video frame pixel format is YUV, convert the data to RGB, then show it on screen
         if (frame1.format == ImageFormat.IF_YUV){
@@ -130,6 +140,9 @@ void main()
             break;
 
         drawFPS(fig1, s);
+        
+        
+        s.reset;
         /*
         Ask if figure with given name is visible.
 
@@ -143,7 +156,7 @@ void main()
     }
 
     thread2.join();
-    
+    thread2.destroy();
     destroyFigures(); // destroy all figures allocated
 }
 
@@ -167,5 +180,24 @@ void drawFPS(Figure fig, ref StopWatch s){
     if (elapsedTime > 1.0) {
         frameCount = 0;
         elapsedTime = 0.0;
+    }
+}
+
+void drawFPS2(ref StopWatch s){
+    frameCount2++;
+    elapsedTime2 += s.peek.total!"msecs" / 1000.0;
+
+    // Calculate FPS if elapsed time is non-zero
+    if (elapsedTime2 > 0)
+    {
+        realTimeFPS2 = cast(double)frameCount2 / elapsedTime2;
+    }
+    
+    import core.stdc.stdio;
+    
+    if (elapsedTime2 > 1.0) {
+        printf("FPS: %.2f\n", realTimeFPS2);
+        frameCount2 = 0;
+        elapsedTime2 = 0.0;
     }
 }
