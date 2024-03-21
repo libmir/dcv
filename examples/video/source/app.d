@@ -50,8 +50,17 @@ void main(string[] args)
         printHelp();
         return;
     }
-    enum W = 640;
-    enum H = 480;
+
+    int W, H;
+    if(type == InputStreamType.FILE){
+        W = 320;
+        H = 240;
+        inStream.forceRGB = true; // test video has a color encoding that we cannot convet to RGB yet.
+    }else{
+        W = 640; // most web cams support this resolution
+        H = 480;
+    }
+    
     inStream.setVideoSizeRequest(W, H);
     //inStream.setFPSRequest(60); // you can set a FPS value supported by your device
     // or you can set ffmpeg-related parameters using a generic method:
