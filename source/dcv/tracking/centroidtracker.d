@@ -1,5 +1,5 @@
 /++ Authors: Adrian Rosebrock
-    Ported by Ferhat Kurtulmuş
+    Ported and improved by Ferhat Kurtulmuş
     based on: https://pyimagesearch.com/2018/07/23/simple-object-tracking-with-opencv/
 +/
 module dcv.tracking.centroidtracker;
@@ -19,20 +19,35 @@ import dplug.core.map;
 
 alias CenterCoord = Tuple!(int, "x", int, "y");
 alias Box = int[4];
-alias Object = Tuple!(int, "id", CenterCoord, "centroid", Box, "box");
+alias TrackedObject = Tuple!(int, "id", CenterCoord, "centroid", Box, "box");
 
 struct CentroidTracker {
+
+    alias NewObjectCallback = void delegate(TrackedObject) @nogc nothrow;
+    alias DisappearedObjectCallback = void delegate(TrackedObject) @nogc nothrow;
+
+    // an optional callback function running when a new object is detected
+    NewObjectCallback onNewObject;
+
+    // an optional callback function running when an object is disappeared
+    DisappearedObjectCallback onObjectDisappear;
+
     @disable this();
 
 @nogc nothrow:
 
 public:
-    this(int maxDisappeared){
+    this(int maxDisappeared, 
+            NewObjectCallback newObjectCallback = null, DisappearedObjectCallback disappearedObjectCallback = null){
+        
         this.nextObjectID = 0;
         this.maxDisappeared = maxDisappeared;
 
         pathKeeper = makeMap!(int, Array!(CenterCoord));
         disappeared = makeMap!(int, int);
+
+        this.onNewObject = newObjectCallback;
+        this.onObjectDisappear = disappearedObjectCallback;
     }
 
     ~this(){
@@ -44,9 +59,14 @@ public:
     }
     void registerObject(int cX, int cY, Box b){
         int object_ID = this.nextObjectID;
-        this.objects.insertBack(Object(object_ID, CenterCoord(cX, cY), b));
+        this.objects.insertBack(TrackedObject(object_ID, CenterCoord(cX, cY), b));
         this.disappeared[object_ID] = 0;
         this.nextObjectID += 1;
+
+        // Call the new object callback
+        if (onNewObject !is null) {
+            onNewObject(objects.back); // Pass the newly registered object
+        }
     }
 
     typeof(objects).Range update(ref Array!Box boxes){
@@ -58,8 +78,14 @@ public:
                 disappeared[k] += 1;
                 if (v > maxDisappeared){
                     for (auto rn = objects[]; !rn.empty;)
-                        if (rn.front[0] == k)
+                        if (rn.front[0] == k){
+                            // Call the disappeared object callback
+                            if (onObjectDisappear !is null) {
+                                onObjectDisappear(rn.front);
+                            }
                             objects.popFirstOf(rn);
+                            break;
+                        }
                         else
                             rn.popFront();
                     pathKeeper[k].clear;
@@ -69,8 +95,9 @@ public:
             }
 
             if(ks.data.length){
-                foreach (k; ks.data)
+                foreach (k; ks.data){
                     disappeared.remove(k);
+                }
             }
              
             return objects[];
@@ -211,17 +238,21 @@ public:
             //If objCentroids > InpCentroids, we need to check and see if some of these objects have potentially disappeared
             if (objectCentroids.length >= inputCentroids.length) {
                 // loop over unused row indexes
-
                 foreach (row; unusedRows) {
                     int objectID = objectIDs[row];
                     this.disappeared[objectID] += 1;
 
                     if (this.disappeared[objectID] > this.maxDisappeared) {
-
+                        
                         for (auto rn = objects[]; !rn.empty;)
-                            if (rn.front.id == objectID)
+                            if (rn.front.id == objectID){
+                                // Call the disappeared object callback
+                                if (onObjectDisappear !is null) {
+                                    onObjectDisappear(rn.front);
+                                }
                                 objects.popFirstOf(rn);
-                            else
+                                break;
+                            }else
                                 rn.popFront();
 
                         pathKeeper[objectID].clear;
@@ -252,17 +283,33 @@ public:
         return objects[];
     }
     
+    /** An option to reset nextObjectID to avoid big numbers for object IDs.
+        An ideal place to call this member function is right after the update function.
+        It should be noted that maxValue may be exceeded since the reset operation occurs
+        only if the number of tracked objects is zero.
+        Returns the nextObjectID before the reset operation.
+    */ 
+    int resetTrackedObjectIdAtMaxValue(int maxValue = 10_000) {
+        auto ret = nextObjectID;
+        if (objects.empty) {
+            if (nextObjectID > maxValue) {
+                // Reset the nextObjectID variable
+                nextObjectID = 0;
+            }
+        }
+
+        return ret;
+    }
+    
     Map!(int, Array!(CenterCoord)) pathKeeper;
     
 private:
-    private dlist!(Object) objects;
+    private dlist!(TrackedObject) objects;
     
     Map!(int, int) disappeared;
 
     int maxDisappeared;
     int nextObjectID;
-    // <ID, count>
-    
 
     static double calcDistance(double x1, double y1, double x2, double y2){
         const double x = x1 - x2;
