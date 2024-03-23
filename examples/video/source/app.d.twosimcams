@@ -82,7 +82,7 @@ void main()
         {
             if (frame2.format == ImageFormat.IF_YUV){
                 auto toShow = frame2.sliced.yuv2rgb!ubyte;
-                fig2.draw(toShow, ImageFormat.IF_RGB);
+                fig2.draw(toShow);
             }else{
                 fig2.draw(frame2);// it never comes here since forceRGB is false
             }
@@ -109,9 +109,6 @@ void main()
     double fps = inStream1.frameRate ? inStream1.frameRate : 30.0;
     // calculate frame wait time in miliseconds - if video is live, set to minimal value.
     double waitFrame = (type == InputStreamType.LIVE) ? 1.0 : 1000.0 / fps;
-
-    
-    
 
     auto fig1 = imshow(rcslice!ubyte(H, W, 3), path1);
     

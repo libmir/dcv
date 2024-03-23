@@ -97,7 +97,7 @@ void main(string[] args)
         // If video frame pixel format is YUV, convert the data to RGB, then show it on screen
         if (frame.format == ImageFormat.IF_YUV){
             auto toShow = frame.sliced.yuv2rgb!ubyte;
-            fig.draw(toShow, ImageFormat.IF_RGB);
+            fig.draw(toShow);
         }else{
             fig.draw(frame); // it never comes here since forceRGB is false in InputStream(false)
         }

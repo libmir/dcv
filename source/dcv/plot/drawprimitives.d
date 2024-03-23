@@ -10,6 +10,11 @@ import dplug.core.nogc;
 import mir.ndslice;
 import mir.rc;
 
+alias Ortho = Slice!(RCI!float, 2LU, Contiguous);
+import mir.ndslice;
+import mir.rc;
+
+/+
 // must match with enum ImageFormat
 int DISPLAY_FORMAT(int format) @nogc nothrow
 {
@@ -27,10 +32,7 @@ int DISPLAY_FORMAT(int format) @nogc nothrow
     
     return -1;
 }
-
-alias Ortho = Slice!(RCI!float, 2LU, Contiguous);
-import mir.ndslice;
-import mir.rc;
++/
 
 package auto getOrtho(float left, float right, float bottom, float top, float near = -1, float far = 1)
 {
@@ -102,14 +104,14 @@ class TextureRenderer {
         this.height = height;
         dispFormat = dformat;
 
-        textureId = loadTexture(imptr, width, height, DISPLAY_FORMAT(dispFormat));
+        textureId = loadTexture(imptr, width, height, GL_RGB);
 
         shaderPrg = loadShaderTextured();
         drafter = mallocNew!(GLTexturedRect!false)(ortho, shaderPrg);
     }
 
     void render(){
-        updateTexture(imptr, width, height, textureId, DISPLAY_FORMAT(dispFormat));
+        updateTexture(imptr, width, height, textureId, GL_RGB);
         GLTexturedRectParams params = GLTexturedRectParams(Rect(0,0,width,height), textureId, 0.0f);
         drafter.set(cast(void*)&params);
         drafter.draw();

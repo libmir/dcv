@@ -212,7 +212,7 @@ Returns:
 Figure imshow(Image image, string title = "")
 {
     auto f = figure(title);
-    f.draw(image);
+    f.draw(image.sliced);
     f.show();
     return f;
 }
@@ -222,7 +222,7 @@ Figure imshow(SliceKind kind, size_t N, Iterator)
     (Slice!(Iterator, N, kind) slice, string title = "")
 {
     auto f = figure(title);
-    f.draw(slice, ImageFormat.IF_UNASSIGNED);
+    f.draw(slice);
     f.show();
     return f;
 }
@@ -524,7 +524,7 @@ class Figure
     }
 
     /// Construct figure window with given title.
-    this(string title, int width = 512, int height = 512)
+    this(string title, int width = 640, int height = 480)
     in
     {
         assert(width > 0);
@@ -553,7 +553,7 @@ class Figure
     do
     {
         this(title, cast(int)image.width, cast(int)image.height);
-        draw(image);
+        draw(image.sliced);
     }
 
     /// Construct figure window with given title, and fill it with given image.
@@ -728,13 +728,13 @@ class Figure
     }
 
     /// Draw image onto figure canvas.
-    void draw(Image image)
+    /+void draw(Image image)
     {
         auto tup = adoptImage(image);
         Image showImage = tup[0];
         dispFormat = tup[1];
         auto mustFreeAfter = tup[2];
-
+        
         if (_width != showImage.width || _height != showImage.height)
         {
             _width = cast(int)showImage.width;
@@ -743,8 +743,8 @@ class Figure
         }else {
             if(showImage.format == ImageFormat.IF_MONO){
                 _data = RCArray!ubyte(width * height * 3);
-                int err;
-                auto shell = _data.asSlice.reshape([showImage.height, showImage.width, 3], err);
+                
+                auto shell = _data.asSlice.sliced([showImage.height, showImage.width, 3]);
                 
                 shell[0..$, 0..$, 0] = showImage.data.sliced(height, width);
                 shell[0..$, 0..$, 1] = showImage.data.sliced(height, width);
@@ -769,14 +769,58 @@ class Figure
             prepareRender();
         }
     }
+    +/
 
-    /// Draw slice of image onto figure canvas.
-    void draw(SliceKind kind, size_t N, Iterator)
-        (Slice!(Iterator, N, kind) image, ImageFormat format = ImageFormat.IF_UNASSIGNED)
+    /++ Draw an Image onto figure canvas. Only 2D and 3D images can be displayed.+/
+    void draw(Image image)
     {
-        import std.range.primitives : ElementType;
-        import mir.ndslice.topology : as;
+        if(image.format == ImageFormat.IF_MONO)
+            draw(image.sliced2D);
+        else
+            draw(image.sliced);
+    }
 
+    /++ Draw a slice onto figure canvas. Only 2D and 3D slices can be displayed. Non-Contiguous slices implicitly converted into Contiguous.+/
+    void draw(SliceKind kind, size_t N, Iterator)(Slice!(Iterator, N, kind) inputSlice) 
+    {
+        import mir.ndslice.topology : as;
+        import dcv.core.utils : ElemType;
+
+        alias T = ElemType!(typeof(inputSlice));
+
+        static if (kind != Contiguous){
+            Slice!(RCI!T, N, Contiguous) inSlice = inputSlice.rcslice;
+        }else{
+            alias inSlice = inputSlice;
+        }
+
+        if (_width != inSlice.shape[1] || _height != inSlice.shape[0]){
+            _width = cast(int)inSlice.shape[1];
+            _height = cast(int)inSlice.shape[0];
+            _data = RCArray!ubyte(_width * _height * 3);
+        }
+        
+        auto shell = _data.asSlice.sliced([inSlice.shape[0], inSlice.shape[1], 3]);
+
+        static if(N==2){
+            shell[0..$, 0..$, 0] = inSlice.as!ubyte[];
+            shell[0..$, 0..$, 1] = inSlice.as!ubyte[];
+            shell[0..$, 0..$, 2] = inSlice.as!ubyte[];
+        }else static if (N==3){
+            shell[] = inSlice.as!ubyte[];
+        } else {
+            static assert(false, "Only 2D and 3D slices can be plotted!");
+        }
+
+        dispFormat = cast(int)ImageFormat.IF_RGB;
+
+        fitWindow();
+
+        version(UseLegacyGL){ } else {
+            prepareRender();
+        }
+
+        /+
         //static assert(packs.length == 1, "Cannot draw packed slices.");
 
         alias T = ElementType!Iterator;
@@ -794,6 +838,7 @@ class Figure
             toDraw = showImage.asImage(format);
         draw(toDraw);
         destroyFree(toDraw);
+        +/
     }
 
     /**
@@ -821,7 +866,6 @@ class Figure
     private void render()
     {
         version(UseLegacyGL){
-            import dcv.plot.drawprimitives : DISPLAY_FORMAT;
             
             glfwMakeContextCurrent(_glfwWindow);
 
@@ -843,7 +887,7 @@ class Figure
             glRasterPos3f(0, height - 1, -0.3);
 
             glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-            glDrawPixels(_width, _height, DISPLAY_FORMAT(dispFormat), GL_UNSIGNED_BYTE, _data.ptr);
+            glDrawPixels(_width, _height, GL_RGB, GL_UNSIGNED_BYTE, _data.ptr);
 
             glFlush();
             glEnable(GL_DEPTH_TEST);
@@ -1250,6 +1294,7 @@ extern (C) @nogc nothrow {
     }
 }
 
+/*
 import std.typecons : Tuple, tuple;
 
 private Tuple!(Image, int, bool) adoptImage(Image image) @nogc nothrow
@@ -1294,6 +1339,7 @@ private Tuple!(Image, int, bool) adoptImage(Image image) @nogc nothrow
     }
     return tuple(showImage, dispFormat, mustFreeAfter);
 }
+*/
 
 version(ggplotd) void drawGGPlotD(GGPlotD gg,  ubyte[] data,  int width, int height)
 {
