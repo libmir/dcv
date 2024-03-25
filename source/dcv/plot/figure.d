@@ -1011,7 +1011,7 @@ version(UseLegacyGL){ } else {
 
         // handle null termination
         Array!char buff;
-        if(text[$] != '\0'){
+        if(text[$-1] != '\0'){
             buff.length = text.length + 1;
             buff.data[0..$-1] = text[];
             bitmap = font.renderString(buff.data[], size, w, h);
