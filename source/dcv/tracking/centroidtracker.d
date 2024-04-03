@@ -23,13 +23,20 @@ alias TrackedObject = Tuple!(int, "id", CenterCoord, "centroid", Box, "box");
 
 struct CentroidTracker {
 
-    alias NewObjectCallback = void delegate(TrackedObject) @nogc nothrow;
-    alias DisappearedObjectCallback = void delegate(TrackedObject) @nogc nothrow;
+    alias NewObjectCallback = void delegate(in TrackedObject) @nogc nothrow;
+    alias DisappearedObjectCallback = void delegate(in TrackedObject) @nogc nothrow;
+    alias ObjectCallback = void delegate(in TrackedObject) @nogc nothrow;
 
-    // an optional callback function running when a new object is detected
+    /++ an optional callback function running when a new object is detected +/
     NewObjectCallback onNewObject;
 
-    // an optional callback function running when an object is disappeared
+    /++ an optional callback function running when an object is beeing tracked (a previous object identified ) +/
+    ObjectCallback onTrack;
+
+    /++ an optional callback function running when an object is disappeared.
+        Note that this callback does not have a sudden behaviour like onNewObject and onTrack.
+        There may be some delay since the algorithm have to be sure that an object is not being tracked anymore.
+    +/
     DisappearedObjectCallback onObjectDisappear;
 
     @disable this();
@@ -38,7 +45,7 @@ struct CentroidTracker {
 
 public:
     this(int maxDisappeared, 
-            NewObjectCallback newObjectCallback = null, DisappearedObjectCallback disappearedObjectCallback = null){
+            NewObjectCallback newObjectCallback = null, DisappearedObjectCallback disappearedObjectCallback = null, ObjectCallback onObjectTrack = null){
         
         this.nextObjectID = 0;
         this.maxDisappeared = maxDisappeared;
@@ -48,6 +55,7 @@ public:
 
         this.onNewObject = newObjectCallback;
         this.onObjectDisappear = disappearedObjectCallback;
+        this.onTrack = onObjectTrack;
     }
 
     ~this(){
@@ -215,6 +223,14 @@ public:
                         id_coord_box.centroid.x = inputCentroids[cols[i]].center.x;
                         id_coord_box.centroid.y = inputCentroids[cols[i]].center.y;
                         id_coord_box.box = *inputCentroids[cols[i]].boxptr; // update rectangle for new position
+
+                        // onTrack
+                        if (onTrack !is null)
+                        {
+                            onTrack(id_coord_box);
+                        }
+
+                        break;
                     }
                 }
                 this.disappeared[objectID] = 0;
