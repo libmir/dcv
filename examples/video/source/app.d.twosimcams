@@ -28,6 +28,7 @@ __gshared double elapsedTime2 = 0.0;
 __gshared double realTimeFPS2 = 0.0;
 
 TtfFont font;
+FontSet fontSet;
 
 void main()
 {
@@ -71,6 +72,7 @@ void main()
 
     //////////// Read video frames //////////////////
     auto fig2 = imshow(rcslice!ubyte(H, W, 3), path2);
+    fontSet = createFontSet(font, 30); 
 
     // Define a thread function to read frames from the second stream
     scope nothrow @nogc ThreadDelegate readStream2 = () 
@@ -171,8 +173,8 @@ void drawFPS(Figure fig, ref StopWatch s){
     char[32] buff;
     snprintf(buff.ptr, buff.length, "FPS: %.2f", realTimeFPS);
 
-    fig.drawText(font, buff[], PlotPoint(20.0f, 20.0f),
-                0.0f, 30, plotGreen);
+    fig.drawText(fontSet, buff[], PlotPoint(20.0f, 20.0f),
+                0.0f, plotGreen);
     
     if (elapsedTime > 1.0) {
         frameCount = 0;

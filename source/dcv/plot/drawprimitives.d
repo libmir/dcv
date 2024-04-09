@@ -62,6 +62,39 @@ import dcv.plot.bindings;
 
 import dcv.plot.ttf;
 
+import bcaa;
+
+struct CharInfo {
+    GLuint textureId;
+    int w;
+    int h;
+}
+
+alias FontSetPayload = Bcaa!(dchar, CharInfo);
+
+struct FontSet {
+
+    @nogc nothrow:
+
+    ref auto opIndex(scope const dchar key)
+    {
+        return payload[key];
+    }
+
+    void opIndexAssign(scope const CharInfo value, scope const dchar key) {
+        payload[key] = value;
+    }
+    
+    ~this(){
+        foreach(v; payload.byValue){
+            glDeleteTextures(1, &v.textureId);
+        }
+        payload.free;
+    }
+private:
+    FontSetPayload payload;
+}
+
 alias PlotPoint = Tuple!(float, "x", float, "y"); 
 alias PPoint = PlotPoint;
 

@@ -26,6 +26,7 @@ double elapsedTime = 0.0;
 double realTimeFPS = 0.0;
 
 TtfFont font;
+FontSet fontSet;
 
 void main(string[] args)
 {
@@ -88,6 +89,7 @@ void main(string[] args)
     s.start;
 
     auto fig = imshow(rcslice!ubyte(H, W, 3), path);
+    fontSet = createFontSet(font, 30); // must be called after creation of a figure. needs an opengl context
 
     // Read each next frame of the video in the loop.
     while (inStream.readFrame(frame))
@@ -141,8 +143,8 @@ void drawFPS(Figure fig, ref StopWatch s){
     char[32] buff;
     snprintf(buff.ptr, buff.length, "FPS: %.2f", realTimeFPS);
 
-    fig.drawText(font, buff[], PlotPoint(20.0f, 20.0f),
-                0.0f, 30, plotGreen);
+    fig.drawText(fontSet, buff[], PlotPoint(20.0f, 20.0f),
+                0.0f, plotGreen);
     
     if (elapsedTime > 1.0) {
         frameCount = 0;
