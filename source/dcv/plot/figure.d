@@ -1000,33 +1000,26 @@ version(UseLegacyGL){ } else {
     }
     
     @nogc nothrow
-    void drawText(ref TtfFont font, in char[] text, in PlotPoint posTopLeft, 
-            float orientation = 0.0f, int size = 20, PlotColor color = plotRed){
+    void drawText(ref FontSet fontset, in char[] text, in PlotPoint posTopLeft, 
+            float orientation = 0.0f, PlotColor color = plotRed){
         
         import mir.rc;
         import std.container.array;
 
-        int w, h;
-        RCArray!ubyte bitmap;
+        int accumw;
+        import std.utf : byCodeUnit;
+		foreach(dchar dc; text.byCodeUnit) {
 
-        // handle null termination
-        Array!char buff;
-        if(text[$-1] != '\0'){
-            buff.length = text.length + 1;
-            buff.data[0..$-1] = text[];
-            bitmap = font.renderString(buff.data[], size, w, h);
-            buff.clear;
-        }else{
-            bitmap = font.renderString(text, size, w, h);
+            if(dc == '\0')
+                break;
+            auto currentchar = fontset[dc];
+            GLTexturedRectParams* params = mallocNew!GLTexturedRectParams(Rect(cast(int)posTopLeft.x + accumw, 
+                cast(int)posTopLeft.y, currentchar.w, currentchar.h), currentchar.textureId, orientation, color);
+            PrimLauncher launcher = PrimLauncher(textDrafter, cast(void*)params);
+            primitiveQueue.insertFront(launcher);
+
+            accumw += currentchar.w;
         }
-
-        auto tid = loadTexture(bitmap.ptr, w, h, GL_DEPTH_COMPONENT);
-        this.allocatedTexts ~= tid;
-
-        GLTexturedRectParams* params = mallocNew!GLTexturedRectParams(Rect(cast(int)posTopLeft.x, 
-            cast(int)posTopLeft.y, w, h), tid, orientation, color);
-        PrimLauncher launcher = PrimLauncher(textDrafter, cast(void*)params);
-        primitiveQueue.insertFront(launcher);
     }
 
     /** 
@@ -1101,6 +1094,30 @@ version(UseLegacyGL){ } else {
     {
         glfwHideWindow(figure._glfwWindow);
     }
+}
+
+/++ 
+ + Pre-initialize OpenGL texture buffers to draw text on the Figure windows.
+ + this must be called after creation of a figure. needs an opengl context
+ + Params:
+ +   font = a TtfFont
+ + Returns: a scoped FontSet to use with Figure.drawText
+ +/
+scope FontSet createFontSet()(auto ref TtfFont font, int size = 20) @nogc nothrow
+{
+    int w, h;
+
+    FontSet chartSet;
+    foreach(dchar a; 32..1500){
+        //auto bitmap = font.renderCharacter(a, size, w, h);
+        auto bitmap = font.renderString((cast(char*)&a)[0..4], size, w, h);
+        auto tid = loadTexture(bitmap.ptr, w, h, GL_DEPTH_COMPONENT);
+        //stbtt_FreeBitmap(bitmap.ptr, null);
+        chartSet[a] = CharInfo(tid, w, h);
+    }
+
+    import core.lifetime : move;
+    return chartSet.move;
 }
 
 // Constants ////////////////////////////

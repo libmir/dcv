@@ -23,7 +23,6 @@ import core.stdc.stdlib : exit;
 import core.stdc.stdio : printf;
 
 import mir.rc : RCArray;
-import utf8proc;
 
 import dcv.plot.bindings;
 
@@ -58,134 +57,107 @@ struct TtfFont {
     import core.stdc.string : memcpy;
     ///
     void getStringSize(in char[] s, int size, out int width, out int height) {
-        float xpos=0;
+		float xpos=0;
 
-        auto scale = stbtt_ScaleForPixelHeight(&font, size);
-        int ascent, descent, line_gap;
-        stbtt_GetFontVMetrics(&font, &ascent,&descent,&line_gap);
-        auto baseline = cast(int) (ascent*scale);
+		auto scale = stbtt_ScaleForPixelHeight(&font, size);
+		int ascent, descent, line_gap;
+		stbtt_GetFontVMetrics(&font, &ascent,&descent,&line_gap);
+		auto baseline = cast(int) (ascent*scale);
 
-        import std.math;
+		import std.math;
 
-        int maxWidth;
+		int maxWidth;
 
-        ubyte* dst;
-        scope(exit){
-            if(dst)
-                free(cast(void*)dst);
-        }
-        auto sz = utf8proc_map(cast(const(ubyte)*)s.ptr, s.length, &dst, UTF8PROC_NULLTERM);
+      import std.utf : byCodeUnit;
+      size_t i;
+		foreach(dchar ch; s.byCodeUnit) {
+			int advance,lsb;
+			auto x_shift = xpos - floor(xpos);
+			stbtt_GetCodepointHMetrics(&font, ch, &advance, &lsb);
 
-        utf8proc_ssize_t _size = sz;
-        utf8proc_int32_t ch;
-        utf8proc_ssize_t n;
+			int x0, y0, x1, y1;
+			stbtt_GetCodepointBitmapBoxSubpixel(&font, ch, scale,scale,x_shift,0, &x0,&y0,&x1,&y1);
 
-        ubyte* char_ptr = cast(ubyte*)s.ptr;
-        size_t i;
+			maxWidth = cast(int)(xpos + x1);
 
-        while ((n = utf8proc_iterate(char_ptr, _size, &ch)) > 0) {            
-            int advance,lsb;
-            auto x_shift = xpos - floor(xpos);
-            stbtt_GetCodepointHMetrics(&font, ch, &advance, &lsb);
+			xpos += (advance * scale);
+			if (i + 1 < s.length)
+				xpos += scale*stbtt_GetCodepointKernAdvance(&font, ch,s[i+1]);
+         
+         ++i;
+		}
 
-            int x0, y0, x1, y1;
-            stbtt_GetCodepointBitmapBoxSubpixel(&font, ch, scale,scale,x_shift,0, &x0,&y0,&x1,&y1);
-
-            maxWidth = cast(int)(xpos + x1);
-
-            xpos += (advance * scale);
-            if (i + 1 < s.length)
-                xpos += scale*stbtt_GetCodepointKernAdvance(&font, ch,s[i+1]);
-
-            char_ptr += n;
-            _size -= n;
-            i++;
-        }
-
-           width = maxWidth;
-        height = size;
-    }
+   		width = maxWidth;
+		height = size;
+	}
 
     ///
     RCArray!ubyte renderString(in char[] s, int size, out int width, out int height) {
-        float xpos=0;
+		float xpos=0;
 
-        auto scale = stbtt_ScaleForPixelHeight(&font, size);
-        int ascent, descent, line_gap;
-        stbtt_GetFontVMetrics(&font, &ascent,&descent,&line_gap);
-        auto baseline = cast(int) (ascent*scale);
+		auto scale = stbtt_ScaleForPixelHeight(&font, size);
+		int ascent, descent, line_gap;
+		stbtt_GetFontVMetrics(&font, &ascent,&descent,&line_gap);
+		auto baseline = cast(int) (ascent*scale);
 
-        import std.math;
+		import std.math;
 
-        int swidth;
-        int sheight;
-        getStringSize(s, size, swidth, sheight);
-        auto screen = RCArray!ubyte(swidth * sheight);
+		int swidth;
+		int sheight;
+		getStringSize(s, size, swidth, sheight);
+		auto screen = RCArray!ubyte(swidth * sheight);
+      size_t i;
+      import std.utf : byCodeUnit;
+		foreach (dchar ch; s.byCodeUnit) {
+         
+			int advance,lsb;
+			auto x_shift = xpos - floor(xpos);
+			stbtt_GetCodepointHMetrics(&font, ch, &advance, &lsb);
+			int cw, cheight;
+			auto c = renderCharacter(ch, size, cw, cheight, x_shift, 0.0);
+			scope(exit) stbtt_FreeBitmap(c.ptr, null);
 
-        ubyte* dst;
-        scope(exit) {
-            if(dst)
-                free(cast(void*)dst);
-        }
-        auto sz = utf8proc_map(cast(const(ubyte)*)s.ptr, s.length, &dst, UTF8PROC_NULLTERM);
+			int x0, y0, x1, y1;
+			stbtt_GetCodepointBitmapBoxSubpixel(&font, ch, scale,scale,x_shift,0, &x0,&y0,&x1,&y1);
 
-        utf8proc_ssize_t _size = sz;
-        utf8proc_int32_t ch;
-        utf8proc_ssize_t n;
+			int x = cast(int) xpos + x0;
+			int y = baseline + y0;
+			int cx = 0;
+			foreach(index, pixel; c) {
+				if(cx == cw) {
+					cx = 0;
+					y++;
+					x = cast(int) xpos + x0;
+				}
+				auto offset = swidth * y + x;
+				if(offset >= screen.length)
+					break;
+				int val = (cast(int) pixel * (255 - screen[offset]) / 255);
+				if(val > 255)
+					val = 255;
+				screen[offset] += cast(ubyte)(val);
+				x++;
+				cx++;
+			}
 
-        ubyte* char_ptr = cast(ubyte*)s.ptr;
-        size_t i;
+			//stbtt_MakeCodepointBitmapSubpixel(&font, &screen[(baseline + y0) * swidth + cast(int) xpos + x0], x1-x0,y1-y0, 79, scale,scale,      x_shift,0, ch);
+			// note that this stomps the old data, so where character boxes overlap (e.g. 'lj') it's wrong
+			// because this API is really for baking character bitmaps into textures. if you want to render
+			// a sequence of characters, you really need to render each bitmap to a temp buffer, then
+			// "alpha blend" that into the working buffer
+			xpos += (advance * scale);
+			if (i + 1 < s.length)
+				xpos += scale*stbtt_GetCodepointKernAdvance(&font, ch,s[i+1]);
+         
+         ++i;
+		}
 
-         while ((n = utf8proc_iterate(char_ptr, _size, &ch)) > 0) {
-            int advance,lsb;
-            auto x_shift = xpos - floor(xpos);
-            stbtt_GetCodepointHMetrics(&font, ch, &advance, &lsb);
-            int cw, cheight;
-            auto c = renderCharacter(ch, size, cw, cheight, x_shift, 0.0);
-            scope(exit) stbtt_FreeBitmap(c.ptr, null);
+   		width = swidth;
+		height = sheight;
 
-            int x0, y0, x1, y1;
-            stbtt_GetCodepointBitmapBoxSubpixel(&font, ch, scale,scale,x_shift,0, &x0,&y0,&x1,&y1);
-
-            int x = cast(int) xpos + x0;
-            int y = baseline + y0;
-            int cx = 0;
-            foreach(index, pixel; c) {
-                if(cx == cw) {
-                    cx = 0;
-                    y++;
-                    x = cast(int) xpos + x0;
-                }
-                auto offset = swidth * y + x;
-                if(offset >= screen.length)
-                    break;
-                int val = (cast(int) pixel * (255 - screen[offset]) / 255);
-                if(val > 255)
-                    val = 255;
-                screen[offset] += cast(ubyte)(val);
-                x++;
-                cx++;
-            }
-
-            //stbtt_MakeCodepointBitmapSubpixel(&font, &screen[(baseline + y0) * swidth + cast(int) xpos + x0], x1-x0,y1-y0, 79, scale,scale,      x_shift,0, ch);
-            // note that this stomps the old data, so where character boxes overlap (e.g. 'lj') it's wrong
-            // because this API is really for baking character bitmaps into textures. if you want to render
-            // a sequence of characters, you really need to render each bitmap to a temp buffer, then
-            // "alpha blend" that into the working buffer
-            xpos += (advance * scale);
-            if (i + 1 < s.length)
-                xpos += scale*stbtt_GetCodepointKernAdvance(&font, ch,s[i+1]);
-            
-            char_ptr += n;
-            _size -= n;
-            i++;
-        }
-
-        width = swidth;
-        height = sheight;
-
-        return screen;
-    }
+      import core.lifetime;
+		return screen.move;
+	}
 
     // ~this() {}
 }
