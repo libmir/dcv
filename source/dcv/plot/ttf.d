@@ -23,7 +23,6 @@ import core.stdc.stdlib : exit;
 import core.stdc.stdio : printf;
 
 import mir.rc : RCArray;
-import utf8proc;
 
 import dcv.plot.bindings;
 

@@ -88,8 +88,7 @@
             },
             "dependencies":{
                 "dcv:core": "*",
-                "bindbc-opengl": "~>1.0.0",
-                "utf8proc": "~>0.0.2"
+                "bindbc-opengl": "~>1.0.0"
             },
             "versions": ["GLFW_31"],
             "configurations": [
