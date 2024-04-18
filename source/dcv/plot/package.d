@@ -15,6 +15,5 @@ module dcv.plot;
 
 public
 {
-    import dcv.plot.figure, dcv.plot.opticalflow, dcv.plot.drawprimitives,
-        dcv.plot.ttf;
+    import dcv.plot.figure, dcv.plot.opticalflow, dcv.plot.drawprimitives;
 }

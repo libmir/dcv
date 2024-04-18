@@ -107,7 +107,7 @@ import mir.ndslice;
 import mir.rc;
 
 import dcv.plot.drawprimitives;
-import dcv.plot.ttf;
+import dcv.core.ttf;
 import dcv.core.utils : dlist;
 
 import dplug.core;

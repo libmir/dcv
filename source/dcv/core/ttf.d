@@ -1,4 +1,4 @@
-module dcv.plot.ttf;
+module dcv.core.ttf;
 
 /++
     TrueType Font rendering. Meant to be used with [arsd.simpledisplay], but it doesn't actually require that. Port of stb_truetype plus D wrappers for convenience.
@@ -24,7 +24,7 @@ import core.stdc.stdio : printf;
 
 import mir.rc : RCArray;
 
-import dcv.plot.bindings;
+//import dcv.plot.bindings;
 
 ///
 struct TtfFont {

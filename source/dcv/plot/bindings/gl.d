@@ -6,10 +6,13 @@ import mir.exception;
 import core.stdc.stdio;
 import std.format;
 
+__gshared GLSupport retVal;
+
 void initGL() @nogc nothrow
 {
-
-    GLSupport retVal = loadOpenGL();
+    if(retVal > GLSupport.noContext)
+        return;
+    retVal = loadOpenGL();
     if(retVal > GLSupport.noContext) {
         printf("configure renderer for GL-%d \n", retVal);
     }

@@ -60,7 +60,7 @@ import mir.appender;
 
 import dcv.plot.bindings;
 
-import dcv.plot.ttf;
+import dcv.core.ttf;
 
 import bcaa;
 
