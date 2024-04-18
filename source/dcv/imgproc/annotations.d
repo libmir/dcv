@@ -20,7 +20,75 @@ alias APoint = Tuple!(float, "x", float, "y");
 
 @nogc nothrow:
 
+void putLine(InputSlice)(ref InputSlice input, APoint start, APoint end, AColor color, ubyte lineWidth)
+if (input.N==3)
+{
+    auto x0 = cast(int)start.x;
+    auto y0 = cast(int)start.y;
+    auto x1 = cast(int)end.x;
+    auto y1 = cast(int)end.y;
+
+    auto deltaX = abs(x1 - x0);
+    auto deltaY = abs(y1 - y0);
+    auto signX = x0 < x1 ? 1 : -1;
+    auto signY = y0 < y1 ? 1 : -1;
+    auto error = deltaX - deltaY;
+
+    auto height = input.shape[0];
+    auto width = input.shape[1];
+
+    while (x0 != x1 || y0 != y1)
+    {
+        auto error2 = error * 2;
+        auto newLine = false;
+
+        if (error2 > -deltaY)
+        {
+            error -= deltaY;
+            x0 += signX;
+            newLine = true;
+        }
+
+        if (error2 < deltaX)
+        {
+            error += deltaX;
+            y0 += signY;
+            newLine = true;
+        }
+
+        if (newLine)
+        {
+            auto minX = x0 - lineWidth / 2;
+            auto minY = y0 - lineWidth / 2;
+            auto maxX = x0 + lineWidth / 2;
+            auto maxY = y0 + lineWidth / 2;
+
+            for (int y = minY; y <= maxY; ++y)
+            {
+                for (int x = minX; x <= maxX; ++x)
+                {
+                    if (x >= 0 && x < width && y >= 0 && y < height)
+                    {
+                        auto distance = abs((x - x0) * (y1 - y0) - (y - y0) * (x1 - x0)) / sqrt(float((y1 - y0) * (y1 - y0) + (x1 - x0) * (x1 - x0)));
+
+                        if (distance <= lineWidth / 2)
+                        {
+                            // Set pixel color with alpha blending
+                            for (int i = 0; i < 3; ++i)
+                            {
+                                auto newColor = (color[i] * color[3] + input[y, x, i] * (255 - color[3])) / 255;
+                                input[y, x, i] = cast(ubyte)newColor;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 void putRectangleSolid(InputSlice)(ref InputSlice input, APoint[2] rect, AColor color)
+if (input.N==3)
 {
     auto x0 = cast(int)rect[0].x;
     auto y0 = cast(int)rect[0].y;
@@ -63,6 +131,7 @@ void putRectangleSolid(InputSlice)(ref InputSlice input, APoint[2] rect, AColor 
 }
 
 void putRectangleHollow(InputSlice)(ref InputSlice input, APoint[2] rect, AColor color, ubyte lineWidth)
+if (input.N==3)
 {
     auto x0 = cast(int)rect[0].x;
     auto y0 = cast(int)rect[0].y;
@@ -137,7 +206,8 @@ void putRectangleHollow(InputSlice)(ref InputSlice input, APoint[2] rect, AColor
     }
 }
 
-void drawCircleSolid(InputSlice)(ref InputSlice input, APoint center, float radius, AColor color)
+void putCircleSolid(InputSlice)(ref InputSlice input, APoint center, float radius, AColor color)
+if (input.N==3)
 {
     auto centerX = cast(int)center.x;
     auto centerY = cast(int)center.y;
@@ -169,7 +239,8 @@ void drawCircleSolid(InputSlice)(ref InputSlice input, APoint center, float radi
     }
 }
 
-void drawCircleHollow(InputSlice)(ref InputSlice input, APoint center, float radius, AColor color, ubyte lineWidth)
+void putCircleHollow(InputSlice)(ref InputSlice input, APoint center, float radius, AColor color, ubyte lineWidth)
+if (input.N==3)
 {
     auto centerX = cast(int)center.x;
     auto centerY = cast(int)center.y;
@@ -212,7 +283,7 @@ void drawCircleHollow(InputSlice)(ref InputSlice input, APoint center, float rad
 import dcv.core.ttf;
 
 void putText(InputSlice)(ref InputSlice input, auto ref TtfFont font, in char[] text, APoint position,
-                        int size = 20, AColor color = [255, 0, 0, 255])
+                        int size = 20, AColor color = [255, 0, 0, 255]) if (input.N==3)
 {
     int width, height;
 
