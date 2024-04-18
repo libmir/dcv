@@ -1,14 +1,94 @@
 module dcv.imgproc.annotations;
 
 import std.typecons;
+import std.math;
+
 import mir.ndslice;
 
-alias AColor = ubyte[3]; // RGB
+alias AColor = ubyte[4]; // RGBA
+
+AColor aRed = [255, 0, 0, 255];
+AColor aGreen = [0, 255, 0, 255];
+AColor aBlue = [0, 0, 255, 255];
+AColor aWhite = [255, 255, 255, 255];
+AColor aBlack = [0, 0, 0, 255];
+AColor aYellow = [255, 255, 0, 255];
+AColor aCyan = [0, 255, 255, 255];
+AColor aMagenta = [255, 0, 255, 255];
+
 alias APoint = Tuple!(float, "x", float, "y");
 
 @nogc nothrow:
 
+void putLine(InputSlice)(ref InputSlice input, APoint start, APoint end, AColor color, ubyte lineWidth)
+if (input.N==3)
+{
+    auto x0 = cast(int)start.x;
+    auto y0 = cast(int)start.y;
+    auto x1 = cast(int)end.x;
+    auto y1 = cast(int)end.y;
+
+    auto deltaX = abs(x1 - x0);
+    auto deltaY = abs(y1 - y0);
+    auto signX = x0 < x1 ? 1 : -1;
+    auto signY = y0 < y1 ? 1 : -1;
+    auto error = deltaX - deltaY;
+
+    auto height = input.shape[0];
+    auto width = input.shape[1];
+
+    while (x0 != x1 || y0 != y1)
+    {
+        auto error2 = error * 2;
+        auto newLine = false;
+
+        if (error2 > -deltaY)
+        {
+            error -= deltaY;
+            x0 += signX;
+            newLine = true;
+        }
+
+        if (error2 < deltaX)
+        {
+            error += deltaX;
+            y0 += signY;
+            newLine = true;
+        }
+
+        if (newLine)
+        {
+            auto minX = x0 - lineWidth / 2;
+            auto minY = y0 - lineWidth / 2;
+            auto maxX = x0 + lineWidth / 2;
+            auto maxY = y0 + lineWidth / 2;
+
+            for (int y = minY; y <= maxY; ++y)
+            {
+                for (int x = minX; x <= maxX; ++x)
+                {
+                    if (x >= 0 && x < width && y >= 0 && y < height)
+                    {
+                        auto distance = abs((x - x0) * (y1 - y0) - (y - y0) * (x1 - x0)) / sqrt(float((y1 - y0) * (y1 - y0) + (x1 - x0) * (x1 - x0)));
+
+                        if (distance <= lineWidth / 2)
+                        {
+                            // Set pixel color with alpha blending
+                            for (int i = 0; i < 3; ++i)
+                            {
+                                auto newColor = (color[i] * color[3] + input[y, x, i] * (255 - color[3])) / 255;
+                                input[y, x, i] = cast(ubyte)newColor;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 void putRectangleSolid(InputSlice)(ref InputSlice input, APoint[2] rect, AColor color)
+if (input.N==3)
 {
     auto x0 = cast(int)rect[0].x;
     auto y0 = cast(int)rect[0].y;
@@ -39,10 +119,11 @@ void putRectangleSolid(InputSlice)(ref InputSlice input, APoint[2] rect, AColor 
             if (x >= 0 && x < width &&
                 y >= 0 && y < height)
             {
-                // Set pixel color
+                // Set pixel color with alpha blending
                 for (int i = 0; i < 3; ++i)
                 {
-                    input[y, x, i] = color[i];
+                    auto newColor = (color[i] * color[3] + input[y, x, i] * (255 - color[3])) / 255;
+                    input[y, x, i] = cast(ubyte)newColor;
                 }
             }
         }
@@ -50,6 +131,7 @@ void putRectangleSolid(InputSlice)(ref InputSlice input, APoint[2] rect, AColor 
 }
 
 void putRectangleHollow(InputSlice)(ref InputSlice input, APoint[2] rect, AColor color, ubyte lineWidth)
+if (input.N==3)
 {
     auto x0 = cast(int)rect[0].x;
     auto y0 = cast(int)rect[0].y;
@@ -83,14 +165,16 @@ void putRectangleHollow(InputSlice)(ref InputSlice input, APoint[2] rect, AColor
             {
                 for (int j = 0; j < 3; ++j)
                 {
-                    input[topY, x, j] = color[j];
+                    auto newColor = (color[j] * color[3] + input[topY, x, j] * (255 - color[3])) / 255;
+                    input[topY, x, j] = cast(ubyte)newColor;
                 }
             }
             if (bottomY >= 0 && bottomY < height)
             {
                 for (int j = 0; j < 3; ++j)
                 {
-                    input[bottomY, x, j] = color[j];
+                    auto newColor = (color[j] * color[3] + input[bottomY, x, j] * (255 - color[3])) / 255;
+                    input[bottomY, x, j] = cast(ubyte)newColor;
                 }
             }
         }
@@ -106,14 +190,90 @@ void putRectangleHollow(InputSlice)(ref InputSlice input, APoint[2] rect, AColor
             {
                 for (int j = 0; j < 3; ++j)
                 {
-                    input[y, leftX, j] = color[j];
+                    auto newColor = (color[j] * color[3] + input[y, leftX, j] * (255 - color[3])) / 255;
+                    input[y, leftX, j] = cast(ubyte)newColor;
                 }
             }
             if (rightX >= 0 && rightX < width)
             {
                 for (int j = 0; j < 3; ++j)
                 {
-                    input[y, rightX, j] = color[j];
+                    auto newColor = (color[j] * color[3] + input[y, rightX, j] * (255 - color[3])) / 255;
+                    input[y, rightX, j] = cast(ubyte)newColor;
+                }
+            }
+        }
+    }
+}
+
+void putCircleSolid(InputSlice)(ref InputSlice input, APoint center, float radius, AColor color)
+if (input.N==3)
+{
+    auto centerX = cast(int)center.x;
+    auto centerY = cast(int)center.y;
+
+    auto height = input.shape[0];
+    auto width = input.shape[1];
+
+    auto sqrRadius = radius * radius;
+
+    for (int y = centerY - cast(int)radius; y <= centerY + radius; ++y)
+    {
+        for (int x = centerX - cast(int)radius; x <= centerX + radius; ++x)
+        {
+            if (x >= 0 && x < width &&
+                y >= 0 && y < height)
+            {
+                auto distanceSquared = (x - centerX) * (x - centerX) + (y - centerY) * (y - centerY);
+                if (distanceSquared <= sqrRadius)
+                {
+                    // Set pixel color with alpha blending
+                    for (int i = 0; i < 3; ++i)
+                    {
+                        auto newColor = (color[i] * color[3] + input[y, x, i] * (255 - color[3])) / 255;
+                        input[y, x, i] = cast(ubyte)newColor;
+                    }
+                }
+            }
+        }
+    }
+}
+
+void putCircleHollow(InputSlice)(ref InputSlice input, APoint center, float radius, AColor color, ubyte lineWidth)
+if (input.N==3)
+{
+    auto centerX = cast(int)center.x;
+    auto centerY = cast(int)center.y;
+
+    auto height = input.shape[0];
+    auto width = input.shape[1];
+
+    auto sqrRadius = radius * radius;
+
+    for (int y = centerY - cast(int)radius; y <= centerY + radius; ++y)
+    {
+        for (int x = centerX - cast(int)radius; x <= centerX + radius; ++x)
+        {
+            if (x >= centerX - lineWidth && x <= centerX + lineWidth &&
+                y >= centerY - lineWidth && y <= centerY + lineWidth)
+            {
+                continue; // Skip pixels within the line width area
+            }
+
+            if (x >= 0 && x < width &&
+                y >= 0 && y < height)
+            {
+                auto distanceSquared = (x - centerX) * (x - centerX) + (y - centerY) * (y - centerY);
+                auto distance = sqrt(float(distanceSquared));
+
+                if (distance >= radius - lineWidth && distance <= radius)
+                {
+                    // Set pixel color with alpha blending
+                    for (int i = 0; i < 3; ++i)
+                    {
+                        auto newColor = (color[i] * color[3] + input[y, x, i] * (255 - color[3])) / 255;
+                        input[y, x, i] = cast(ubyte)newColor;
+                    }
                 }
             }
         }
@@ -123,7 +283,7 @@ void putRectangleHollow(InputSlice)(ref InputSlice input, APoint[2] rect, AColor
 import dcv.core.ttf;
 
 void putText(InputSlice)(ref InputSlice input, auto ref TtfFont font, in char[] text, APoint position,
-                        int size = 20, AColor color = [255, 0, 0])
+                        int size = 20, AColor color = [255, 0, 0, 255]) if (input.N==3)
 {
     int width, height;
 
@@ -148,12 +308,14 @@ void putText(InputSlice)(ref InputSlice input, auto ref TtfFont font, in char[] 
                 inputY >= 0 && inputY < input.shape[0])
             {
                 immutable textPixel = textImg2D[y, x];
+                immutable alpha = color[3] * textPixel / 255; // Adjust alpha based on textPixel
 
-                if (textPixel != 0)
+                if (alpha != 0)
                 {
                     for (int i = 0; i < 3; ++i)
                     {
-                        input[inputY, inputX, i] = cast(ubyte)((color[i] * textPixel + input[inputY, inputX, i] * (255 - textPixel)) / 255);
+                        auto newColor = (color[i] * alpha + input[inputY, inputX, i] * (255 - alpha)) / 255;
+                        input[inputY, inputX, i] = cast(ubyte)newColor;
                     }
                 }
             }
