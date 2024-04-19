@@ -602,6 +602,10 @@ class Figure
         }
     }
 
+    RCArray!ubyte data(){
+        return _data; 
+    }
+
     /// Assign mouse callback function.
     Figure setMouseCallback(MouseCallback clbck)
     {
