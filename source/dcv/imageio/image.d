@@ -437,7 +437,7 @@ Image imreadImpl_imageformats(in string path, ReadParams params)
                 }
             }
             
-            if (gimage.errored){
+            if (gimage.isError){
                 import core.stdc.stdio : printf;
                 debug printf("Gamut error: %s\n", gimage.errorMessage.ptr);
                 destroyFree(im);
@@ -455,7 +455,7 @@ Image imreadImpl_imageformats(in string path, ReadParams params)
                 }
             }
             
-            if (gimage.errored){
+            if (gimage.isError){
                 import core.stdc.stdio : printf;
                 debug printf("Gamut error: %s\n", gimage.errorMessage.ptr);
                 destroyFree(im);
