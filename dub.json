@@ -57,7 +57,7 @@
             ],
             "dependencies":{
                 "dcv:core": "*",
-                "gamut": "~>1.0.0"
+                "gamut": "~>2.6.0"
             },
             "buildTypes": {
                 "unittest-release": {
