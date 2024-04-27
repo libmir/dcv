@@ -1,3 +1,9 @@
+/** Authors: dbarac (the original implementor)
+
+    Converted from the original C++ implementation:
+        https://github.com/dbarac/sift-cpp
+*/
+
 module dcv.features.sift;
 
 import std.array;
