@@ -1,0 +1,17 @@
+{
+    "authors": [
+        "Ferhat Kurtulmuş"
+    ],
+    "copyright": "Copyright © 2024, Ferhat Kurtulmuş",
+    "description": "Compute SIFT features and do point matching between two images",
+    "license": "boost 1.0",
+    "name": "siftmatching",
+    "dependencies": {
+        "dcv:core": {"path": "../../"},
+        "dcv:plot": {"path": "../../"},
+        "dcv:imageio": {"path": "../../"}
+    },
+    "subConfigurations": {
+        "dcv:plot": "use-glfw-d"
+    }
+}

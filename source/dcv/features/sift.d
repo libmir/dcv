@@ -1,5 +1,6 @@
 /** Authors: dbarac (the original implementor)
-
+    
+    Translated to dlang by Ferhat Kurtulmuş
     Converted from the original C++ implementation:
         https://github.com/dbarac/sift-cpp
 */
