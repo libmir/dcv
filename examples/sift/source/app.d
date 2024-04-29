@@ -52,7 +52,7 @@ void main()
     immutable AColor[8] colors = [aRed,aGreen,aBlue,aWhite,aBlack,aYellow,aCyan,aMagenta];
 
     size_t colorInd;
-    foreach (kp1i, kp2i; matches) {
+    foreach (kp1i, kp2i, _distQuality; matches) {
         auto startPoint = keypoints1[kp1i]; // a keypoint from image1
         auto endPoint = keypoints2[kp2i];   // Corresponding keypoint from image2
 
