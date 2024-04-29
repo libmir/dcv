@@ -94,10 +94,13 @@ Array!SIFTKeypoint find_sift_keypoints_and_descriptors(InputSlice)(auto ref Inpu
     }
     return kps.move;
 }
+
+alias SIFTmatch = Tuple!(int, "index1", int, "index2", float, "distance");
+
 /++
     Returns an Array containing matched indices of the given SIFTKeypoints.
 +/
-Array!(Tuple!(int, int))
+Array!SIFTmatch
 find_sift_keypoint_matches(const ref Array!SIFTKeypoint a,
                         const ref Array!SIFTKeypoint b,
                         float thresh_relative = THRESH_RELATIVE,
@@ -105,7 +108,7 @@ find_sift_keypoint_matches(const ref Array!SIFTKeypoint a,
 {
     assert(a.length >= 2 && b.length >= 2);
 
-    Array!(Tuple!(int, int)) matches;
+    Array!SIFTmatch matches;
 
     for (int i = 0; i < a.length; i++)
     {
@@ -128,7 +131,7 @@ find_sift_keypoint_matches(const ref Array!SIFTKeypoint a,
         }
         if (nn1_dist < thresh_relative * nn2_dist && nn1_dist < thresh_absolute)
         {
-            matches ~= tuple(i, nn1_idx);
+            matches ~= SIFTmatch(i, nn1_idx, nn1_dist);
         }
     }
     return matches.move;
