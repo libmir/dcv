@@ -1,0 +1,32 @@
+{
+	"authors": [
+		"user"
+	],
+	"copyright": "Copyright © 2023, Ferhat Kurtulmuş",
+	"description": "Image stitching using RANSAC homography estimation",
+	"license": "boost 1.0",
+	"name": "imagestitchinghomography",
+	"dependencies": {
+		"dcv:core": {
+			"path": "../../"
+		},
+		"dcv:plot": {
+			"path": "../../"
+		},
+		"dcv:imageio": {
+			"path": "../../"
+		},
+		"dcv:linalg": {
+			"path": "../../"
+		}
+		
+	},
+	"comment1": "Please modify the below linkage setting according to your system",
+	"comment2": "See https://github.com/libmir/mir-lapack/wiki/Link-with-CBLAS-&-LAPACK.",
+	"dflags": [
+		"-L-LD:/Program Files (x86)/Intel/oneAPI/mkl/2024.1/lib"
+	],
+	"subConfigurations": {
+		"dcv:plot": "use-glfw-d"
+	}
+}

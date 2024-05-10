@@ -50,6 +50,27 @@
             }
         },
         {
+            "name": "linalg",
+            "description": "A small wrapper to kaleidic.lubeck and image processing algorithms utilizing linear algebra",
+            "sourcePaths": [
+                "source/dcv/linalg"
+            ],
+            "comment1": "Required linkage must be provided in user code.",
+            "comment2": "See https://github.com/libmir/mir-lapack/wiki/Link-with-CBLAS-&-LAPACK.",
+            "dependencies": {
+                "dcv:core": "*",
+                "lubeck": {
+                    "repository": "git+https://github.com/aferust/lubeck",
+			        "version": "5a15ac5"
+                }
+            },
+            "buildTypes": {
+                "unittest-release": {
+                    "buildOptions": ["unittests", "releaseMode", "optimize", "inline"]
+                }
+            }
+        },
+        {
             "name": "imageio",
             "description": "Image I/O package.",
             "sourcePaths": [

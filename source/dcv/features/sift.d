@@ -21,6 +21,7 @@ import mir.ndslice;
 import mir.rc;
 
 import dcv.core;
+import dcv.features.utils;
 
 struct SIFTKeypoint {
     // discrete coordinates
@@ -45,7 +46,7 @@ struct SIFTKeypoint {
     input slice's pixel value range must be 0-255 (not limited to ubyte). Agnostic to Slice kind (Contigous, Universal or whatsoever). 
     Returns a keypoints vector.
 +/
-Array!SIFTKeypoint find_sift_keypoints_and_descriptors(InputSlice)(auto ref InputSlice inputSlice, 
+Array!SIFTKeypoint find_SIFTKeypointsAndDescriptors(InputSlice)(auto ref InputSlice inputSlice, 
                                                 float sigma_min=SIGMA_MIN,
                                                 int num_octaves=N_OCT, 
                                                 int scales_per_octave=N_SPO, 
@@ -95,48 +96,6 @@ Array!SIFTKeypoint find_sift_keypoints_and_descriptors(InputSlice)(auto ref Inpu
     return kps.move;
 }
 
-alias SIFTmatch = Tuple!(int, "index1", int, "index2", float, "distance");
-
-/++
-    Returns an Array containing matched indices of the given SIFTKeypoints.
-+/
-Array!SIFTmatch
-find_sift_keypoint_matches(const ref Array!SIFTKeypoint a,
-                        const ref Array!SIFTKeypoint b,
-                        float thresh_relative = THRESH_RELATIVE,
-                        float thresh_absolute = THRESH_ABSOLUTE)
-{
-    assert(a.length >= 2 && b.length >= 2);
-
-    Array!SIFTmatch matches;
-
-    for (int i = 0; i < a.length; i++)
-    {
-        // find two nearest neighbours in b for current keypoint from a
-        int nn1_idx = -1;
-        float nn1_dist = 100000000, nn2_dist = 100000000;
-        for (int j = 0; j < b.length; j++)
-        {
-            float dist = euclidean_dist(a[i].descriptor, b[j].descriptor);
-            if (dist < nn1_dist)
-            {
-                nn2_dist = nn1_dist;
-                nn1_dist = dist;
-                nn1_idx = j;
-            }
-            else if (nn1_dist <= dist && dist < nn2_dist)
-            {
-                nn2_dist = dist;
-            }
-        }
-        if (nn1_dist < thresh_relative * nn2_dist && nn1_dist < thresh_absolute)
-        {
-            matches ~= SIFTmatch(i, nn1_idx, nn1_dist);
-        }
-    }
-    return matches.move;
-}
-
 package:
 
 struct ScaleSpacePyramid {
@@ -173,10 +132,6 @@ public enum LAMBDA_ORI = 1.5f;
 enum N_HIST = 4;
 enum N_ORI = 8;
 public enum LAMBDA_DESC = 6.0f;
-
-// feature matching
-enum THRESH_ABSOLUTE = 350.0f;
-enum THRESH_RELATIVE = 0.7f;
 
 ScaleSpacePyramid generate_gaussian_pyramid(InputSlice)(const ref InputSlice img, float sigma_min = SIGMA_MIN,
                                             int num_octaves = N_OCT, int scales_per_octave = N_SPO)
@@ -746,15 +701,4 @@ float bilinear_interpolate(S)(const ref S img, float x, float y)
 float nn_interpolate(S)(const ref S img, float x, float y)
 {
     return img.getPixel(cast(int)round(y), cast(int)round(x));
-}
-
-float euclidean_dist(const ref ubyte[128] a, const ref ubyte[128] b)
-{
-    float dist = 0;
-    for (int i = 0; i < 128; i++)
-    {
-        int di = cast(int)a[i] - b[i];
-        dist += di * di;
-    }
-    return sqrt(dist);
 }

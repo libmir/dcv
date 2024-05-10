@@ -3,7 +3,7 @@ Module contains utilities common for all algorithms which operate with feature p
 
 Copyright: Copyright Relja Ljubobratovic 2016.
 
-Authors: Relja Ljubobratovic
+Authors: Relja Ljubobratovic, Ferhat Kurtulmuş
 
 License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
 */
@@ -11,6 +11,9 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 module dcv.features.utils;
 
 import std.traits : isNumeric;
+import std.typecons : Tuple;
+import std.math;
+public import std.container.array : Array;
 
 import mir.ndslice;
 import mir.rc;
@@ -50,7 +53,8 @@ Returns:
     Lazy array of size_t[2], as in array of 2D points, of corner reponses
     which fit the given criteria.
 */
-@nogc nothrow
+@nogc nothrow:
+
 auto extractCorners(T)
 (
     Slice!(T*, 2, Contiguous) cornerResponse,
@@ -155,4 +159,76 @@ unittest
 
     assert(res.length == 1);
     assert(res[0] == [1, 1]);
+}
+
+/++
+    Returns euclidean distance between feature descriptor vectors.
+    Only SIFT is supported at the moments.
++/
+double euclideanDistBetweenDescriptors(DescriptorValueType)(const DescriptorValueType[] desc1, const DescriptorValueType[] desc2) 
+{
+    double sum = 0;
+    foreach (i; 0 .. desc1.length) {
+        const diff = desc1[i] - desc2[i];
+        sum += diff * diff;
+    }
+    return sum.sqrt;
+}
+
+alias FeatureMatch = Tuple!(int, "index1", int, "index2", double, "distNearestNeighbor", double, "nearestNeighborDistanceRatio");
+/++
+    Returns an Array containing matched indices of the given Keypoints with brute force approach.
++/
+Array!FeatureMatch
+find_MatchingPointsBruteForce(KeyPoint)(const ref Array!KeyPoint keypoints1,
+                     const ref Array!KeyPoint keypoints2, double threshold = 0.5)
+{
+    const num_keypoints1 = cast(int)keypoints1.length;
+    auto vec_dim = keypoints1[0].descriptor.length;
+    
+    const num_keypoints2 = cast(int)keypoints2.length;
+
+    Array!FeatureMatch matches;
+
+    foreach(int index1; 0..num_keypoints1)
+    {
+        auto desc1 = keypoints1[index1].descriptor[];
+
+        const(ubyte)[] nearest_n1;
+        int nearest_n1_index = -1;
+        double nearest_n1_dist = 100000000;
+
+        const(ubyte)[] nearest_n2;
+        int nearest_n2_index = -1;
+        double nearest_n2_dist = 100000000;
+
+        foreach(int index2; 0..num_keypoints2){
+            auto desc2 = keypoints2[index2].descriptor[];
+
+            double temp_dist = euclideanDistBetweenDescriptors(desc1, desc2);
+
+            if (temp_dist < nearest_n1_dist)
+            {
+                nearest_n2 = nearest_n1;
+                nearest_n2_index = nearest_n1_index;
+                nearest_n2_dist = nearest_n1_dist;
+                
+                nearest_n1 = desc2[];
+                nearest_n1_index = index2;
+                nearest_n1_dist = temp_dist;
+            }else if (temp_dist < nearest_n2_dist)
+            {
+                nearest_n2 = desc2[];
+                nearest_n2_index = index2;
+                nearest_n2_dist = temp_dist;
+            }
+        }
+
+        double nndr = nearest_n1_dist / nearest_n2_dist;
+
+        if (nndr < threshold)
+            matches ~= FeatureMatch(index1, nearest_n1_index, nearest_n1_dist, nndr);
+    }
+
+    return matches;
 }
