@@ -40,11 +40,12 @@ void main()
     Array!(Slice!(RCI!ubyte, 3)) images;
     Array!(Array!SIFTKeypoint) sift_keypoints;
 
-    foreach(path; image_paths){
+    foreach(i, path; image_paths){
 
         // read images from disk
         auto image = imread(path);
 
+        printf("    Computing SIFT features...[%lld]\n", i);
         // Detect keypoints and compute descriptors for a image and add it to a vector
         Array!SIFTKeypoint sift_keypoints_i = find_SIFTKeypointsAndDescriptors(image.sliced);
         images ~= image.sliced.rcslice; // because we are in a loop body just make a refcounted copy and append it to the vector
@@ -61,10 +62,11 @@ void main()
 
     foreach(i; 0..images.length -1)
     {
-        debug writeln("    Finding feature match points... [", i, ']');
+        printf("    Finding feature match points... [%lld]\n", i);
         // Match the descriptors using brute-force matching
         auto matches = find_MatchingPointsBruteForce(sift_keypoints[i+1], sift_keypoints[i], nndr_threshold);
 
+        printf("    Estimating the homography matrix between %lld and %lld\n", i+1, i);
         // Estimate the homography matrix using RANSAC
         auto rtup = estimateHomographyRANSAC(sift_keypoints[i+1], sift_keypoints[i], matches, 
             min_points, req_points, gn_iters, max_iters, ransac_threshold);
@@ -73,7 +75,7 @@ void main()
 
         H ~= H_i;
 
-        debug writeln("    Stitcing images... [", i, ']');
+        printf("    Stitcing images... [%lld]\n", i);
 
         // stitch the images based on the computed homography using perspective transform implicitly
         auto stup = stitch(images[i+1], _out, H, r_shift, c_shift, estimation_iters);

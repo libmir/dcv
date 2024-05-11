@@ -25,7 +25,7 @@ import dcv.features.utils : FeatureMatch;
 Tuple!(Slice!(RCI!double), Slice!(RCI!double))
 applyHomography(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, const ref Slice!(RCI!double, 2) H)
 {
-    auto D = H[2,0] * x[] + H[2,1] * y[] + 1.0f;
+    auto D = H[2,0] * x[] + H[2,1] * y[] + 1.0;
     auto xs = ((H[0,0] * x[] + H[0,1] * y[] + H[0,2]) / D[]).rcslice;
     auto ys = ((H[1,0] * x[] + H[1,1] * y[] + H[1,2]) / D[]).rcslice;
 
@@ -35,7 +35,7 @@ applyHomography(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, 
 Tuple!(double, double)
 applyHomography(double x, double y, const ref Slice!(RCI!double, 2) H)
 {
-    auto D = H[2,0] * x + H[2,1] * y + 1.0f;
+    auto D = H[2,0] * x + H[2,1] * y + 1.0;
     double xs = (H[0,0] * x + H[0,1] * y + H[0,2]) / D;
     double ys = (H[1,0] * x + H[1,1] * y + H[1,2]) / D;
 
@@ -46,20 +46,20 @@ Slice!(RCI!double, 2)
 applyHomographyJacobian(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, const ref Slice!(RCI!double, 2) H){
 
     const N = x.shape[0];
-    auto J = rcslice!double([2*N, 8], 0.0f);
-    auto D = H[2,0] * x[] + H[2,1] * y[] + 1.0f;
+    auto J = rcslice!double([2*N, 8], 0.0);
+    auto D = H[2,0] * x[] + H[2,1] * y[] + 1.0;
     auto xs = (H[0,0] * x[] + H[0,1] * y[] + H[0,2]) / D[];
     auto ys = (H[1,0] * x[] + H[1,1] * y[] + H[1,2]) / D[];
 
     J[0..N,0] = x[] / D[];
     J[0..N,1] = y[] / D[];
-    J[0..N,2] = 1.0f / D[];
+    J[0..N,2] = 1.0 / D[];
     J[0..N,6] = - x[] * xs[];
     J[0..N,7] = - y[] * ys[];
 
     J[N..2*N,3] = x[] / D[];
     J[N..2*N,4] = y[] / D[];
-    J[N..2*N,5] = 1.0f / D[];
+    J[N..2*N,5] = 1.0 / D[];
     J[N..2*N,6] = - x[] * xs[];
     J[N..2*N,7] = - y[] * ys[];
 
@@ -73,8 +73,8 @@ findHomography(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, c
     // x,y,xp&yp-> N-by-1
     import kaleidic.lubeck2 : pinv;
 
-    auto H = rcslice!double([3,3], 0.0f);
-    H[2,2] = 1.0f;
+    auto H = rcslice!double([3,3], 0.0);
+    H[2,2] = 1.0;
 
     foreach(_; 0..iters)
     {
@@ -181,33 +181,63 @@ auto estimateHomographyRANSAC(KeyPoint)(const ref Array!KeyPoint keypoints1,
         // Add good fit points to inliers
 
         auto idx = zip(r_oth, iota(r_oth.length), ransac_threshold.repeat(r_oth.length))
-            .filter!(x => x.a < x.c).map!(a => a.b).rcarray.moveToSlice;
+            .filter!(x => x.a < x.c).map!(a => a.b).rcarray;
 
-        if (idx.shape[0] > 0)
+        if (idx.length > 0)
         {
             auto _x_inl = uninitRCslice!double(x_inl.shape[0] + idx.length);
             _x_inl[0..x_inl.length] = x_inl[];
-            _x_inl[x_inl.length..$] = idx.lightScope.rcmap!(a => x_oth[a]).asSlice;
+            {
+                size_t kk = 0;
+                foreach(_id; idx[]){
+                    _x_inl[(kk++) + x_inl.length] = x_oth[_id];
+                }
+            }
+            //_x_inl[x_inl.length..$] = idx.lightScope.rcmap!(a => x_oth[a]).asSlice;
             x_inl = _x_inl;
 
             auto _y_inl = uninitRCslice!double(y_inl.shape[0] + idx.length);
             _y_inl[0..y_inl.length] = y_inl[];
-            _y_inl[y_inl.length..$] = idx.lightScope.rcmap!(a => y_oth[a]).asSlice;
+            {
+                size_t kk = 0;
+                foreach(_id; idx[]){
+                    _y_inl[(kk++) + y_inl.length] = y_oth[_id];
+                }
+            }
+            //_y_inl[y_inl.length..$] = idx.lightScope.rcmap!(a => y_oth[a]).asSlice;
             y_inl = _y_inl;
 
             auto _xp_inl = uninitRCslice!double(xp_inl.shape[0] + idx.length);
             _xp_inl[0..xp_inl.length] = xp_inl[];
-            _xp_inl[xp_inl.length..$] = idx.lightScope.rcmap!(a => xp_oth[a]).asSlice;
+            {
+                size_t kk = 0;
+                foreach(_id; idx[]){
+                    _xp_inl[(kk++) + xp_inl.length] = xp_oth[_id];
+                }
+            }
+            //_xp_inl[xp_inl.length..$] = idx.lightScope.rcmap!(a => xp_oth[a]).asSlice;
             xp_inl = _xp_inl;
 
             auto _yp_inl = uninitRCslice!double(yp_inl.shape[0] + idx.length);
             _yp_inl[0..yp_inl.length] = yp_inl[];
-            _yp_inl[yp_inl.length..$] = idx.lightScope.rcmap!(a => yp_oth[a]).asSlice;
+            {
+                size_t kk = 0;
+                foreach(_id; idx[]){
+                    _yp_inl[(kk++) + yp_inl.length] = yp_oth[_id];
+                }
+            }
+            //_yp_inl[yp_inl.length..$] = idx.lightScope.rcmap!(a => yp_oth[a]).asSlice;
             yp_inl = _yp_inl;
 
             auto _idx_inl = uninitRCslice!size_t(idx_inl.shape[0] + idx.length);
             _idx_inl[0..idx_inl.length] = idx_inl[];
-            _idx_inl[idx_inl.length..$] = idx.lightScope.rcmap!(a => idx_oth[a]).asSlice;
+            {
+                size_t kk = 0;
+                foreach(_id; idx[]){
+                    _idx_inl[(kk++) + idx_inl.length] = idx_oth[_id];
+                }
+            }
+            //_idx_inl[idx_inl.length..$] = idx.lightScope.rcmap!(a => idx_oth[a]).asSlice;
             idx_inl = _idx_inl;
         }
 
@@ -399,7 +429,7 @@ auto stitch(InputSlice1, InputSlice2)
         foreach(c; 0..out_cols){
             if (out_map1[r,c]){
                 if (out_map2[r,c]){
-                    _out[r,c,0..$] = ((_out[r,c,0..$].as!double + out_temp[r,c,0..$].as!double) / 2.0f).as!ubyte;
+                    _out[r,c,0..$] = ((_out[r,c,0..$].as!double + out_temp[r,c,0..$].as!double) / 2.0).as!ubyte;
                 }else{
                     _out[r,c,0..$] = out_temp[r,c,0..$];
                 }
@@ -453,7 +483,7 @@ auto get_random_inliers()(const ref Slice!(RCI!double) x, const ref Slice!(RCI!d
     import mir.appender: scopedBuffer;
 
     auto outBuff = scopedBuffer!size_t;
-    foreach (id; iota(x.length).as!size_t[])
+    foreach (id; 0..x.length)
     {
         if(!canFind(inliers_idx[], id)){
             outBuff.put(id);
@@ -473,12 +503,6 @@ auto get_random_inliers()(const ref Slice!(RCI!double) x, const ref Slice!(RCI!d
     auto y_outliers = outliers_idx.rcmap!(a => cast(double)y[a]).moveToSlice;
     auto xp_outliers = outliers_idx.rcmap!(a => cast(double)xp[a]).moveToSlice;
     auto yp_outliers = outliers_idx.rcmap!(a => cast(double)yp[a]).moveToSlice;
-
-
-    //auto inliers = tuple(x_inliers, y_inliers, xp_inliers, yp_inliers);
-    //auto outliers = tuple(x_outliers, y_outliers, xp_outliers, yp_outliers);
-
-    //return tuple(inliers, inliers_idx, outliers, outliers_idx); // compiler error, is nested tuples not possible?
 
     return tuple(
         x_inliers, y_inliers, xp_inliers, yp_inliers,
@@ -513,7 +537,7 @@ auto get_random_inliers_with_index(const ref Slice!(RCI!double) x, const ref Sli
     import mir.appender: scopedBuffer;
 
     auto outBuff = scopedBuffer!size_t;
-    foreach (id; idx[])
+    foreach (id; 0..x.length)
     {
         if(!canFind(inliers_idx[], id)){
             outBuff.put(id);
@@ -533,12 +557,6 @@ auto get_random_inliers_with_index(const ref Slice!(RCI!double) x, const ref Sli
     auto y_outliers = outliers_idx.rcmap!(a => cast(double)y[a]).moveToSlice;
     auto xp_outliers = outliers_idx.rcmap!(a => cast(double)xp[a]).moveToSlice;
     auto yp_outliers = outliers_idx.rcmap!(a => cast(double)yp[a]).moveToSlice;
-
-
-    //auto inliers = tuple(x_inliers, y_inliers, xp_inliers, yp_inliers);
-    //auto outliers = tuple(x_outliers, y_outliers, xp_outliers, yp_outliers);
-
-    //return tuple(inliers, inliers_idx, outliers, outliers_idx); // compiler error, is nested tuples not possible?
 
     return tuple(
         x_inliers, y_inliers, xp_inliers, yp_inliers,
