@@ -163,7 +163,6 @@ unittest
 
 /++
     Returns euclidean distance between feature descriptor vectors.
-    Only SIFT is supported at the moments.
 +/
 double euclideanDistBetweenDescriptors(DescriptorValueType)(const DescriptorValueType[] desc1, const DescriptorValueType[] desc2) 
 {

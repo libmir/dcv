@@ -383,25 +383,40 @@ auto stitch(InputSlice1, InputSlice2)
                 auto patch_map = out_temp_map[r-1..r+2, c-1..c+2];
 
                 if (out_temp_map[r, c] == false && !patch_map.all!(aa => aa == false)) {
-                    uint[3] medianPixel;
-                    uint count = 0;
+
+                    // compute median pixel based on the neighbor pixels
+
+                    import mir.appender : scopedBuffer;
+                    import mir.ndslice.sorting : sort;
+                    import std.array : staticArray;
+
+                    auto accumChannel0 = scopedBuffer!ubyte;
+                    auto accumChannel1 = scopedBuffer!ubyte;
+                    auto accumChannel2 = scopedBuffer!ubyte;
+                    
                     foreach (i; 0..patch.shape[0])
                     {
                         foreach (j; 0..patch.shape[1])
                         {
                             if (patch_map[i, j] == true)
                             {
-                                medianPixel[0] += cast(uint)patch[i,j,0];
-                                medianPixel[1] += cast(uint)patch[i,j,1];
-                                medianPixel[2] += cast(uint)patch[i,j,2];
-                                count++;
+                                accumChannel0.put(patch[i,j,0]);
+                                accumChannel1.put(patch[i,j,1]);
+                                accumChannel2.put(patch[i,j,2]);
                             }
                         }
                     }
                     
-                    medianPixel[] /= count;
+                    accumChannel0.data.sliced.sort;
+                    accumChannel1.data.sliced.sort;
+                    accumChannel2.data.sliced.sort;
 
-                    out_temp[r, c, 0..$] = medianPixel[].sliced.as!ubyte;
+                    const midIndex = accumChannel0.data.length / 2;
+
+                    out_temp[r, c, 0..$] = [
+                        accumChannel0.data[midIndex],
+                        accumChannel1.data[midIndex],
+                        accumChannel2.data[midIndex]].staticArray[];
                     out_map1[r, c] = true;
                 }
             }
