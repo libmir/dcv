@@ -61,7 +61,7 @@
                 "dcv:core": "*",
                 "lubeck": {
                     "repository": "git+https://github.com/aferust/lubeck",
-			        "version": "508a25a"
+			        "version": "455dd4d"
                 }
             },
             "buildTypes": {

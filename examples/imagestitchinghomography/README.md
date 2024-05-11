@@ -44,18 +44,19 @@ void main()
 
         // read images from disk
         auto image = imread(path);
+        images ~= image.sliced.rcslice; // because we are in a loop body just make a refcounted copy and append it to the vector
 
         printf("    Computing SIFT features...[%lld]\n", i);
         // Detect keypoints and compute descriptors for a image and add it to a vector
-        Array!SIFTKeypoint sift_keypoints_i = find_SIFTKeypointsAndDescriptors(image.sliced);
-        images ~= image.sliced.rcslice; // because we are in a loop body just make a refcounted copy and append it to the vector
+        Array!SIFTKeypoint sift_keypoints_i = find_SIFTKeypointsAndDescriptors(images.back);
+        
         sift_keypoints ~= sift_keypoints_i;
         destroyFree(image); // free the instance of Image
     }
 
     Slice!(RCI!ubyte, 3) _out = images[0];
 
-    Array!(Slice!(RCI!double, 2)) H;
+    Array!(Slice!(RCI!double, 2)) homographyMatrices;
 
     int r_shift = 0;
     int c_shift = 0;
@@ -73,12 +74,12 @@ void main()
 
         auto H_i = rtup[0];
 
-        H ~= H_i;
+        homographyMatrices ~= H_i;
 
         printf("    Stitcing images... [%lld]\n", i);
 
         // stitch the images based on the computed homography using perspective transform implicitly
-        auto stup = stitch(images[i+1], _out, H, r_shift, c_shift, estimation_iters);
+        auto stup = stitch(images[i+1], _out, homographyMatrices, r_shift, c_shift, estimation_iters);
         _out = stup[0];
         r_shift = stup[1];
         c_shift = stup[2];

@@ -94,19 +94,18 @@ findHomography(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, c
         auto J = applyHomographyJacobian(x,y,H);
         
         // Compute update via linear least squares
-        // delta = np.linalg.pinv(J.transpose() @ J) @ J.transpose() @ r
+        size_t errResponse;
         auto JT = J.transposed;
-        auto delta = pinv(mtimes(JT, J)).mtimes(JT).mtimes(r);
-
+        auto delta = pinv(mtimes(JT, J), errResponse).mtimes(JT).mtimes(r);
+        
+        enum msg = "pinv: pinv was not successful due to a convergence issue during SVD calculation.";
+        assert(!errResponse, msg);
+        
+        // Update homography matrix
         auto newDelta = uninitRCslice!double(delta.shape[0]+1);
         newDelta[0..delta.length] = delta[];
         newDelta[$-1] = 0;
         
-        // Update homography matrix
-        /*int err;
-        auto deltaMat = newDelta.reshape([3, 3], err);
-        assert(err == 0);*/
-
         H.flattened[] -= newDelta[];
     }
     return H;
