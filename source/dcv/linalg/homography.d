@@ -114,8 +114,10 @@ findHomography(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, c
 auto estimateHomographyRANSAC(KeyPoint)(const ref Array!KeyPoint keypoints1,
             const ref Array!KeyPoint keypoints2,
             const ref Array!FeatureMatch matches,
+            double inlier_ratio_threshold = 0.8,
             size_t min_points = 10, size_t req_points = 20, 
-            size_t gn_iters = 100, size_t max_iters = 1000, double ransac_threshold = 3)
+            size_t gn_iters = 100, size_t max_iters = 1000,
+            double ransac_threshold = 3)
 {
 
     auto H_best = Slice!(RCI!double, 2)();
@@ -267,6 +269,15 @@ auto estimateHomographyRANSAC(KeyPoint)(const ref Array!KeyPoint keypoints1,
                 yp_best = yp_inl;
                 idx_best = idx_inl;
             }
+        }
+
+        double inlier_ratio = cast(double)x_inl.shape[0] / cast(double)x.shape[0];
+
+        // Check if the inlier ratio exceeds the threshold
+        if (inlier_ratio >= inlier_ratio_threshold)
+        {
+            // We've found a sufficiently good solution, so we can stop iterating
+            break;
         }
     }
     return tuple(H_best, x_best, y_best, xp_best, yp_best, idx_best);

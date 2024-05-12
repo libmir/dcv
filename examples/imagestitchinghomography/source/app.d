@@ -23,6 +23,9 @@ string[2] image_paths = ["../data/stitching/im89.jpg", "../data/stitching/im90.j
 void main()
 {
     double nndr_threshold=0.5;
+    // early stop criteria for RANSAC iteration to speed up.
+    // lower values for faster computation, higher values for accuracy
+    double inlier_ratio_threshold = 0.8;
     size_t min_points=10;
     size_t req_points=20;
     size_t gn_iters=100;
@@ -63,7 +66,7 @@ void main()
 
         printf("    Estimating the homography matrix between %lld and %lld\n", i+1, i);
         // Estimate the homography matrix using RANSAC
-        auto rtup = estimateHomographyRANSAC(sift_keypoints[i+1], sift_keypoints[i], matches, 
+        auto rtup = estimateHomographyRANSAC(sift_keypoints[i+1], sift_keypoints[i], matches, inlier_ratio_threshold,
             min_points, req_points, gn_iters, max_iters, ransac_threshold);
 
         auto H_i = rtup[0];
