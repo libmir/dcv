@@ -10,10 +10,7 @@ import dcv.core;
 import dcv.imgproc;
 import dcv.imageio;
 import dcv.plot;
-import dcv.features.sift;
-
-
-// https://github.com/dbarac/sift-cpp/blob/b54827526c6b6bfa71a714950f4654e6ea7ba491/src/sift.cpp
+import dcv.features;
 
 @nogc nothrow:
 
@@ -29,8 +26,8 @@ void main()
     
     // a SIFT keypoint contains both coordinates and a descriptor vector ubyte[128]
     // First compute them for both images
-    Array!SIFTKeypoint keypoints1 = find_sift_keypoints_and_descriptors(image1.sliced);
-    Array!SIFTKeypoint keypoints2 = find_sift_keypoints_and_descriptors(image2.sliced);
+    Array!SIFTKeypoint keypoints1 = find_SIFTKeypointsAndDescriptors(image1.sliced);
+    Array!SIFTKeypoint keypoints2 = find_SIFTKeypointsAndDescriptors(image2.sliced);
     
     // show detected keypoints using plot functions of DCV
     auto fig1 = imshow(image1, "image1");
@@ -44,7 +41,7 @@ void main()
     }
 
     // determine matched points based on the euclidean distance between shape descriptors of SIFTKeypoints
-    auto matches = find_sift_keypoint_matches(keypoints1, keypoints2);
+    auto matches = find_MatchingPointsBruteForce(keypoints1, keypoints2);
 
     /+  Draw lines between matched points on the stitched image +/
     
@@ -53,11 +50,11 @@ void main()
     stitched[0..image1.height, 0..image1.width, 0..$] = image1.sliced[]; // overlay image1 on the frame
     stitched[image1.height..$, image1.width..$, 0..$] = image2.sliced[]; // overlay image2 on the frame
 
-    // use different colors for different matches. Or write a random color generator
+    // use different colors for different matches.
     immutable AColor[8] colors = [aRed,aGreen,aBlue,aWhite,aBlack,aYellow,aCyan,aMagenta];
 
     size_t colorInd;
-    foreach (kp1i, kp2i; matches) {
+    foreach (kp1i, kp2i, __dist, __nndr; matches) {
         auto startPoint = keypoints1[kp1i]; // a keypoint from image1
         auto endPoint = keypoints2[kp2i];   // Corresponding keypoint from image2
 
@@ -73,10 +70,10 @@ void main()
 
     waitKey();
 
-    imwrite(stitched, ImageFormat.IF_RGB, "SIFTmatches.png"); // write result on disk
+    imwrite(stitched, ImageFormat.IF_RGB, "SIFTmatches.png"); // write the result on disk
 }
-
 ```
+
 ## Result
 ![alt tag](SIFTmatches.png)
 
