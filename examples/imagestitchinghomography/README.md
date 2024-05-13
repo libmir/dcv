@@ -73,7 +73,7 @@ void main()
         printf("    Estimating the homography matrix between %lld and %lld\n", i+1, i);
         // Estimate the homography matrix using RANSAC
         auto rtup = estimateHomographyRANSAC(sift_keypoints[i+1], sift_keypoints[i], matches, inlier_ratio_threshold,
-            min_points, req_points, gn_iters, max_iters, ransac_threshold);
+            max_iters, min_points, req_points, gn_iters, ransac_threshold);
 
         auto H_i = rtup[0];
 

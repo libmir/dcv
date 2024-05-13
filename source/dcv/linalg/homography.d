@@ -45,6 +45,17 @@ import dcv.features.utils : FeatureMatch;
 
 @nogc nothrow:
 
+/**
+ * Apply a homography transformation to 2D points represented by slices.
+ *
+ * Params:
+ *   - x: Slice of x-coordinates of input points.
+ *   - y: Slice of y-coordinates of input points.
+ *   - H: Homography matrix represented as a 3x3 slice.
+ *
+ * Returns:
+ *   - Tuple containing slices of transformed x and y coordinates.
+ */
 Tuple!(Slice!(RCI!double), Slice!(RCI!double))
 applyHomography(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, const ref Slice!(RCI!double, 2) H)
 {
@@ -55,6 +66,17 @@ applyHomography(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, 
     return tuple(xs, ys);
 }
 
+/**
+ * Apply a homography transformation to a single 2D point.
+ *
+ * Params:
+ *   - x: x-coordinate of the input point.
+ *   - y: y-coordinate of the input point.
+ *   - H: Homography matrix represented as a 3x3 slice.
+ *
+ * Returns:
+ *   - Tuple containing the transformed x and y coordinates.
+ */
 Tuple!(double, double)
 applyHomography(double x, double y, const ref Slice!(RCI!double, 2) H)
 {
@@ -65,6 +87,17 @@ applyHomography(double x, double y, const ref Slice!(RCI!double, 2) H)
     return tuple(xs, ys);
 }
 
+/**
+ * Calculate the Jacobian matrix of the homography transformation with respect to input points.
+ *
+ * Params:
+ *   - x: Slice of x-coordinates of input points.
+ *   - y: Slice of y-coordinates of input points.
+ *   - H: Homography matrix represented as a 3x3 slice.
+ *
+ * Returns:
+ *   - Jacobian matrix of the homography transformation.
+ */
 Slice!(RCI!double, 2)
 applyHomographyJacobian(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, const ref Slice!(RCI!double, 2) H){
 
@@ -134,12 +167,32 @@ findHomography(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, c
     return H;
 }
 
+/**
+ * Estimate Homography using RANSAC algorithm.
+ *
+ * Params:
+ *   - keypoints1: Array of KeyPoint objects representing keypoints in the first image.
+ *   - keypoints2: Array of KeyPoint objects representing keypoints in the second image.
+ *   - matches: Array of FeatureMatch objects representing matches between keypoints.
+ *   - inlier_ratio_threshold: Threshold for the ratio of inliers to total correspondences. 
+ *                              Default value is 0.8.
+ *   - max_iters: Maximum number of RANSAC iterations. Default value is 1000.
+ *   - min_points: Minimum number of points required for homography estimation. Default is 10.
+ *   - req_points: Number of required inliers to consider the homography estimation successful. Default is 20.
+ *   - gn_iters: Number of iterations for the iterative optimization process within RANSAC. Default is 100.
+ *   - ransac_threshold: Threshold used to determine inliers during RANSAC. Default is 3.
+ *
+ * Returns:
+ *   - Tuple containing the best estimated homography matrix (H_best), 
+ *     along with the corresponding inlier points and their indices.
+ */
 auto estimateHomographyRANSAC(KeyPoint)(const ref Array!KeyPoint keypoints1,
             const ref Array!KeyPoint keypoints2,
             const ref Array!FeatureMatch matches,
             double inlier_ratio_threshold = 0.8,
+            size_t max_iters = 1000,
             size_t min_points = 10, size_t req_points = 20, 
-            size_t gn_iters = 100, size_t max_iters = 1000,
+            size_t gn_iters = 100,
             double ransac_threshold = 3)
 {
 
@@ -306,6 +359,20 @@ auto estimateHomographyRANSAC(KeyPoint)(const ref Array!KeyPoint keypoints1,
     return tuple(H_best, x_best, y_best, xp_best, yp_best, idx_best);
 }
 
+/**
+ * Stitch two images together using the provided homography matrices.
+ *
+ * Params:
+ *   - img1: Reference to the first input image.
+ *   - img2: Reference to the second input image.
+ *   - H: Array of homography matrices relating img1 and img2.
+ *   - r_shift_prev: Previous row shift applied during stitching.
+ *   - c_shift_prev: Previous column shift applied during stitching.
+ *   - estimation_iters: Number of iterations for estimating missing pixel values (default: 1).
+ *
+ * Returns:
+ *   - Stitched image combining img1 and img2.
+ */
 auto stitch(InputSlice1, InputSlice2)
 (   
     const ref InputSlice1 img1,
