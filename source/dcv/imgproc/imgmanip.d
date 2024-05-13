@@ -518,12 +518,18 @@ Slice!(RCI!V, 1LU, SliceKind.contiguous) resizeImpl_1(alias interp, V)(Slice!(V*
     auto retval = RCArray!V(newsize);
     auto resizeRatio = cast(float)(newsize - 1) / cast(float)(slice.length - 1);
 
+    foreach (i; newsize.iota)
+    {
+        retval[i] = interp(slice, cast(float)i / resizeRatio);
+    }
+    /*
     auto iterable = newsize.iota;
     void worker(int _i, int threadIndex) nothrow @nogc {
         auto i = iterable[_i];
         retval[i] = interp(slice, cast(float)i / resizeRatio);
     }
     pool.parallelFor(cast(int)iterable.length, &worker);
+    */
 
     return retval.moveToSlice;
 }
@@ -542,6 +548,15 @@ Slice!(RCI!V, 2LU, SliceKind.contiguous) resizeImpl_2(alias interp, SliceKind ki
     auto r_v = cast(float)(height - 1) / cast(float)(rows - 1); // horizontaresize ratio
     auto r_h = cast(float)(width - 1) / cast(float)(cols - 1);
 
+    foreach (i; iota(height))
+    {
+        auto row = retval[i, 0 .. width];
+        foreach (j; iota(width))
+        {
+            row[j] = interp(slice, cast(float)i / r_v, cast(float)j / r_h);
+        }
+    }
+    /*
     auto iterable = iota(height);
     void worker(int _i, int threadIndex) nothrow @nogc {
         auto i = iterable[_i];
@@ -552,7 +567,7 @@ Slice!(RCI!V, 2LU, SliceKind.contiguous) resizeImpl_2(alias interp, SliceKind ki
         }
     }
     pool.parallelFor(cast(int)iterable.length, &worker);
-
+    */
     return retval;
 }
 
@@ -575,6 +590,19 @@ Slice!(RCI!V, 3LU, SliceKind.contiguous) resizeImpl_3(alias interp, SliceKind ki
     {
         auto sl_ch = slice[0 .. rows, 0 .. cols, c];
         auto ret_ch = retval[0 .. height, 0 .. width, c];
+        foreach (i; iota(height))
+        {
+            auto row = ret_ch[i, 0 .. width];
+            foreach (j; iota(width))
+            {
+                row[j] = interp(sl_ch, cast(float)i / r_v, cast(float)j / r_h);
+            }
+        }
+    }
+    /*foreach (c; iota(channels))
+    {
+        auto sl_ch = slice[0 .. rows, 0 .. cols, c];
+        auto ret_ch = retval[0 .. height, 0 .. width, c];
 
         auto iterable = iota(height);
         void worker(int _i, int threadIndex) nothrow @nogc {
@@ -587,7 +615,7 @@ Slice!(RCI!V, 3LU, SliceKind.contiguous) resizeImpl_3(alias interp, SliceKind ki
         }
         pool.parallelFor(cast(int)iterable.length, &worker);
     }
-
+    */
     return retval;
 }
 
