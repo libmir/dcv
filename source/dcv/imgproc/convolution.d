@@ -34,7 +34,7 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 */
 module dcv.imgproc.convolution;
 
-import std.traits : isAssignable, ReturnType;
+import std.traits : isAssignable, ReturnType, Unqual;
 import std.conv : to;
 import dplug.core.thread : ThreadPool;
 import dplug.core.nogc;
@@ -167,7 +167,7 @@ auto convImpl
     (InputTensor input, KernelTensor kernel, PreTensor prealloc, MaskTensor mask) 
 if (InputTensor.init.shape.length == 1)
 {
-    alias InputType = DeepElementType!InputTensor;
+    alias InputType = Unqual!(DeepElementType!InputTensor);
 
     auto kl = kernel.length;
     auto kh = kl / 2;

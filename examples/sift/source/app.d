@@ -7,6 +7,9 @@ import dcv.imageio;
 import dcv.plot;
 import dcv.features;
 
+import core.stdc.stdio;
+import std.datetime.stopwatch;
+
 @nogc nothrow:
 
 void main()
@@ -22,7 +25,13 @@ void main()
     // a SIFT keypoint contains both coordinates and a descriptor vector ubyte[128]
     // First compute them for both images
     Array!SIFTKeypoint keypoints1 = find_SIFTKeypointsAndDescriptors(image1.sliced);
+
+    auto sw = StopWatch(AutoStart.no);
+    sw.start();
     Array!SIFTKeypoint keypoints2 = find_SIFTKeypointsAndDescriptors(image2.sliced);
+    long msecs = sw.peek.total!"msecs";
+    printf("%lld\n", msecs);
+    printf("%lld points | %lld points \n", keypoints1.length, keypoints2.length);
     
     // show detected keypoints using plot functions of DCV
     auto fig1 = imshow(image1, "image1");

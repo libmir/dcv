@@ -59,10 +59,11 @@ Params:
 
 TODO: consider size input as array, and add prealloc
 */
-Slice!(RCI!V, N, SliceKind.contiguous) resize(alias interp = linear, SliceKind kind, size_t N, V, size_t SN)(Slice!(V*, N, kind) slice, size_t[SN] newsize)
+auto resize(alias interp = linear, SliceType, size_t SN)(SliceType slice, size_t[SN] newsize)
     //if (packs.length == 1)
     //if (isInterpolationFunc!interp)
 {
+    alias N = SliceType.N;
 
     static if (N == 1LU)
     {
@@ -113,9 +114,11 @@ using scaled shape of the input slice as:
 $(D_CODE scaled = resize(input, input.shape*scale))
 
  */
-Slice!(RCI!V, N, kind) scale(alias interp = linear, V, ScaleValue, SliceKind kind, size_t N, size_t SN)(Slice!(V*, N, kind) slice, ScaleValue[SN] scale)
+auto scale(alias interp = linear, ScaleValue, SliceType, size_t SN)(SliceType slice, ScaleValue[SN] scale)
         if (isFloatingPoint!ScaleValue && isInterpolationFunc!interp)
 {
+    alias V = Unqual!(DeepElementType!SliceType);
+    
     debug import std.exception : std_enforce = enforce;
 
     foreach (v; scale)
@@ -510,12 +513,13 @@ private:
 @nogc nothrow:
 
 // 1d resize implementation
-Slice!(RCI!V, 1LU, SliceKind.contiguous) resizeImpl_1(alias interp, V)(Slice!(V*, 1LU, SliceKind.contiguous) slice, size_t newsize)
+auto resizeImpl_1(alias interp, SliceType)(SliceType slice, size_t newsize)
+if(SliceType.N == 1)
 {
-
     assert(!slice.empty && newsize > 0);
-
-    auto retval = RCArray!V(newsize);
+    alias V = DeepElementType!SliceType;
+    
+    auto retval = RCArray!(Unqual!V)(newsize);
     auto resizeRatio = cast(float)(newsize - 1) / cast(float)(slice.length - 1);
 
     auto iterable = newsize.iota;
@@ -529,12 +533,14 @@ Slice!(RCI!V, 1LU, SliceKind.contiguous) resizeImpl_1(alias interp, V)(Slice!(V*
 }
 
 // 1d resize implementation
-Slice!(RCI!V, 2LU, SliceKind.contiguous) resizeImpl_2(alias interp, SliceKind kind, V)(Slice!(V*, 2LU, kind) slice, size_t height, size_t width)
+auto resizeImpl_2(alias interp, SliceType)(SliceType slice, size_t height, size_t width)
+if(SliceType.N == 2)
 {
-
     assert(!slice.empty && width > 0 && height > 0);
 
-    auto retval = uninitRCslice!V(height, width);
+    alias V = DeepElementType!SliceType;
+
+    auto retval = uninitRCslice!(Unqual!V)(height, width);
 
     auto rows = slice.length!0;
     auto cols = slice.length!1;
@@ -556,17 +562,19 @@ Slice!(RCI!V, 2LU, SliceKind.contiguous) resizeImpl_2(alias interp, SliceKind ki
     return retval;
 }
 
-// 1d resize implementation
-Slice!(RCI!V, 3LU, SliceKind.contiguous) resizeImpl_3(alias interp, SliceKind kind, V)(Slice!(V*, 3LU, kind) slice, size_t height, size_t width)
+// 3d resize implementation
+auto resizeImpl_3(alias interp, SliceType)(SliceType slice, size_t height, size_t width)
+if(SliceType.N == 3)
 {
-
     assert(!slice.empty && width > 0 && height > 0);
-
+    
+    alias V = DeepElementType!SliceType;
+    
     auto rows = slice.length!0;
     auto cols = slice.length!1;
     auto channels = slice.length!2;
 
-    auto retval = uninitRCslice!V(height, width, channels);
+    auto retval = uninitRCslice!(Unqual!V)(height, width, channels);
 
     auto r_v = cast(float)(height - 1) / cast(float)(rows - 1); // horizontaresize ratio
     auto r_h = cast(float)(width - 1) / cast(float)(cols - 1);
