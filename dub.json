@@ -17,7 +17,8 @@
         "dcv:core": "*",
         "dcv:imageio": "*",
         "dcv:videoio": "*",
-        "dcv:plot": "*"
+        "dcv:plot": "*",
+        "dcv:linalg": "*"
     },
     "targetType": "library",
     "sourceFiles": ["source/dcv/package.d"],
