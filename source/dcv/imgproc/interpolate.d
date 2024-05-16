@@ -159,6 +159,28 @@ if(SliceType.N == 2)
     return nn_interpolate_Impl2(slice, pos0, pos1);
 }
 
+/**
+Bicubic interpolation.
+
+Params:
+    slice = Input slice which values are interpolated.
+    pos = Position on which slice values are interpolated.
+
+Returns:
+    Interpolated resulting value.
+*/
+pure auto bicubic(P, SliceType)(SliceType slice, P pos)
+if(SliceType.N == 1)
+{
+    return bicubicImpl_1(slice, pos);
+}
+
+pure auto bicubic(P, SliceType)(SliceType slice, P pos0, P pos1)
+if(SliceType.N == 2)
+{
+    return bicubicImpl_2(slice, pos0, pos1);
+}
+
 private:
 
 pure @fastmath auto linearImpl_1(SliceType)(SliceType range, double pos)
@@ -312,4 +334,73 @@ pure @fastmath auto nn_interpolate_Impl2(SliceType)(SliceType range, double pos_
     import mir.math.common : round;
     alias T = Unqual!(DeepElementType!(SliceType));
     return cast(T)range.getPixel(cast(size_t)round(pos_x), cast(size_t)round(pos_y));
+}
+
+pure @fastmath auto bicubicImpl_1(SliceType)(SliceType range, double pos)
+{
+    import std.math : floor, pow;
+    
+    alias T = Unqual!(DeepElementType!range);
+
+    // Bicubic kernel function
+    auto cubicHermite(T a, T b, T c, T d, double t) {
+        T a0, a1, a2, a3;
+        a0 = d - c - a + b;
+        a1 = a - b - a0;
+        a2 = c - a;
+        a3 = b;
+        
+        return a0 * pow(t, 3) + a1 * pow(t, 2) + a2 * t + a3;
+    }
+
+    int x = cast(int)floor(pos);
+    double t = pos - x;
+
+    auto p1 = range.getValue(x - 1);
+    auto p2 = range.getValue(x);
+    auto p3 = range.getValue(x + 1);
+    auto p4 = range.getValue(x + 2);
+
+    return cast(T)cubicHermite(p1, p2, p3, p4, t);
+}
+
+pure @fastmath auto bicubicImpl_2(SliceType)(SliceType range, double pos_x, double pos_y)
+{
+    import std.math : floor, pow;
+
+    alias T = Unqual!(DeepElementType!SliceType);
+
+    // Bicubic kernel function
+    auto cubicHermite(T a, T b, T c, T d, double t) {
+        T a0, a1, a2, a3;
+        a0 = d - c - a + b;
+        a1 = a - b - a0;
+        a2 = c - a;
+        a3 = b;
+        
+        return a0 * pow(t, 3) + a1 * pow(t, 2) + a2 * t + a3;
+    }
+
+    int x = cast(int)floor(pos_x);
+    int y = cast(int)floor(pos_y);
+    double t_x = pos_x - x;
+    double t_y = pos_y - y;
+
+    T[4][4] patch;
+
+    foreach (i; 0 .. 4)
+    {
+        foreach (j; 0 .. 4)
+        {
+            patch[i][j] = range.getPixel(x - 1 + i, y - 1 + j);
+        }
+    }
+
+    T[4] col;
+    foreach (i; 0 .. 4)
+    {
+        col[i] = cubicHermite(patch[i][0], patch[i][1], patch[i][2], patch[i][3], t_y);
+    }
+
+    return cast(T)cubicHermite(col[0], col[1], col[2], col[3], t_x);
 }
