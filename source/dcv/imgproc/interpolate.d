@@ -61,24 +61,22 @@ Params:
 Returns:
     Interpolated resulting value.
 */
-pure T linear(SliceKind kind, size_t N, T, P)(Slice!(T*, N, kind) slice, P[N] pos...)
-    //if (packs.length == 1)
+pure auto linear(P, SliceType)(SliceType slice, P pos0)
+if(SliceType.N == 1)
 {
     // TODO: document
     //static assert(N == packs[0], "Interpolation indexing has to be of same dimension as the input slice.");
 
-    static if (N == 1LU)
-    {
-        return linearImpl_1(slice, pos[0]);
-    }
-    else static if (N == 2LU)
-    {
-        return linearImpl_2(slice, pos[0], pos[1]);
-    }
-    else
-    {
-        static assert(0, "Unsupported slice dimension for linear interpolation.");
-    }
+    return linearImpl_1(slice, cast(double)pos0);
+}
+
+pure auto linear(P, SliceType)(SliceType slice, P pos0, P pos1)
+if(SliceType.N == 2)
+{
+    // TODO: document
+    //static assert(N == packs[0], "Interpolation indexing has to be of same dimension as the input slice.");
+
+    return linearImpl_2(slice, cast(double)pos0, cast(double)pos1);
 }
 
 unittest
@@ -114,24 +112,23 @@ Params:
 Returns:
     Interpolated resulting value.
 */
-pure T bilinear(SliceKind kind, size_t N, T, P)(Slice!(T*, N, kind) slice, P[N] pos...)
-    //if (packs.length == 1)
+pure auto bilinear(P, SliceType)(SliceType slice, P pos)
+if(SliceType.N == 1)
 {
     // TODO: document
     //static assert(N == packs[0], "Interpolation indexing has to be of same dimension as the input slice.");
 
-    static if (N == 1LU)
-    {
-        return bilinear_interpolate_Impl1(slice, pos[0]);
-    }
-    else static if (N == 2LU)
-    {
-        return bilinear_interpolate_Impl2(slice, pos[0], pos[1]);
-    }
-    else
-    {
-        static assert(0, "Unsupported slice dimension for bilinear interpolation.");
-    }
+    return bilinear_interpolate_Impl1(slice, pos);
+
+}
+
+pure auto bilinear(P, SliceType)(SliceType slice, P pos0, P pos1)
+if(SliceType.N == 2)
+{
+    // TODO: document
+    //static assert(N == packs[0], "Interpolation indexing has to be of same dimension as the input slice.");
+    return bilinear_interpolate_Impl2(slice, pos0, pos1);
+
 }
 
 /**
@@ -144,31 +141,31 @@ Params:
 Returns:
     Interpolated resulting value.
 */
-pure T nearestNeighbor(SliceKind kind, size_t N, T, P)(Slice!(T*, N, kind) slice, P[N] pos...)
-    //if (packs.length == 1)
+pure auto nearestNeighbor(P, SliceType)(SliceType slice, P pos)
+if(SliceType.N == 1)
 {
     // TODO: document
     //static assert(N == packs[0], "Interpolation indexing has to be of same dimension as the input slice.");
 
-    static if (N == 1LU)
-    {
-        return nn_interpolate_Impl1(slice, pos[0]);
-    }
-    else static if (N == 2LU)
-    {
-        return nn_interpolate_Impl2(slice, pos[0], pos[1]);
-    }
-    else
-    {
-        static assert(0, "Unsupported slice dimension for nearest neighbor interpolation.");
-    }
+    return nn_interpolate_Impl1(slice, pos);
+}
+
+pure auto nearestNeighbor(P, SliceType)(SliceType slice, P pos0, P pos1)
+if(SliceType.N == 2)
+{
+    // TODO: document
+    //static assert(N == packs[0], "Interpolation indexing has to be of same dimension as the input slice.");
+
+    return nn_interpolate_Impl2(slice, pos0, pos1);
 }
 
 private:
 
-pure @fastmath auto linearImpl_1(T)(Slice!(T*, 1LU, SliceKind.contiguous) range, double pos)
+pure @fastmath auto linearImpl_1(SliceType)(SliceType range, double pos)
 {
     import mir.math.common;
+
+    alias T = Unqual!(DeepElementType!range);
 
     assert(pos < range.length);
 
@@ -191,12 +188,14 @@ pure @fastmath auto linearImpl_1(T)(Slice!(T*, 1LU, SliceKind.contiguous) range,
         auto v1 = range[round];
         auto v2 = range[round + 1];
     }
-    return cast(Unqual!T)(v1 * (1. - weight) + v2 * (weight));
+    return cast(T)(v1 * (1. - weight) + v2 * (weight));
 }
 
-pure @fastmath auto linearImpl_2(SliceKind kind, size_t N, T)(Slice!(T*, N, kind) range, double pos_x, double pos_y)
+pure @fastmath auto linearImpl_2(SliceType)(SliceType range, double pos_x, double pos_y)
 {
     import mir.math.common : floor;
+
+    alias T = Unqual!(DeepElementType!SliceType);
 
     assert(pos_x < range.length!0 && pos_y < range.length!1);
 
@@ -224,13 +223,13 @@ pure @fastmath auto linearImpl_2(SliceKind kind, size_t N, T)(Slice!(T*, N, kind
     }
     else
     {
-        Unqual!T v1, v2, v3, v4;
+        T v1, v2, v3, v4;
         v1 = range[rx, ry];
         v2 = range[x_end ? rx : rx + 1, ry];
         v3 = range[rx, y_end ? ry : ry + 1];
         v4 = range[x_end ? rx : rx + 1, y_end ? ry : ry + 1];
     }
-    return cast(Unqual!T)(v1 * w00 + v2 * w01 + v3 * w10 + v4 * w11);
+    return cast(T)(v1 * w00 + v2 * w01 + v3 * w10 + v4 * w11);
 }
 
 package {
@@ -264,22 +263,27 @@ package {
     }
 }
 
-pure @fastmath auto bilinear_interpolate_Impl1(T)(Slice!(T*, 1LU, SliceKind.contiguous) range, double pos)
+pure @fastmath auto bilinear_interpolate_Impl1(SliceType)(SliceType range, double pos)
 {
     import std.math : floor;
+
+    alias T = Unqual!(DeepElementType!range);
+
     float p1, p2;
     size_t x_floor = cast(size_t)pos.floor;
     size_t x_ceil = x_floor + 1;
     p1 = range.getValue(x_floor);
     p2 = range.getValue(x_ceil);
     double weight = pos - cast(double)x_floor;
-    return cast(Unqual!T)(p1 * (1. - weight) + p2 * weight);
+    return cast(T)(p1 * (1. - weight) + p2 * weight);
 }
 
-pure @fastmath auto bilinear_interpolate_Impl2(SliceKind kind, size_t N, T)(Slice!(T*, N, kind) range, float pos_x, float pos_y)
+pure @fastmath auto bilinear_interpolate_Impl2(SliceType)(SliceType range, double pos_x, double pos_y)
 {
     import mir.math.common : floor;
     
+    alias T = Unqual!(DeepElementType!SliceType);
+
     float p1, p2, p3, p4, q1, q2;
     int rx = cast(int)pos_x.floor;
     int ry = cast(int)pos_y.floor;
@@ -293,17 +297,19 @@ pure @fastmath auto bilinear_interpolate_Impl2(SliceKind kind, size_t N, T)(Slic
     float wy = pos_y - cast(float)ry;
     q1 = (1.0f - wx) * p1 + wx * p2;
     q2 = (1.0f - wx) * p3 + wx * p4;
-    return cast(Unqual!T)((1.0f - wy) * q1 + wy * q2);
+    return cast(T)((1.0f - wy) * q1 + wy * q2);
 }
 
-pure @fastmath auto nn_interpolate_Impl1(T)(Slice!(T*, 1LU, SliceKind.contiguous) range, float pos)
+pure @fastmath auto nn_interpolate_Impl1(SliceType)(SliceType range, double pos)
 {
     import mir.math.common : round;
-    return cast(Unqual!T)range.getValue(cast(int)round(pos));
+    alias T = Unqual!(DeepElementType!(SliceType));
+    return cast(T)range.getValue(cast(size_t)round(pos));
 }
 
-pure @fastmath auto nn_interpolate_Impl2(SliceKind kind, size_t N, T)(Slice!(T*, N, kind) range, float pos_x, float pos_y)
+pure @fastmath auto nn_interpolate_Impl2(SliceType)(SliceType range, double pos_x, double pos_y)
 {
     import mir.math.common : round;
-    return cast(Unqual!T)range.getPixel(cast(int)round(pos_x), cast(int)round(pos_y));
+    alias T = Unqual!(DeepElementType!(SliceType));
+    return cast(T)range.getPixel(cast(size_t)round(pos_x), cast(size_t)round(pos_y));
 }

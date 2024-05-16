@@ -24,6 +24,9 @@ import mir.math.common : fastmath;
 import dcv.core;
 import dcv.features.utils;
 
+// due to a small race issue different executions yield slightly different result. This is not a problem for now.
+// I tried mutex at several places but could not figure it out yet.
+
 struct SIFTKeypoint {
     // discrete coordinates
     int i;
@@ -52,6 +55,8 @@ private __gshared UncheckedMutex mutex;
     input slice's pixel value range must be 0-255 (not limited to ubyte). Agnostic to Slice kind (Contigous, Universal or whatsoever). 
     Returns a keypoints vector.
 +/
+
+@fastmath
 Array!SIFTKeypoint find_SIFTKeypointsAndDescriptors(InputSlice)(auto ref InputSlice inputSlice, 
                                                 float sigma_min=SIGMA_MIN,
                                                 int num_octaves=N_OCT, 
@@ -66,12 +71,31 @@ Array!SIFTKeypoint find_SIFTKeypointsAndDescriptors(InputSlice)(auto ref InputSl
         "Only 2D and 3D slices are supported. 3D slices will be implicitly converted to grayscale");
 
     static if(N==3){
+        // convert the assumed RGB to gray and normalize it by dividing 255
+
+        /*import dcv.imgproc.color : rgb2gray;
+        auto _input = inputSlice.rgb2gray;
+        auto input = _input.as!float / 255.0f;*/
+
+        // below is faster
         import mir.algorithm.iteration: each;
         auto input = uninitRCslice!float(inputSlice.shape[0], inputSlice.shape[1]);
-
+        /*size_t kk;
         auto flatIter = inputSlice.flattened;
-        size_t kk;
-        input.each!((ref a) { a = (0.299*flatIter[3*kk] + 0.587*flatIter[3*kk+1] + 0.114*flatIter[3*kk+2])/255.0f; kk++;});
+        input.each!((ref a) { a = (0.299*flatIter[3*kk] + 0.587*flatIter[3*kk+1] + 0.114*flatIter[3*kk+2])/255.0f; kk++;});*/
+        
+        void worker(int _col, int threadIndex) nothrow @nogc
+        {
+            auto col = cast(size_t)_col;
+            foreach(row; 0 .. inputSlice.shape[0])
+            {
+                input[row, col] = (0.299f * inputSlice[row, col, 0]
+                                 + 0.587f * inputSlice[row, col, 1] 
+                                 + 0.114f * inputSlice[row, col, 2])/255.0f;
+            }
+        }
+        pool.parallelFor(cast(int)inputSlice.shape[1], &worker);
+        
 
     } else { // N == 2
         auto input = inputSlice.as!float / 255.0f;
@@ -147,7 +171,7 @@ ScaleSpacePyramid generate_gaussian_pyramid(InputSlice)(const ref InputSlice img
     float base_sigma = sigma_min / MIN_PIX_DIST;
 
     //auto base_img = resize2!(Interpolation.BILINEAR)(img, cast(int)img.shape[0]*2, cast(int)img.shape[1]*2); //.lightScope.scale([2.0f, 2.0f]);
-    auto base_img = resize!bilinear(img.lightScope, [img.shape[0]*2, img.shape[1]*2]);
+    auto base_img = resize!bilinear(img, [img.shape[0]*2, img.shape[1]*2]);
     float sigma_diff = std.math.sqrt(base_sigma * base_sigma - 1.0f);
     
     base_img = gaussian_blur(base_img, sigma_diff);
