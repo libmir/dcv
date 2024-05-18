@@ -23,7 +23,6 @@ import dcv.imgproc.filter : calcPartialDerivatives;
 
 import dplug.core;
 
-@nogc nothrow:
 
 /**
 Calculate per-pixel corner impuls response using Harris corner detector.
@@ -39,7 +38,8 @@ Returns:
     Response matrix the same size of the input image, where each pixel represents
     corner response value - the bigger the value, more probably it represents the
     actual corner in the image.
- */
+*/
+@nogc nothrow
 Slice!(RCI!T, 2LU, SliceKind.contiguous) harrisCorners(T, SliceKind inputKind)
 (
     Slice!(T*, 2LU, inputKind) image,
@@ -80,7 +80,8 @@ Returns:
     Response matrix the same size of the input image, where each pixel represents
     corner response value - the bigger the value, more probably it represents the
     actual corner in the image.
- */
+*/
+@nogc nothrow
 Slice!(RCI!T, 2LU, SliceKind.contiguous) shiTomasiCorners(T, SliceKind inputKind)
 (
     Slice!(T*, 2LU, inputKind) image,
@@ -107,47 +108,40 @@ do
 
 unittest
 {
-    auto image = new float[9].sliced(3, 3);
-    auto result = harrisCorners(image, 3, 0.64, 0.84);
+    auto image = float(0.0f).repeat(9).rcarray.moveToSlice.sliced(3, 3);
+    auto result = harrisCorners(image.lightScope, 3, 0.64, 0.84);
     assert(result.shape == image.shape);
 }
 
 unittest
 {
-    import std.range : lockstep;
-
-    auto image = new float[9].sliced(3, 3);
-    auto resultBuffer = new double[9].sliced(3, 3);
-    auto result = harrisCorners!(float, double)(image, 3, 0.64, 0.84, resultBuffer);
+    auto image = rcslice!float([3,3], 0);
+    auto resultBuffer = rcslice!float([3,3], 0);
+    auto result = harrisCorners(image.lightScope, 3, 0.64, 0.84, resultBuffer);
     assert(result.shape == image.shape);
-    foreach (ref r1, ref r2; lockstep(result.flattened, resultBuffer.flattened))
-    {
-        assert(&r1 == &r2);
-    }
+    
+    assert(result.ptr == resultBuffer.ptr);
 }
 
 unittest
 {
     import std.algorithm.comparison : equal;
 
-    auto image = new float[9].sliced(3, 3);
-    auto result = shiTomasiCorners(image, 3, 0.84);
+    auto image = rcslice!float([3,3], 0);
+    auto result = shiTomasiCorners(image.lightScope, 3, 0.84);
     assert(result.shape[].equal(image.shape[]));
 }
 
 unittest
 {
     import std.algorithm.comparison : equal;
-    import std.range : lockstep;
 
-    auto image = new float[9].sliced(3, 3);
-    auto resultBuffer = new double[9].sliced(3, 3);
-    auto result = shiTomasiCorners!(float, double)(image, 3, 0.84, resultBuffer);
+    auto image = rcslice!float([3,3], 0);
+    auto resultBuffer = rcslice!float([3,3], 0);
+    auto result = shiTomasiCorners(image.lightScope, 3, 0.84, resultBuffer);
     assert(result.shape[].equal(image.shape[]));
-    foreach (ref r1, ref r2; lockstep(result.flattened, resultBuffer.flattened))
-    {
-        assert(&r1 == &r2);
-    }
+    
+    assert(result.ptr == resultBuffer.ptr);
 }
 
 @nogc nothrow @fastmath
@@ -200,6 +194,7 @@ struct ShiTomasiDetector
     }
 }
 
+@nogc nothrow
 Slice!(RCI!OutputType, 2LU, SliceKind.contiguous) calcCorners(Detector, InputType, SliceKind inputKind, OutputType)
     (Slice!(InputType*, 2LU, inputKind) image, uint winSize, float gaussSigma,
     Slice!(RCI!OutputType, 2LU, SliceKind.contiguous) prealloc, Detector detector)

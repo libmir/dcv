@@ -43,11 +43,58 @@ struct Rectangle {
 
 alias BoundingBox = Rectangle;
 
+unittest {
+    import std.array : staticArray;
+    import std.stdio;
+
+    // Create a simple binary image with a single white square in the middle
+    Slice!(ubyte*, 2) slice  = [
+        0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0,
+        0, 0, 1, 1, 0, 0,
+        0, 0, 1, 1, 0, 0,
+        0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0
+    ].staticArray!(ubyte, 36)[].sliced(6,6);
+
+    // Call findContours
+    auto result = findContours(slice, 1);
+    
+    // Extract contours and hierarchy from the result
+    auto contours = result[0];
+    auto hierarchy = result[1];
+
+    // Debug: Print the contours and hierarchy
+    //writeln("Contours: ", contours);
+    //writeln("Hierarchy: ", hierarchy[]);
+
+    // Check that one contour is found
+    assert(contours.length == 1);
+
+    // Check that the contour points match the expected square boundary
+    auto contour = contours[0];
+    //writeln("Detected contour points: ", contour);
+
+    // Update assertions based on actual contour points
+    assert(contour.length == 4);
+    assert(contour[0][0] == 2 && contour[0][1] == 2);
+    assert(contour[1][0] == 3 && contour[1][1] == 2);
+    assert(contour[2][0] == 3 && contour[2][1] == 3);
+    assert(contour[3][0] == 2 && contour[3][1] == 3);
+
+    // Extract the hierarchy node for the contour
+    auto hierNode = hierarchy[0];
+    
+    // Verify hierarchy details
+    assert(hierNode.parent == -1); // No parent, as it's the only contour
+    // more tests needed here
+}
+
 @nogc nothrow:
 
 Tuple!(RCArray!Contour, RCArray!HierNode)
 findContours(InputType, bool fullyConnected = true)
-(InputType binaryImage, immutable DeepElementType!InputType whiteValue = 255) {
+(InputType binaryImage, immutable double whiteValue = 255) {
     import mir.ndslice.topology : as;
 
     // add 1 pix of margins to 2 dims
@@ -176,6 +223,18 @@ findContours(InputType, bool fullyConnected = true)
     hierarchy.free;
     
     return tuple(ret0, ret1);
+}
+
+RCArray!int indicesWithoutHoles(H)(const ref H hierarchy){
+    import mir.appender;
+    auto _ret = scopedBuffer!int;
+    foreach (h; hierarchy)
+    {
+        if(h.border.seq_num - 2 >= 0 && h.border.border_type == 2 )
+            _ret.put(h.border.seq_num - 2);
+        
+    }
+    return rcarray!int(_ret.data);
 }
 
 auto contours2image(RCArray!Contour contours, size_t rows, size_t cols)

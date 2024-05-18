@@ -30,7 +30,7 @@ luv2rgb -||-
 bayer2rgb -||-
 */
 import std.traits : isFloatingPoint, isNumeric;
-
+import std.array : staticArray;
 import mir.math.common : fastmath;
 
 import mir.ndslice.slice;
@@ -51,8 +51,6 @@ enum Rgb2GrayConvertion
     LUMINANCE_PRESERVE /// Use luminance preservation (0.2126R + 0.715G + 0.0722B). 
 }
 
-@nogc nothrow:
-
 /**
 Convert RGB image to grayscale.
 Params:
@@ -68,8 +66,9 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
+@nogc nothrow
 Slice!(RCI!V, 2, SliceKind.contiguous) rgb2gray(V)(Slice!(V*, 3, SliceKind.contiguous) input, Slice!(RCI!V, 2, SliceKind.contiguous) prealloc = emptyRCSlice!(2, V),
-        Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
+        Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure
 {
     return rgbbgr2gray!(false, V)(input, prealloc, conv);
 }
@@ -78,10 +77,10 @@ unittest
 {
     import std.math : approxEqual;
 
-    auto rgb = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3].sliced(2, 2, 3);
+    auto rgb = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3].staticArray[].sliced(2, 2, 3);
 
     auto gray = rgb.rgb2gray;
-    assert(gray.flattened == [0, 1, 2, 3]);
+    assert(gray.flattened[] == [0, 1, 2, 3].staticArray[]);
 }
 
 /**
@@ -101,24 +100,28 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(V*, 2LU, SliceKind.contiguous) bgr2gray(V)(Slice!(V*, 3LU, SliceKind.contiguous) input, Slice!(V*, 2LU, SliceKind.contiguous) prealloc = emptySlice!(2, V),
-        Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
+@nogc nothrow
+Slice!(RCI!V, 2, SliceKind.contiguous) bgr2gray(V)(Slice!(V*, 3LU, SliceKind.contiguous) input, Slice!(RCI!V, 2, SliceKind.contiguous) prealloc = emptyRCSlice!(2, V),
+        Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure
 {
     return rgbbgr2gray!(true, V)(input, prealloc, conv);
 }
 
 unittest
 {
-    import std.math : approxEqual;
+    import mir.algorithm.iteration: equal;
+    import mir.math.common: approxEqual;
+    import std: isClose;
 
-    auto rgb = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3].sliced(2, 2, 3);
+    auto rgb = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3].staticArray[].sliced(2, 2, 3).as!ubyte.rcslice;
 
-    auto gray = rgb.bgr2gray;
-    assert(gray.flattened == [0, 1, 2, 3]);
+    auto gray = rgb.lightScope.bgr2gray;
+    assert(gray.flattened[] == [0, ubyte(1), 2, 3].staticArray[].sliced.as!ubyte[]);
 }
 
+@nogc nothrow
 private Slice!(RCI!V, 2LU, SliceKind.contiguous) rgbbgr2gray(bool isBGR, V)(Slice!(V*, 3LU, SliceKind.contiguous) input, Slice!(RCI!V, 2LU, SliceKind.contiguous) prealloc = emptyRCSlice!(2, V),
-        Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure nothrow
+        Rgb2GrayConvertion conv = Rgb2GrayConvertion.LUMINANCE_PRESERVE) pure
 in
 {
     assert(!input.empty, "Input image is empty.");
@@ -164,7 +167,8 @@ Note:
 */
 import mir.algorithm.iteration: each;
 
-Slice!(RCI!V, 3, SliceKind.contiguous) gray2rgb(V)(Slice!(V*, 2, SliceKind.contiguous) input, Slice!(RCI!V, 3, SliceKind.contiguous) prealloc = emptyRCSlice!(3, V)) pure nothrow
+@nogc nothrow
+Slice!(RCI!V, 3, SliceKind.contiguous) gray2rgb(V)(Slice!(V*, 2, SliceKind.contiguous) input, Slice!(RCI!V, 3, SliceKind.contiguous) prealloc = emptyRCSlice!(3, V)) pure
 {
     Slice!(RCI!V, 3, SliceKind.contiguous) rgb;
     if (input.shape != prealloc.shape[0 .. 2])
@@ -186,13 +190,15 @@ Slice!(RCI!V, 3, SliceKind.contiguous) gray2rgb(V)(Slice!(V*, 2, SliceKind.conti
 
 unittest
 {
-    import std.math : approxEqual;
-
-    auto gray = [0, 1, 2, 3].sliced(2, 2);
+    import mir.algorithm.iteration: equal;
+    import mir.math.common: approxEqual;
+    ubyte[4] gr = [0, 1, 2, 3];
+    auto gray = gr[].sliced(2, 2);
 
     auto rgb = gray.gray2rgb;
 
-    assert(rgb.flattened == [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3]);
+    ubyte[12] rb = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3];
+    assert(rgb.flattened[] == rb[].sliced[]);
 }
 
 /**
@@ -214,7 +220,8 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(RCI!R, 3LU, SliceKind.contiguous) rgb2hsv(R, V)(Slice!(V*, 3LU, SliceKind.contiguous) input, Slice!(RCI!R, 3LU, SliceKind.contiguous) prealloc = emptyRCSlice!(3, R)) pure nothrow
+@nogc nothrow
+Slice!(RCI!R, 3LU, SliceKind.contiguous) rgb2hsv(R, V)(Slice!(V*, 3LU, SliceKind.contiguous) input, Slice!(RCI!R, 3LU, SliceKind.contiguous) prealloc = emptyRCSlice!(3, R)) pure
         if (isNumeric!R && isNumeric!V)
 in
 {
@@ -238,32 +245,40 @@ do
 unittest
 {
     // value comparison based on results from http://www.rapidtables.com/convert/color/rgb-to-hsv.htm
-    auto rgb2hsvTest(RGBType, HSVType)(RGBType[] rgb, HSVType[] expectedHSV)
+    auto rgb2hsvTest(RGBTypeA, HSVTypeA)(RGBTypeA rgb, HSVTypeA expectedHSV)
     {
-        import std.algorithm.comparison : equal;
-        import std.array : array;
+        import std.conv : to;
         import std.math.operations : isClose;
+
+        import mir.algorithm.iteration : all;
+        
         import std.traits : isIntegral;
 
-        alias T = DeepElementType!(typeof(expectedHSV));
-        static if(isIntegral!T){
-            assert(rgb.sliced(1, 1, 3).rgb2hsv!HSVType.flattened.array.equal!isClose(expectedHSV));
+        alias RGBType = DeepElementType!(RGBTypeA);
+        alias HSVType = DeepElementType!(HSVTypeA);
+        
+        static if(isIntegral!HSVType){
+            assert(rgb[].sliced(1, 1, 3).rgb2hsv!HSVType.flattened[] == expectedHSV[]);
         }else{
-            assert(rgb.sliced(1, 1, 3).rgb2hsv!HSVType.flattened.array.isClose(expectedHSV, 0.005));
+            auto computed = rgb[].sliced(1, 1, 3).rgb2hsv!HSVType.lightScope;
+            auto expected = expectedHSV[].sliced(1, 1, 3);
+
+            assert(zip(computed, expected).all!(pair => isClose(pair.a, pair.b, 1e-2)), 
+                computed.to!string ~ " should close to " ~ expected.to!string);
         }
         
     }
 
-    rgb2hsvTest(cast(ubyte[])[255, 0, 0], cast(ushort[])[0, 100, 100]);
-    rgb2hsvTest(cast(ubyte[])[255, 0, 0], cast(float[])[0, 1.0f, 1.0f]); // test float result
+    rgb2hsvTest([ubyte(255), ubyte(0), ubyte(0)].staticArray!(ubyte, 3), [ushort(0), 100, 100].staticArray!(ushort, 3));
+    rgb2hsvTest([ubyte(255), ubyte(0), ubyte(0)].staticArray!(ubyte, 3), [float(0), 1.0f, 1.0f].staticArray!(float, 3)); // test float result
 
     // test same input values as above for 16-bit and 32-bit images
-    rgb2hsvTest(cast(ushort[])[ushort.max, 0, 0], cast(ushort[])[0, 100, 100]);
-    rgb2hsvTest(cast(float[])[1.0f, 0, 0], cast(ushort[])[0, 100, 100]);
+    rgb2hsvTest([ushort.max, 0, 0].staticArray!(ushort, 3), [0, 100, 100].staticArray!(ushort, 3));
+    rgb2hsvTest([1.0f, 0.0f, 0.0f].staticArray!(float, 3), [0, 100, 100].staticArray!(ushort, 3));
 
-    rgb2hsvTest(cast(ubyte[])[0, 255, 0], cast(ushort[])[120, 100, 100]);
-    rgb2hsvTest(cast(ubyte[])[0, 0, 255], cast(ushort[])[240, 100, 100]);
-    rgb2hsvTest(cast(ubyte[])[122, 158, 200], cast(float[])[212, 0.39, 0.784]);
+    rgb2hsvTest([ubyte(0), 255, 0].staticArray!(ubyte, 3), [120, 100, 100].staticArray!(ushort, 3));
+    rgb2hsvTest([ubyte(0), 0, 255].staticArray!(ubyte, 3), [240, ushort(100), 100].staticArray!(ushort, 3));
+    rgb2hsvTest([ubyte(122), 158, 200].staticArray!(ubyte, 3), [float(212.0f), 0.39f, 0.784f].staticArray!(float, 3));
 }
 
 /**
@@ -284,7 +299,8 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(RCI!R, 3LU, SliceKind.contiguous) hsv2rgb(R, V)(Slice!(V*, 3LU, SliceKind.contiguous) input, Slice!(RCI!R, 3LU, SliceKind.contiguous) prealloc = emptyRCSlice!(3, R)) pure nothrow
+@nogc nothrow
+Slice!(RCI!R, 3LU, SliceKind.contiguous) hsv2rgb(R, V)(Slice!(V*, 3LU, SliceKind.contiguous) input, Slice!(RCI!R, 3LU, SliceKind.contiguous) prealloc = emptyRCSlice!(3, R)) pure
         if (isNumeric!R && isNumeric!V)
 in
 {
@@ -307,38 +323,55 @@ do
 unittest
 {
     // value comparison based on results from http://www.rapidtables.com/convert/color/hsv-to-rgb.htm
-    auto hsv2rgbTest(HSVType, RGBType)(HSVType[] hsv, RGBType[] expectedRgb)
+    auto hsv2rgbTest(HSVTypeA, RGBTypeA)(HSVTypeA hsv, RGBTypeA expectedRgb)
     {
-        import std.math.operations: isClose;
-        import std.array : array;
-        
-        assert(isClose(expectedRgb, hsv.sliced(1, 1, 3).hsv2rgb!RGBType.flattened.array));
+        import mir.algorithm.iteration: equal;
+        import mir.math.common: approxEqual;
+        import std.traits : isIntegral;
+        import std.conv : to;
+        import std.math.operations : isClose;
+        import mir.algorithm.iteration : all;
+
+        alias RGBType = DeepElementType!(RGBTypeA);
+
+        static if(isIntegral!RGBType){
+            auto computed = hsv[].sliced(1, 1, 3).hsv2rgb!RGBType;
+            auto expected = expectedRgb[].sliced(1, 1, 3);
+            assert(zip(computed, expected).all!(pair => isClose(pair.a, pair.b, 1.0)), 
+                "computed " ~ computed.to!string ~ " should be close to " ~ "expected" ~ expected.to!string);
+        }else{
+            assert(
+                hsv[].sliced(1, 1, 3).hsv2rgb!RGBType.lightScope.equal!approxEqual(expectedRgb[].sliced(1, 1, 3)));
+        }
 
     }
 
-    import std.random : uniform;
+    import mir.random.variable;
+    import mir.random.engine;
+
+    auto gen = Random(unpredictableSeed);
 
     foreach (i; 0 .. 10)
     {
         // test any value with value of 0, should give rgb [0, 0, 0]
-        hsv2rgbTest(cast(ushort[])[uniform(0, 359), uniform(0, 99), 0], cast(ubyte[])[0, 0, 0]);
+        hsv2rgbTest([uniformVar!ushort(0, 359)(gen), uniformVar!ushort(0, 99)(gen), 0].staticArray!(ushort,3), [0, 0, 0].staticArray!(ubyte,3));
     }
 
-    hsv2rgbTest(cast(ushort[])[0, 0, 100], cast(ubyte[])[255, 255, 255]);
-    hsv2rgbTest(cast(ushort[])[150, 50, 100], cast(ubyte[])[128, 255, 191]);
-    hsv2rgbTest(cast(ushort[])[150, 50, 80], cast(ubyte[])[102, 204, 153]);
+    hsv2rgbTest([0, 0, 100].staticArray!(ushort,3), [255, 255, 255].staticArray!(ubyte,3));
+    hsv2rgbTest([150, 50, 100].staticArray!(ushort,3), [127, 255, 191].staticArray!(ubyte,3));
+    hsv2rgbTest([150, 50, 80].staticArray!(ushort,3), [101, 203, 152].staticArray!(ubyte,3));
 
-    hsv2rgbTest(cast(float[])[0.0f, 0.0f, 1.0f], cast(ubyte[])[255, 255, 255]);
-    hsv2rgbTest(cast(float[])[150.0f, 0.5f, 1.0f], cast(ubyte[])[127, 255, 191]);
-    hsv2rgbTest(cast(float[])[150.0f, 0.5f, 0.8f], cast(ubyte[])[102, 204, 153]);
+    hsv2rgbTest([0.0f, 0.0f, 1.0f].staticArray!(float,3), [255, 255, 255].staticArray!(ubyte,3));
+    hsv2rgbTest([150.0f, 0.5f, 1.0f].staticArray!(float,3), [127, 255, 191].staticArray!(ubyte,3));
+    hsv2rgbTest([150.0f, 0.5f, 0.8f].staticArray!(float,3), [102, 204, 153].staticArray!(ubyte,3));
 
-    hsv2rgbTest(cast(ushort[])[0, 0, 100], cast(ushort[])[65535, 65535, 65535]);
-    hsv2rgbTest(cast(ushort[])[150, 50, 100], cast(ushort[])[32896, 65535, 49087]);
-    hsv2rgbTest(cast(ushort[])[150, 50, 80], cast(ushort[])[26214, 52428, 39321]);
+    hsv2rgbTest([0, 0, 100].staticArray!(ushort,3), [65535, 65535, 65535].staticArray!(ushort,3));
+    hsv2rgbTest([150, 50, 100].staticArray!(ushort,3), [32767, 65535, 49151].staticArray!(ushort,3));
+    hsv2rgbTest([150, 50, 80].staticArray!(ushort,3), [26213, 52427, 39320].staticArray!(ushort,3));
 
-    hsv2rgbTest(cast(float[])[0.0f, 0.0f, 1.0f], cast(float[])[1.0f, 1.0f, 1.0f]);
-    hsv2rgbTest(cast(float[])[150.0f, 0.5f, 1.0f], cast(float[])[0.5f, 1.0f, 0.75f]);
-    hsv2rgbTest(cast(float[])[150.0f, 0.5f, 0.8f], cast(float[])[0.4f, 0.8f, 0.6f]);
+    hsv2rgbTest([0.0f, 0.0f, 1.0f].staticArray!(float,3), [1.0f, 1.0f, 1.0f].staticArray!(float,3));
+    hsv2rgbTest([150.0f, 0.5f, 1.0f].staticArray!(float,3), [0.5f, 1.0f, 0.75f].staticArray!(float,3));
+    hsv2rgbTest([150.0f, 0.5f, 0.8f].staticArray!(float,3), [0.4f, 0.8f, 0.6f].staticArray!(float,3));
 }
 
 /**
@@ -355,7 +388,8 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(RCI!V, 3, SliceKind.contiguous) rgb2yuv(V)(Slice!(V*, 3, SliceKind.contiguous) input, Slice!(RCI!V, 3, SliceKind.contiguous) prealloc = emptyRCSlice!(3, V)) pure nothrow
+@nogc nothrow
+Slice!(RCI!V, 3, SliceKind.contiguous) rgb2yuv(V)(Slice!(V*, 3, SliceKind.contiguous) input, Slice!(RCI!V, 3, SliceKind.contiguous) prealloc = emptyRCSlice!(3, V)) pure
 in
 {
     assert(input.length!2 == 3, "Invalid channel count.");
@@ -387,7 +421,8 @@ Returns:
 Note:
     Input and pre-allocated slices' strides must be identical.
 */
-Slice!(RCI!V, 3, SliceKind.contiguous) yuv2rgb(V)(Slice!(V*, 3, SliceKind.contiguous) input, Slice!(RCI!V, 3, SliceKind.contiguous) prealloc = emptyRCSlice!(3, V)) @nogc nothrow
+@nogc nothrow
+Slice!(RCI!V, 3, SliceKind.contiguous) yuv2rgb(V)(Slice!(V*, 3, SliceKind.contiguous) input, Slice!(RCI!V, 3, SliceKind.contiguous) prealloc = emptyRCSlice!(3, V))
 in
 {
     assert(input.length!2 == 3, "Invalid channel count.");
@@ -412,38 +447,51 @@ do
 
 unittest
 {
+    import mir.algorithm.iteration: equal;
+    import mir.math.common: approxEqual;
+    import std.traits : isIntegral;
+    import std.conv : to;
+    import std.math.operations : isClose;
+    import mir.algorithm.iteration : all;
     // test rgb to yuv conversion
-    auto rgb2yuvTest(Type)(Type[] rgb, Type[] expectedYuv)
+    auto rgb2yuvTest(TypeA)(TypeA rgb, TypeA expectedYuv)
     {
-        import std.algorithm.comparison : equal;
-        import std.array : array;
-        import std.math.operations : isClose;
+        auto computed = rgb[].sliced(1, 1, 3).rgb2yuv.lightScope;
+        auto expected = expectedYuv[].sliced(1, 1, 3);
 
-        assert(rgb.sliced(1, 1, 3).rgb2yuv.flattened.array.equal!isClose(expectedYuv));
+        assert(zip(computed, expected).all!(pair => isClose(pair.a, pair.b, 1.0)), 
+                "computed " ~ computed.to!string ~ " should be equal to " ~ "expected" ~ expected.to!string);
     }
 
-    rgb2yuvTest(cast(ubyte[])[0, 0, 0], cast(ubyte[])[16, 128, 128]);
-    rgb2yuvTest(cast(ubyte[])[255, 0, 0], cast(ubyte[])[82, 90, 240]);
-    rgb2yuvTest(cast(ubyte[])[0, 255, 0], cast(ubyte[])[144, 54, 34]);
-    rgb2yuvTest(cast(ubyte[])[0, 0, 255], cast(ubyte[])[41, 240, 110]);
+    rgb2yuvTest([0, 0, 0].staticArray!(ubyte, 3), [16, 128, 128].staticArray!(ubyte, 3));
+    rgb2yuvTest([255, 0, 0].staticArray!(ubyte, 3), [82, 90, 240].staticArray!(ubyte, 3));
+    rgb2yuvTest([0, 255, 0].staticArray!(ubyte, 3), [144, 54, 34].staticArray!(ubyte, 3));
+    rgb2yuvTest([0, 0, 255].staticArray!(ubyte, 3), [41, 240, 110].staticArray!(ubyte, 3));
 }
 
 unittest
-{
+{   
+    import mir.algorithm.iteration: equal;
+    import mir.math.common: approxEqual;
+    import std.traits : isIntegral;
+    import std.conv : to;
+    import std.math.operations : isClose;
+    import mir.algorithm.iteration : all;
+    
     // test yuv to rgb conversion
     auto yuv2rgbTest(Type)(Type[] yuv, Type[] expectedRgb)
     {
-        import std.algorithm.comparison : equal;
-        import std.array : array;
-        import std.math.operations : isClose;
-
-        assert(yuv.sliced(1, 1, 3).yuv2rgb.flattened.array.equal!isClose(expectedRgb));
+        auto computed = yuv.sliced(1, 1, 3).yuv2rgb;
+        auto expected = expectedRgb.sliced(1, 1, 3);
+        assert(zip(computed, expected).all!(pair => isClose(pair.a, pair.b, 1.0)), 
+                "computed " ~ computed.to!string ~ " should be close to " ~ "expected" ~ expected.to!string);
     }
 
     yuv2rgbTest(cast(ubyte[])[16, 128, 128], cast(ubyte[])[0, 0, 0]);
     yuv2rgbTest(cast(ubyte[])[150, 54, 125], cast(ubyte[])[151, 187, 7]);
     yuv2rgbTest(cast(ubyte[])[144, 54, 34], cast(ubyte[])[0, 255, 0]);
     yuv2rgbTest(cast(ubyte[])[41, 240, 110], cast(ubyte[])[0, 0, 255]);
+    
 }
 
 pure @nogc nothrow @fastmath:

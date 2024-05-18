@@ -60,8 +60,6 @@ import mir.rc;
 import dcv.core.algorithm;
 import dcv.core.utils;
 
-@nogc nothrow:
-
 /**
 Box kernel creation.
 
@@ -75,6 +73,7 @@ Params:
 Returns:
     Kernel of size [rows, cols], filled with given value.
 */
+@nogc nothrow
 Slice!(RCI!T, 2LU, Contiguous) boxKernel(T)(size_t rows, size_t cols, T value = 1)
 in
 {
@@ -87,6 +86,7 @@ do
 }
 
 /// ditto
+@nogc nothrow
 Slice!(RCI!T, 2LU, Contiguous) boxKernel(T)(size_t size, T value = 1)
 in
 {
@@ -111,6 +111,7 @@ Params:
 Returns:
     Kernel of size [radius, radius], filled with given values.
 */
+@nogc nothrow
 Slice!(RCI!T, 2LU, Contiguous) radialKernel(T)(size_t radius, T foreground = 1, T background = 0)
 in
 {
@@ -139,6 +140,7 @@ do
 /**
 Instantiate 2D gaussian kernel.
 */
+@nogc nothrow
 Slice!(RCI!V, 2LU, Contiguous) gaussian(V = double)(V sigma, size_t width, size_t height)
 {
 
@@ -203,7 +205,8 @@ Laplacian(I) =
 )
 
 */
-Slice!(RCI!T, 2LU, Contiguous) laplacian(T = double)(T a = 0.) nothrow if (isNumeric!T)
+@nogc nothrow
+Slice!(RCI!T, 2LU, Contiguous) laplacian(T = double)(T a = 0.) if (isNumeric!T)
 in
 {
     assert(a >= 0 && a <= 1);
@@ -240,6 +243,7 @@ Params:
     width = width of the kernel matrix
     height = height of the kernel matrix
 */
+@nogc nothrow
 Slice!(RCI!T, 2LU, Contiguous) laplacianOfGaussian(T = double)(T sigma,
     size_t width, size_t height)
 {
@@ -307,26 +311,30 @@ public enum EdgeKernel
 }
 
 /// Create a Sobel edge kernel.
-Slice!(RCI!T, 2LU, Contiguous) sobel(T = double)(GradientDirection direction) nothrow pure @trusted
+@nogc nothrow
+Slice!(RCI!T, 2LU, Contiguous) sobel(T = double)(GradientDirection direction) pure @trusted
 {
     return edgeKernelImpl!(T)(direction, cast(T)1, cast(T)2);
 }
 
 /// Create a Scharr edge kernel.
-Slice!(RCI!T, 2LU, Contiguous) scharr(T = double)(GradientDirection direction) nothrow pure @trusted
+@nogc nothrow
+Slice!(RCI!T, 2LU, Contiguous) scharr(T = double)(GradientDirection direction) pure @trusted
 {
     return edgeKernelImpl!(T)(direction, cast(T)3, cast(T)10);
 }
 
 /// Create a Prewitt edge kernel.
-Slice!(RCI!T, 2LU, Contiguous) prewitt(T = double)(GradientDirection direction) nothrow pure @trusted
+@nogc nothrow
+Slice!(RCI!T, 2LU, Contiguous) prewitt(T = double)(GradientDirection direction) pure @trusted
 {
     return edgeKernelImpl!(T)(direction, cast(T)1, cast(T)1);
 }
 
 /// Create a kernel of given type.
+@nogc nothrow
 Slice!(RCI!T, 2LU, Contiguous) edgeKernel(T)(EdgeKernel kernelType,
-    GradientDirection direction) nothrow pure @trusted
+    GradientDirection direction) pure @trusted
 {
     typeof(return) k;
     final switch (kernelType)
@@ -346,8 +354,9 @@ Slice!(RCI!T, 2LU, Contiguous) edgeKernel(T)(EdgeKernel kernelType,
     return k;
 }
 
+@nogc nothrow
 private Slice!(RCI!T, 2LU, Contiguous) edgeKernelImpl(T)(
-    GradientDirection direction, T lv, T hv) nothrow pure @trusted
+    GradientDirection direction, T lv, T hv) pure @trusted
 {
     import std.array : _sa = staticArray;
     int err;
@@ -403,6 +412,7 @@ Params:
 Returns:
     Input matrix, after filtering.
 */
+@nogc nothrow
 auto filterNonMaximum(SliceKind kind, Iterator)(Slice!(Iterator, 2LU, kind) input, size_t filterSize = 10)
 in
 {
@@ -427,6 +437,7 @@ Calculate partial derivatives of an slice.
 Partial derivatives are calculated by convolving an slice with
 [-1, 1] kernel, horizontally and vertically.
 */
+@nogc nothrow
 void calcPartialDerivatives(InputTensor, V = DeepElementType!InputTensor)(
     InputTensor input, ref Slice!(RCI!V, 2LU, Contiguous) fx,
     ref Slice!(RCI!V, 2LU, Contiguous) fy) if (isFloatingPoint!V)
@@ -522,6 +533,7 @@ Note:
     Input slice's memory has to be contiguous. Magnitude and orientation slices' strides
     have to be the identical.
 */
+@nogc nothrow
 void calcGradients(InputTensor, V = DeepElementType!InputTensor)
 (
     InputTensor input,
@@ -583,6 +595,7 @@ do
     }
 }
 
+@nogc nothrow
 @fastmath void calcGradientsImpl(T)(T fx, T fy, ref T mag, ref T orient)
 {
     import mir.math.common : sqrt;
@@ -610,6 +623,7 @@ Note:
 See:
     dcv.imgproc.filter.calcGradients, dcv.imgproc.convolution
 */
+@nogc nothrow
 Slice!(RCI!V, 2LU, Contiguous) nonMaximaSupression(InputTensor, V = DeepElementType!InputTensor)
 (
     InputTensor mag,
@@ -672,6 +686,7 @@ Params:
     prealloc        = Optional pre-allocated buffer.
     pool            = TaskPool instance used parallelise the algorithm.
 */
+@nogc nothrow
 Slice!(RCI!V, 2LU, Contiguous) canny(V, T, SliceKind kind)
 (
     Slice!(T*, 2LU, kind) slice,
@@ -699,6 +714,7 @@ Perform canny filtering on an image to expose edges.
 Convenience function to call canny with same lower and upper threshold values,
 similar to dcv.imgproc.threshold.threshold.
 */
+@nogc nothrow
 Slice!(RCI!V, 2LU, Contiguous) canny(V, T, SliceKind kind)
 (
     Slice!(T*, 2LU, kind) slice,
@@ -727,6 +743,7 @@ Params:
 Returns:
     Slice of filtered image.
 */
+@nogc nothrow
 Slice!(RCI!OutputType, N, Contiguous) bilateralFilter(OutputType, alias bc = neumann, SliceKind kind, size_t N, Iterator)
 (
     Slice!(Iterator, N, kind) input,
@@ -767,6 +784,7 @@ do
     return prealloc;
 }
 
+@nogc nothrow
 private void bilateralFilter2(OutputType, alias bc = neumann,
     SliceKind outputKind, SliceKind kind, V)(Slice!(V*, 2LU, kind) input,
     float sigmaCol, float sigmaSpace, size_t kernelSize,
@@ -850,6 +868,7 @@ Returns:
     of same size as input slice, return value is assigned to prealloc buffer. If not, newly allocated buffer
     is used.
 */
+@nogc nothrow
 Slice!(RCI!O, N, Contiguous) medianFilter(alias BoundaryConditionTest = neumann, T, O = T, SliceKind kind, size_t N)
 (
     Slice!(T*, N, kind) slice,
@@ -918,6 +937,7 @@ Params:
 Returns:
     Histogram for given forward range.
 */
+@nogc nothrow
 HistogramType calcHistogram(Range, HistogramType = int[(ElementType!Range).max + 1])
 (
     Range range
@@ -995,6 +1015,7 @@ Params:
 Returns:
     Copy of input image slice with its histogram values equalized.
 */
+@nogc nothrow
 auto histEqualize(T, HistogramType, SliceKind kind, size_t N)
 (
     Slice!(T*, N, kind) slice,
@@ -1106,6 +1127,7 @@ Params:
 Returns:
     Eroded image slice, of same type as input image.
 */
+@nogc nothrow
 Slice!(RCI!T, 2LU, kind) erode(alias BoundaryConditionTest = neumann, Iterator, SliceKind kind, T = DeepElementType!(typeof(slice)))
 (
     Slice!(Iterator, 2LU, kind) slice,
@@ -1170,6 +1192,7 @@ Params:
 Returns:
     Dilated image slice, of same type as input image.
 */
+@nogc nothrow
 Slice!(RCI!T, 2LU, kind) dilate(alias BoundaryConditionTest = neumann, Iterator, SliceKind kind, T = DeepElementType!(typeof(slice)))
 (
     Slice!(Iterator, 2LU, kind) slice,
@@ -1198,6 +1221,7 @@ Params:
 Returns:
     Opened image slice, of same type as input image.
 */
+@nogc nothrow
 Slice!(RCI!T, 2LU, kind) open(alias BoundaryConditionTest = neumann, T, SliceKind kind)
 (
     Slice!(T*, 2LU, kind) slice,
@@ -1227,6 +1251,7 @@ Params:
 Returns:
     Closed image slice, of same type as input image.
 */
+@nogc nothrow
 Slice!(RCI!T, 2LU, kind) close(alias BoundaryConditionTest = neumann, T, SliceKind kind)(
     Slice!(T*, 2LU, kind) slice,
     Slice!(RCI!T, 2LU, kind) kernel = radialKernel!T(3),
@@ -1237,6 +1262,8 @@ Slice!(RCI!T, 2LU, kind) close(alias BoundaryConditionTest = neumann, T, SliceKi
         morphOp!(MorphologicOperation.DILATE, BoundaryConditionTest)(slice,
         kernel, emptyRCSlice!(2, T)), kernel, prealloc);
 }
+
+@nogc nothrow:
 
 @fastmath void calcBilateralMask(Window, Mask)(Window window, Mask mask,
     float sigmaCol, float sigmaSpace)

@@ -286,22 +286,23 @@ class DensePyramidFlow : DenseOpticalFlow
 // TODO: implement functional tests.
 version (unittest)
 {
-
-    import std.algorithm.iteration : map;
-    import std.array : array;
-    import std.random : uniform;
-    import mir.ndslice.slice;
-
     private auto createImage()
     {
-        return new Image(32, 32, ImageFormat.IF_MONO, BitDepth.BD_8, (32 * 32)
-                .iota.map!(v => cast(ubyte)uniform(0, 255)).array);
+        import mir.random.variable: normalVar;
+        import mir.random.algorithm: randomSlice;
+        
+        auto rndSlice = normalVar.randomSlice(32*32);
+
+        auto imSlice = uninitRCslice!float(32,32);
+        imSlice.flattened[0..$] = rndSlice[0..$].as!float;
+        return imSlice;
     }
 
     class DummySparseFlow : SparseOpticalFlow
     {
-        override Slice!(RCI!(float[2]), 1) evaluate(Image f1, Image f2, in float[2][],
-                in float[2][] searchRegions, Slice!(RCI!(float[2]), 1) prevflow = null, bool usePrevious = false)
+        @nogc nothrow
+        Slice!(RCI!(float[2]), 1) evaluate(Slice!(float*, 2, Contiguous) f1, Slice!(float*, 2, Contiguous) f2, float[2][] points,
+            float[2][] searchRegions, Slice!(RCI!(float[2]), 1) prevflow = emptyRCSlice!(1, float[2]), bool usePrevious = false)
         {
             import std.array : uninitializedArray;
 
@@ -309,24 +310,33 @@ version (unittest)
         }
     }
 
+    import mir.ndslice;
+
     class DummyDenseFlow : DenseOpticalFlow
     {
-        override DenseFlow evaluate(Image f1, Image f2, DenseFlow prealloc = emptyRCSlice!(3,
-                float), bool usePrevious = false)
+        @nogc nothrow
+        DenseFlow evaluate(Slice!(float*, 2, Contiguous) f1, Slice!(float*, 2, Contiguous) f2, DenseFlow prealloc = emptyRCSlice!(3, float),
+            bool usePrevious = false)
         {
-            return RCArray!float(f1.height * f1.width * 2).sliced(f1.height, f1.width, 2);
+            return RCArray!float(f1.shape[0] * f1.shape[1] * 2).moveToSlice.sliced(f1.shape[0], f1.shape[1], 2);
         }
     }
 }
 
 unittest
 {
+    import std.random, std.array;
+    import std.range;
+    import std.algorithm.iteration;
+
+    auto rnd = Random(unpredictableSeed);
+
     SparsePyramidFlow flow = new SparsePyramidFlow(new DummySparseFlow, 3);
     auto f1 = createImage();
     auto f2 = createImage();
-    auto p = 10.iota.map!(v => cast(float[2])[cast(float)uniform(0, 2), cast(float)uniform(0, 2)]).array;
+    auto p = 10.iota.map!(v => cast(float[2])[cast(float)uniform(0, 2, rnd), cast(float)uniform(0, 2, rnd)]).array;
     auto r = 10.iota.map!(v => cast(float[2])[3.0f, 3.0f]).array;
-    auto f = flow.evaluate(f1, f2, p, r);
+    auto f = flow.evaluate(f1.lightScope, f2.lightScope, p, r);
     assert(f.length == p.length);
 }
 
@@ -335,6 +345,6 @@ unittest
     DensePyramidFlow flow = new DensePyramidFlow(new DummyDenseFlow, 3);
     auto f1 = createImage();
     auto f2 = createImage();
-    auto f = flow.evaluate(f1, f2);
-    assert(f.length!0 == f1.height && f.length!1 == f1.width && f.length!2 == 2);
+    auto f = flow.evaluate(f1.lightScope, f2.lightScope);
+    assert(f.length!0 == f1.shape[0] && f.length!1 == f1.shape[1] && f.length!2 == 2);
 }

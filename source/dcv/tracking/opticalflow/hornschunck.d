@@ -141,20 +141,28 @@ class HornSchunckFlow : DenseOpticalFlow
 // TODO: implement functional tests.
 unittest
 {
+    import dcv.core;
+    
     HornSchunckFlow flow = new HornSchunckFlow;
-    auto f1 = new Image(3, 3, ImageFormat.IF_MONO, BitDepth.BD_8);
-    auto f2 = new Image(3, 3, ImageFormat.IF_MONO, BitDepth.BD_8);
-    auto f = flow.evaluate(f1, f2);
-    assert(f.length!0 == f1.height && f.length!1 == f1.width && f.length!2 == 2);
+    
+    auto f1 = slice!float([3,3], 0);
+    auto f2 = slice!float([3,3], 0);
+    
+    Slice!(RCI!float, 3LU, Contiguous) f = flow.evaluate(f1, f2);
+
+    assert(f.shape[0] == f1.shape[0] && f.shape[1] == f1.shape[1] && f.shape[2] == 2);
 }
 
 unittest
 {
     HornSchunckFlow flow = new HornSchunckFlow;
-    auto f1 = new Image(3, 3, ImageFormat.IF_MONO, BitDepth.BD_8);
-    auto f2 = new Image(3, 3, ImageFormat.IF_MONO, BitDepth.BD_8);
-    auto f = new float[9 * 2].sliced(3, 3, 2);
+    auto f1 = slice!float([3,3], 0);
+    auto f2 = slice!float([3,3], 0);
+    
+    Slice!(RCI!float, 3LU, Contiguous) f = rcslice!float([3, 3, 2], 0.0f);
+
     auto fe = flow.evaluate(f1, f2, f);
+    
     assert(f.shape[] == fe.shape[]);
     assert(&f[0, 0, 0] == &fe[0, 0, 0]);
 }

@@ -14,6 +14,7 @@ import std.traits : isNumeric;
 import std.typecons : Tuple;
 import std.math;
 public import std.container.array : Array;
+import std.array: staticArray;
 
 import mir.ndslice;
 import mir.rc;
@@ -112,7 +113,7 @@ unittest
 {
     auto image = [0., 0., 0.,
                   0., 1., 0.,
-                  0., 0., 0.].sliced(3, 3);
+                  0., 0., 0.].staticArray[].sliced(3, 3);
 
     auto res = image.extractCorners;
 
@@ -125,7 +126,7 @@ unittest
 {
     auto image = [0., 0.1, 0.,
                   0., 0.3, 0.,
-                  0., 0.2, 0.].sliced(3, 3);
+                  0., 0.2, 0.].staticArray[].sliced(3, 3);
 
     auto res = image.extractCorners;
 
@@ -140,7 +141,7 @@ unittest
 {
     auto image = [0., 0.1, 0.,
                   0., 0.3, 0.,
-                  0., 0.2, 0.].sliced(3, 3);
+                  0., 0.2, 0.].staticArray[].sliced(3, 3);
 
     auto res = image.extractCorners(1);
 
@@ -153,7 +154,7 @@ unittest
 {
     auto image = [0., 0.1, 0.,
                   0., 0.3, 0.,
-                  0., 0.2, 0.].sliced(3, 3);
+                  0., 0.2, 0.].staticArray[].sliced(3, 3);
 
     auto res = image.extractCorners(-1, 0.2);
 

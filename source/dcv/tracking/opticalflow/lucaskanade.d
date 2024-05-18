@@ -277,39 +277,52 @@ class LucasKanadeFlow : SparseOpticalFlow
 // TODO: implement functional tests.
 version (unittest)
 {
-    import std.algorithm.iteration : map;
-    import std.range : iota;
-    import std.array : array;
-    import std.random : uniform;
-
     private auto createImage()
     {
-        return new Image(5, 5, ImageFormat.IF_MONO, BitDepth.BD_8,
-                25.iota.map!(v => cast(ubyte)uniform(0, 255)).array);
+        import mir.random.variable: normalVar;
+        import mir.random.algorithm: randomSlice;
+        
+        auto rndSlice = normalVar.randomSlice(25);
+
+        auto imSlice = uninitRCslice!float(5,5);
+        imSlice.flattened[0..$] = rndSlice[0..$].as!float;
+        return imSlice;
     }
 }
 
 unittest
 {
+    import std.random;
+    import std.range : iota;
+    import std.algorithm.iteration;
+    import std.array;
+
+    auto rnd = Random(unpredictableSeed);
+
     LucasKanadeFlow flow = new LucasKanadeFlow;
     auto f1 = createImage();
     auto f2 = createImage();
-    auto p = 10.iota.map!(v => cast(float[2])[cast(float)uniform(0, 2), cast(float)uniform(0, 2)]).array;
+    auto p = 10.iota.map!(v => cast(float[2])[cast(float)uniform(0, 2, rnd), cast(float)uniform(0, 2, rnd)]).array;
     auto r = 10.iota.map!(v => cast(float[2])[3.0f, 3.0f]).array;
-    auto f = flow.evaluate(f1, f2, p, r);
+    auto f = flow.evaluate(f1.lightScope, f2.lightScope, p, r);
     assert(f.length == p.length);
     assert(flow.cornerResponse.length == p.length);
 }
 
 unittest
 {
+    import std.random;
+    import std.array;
+
+    auto rnd = Random(unpredictableSeed);
+
     LucasKanadeFlow flow = new LucasKanadeFlow;
     auto f1 = createImage();
     auto f2 = createImage();
-    auto p = 10.iota.map!(v => cast(float[2])[cast(float)uniform(0, 2), cast(float)uniform(0, 2)]).array;
-    auto f = 10.iota.map!(v => cast(float[2])[cast(float)uniform(0, 2), cast(float)uniform(0, 2)]).array;
+    auto p = 10.iota.map!(v => cast(float[2])[cast(float)uniform(0, 2, rnd), cast(float)uniform(0, 2, rnd)]).array;
+    auto f = 10.iota.map!(v => cast(float[2])[cast(float)uniform(0, 2, rnd), cast(float)uniform(0, 2, rnd)]).rcslice;
     auto r = 10.iota.map!(v => cast(float[2])[3.0f, 3.0f]).array;
-    auto fe = flow.evaluate(f1, f2, p, r, f);
+    auto fe = flow.evaluate(f1.lightScope, f2.lightScope, p, r, f);
     assert(f.length == fe.length);
     assert(f.ptr == fe.ptr);
     assert(flow.cornerResponse.length == p.length);

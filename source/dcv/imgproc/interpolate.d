@@ -187,7 +187,7 @@ pure @fastmath auto linearImpl_1(SliceType)(SliceType range, double pos)
 {
     import mir.math.common;
 
-    alias T = Unqual!(DeepElementType!range);
+    alias T = Unqual!(DeepElementType!SliceType);
 
     assert(pos < range.length);
 
