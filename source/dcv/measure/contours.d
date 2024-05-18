@@ -201,7 +201,7 @@ findContours(InputType, bool fullyConnected = true)
     size_t i;
     auto ret0 = RCArray!Contour(contours.length);
 
-    foreach (_c; contours)
+    foreach (ref _c; contours)
     {
         auto clen = _c.length;
         Contour ctr = uninitRCslice!(size_t)(clen, 2);
