@@ -48,6 +48,10 @@ destroyFigures(); // free all allocated figures
 - class Image and class Figure use manual memory management. A call of function destroyFigures deallocates all allocated figures automatically. If an Image instance is initialized with non-null ubyte[] data, this time, the Image instance behaves like a slice shell, and it does not attempt to deallocate the borrowed data slice.
 - All examples are up-to-date. Please refer to the examples instead of the docs at the moment.
 
+## unittests
+- Some subpackages requires client-side linker input. The unittests does not require any special linker input. So, to perform all available unittests, please run:
+```dub test :core```
+
 ## Documentation (outdated at the moment)
 
 API reference, and examples can be found on the project website: [dcv.dlang.io](http://dcv.dlang.io/). Also project roadmap, news and other related stuff should be always located on the site's home page.

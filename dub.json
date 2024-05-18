@@ -1,5 +1,6 @@
 {
     "name": "dcv",
+    "version": "0.4.0",
     "description": "Computer vision library for D programming language.",
     "copyright": "Copyright © 2016, Relja Ljubobratovic",
     "authors": [
