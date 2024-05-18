@@ -34,7 +34,7 @@ License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - 
 */
 module dcv.imgproc.convolution;
 
-import std.traits : isAssignable, ReturnType, Unqual;
+import std.traits : isAssignable, ReturnType, Unqual, TemplateOf;
 import std.conv : to;
 import dplug.core.thread : ThreadPool;
 import dplug.core.nogc;
@@ -43,6 +43,7 @@ import dplug.core.nogc;
 import mir.math.common : fastmath;
 
 import mir.ndslice.slice;
+import mir.ndslice.iterator: SliceIterator;
 import mir.ndslice.topology;
 import mir.algorithm.iteration : reduce;
 import mir.rc;
@@ -51,8 +52,6 @@ import mir.ndslice.allocation;
 
 import dcv.core.memory;
 import dcv.core.utils;
-
-@nogc nothrow:
 
 /**
 Perform convolution to given tensor, using given kernel.
@@ -78,9 +77,14 @@ Returns:
 Note:
     Input, mask and pre-allocated slices' strides must be the same.
 */
-InputTensor conv(alias bc = neumann, InputTensor, PreAl, KernelTensor, MaskTensor = KernelTensor)
-    (InputTensor input, KernelTensor kernel, PreAl prealloc = InputTensor.init,
-     MaskTensor mask = MaskTensor.init)
+@nogc nothrow
+auto conv(alias bc = neumann, InputTensor, KernelTensor, PreAlloc, MaskTensor)
+(
+    InputTensor input, 
+    KernelTensor kernel,
+    PreAlloc prealloc,
+    MaskTensor mask
+)
 in
 {
     static assert(isSlice!InputTensor, "Input tensor has to be of type mir.ndslice.slice.Slice");
@@ -123,9 +127,30 @@ do
 {
     static if (prealloc._strides.length == 0)
         if (prealloc.shape != input.shape)
-            prealloc = uninitRCslice!(DeepElementType!InputTensor)(input.shape); // uninitializedSlice!(DeepElementType!InputTensor)(input.shape);
+            prealloc = uninitRCslice!(Unqual!(DeepElementType!InputTensor))(input.shape); // uninitializedSlice!(DeepElementType!InputTensor)(input.shape);
 
     return convImpl!bc(input, kernel, prealloc, mask);
+}
+
+@nogc nothrow
+auto conv(alias bc = neumann, InputTensor, KernelTensor)
+(
+    InputTensor input,
+    KernelTensor kernel,
+    Slice!(RCI!(Unqual!(DeepElementType!InputTensor)), InputTensor.N) prealloc
+)
+{
+    return conv!bc(input, kernel, prealloc, KernelTensor.init);
+}
+
+@nogc nothrow
+auto conv(alias bc = neumann, InputTensor, KernelTensor)
+(
+    InputTensor input,
+    KernelTensor kernel
+)
+{
+    return conv!bc(input, kernel, Slice!(RCI!(Unqual!(DeepElementType!InputTensor)), InputTensor.N).init, KernelTensor.init);
 }
 
 unittest
@@ -163,8 +188,8 @@ nothrow @nogc @fastmath auto kapply(T)(const T r, const T i, const T k)
 private:
 
 auto convImpl
-    (alias bc = neumann, InputTensor, PreTensor, KernelTensor, MaskTensor)
-    (InputTensor input, KernelTensor kernel, PreTensor prealloc, MaskTensor mask) 
+    (alias bc = neumann, InputTensor, KernelTensor, PreTensor, MaskTensor)
+    (InputTensor input, KernelTensor kernel, PreTensor prealloc, MaskTensor mask) @nogc nothrow
 if (InputTensor.init.shape.length == 1)
 {
     alias InputType = Unqual!(DeepElementType!InputTensor);
@@ -172,10 +197,29 @@ if (InputTensor.init.shape.length == 1)
     auto kl = kernel.length;
     auto kh = kl / 2;
 
-    auto input_ls = input.lightScope;
-    auto kernel_ls = kernel.lightScope;
-    auto prealloc_ls = prealloc.lightScope;
-    auto mask_ls = mask.lightScope;
+    static if (__traits(isSame, TemplateOf!(IteratorOf!(InputTensor)), RCI)){
+        auto input_ls = input.lightScope;
+    }else{
+        alias input_ls = input;
+    }
+
+    static if (__traits(isSame, TemplateOf!(IteratorOf!(KernelTensor)), RCI)){
+        auto kernel_ls = kernel.lightScope;
+    }else{
+        alias kernel_ls = kernel;
+    }
+    
+    static if (__traits(isSame, TemplateOf!(IteratorOf!(PreTensor)), RCI)){
+        auto prealloc_ls = prealloc.lightScope;
+    }else{
+        alias prealloc_ls = prealloc;
+    }
+
+    static if (__traits(isSame, TemplateOf!(IteratorOf!(MaskTensor)), RCI)){
+        auto mask_ls = mask.lightScope;
+    }else{
+        alias mask_ls = mask;
+    }
 
     if (mask.empty)
     {
@@ -207,8 +251,8 @@ if (InputTensor.init.shape.length == 1)
 }
 
 auto convImpl
-    (alias bc = neumann, InputTensor, PreAlloc, KernelTensor, MaskTensor)
-    (InputTensor input, KernelTensor kernel, PreAlloc prealloc, MaskTensor mask) 
+    (alias bc = neumann, InputTensor, KernelTensor, PreAlloc, MaskTensor)
+    (InputTensor input, KernelTensor kernel, PreAlloc prealloc, MaskTensor mask) @nogc nothrow
 if (InputTensor.init.shape.length == 2)
 {
     auto krs = kernel.length!0; // kernel rows
@@ -217,10 +261,29 @@ if (InputTensor.init.shape.length == 2)
     auto krh = krs / 2;
     auto kch = kcs / 2;
 
-    auto input_ls = input.lightScope;
-    auto kernel_ls = kernel.lightScope;
-    auto prealloc_ls = prealloc.lightScope;
-    auto mask_ls = mask.lightScope;
+    static if (__traits(isSame, TemplateOf!(IteratorOf!(InputTensor)), RCI)){
+        auto input_ls = input.lightScope;
+    }else{
+        alias input_ls = input;
+    }
+
+    static if (__traits(isSame, TemplateOf!(IteratorOf!(KernelTensor)), RCI)){
+        auto kernel_ls = kernel.lightScope;
+    }else{
+        alias kernel_ls = kernel;
+    }
+    
+    static if (__traits(isSame, TemplateOf!(IteratorOf!(PreAlloc)), RCI)){
+        auto prealloc_ls = prealloc.lightScope;
+    }else{
+        alias prealloc_ls = prealloc;
+    }
+
+    static if (__traits(isSame, TemplateOf!(IteratorOf!(MaskTensor)), RCI)){
+        auto mask_ls = mask.lightScope;
+    }else{
+        alias mask_ls = mask;
+    }
 
     if (mask.empty)
     {
@@ -253,8 +316,8 @@ if (InputTensor.init.shape.length == 2)
 }
 
 auto convImpl
-    (alias bc = neumann, InputTensor, PreAlloc, KernelTensor, MaskTensor)
-    (InputTensor input, KernelTensor kernel, PreAlloc prealloc, MaskTensor mask) 
+    (alias bc = neumann, InputTensor, KernelTensor, PreAlloc, MaskTensor)
+    (InputTensor input, KernelTensor kernel, PreAlloc prealloc, MaskTensor mask) @nogc nothrow
 if (InputTensor.init.shape.length == 3)
 {
     foreach (i; 0 .. input.length!2)
@@ -268,6 +331,7 @@ if (InputTensor.init.shape.length == 3)
     return prealloc;
 }
 
+@nogc nothrow @fastmath :
 void handleEdgeConv1d(alias bc, T, K, M,
     SliceKind kindi,
     SliceKind kindp,

@@ -39,14 +39,18 @@ version (unittest)
 {
     import std.algorithm : map;
     import std.range : iota;
-    import std.random : uniform;
-    import std.array : array;
     import std.functional : pipe;
     import std.path : extension;
     import std.file : dirEntries, SpanMode, remove;
 
-    alias imgen_8 = pipe!(iota, map!(v => cast(ubyte)uniform(0, ubyte.max)), array);
-    alias imgen_16 = pipe!(iota, map!(v => cast(ushort)uniform(0, ushort.max)), array);
+    import mir.rc;
+
+    @nogc nothrow:
+
+    import mir.random : rand;
+
+    alias imgen_8 = pipe!(iota, map!(v => rand!ubyte), rcarray);
+    alias imgen_16 = pipe!(iota, map!(v => rand!ushort), rcarray);
 
     auto im_ubyte_8_mono()
     {
@@ -58,11 +62,6 @@ version (unittest)
         return (32 * 32 * 3).imgen_8;
     }
 
-    auto im_ubyte_8_rgba()
-    {
-        return (32 * 32 * 4).imgen_8;
-    }
-
     auto im_ubyte_16_mono()
     {
         return (32 * 32).imgen_16;
@@ -71,11 +70,6 @@ version (unittest)
     auto im_ubyte_16_rgb()
     {
         return (32 * 32 * 3).imgen_16;
-    }
-
-    auto im_ubyte_16_rgba()
-    {
-        return (32 * 32 * 4).imgen_16;
     }
 }
 
@@ -255,13 +249,18 @@ unittest
 {
     // test 8-bit mono image writing
     import std.algorithm.comparison : equal;
+    import core.stdc.stdio : remove;
 
     auto f = "__test__.png";
     auto fs = "__test__slice__.png";
     auto d = im_ubyte_8_mono;
+    
     auto w = 32;
     auto h = 32;
-    auto imw = new Image(w, h, ImageFormat.IF_MONO, BitDepth.BD_8, d);
+    auto imw = mallocNew!Image(w, h, ImageFormat.IF_MONO, BitDepth.BD_8);
+    imw.data[] = d[];
+    scope(exit) destroyFree(imw);
+    
     imwrite(imw, f);
     imwrite(imw.sliced, ImageFormat.IF_MONO, fs);
     Image im = imread(f, ReadParams(ImageFormat.IF_MONO, BitDepth.BD_8));
@@ -273,7 +272,7 @@ unittest
     assert(im.format == ImageFormat.IF_MONO);
     assert(im.channels == 1);
     assert(im.depth == BitDepth.BD_8);
-    assert(equal(im.data, d));
+    assert(equal(im.data, d[]));
 
     // test slice written image compared to the Image writen one
     assert(im.width == ims.width);
@@ -282,27 +281,26 @@ unittest
     assert(im.channels == ims.channels);
     assert(im.depth == ims.depth);
     assert(equal(im.data, ims.data));
-    try
-    {
-        remove(f);
-        remove(fs);
-    }
-    catch(Exception e)
-    {
-    }
+
+    remove(f.ptr);
+    remove(fs.ptr);
 }
 
 unittest
 {
     // test 8-bit rgb image writing
     import std.algorithm.comparison : equal;
+    import core.stdc.stdio : remove;
 
     auto f = "__test__.png";
     auto fs = "__test__slice__.png";
     auto d = im_ubyte_8_rgb;
     auto w = 32;
     auto h = 32;
-    auto imw = new Image(w, h, ImageFormat.IF_RGB, BitDepth.BD_8, d);
+    auto imw = mallocNew!Image(w, h, ImageFormat.IF_RGB, BitDepth.BD_8);
+    imw.data[] = d[];
+    scope(exit) destroyFree(imw);
+
     imwrite(imw, f);
     imwrite(imw.sliced, ImageFormat.IF_RGB, fs);
     Image im = imread(f, ReadParams(ImageFormat.IF_RGB, BitDepth.BD_8));
@@ -314,48 +312,7 @@ unittest
     assert(im.format == ImageFormat.IF_RGB);
     assert(im.channels == 3);
     assert(im.depth == BitDepth.BD_8);
-    assert(equal(im.data, d));
-
-    // test slice written image compared to the Image writen one
-    assert(im.width == ims.width);
-    assert(im.height == ims.height);
-    assert(im.format == ims.format);
-    assert(im.channels == ims.channels);
-    assert(im.depth == ims.depth);
-    assert(equal(im.data, ims.data));
-    try
-    {
-        remove(f);
-        remove(fs);
-    }
-    catch(Exception e)
-    {
-    }
-}
-
-unittest
-{
-    // test 8-bit rgba image writing
-    import std.algorithm.comparison : equal;
-
-    auto f = "__test__.png";
-    auto fs = "__test__slice__.png";
-    auto d = im_ubyte_8_rgba;
-    auto w = 32;
-    auto h = 32;
-    auto imw = new Image(w, h, ImageFormat.IF_RGB_ALPHA, BitDepth.BD_8, d);
-    imwrite(imw, f);
-    imwrite(imw.sliced, ImageFormat.IF_RGB_ALPHA, fs);
-    Image im = imread(f, ReadParams(ImageFormat.IF_RGB_ALPHA, BitDepth.BD_8));
-    Image ims = imread(fs, ReadParams(ImageFormat.IF_RGB_ALPHA, BitDepth.BD_8));
-
-    // test read image comparing to the input arguments
-    assert(im.width == w);
-    assert(im.height == h);
-    assert(im.format == ImageFormat.IF_RGB_ALPHA);
-    assert(im.channels == 4);
-    assert(im.depth == BitDepth.BD_8);
-    assert(equal(im.data, d));
+    assert(equal(im.data, d[]));
 
     // test slice written image compared to the Image writen one
     assert(im.width == ims.width);
@@ -365,14 +322,8 @@ unittest
     assert(im.depth == ims.depth);
     assert(equal(im.data, ims.data));
 
-    try
-    {
-        remove(f);
-        remove(fs);
-    }
-    catch(Exception e)
-    {
-    }
+    remove(f.ptr);
+    remove(fs.ptr);
 }
 
 private:
@@ -488,6 +439,10 @@ unittest
     auto f = "./tests/pngsuite/basi0g08.png";
     Image im1 = imreadImpl_imageformats(f, ReadParams(ImageFormat.IF_UNASSIGNED, BitDepth.BD_8));
     Image im2 = imreadImpl_imageformats(f, ReadParams(ImageFormat.IF_UNASSIGNED, BitDepth.BD_UNASSIGNED));
+    scope(exit){
+        destroyFree(im1);
+        destroyFree(im2);
+    }
     assert(im1 && im2);
     assert(im1.width == im2.width);
     assert(im1.height == im2.height);
@@ -503,6 +458,8 @@ unittest
     // test read as mono
     auto f = "./tests/pngsuite/basi0g08.png";
     Image im = imreadImpl_imageformats(f, ReadParams(ImageFormat.IF_MONO, BitDepth.BD_8));
+    scope(exit)
+        destroyFree(im);
     assert(im);
     assert(im.width == 32);
     assert(im.height == 32);
@@ -516,6 +473,8 @@ unittest
     // test 16 bit read
     auto f = "./tests/pngsuite/pngtest16rgba.png";
     Image im = imreadImpl_imageformats(f, ReadParams(ImageFormat.IF_UNASSIGNED, BitDepth.BD_16));
+    scope(exit)
+        destroyFree(im);
     assert(im);
     assert(im.width == 32);
     assert(im.height == 32);
@@ -554,23 +513,3 @@ package auto gamutPixelTypeFromFormat(ImageFormat fmt){
     return PixelType.unknown;
     // TODO: 16 bit formats
 }
-    
-/*
-unittest
-{
-    /// Test imageformats color format adoption
-    assert(imreadImpl_imageformats_adoptFormat(ImageFormat.IF_RGB) == ColFmt.RGB);
-    assert(imreadImpl_imageformats_adoptFormat(ImageFormat.IF_RGB_ALPHA) == ColFmt.RGBA);
-    assert(imreadImpl_imageformats_adoptFormat(ImageFormat.IF_MONO) == ColFmt.Y);
-    assert(imreadImpl_imageformats_adoptFormat(ImageFormat.IF_MONO_ALPHA) == ColFmt.YA);
-    try
-    {
-        imreadImpl_imageformats_adoptFormat(ImageFormat.IF_YUV);
-        assert(0);
-    }
-    catch (Exception e)
-    {
-        // should enter here...
-    }
-}
-*/

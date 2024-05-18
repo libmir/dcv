@@ -36,8 +36,6 @@ import std.experimental.allocator.gc_allocator;
 
 import dplug.core;
 
-@nogc nothrow:
-
 /**
 Resize array using custom interpolation function.
 
@@ -59,6 +57,7 @@ Params:
 
 TODO: consider size input as array, and add prealloc
 */
+@nogc nothrow
 auto resize(alias interp = linear, SliceType, size_t SN)(SliceType slice, size_t[SN] newsize)
     //if (packs.length == 1)
     //if (isInterpolationFunc!interp)
@@ -114,6 +113,7 @@ using scaled shape of the input slice as:
 $(D_CODE scaled = resize(input, input.shape*scale))
 
  */
+@nogc nothrow
 auto scale(alias interp = linear, ScaleValue, SliceType, size_t SN)(SliceType slice, ScaleValue[SN] scale)
         if (isFloatingPoint!ScaleValue && isInterpolationFunc!interp)
 {
@@ -123,6 +123,8 @@ auto scale(alias interp = linear, ScaleValue, SliceType, size_t SN)(SliceType sl
 
     foreach (v; scale)
         assert(v > 0., "Invalid scale values (v > 0.0)");
+
+    alias N = SliceType.N;
 
     static if (N == 1LU)
     {
@@ -186,6 +188,7 @@ Params:
 Returns:
     Warped input image by given map.
 */
+@nogc nothrow
 pure auto warp(alias interp = linear, ImageTensor, MapTensor, PreAl)(ImageTensor image, MapTensor map,
         PreAl prealloc = emptyRCSlice!(ImageTensor.N, DeepElementType!ImageTensor))
 {
@@ -210,11 +213,19 @@ Params:
 Returns:
     Remapped input image by given map.
 */
-pure auto remap(alias interp = linear, ImageTensor, MapTensor)(ImageTensor image, MapTensor map,
-        ImageTensor prealloc = ImageTensor.init)
+@nogc nothrow
+pure auto remap(alias interp = linear, ImageTensor, MapTensor, PreAlloc)(ImageTensor image, MapTensor map,
+        PreAlloc prealloc)
 {
     return pixelWiseDisplacement!(linear, DisplacementType.REMAP, ImageTensor, MapTensor)
         (image, map, prealloc);
+}
+
+@nogc nothrow
+pure auto remap(alias interp = linear, ImageTensor, MapTensor)(ImageTensor image, MapTensor map)
+{
+    return pixelWiseDisplacement!(linear, DisplacementType.REMAP, ImageTensor, MapTensor)
+        (image, map, emptyRCSlice!(ImageTensor.N, Unqual!(DeepElementType!ImageTensor)));
 }
 
 /// Test if warp and remap always returns slice of corresponding format.
@@ -253,8 +264,8 @@ unittest
     import mir.ndslice.allocation;
 
     auto image = iota(3, 3).as!float.slice;
-    auto warped = slice!float(3, 3);
-    auto remapped = slice!float(3, 3);
+    auto warped = rcslice!float(3, 3);
+    auto remapped = rcslice!float(3, 3);
     auto wmap = iota(3, 3, 2).map!(v => cast(float)uniform01).slice;
     auto warpedRetVal = image.warp(wmap, warped);
     assert(warped.shape == image.shape);
@@ -273,6 +284,7 @@ private enum DisplacementType
     REMAP
 }
 
+@nogc nothrow
 private pure auto pixelWiseDisplacement(alias interp, DisplacementType disp, ImageTensor, MapTensor, PreAl)
     (ImageTensor image, MapTensor map, PreAl prealloc)
 in
@@ -315,6 +327,7 @@ do
     return prealloc;
 }
 
+@nogc nothrow
 private pure void displacementImpl(alias interp, DisplacementType disp, ImageMatrix, MapTensor, Result)
     (ImageMatrix image, MapTensor map, Result result)
 {
@@ -359,6 +372,7 @@ private enum TransformType : size_t
     PERSPECTIVE_TRANSFORM = 1
 }
 
+@nogc nothrow
 private static bool isTransformMatrix(TransformMatrix)()
 {
     import std.traits : isScalarType, isPointer, TemplateArgsOf, PointerTarget;
@@ -424,6 +438,7 @@ Note:
 Returns:
     Transformed image.
 */
+@nogc nothrow
 Slice!(RCI!V, N, kind) transformAffine(alias interp = linear, V, TransformMatrix, SliceKind kind, size_t N)(Slice!(V*, N, kind) slice, inout TransformMatrix transform, size_t[2] outSize = [0, 0])
 {
     static if (isTransformMatrix!TransformMatrix)
@@ -453,6 +468,7 @@ Note:
 Returns:
     Transformed image.
 */
+@nogc nothrow
 Slice!(RCI!V, N, kind) transformPerspective(alias interp = linear, V, TransformMatrix, SliceKind kind, size_t N)(
     Slice!(V*, N, kind) slice,
     TransformMatrix transform,

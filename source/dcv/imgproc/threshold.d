@@ -17,8 +17,6 @@ import std.experimental.allocator.gc_allocator;
 
 import dcv.core.utils : emptyRCSlice;
 
-@nogc nothrow:
-
 /**
 Clip slice values by a given threshold value.
 
@@ -45,6 +43,7 @@ Note:
     (i.e. have same strides). If prealloc buffer is not given, and is
     allocated anew, input slice memory must be contiguous.
 */
+@nogc nothrow
 Slice!(RCI!OutputType, 2, Contiguous) threshold(OutputType, InputType, size_t N, SliceKind kind)
 (
     Slice!(InputType*, N, kind) input,
@@ -117,6 +116,7 @@ Note:
     (i.e. have same strides). If prealloc buffer is not given, and is
     allocated anew, input slice memory must be contiguous.
 */
+@nogc nothrow
 Slice!(RCI!OutputType, 2, Contiguous) threshold(OutputType, InputType, size_t N, SliceKind kind)
 (
     Slice!(InputType*, N, kind) input,
@@ -135,10 +135,9 @@ enum THR_INVERSE = true;
 Params:
     hist = Input histogram.
 */
-int getOtsuThresholdValue(alias N = size_t)(int[N] hist)
+@nogc nothrow
+int getOtsuThresholdValue(alias N = size_t)(const ref int[N] hist)
 {
-    // Based on: https://github.com/scikit-image/scikit-image/blob/602d94d35d3a04e6b66583c3a1a355bfbe381224/skimage/filters/thresholding.py#L371
-    
     import mir.ndslice.topology : as, iota, retro;
     import mir.ndslice.allocation : rcslice;
     import std.range: std_iota = iota;
@@ -146,32 +145,73 @@ int getOtsuThresholdValue(alias N = size_t)(int[N] hist)
     import mir.algorithm.iteration : maxIndex, each;
     import std.algorithm.iteration: cumulativeFold;
     import std.math.traits : isNaN;
-    import std.stdio;
+    import mir.math.sum;
     
+    // Check if the histogram is empty
+    if (hist[].sliced.sum == 0)
+    {
+        return 0;
+    }
     
     auto binCenters = std_iota!int(N).staticArray!N.as!int;
     
     auto weight1 = cumulativeFold!"a + b"(hist[], 0).staticArray!N.as!float;
     auto weight2 = cumulativeFold!"a + b"(hist[].retro, 0).staticArray!N.as!float.retro;
     
-
     auto counts = hist.as!float;
-
     auto mult = counts * binCenters;
-
     auto csmult = cumulativeFold!"a + b"(mult, 0.0).staticArray!N.as!float;
-    
     auto mean1 = csmult / weight1;
-
     auto csmult2 = cumulativeFold!"a + b"(mult.retro, 0.0).staticArray!N.as!float;
-    
     auto mean2 = (csmult2 / weight2.retro).retro.rcslice;
     mean2.each!((ref v){if(v.isNaN) v=cast(float)(N-1); });
     
     auto variance12 = weight1[0..$-1] * weight2[1..$] * (mean1[0..$-1] - mean2[1..$]) ^^ 2;
-    
     auto idx = cast(ulong)variance12.maxIndex[0];
     
-    
     return binCenters[idx];
+}
+
+unittest
+{
+    import std.stdio;
+    import std.array;
+    import std.math;
+
+    // Test case 1: Simple histogram with distinct bimodal distribution
+    int[256] hist1 = 0;
+    hist1[50] = 100;  // First peak
+    hist1[200] = 100; // Second peak
+    int threshold1 = getOtsuThresholdValue(hist1);
+    //writeln("Threshold 1: ", threshold1);
+    assert(threshold1 >= 49 && threshold1 <= 51, "Test case 1 failed.");
+
+    // Test case 2: Histogram with a single peak (edge case)
+    int[256] hist2 = 0;
+    hist2[100] = 200; // Single peak
+    int threshold2 = getOtsuThresholdValue(hist2);
+    //writeln("Threshold 2: ", threshold2);
+    assert(threshold2 == 100, "Test case 2 failed.");
+
+    // Test case 3: Uniform histogram
+    int[256] hist3 = 1;
+    int threshold3 = getOtsuThresholdValue(hist3);
+    //writeln("Threshold 3: ", threshold3);
+    assert(threshold3 == 127 || threshold3 == 128, "Test case 3 failed.");
+
+    // Test case 4: Empty histogram (edge case)
+    int[256] hist4 = 0;
+    int threshold4 = getOtsuThresholdValue(hist4);
+    //writeln("Threshold 4: ", threshold4);
+    assert(threshold4 == 0, "Test case 4 failed.");
+
+    // Test case 5: Realistic histogram with multiple peaks
+    int[256] hist5 = 0;
+    foreach (i; 0 .. 256)
+    {
+        hist5[i] = (i < 128) ? i : 256 - i;
+    }
+    int threshold5 = getOtsuThresholdValue(hist5);
+    //writeln("Threshold 5: ", threshold5);
+    assert(threshold5 >= 127 && threshold5 <= 129, "Test case 5 failed.");
 }
