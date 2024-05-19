@@ -32,6 +32,7 @@ module dcv.linalg.homography;
 import std.typecons;
 import std.math;
 import std.container.array : Array;
+import std.traits : Unqual;
 debug import std.stdio;
 
 import mir.ndslice;
@@ -57,8 +58,16 @@ import dcv.features.utils : FeatureMatch;
  *   - Tuple containing slices of transformed x and y coordinates.
  */
 Tuple!(Slice!(RCI!double), Slice!(RCI!double))
-applyHomography(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, const ref Slice!(RCI!double, 2) H)
+applyHomography(SliceCoord1D, SliceType2D3x3)(const ref SliceCoord1D x, const ref SliceCoord1D y, const ref SliceType2D3x3 H)
+in {
+    static assert(isSlice!SliceCoord1D, "x and y must be a ndslice.");
+    alias T = Unqual!(DeepElementType!SliceType2D3x3);
+    static assert(is(T==double), "Homography computation needs double (64 bit) precision.");
+}
+do
 {
+    assert((H.shape[0] == 3 && H.shape[1] == 3), "H must be a 3x3 matrix.");
+
     auto D = H[2,0] * x[] + H[2,1] * y[] + 1.0;
     auto xs = ((H[0,0] * x[] + H[0,1] * y[] + H[0,2]) / D[]).rcslice;
     auto ys = ((H[1,0] * x[] + H[1,1] * y[] + H[1,2]) / D[]).rcslice;
@@ -78,8 +87,15 @@ applyHomography(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, 
  *   - Tuple containing the transformed x and y coordinates.
  */
 Tuple!(double, double)
-applyHomography(double x, double y, const ref Slice!(RCI!double, 2) H)
+applyHomography(SliceType2D3x3)(double x, double y, const ref SliceType2D3x3 H)
+in {
+    alias T = Unqual!(DeepElementType!SliceType2D3x3);
+    static assert(is(T==double), "Homography computation needs double (64 bit) precision.");
+}
+do
 {
+    assert((H.shape[0] == 3 && H.shape[1] == 3), "H must be a 3x3 matrix.");
+
     auto D = H[2,0] * x + H[2,1] * y + 1.0;
     double xs = (H[0,0] * x + H[0,1] * y + H[0,2]) / D;
     double ys = (H[1,0] * x + H[1,1] * y + H[1,2]) / D;
@@ -99,7 +115,17 @@ applyHomography(double x, double y, const ref Slice!(RCI!double, 2) H)
  *   - Jacobian matrix of the homography transformation.
  */
 Slice!(RCI!double, 2)
-applyHomographyJacobian(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, const ref Slice!(RCI!double, 2) H){
+applyHomographyJacobian(SliceCoord1D, SliceType2D3x3)(
+    const ref SliceCoord1D x,
+    const ref SliceCoord1D y, 
+    const ref SliceType2D3x3 H)
+in {
+    alias T = Unqual!(DeepElementType!SliceType2D3x3);
+    static assert(is(T==double), "Homography computation needs double (64 bit) precision."); 
+}
+do
+{   
+    assert(H.shape[0] == 3 && H.shape[1] == 3, "H must be a 3x3 matrix.");
 
     const N = x.shape[0];
     auto J = rcslice!double([2*N, 8], 0.0);
@@ -124,7 +150,15 @@ applyHomographyJacobian(const ref Slice!(RCI!double) x, const ref Slice!(RCI!dou
 }
 
 Slice!(RCI!double, 2)
-findHomography(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, const ref Slice!(RCI!double) xp, const ref Slice!(RCI!double) yp, size_t iters)
+findHomography(SliceCoord1D)(const ref SliceCoord1D x, const ref SliceCoord1D y, const ref SliceCoord1D xp, const ref SliceCoord1D yp, size_t iters)
+in 
+{
+    alias T = Unqual!(DeepElementType!SliceCoord1D);
+    static assert(isSlice!SliceCoord1D, "x and y must be a ndslice.");
+    static assert(is(T==double), 
+        "Homography computation needs double (64 bit) precision. The element type of x and y slices must be double.");
+}
+do
 {
     // x,y,xp&yp-> N-by-1
     import kaleidic.lubeck2 : pinv;
@@ -373,13 +407,20 @@ auto estimateHomographyRANSAC(KeyPoint)(const ref Array!KeyPoint keypoints1,
  * Returns:
  *   - Stitched image combining img1 and img2.
  */
-auto stitch(InputSlice1, InputSlice2)
+auto stitch(InputSlice1, InputSlice2, Homography3x3)
 (   
     const ref InputSlice1 img1,
     const ref InputSlice2 img2,
-    const ref Array!(Slice!(RCI!double, 2)) H,
+    const ref Array!(Homography3x3) H,
     int r_shift_prev, int c_shift_prev, size_t estimation_iters = 1
 )
+in {
+    alias T = Unqual!(DeepElementType!Homography3x3);
+    static assert(is(T==double), "Homography matrix must have double (64 bit) precision.");
+    static assert(InputSlice1.N == 3, "Only RGB color images are supported.");
+    static assert(InputSlice2.N == 3, "Only RGB color images are supported.");
+}
+do
 {
     auto img1_rows = img1.shape[0];
     auto img1_cols = img1.shape[1];
@@ -575,7 +616,11 @@ auto get_match_coordinates(KeyPoint)(const ref Array!KeyPoint keypoints1,
     return tuple(x,y,xp,yp);
 }
 
-auto get_random_inliers()(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, const ref Slice!(RCI!double) xp, const ref Slice!(RCI!double) yp, size_t n)
+auto get_random_inliers(SliceCoord1D)(const ref SliceCoord1D x, const ref SliceCoord1D y, const ref SliceCoord1D xp, const ref SliceCoord1D yp, size_t n)
+in {
+    static assert(isSlice!SliceCoord1D, "x, y, xp, and yp must be ndslices.");
+}
+do
 {
     import mir.random.algorithm : sample;
     import mir.appender;
@@ -620,7 +665,11 @@ auto get_random_inliers()(const ref Slice!(RCI!double) x, const ref Slice!(RCI!d
     );
 }
 
-auto get_random_inliers_with_index(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, const ref Slice!(RCI!double) xp, const ref Slice!(RCI!double) yp, Slice!(RCI!size_t) idx, size_t n)
+auto get_random_inliers_with_index(SliceCoord1D)(const ref SliceCoord1D x, const ref SliceCoord1D y, const ref SliceCoord1D xp, const ref SliceCoord1D yp, Slice!(RCI!size_t) idx, size_t n)
+in {
+    static assert(isSlice!SliceCoord1D, "x, y, xp, and yp must be ndslices.");
+}
+do
 {
     import mir.random.algorithm : sample;
     import std.stdio;
