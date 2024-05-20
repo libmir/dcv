@@ -149,6 +149,27 @@ do
 
 }
 
+/**
+ * Computes the homography matrix from corresponding points in two images.
+ *
+ *  The homography matrix maps points from the first image to the second image.
+ *  It is computed using the Direct Linear Transform (DLT) algorithm and refined
+ *  with iterative optimization.
+ * 
+ *  Params:
+ *      x  = N-by-1 slice of x-coordinates in the first image.
+ *      y  = N-by-1 slice of y-coordinates in the first image.
+ *      xp = N-by-1 slice of x-coordinates in the second image.
+ *      yp = N-by-1 slice of y-coordinates in the second image.
+ *      iters = Number of iterations for the optimization process.
+ 
+ *  Returns:
+ *      3x3 homography matrix mapping points from the first image to the second image.
+ * 
+ *  Constraints:
+ *      The slices `x`, `y`, `xp`, and `yp` must be 1-dimensional and contain `double` values.
+ *      The number of points in `x`, `y`, `xp`, and `yp` must be the same.
+*/
 Slice!(RCI!double, 2)
 findHomography(SliceCoord1D)(const ref SliceCoord1D x, const ref SliceCoord1D y, const ref SliceCoord1D xp, const ref SliceCoord1D yp, size_t iters)
 in 
@@ -157,6 +178,8 @@ in
     static assert(isSlice!SliceCoord1D, "x and y must be a ndslice.");
     static assert(is(T==double), 
         "Homography computation needs double (64 bit) precision. The element type of x and y slices must be double.");
+    assert(x.length == y.length && xp.length == yp.length && x.length == yp.length, 
+        "The number of the point coordinates must match");
 }
 do
 {
