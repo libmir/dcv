@@ -5,11 +5,11 @@ Following example loads famous image of Lena Söderberg and performs gaussian bl
 
 ----
 import dcv.imageio.image : imread, ReadParams;
-import dcv.core.image : Image, asType;
+import dcv.core.image : Image;
 import dcv.imgproc.convolution : conv;
 
 Image lenaImage = imread("../data/lena.png", ReadParams(ImageFormat.IF_MONO, BitDepth.BD_8));
-auto slice = lenaImage.sliced!ubyte;
+auto slice = lenaImage.sliced;
 ----
 
 ... this loads the following image:<br>
@@ -17,7 +17,7 @@ $(IMAGE https://github.com/libmir/dcv/blob/master/examples/data/lena.png?raw=tru
 
 ----
 blurred = slice
-             .asType!float // convert ubyte data to float.
+             .as!float // convert ubyte data to float.
              .conv(gaussian!float(0.84f, 5, 5)); // convolve image with gaussian kernel
 
 ----
@@ -69,7 +69,6 @@ Params:
     prealloc is not of same shape as input input, resulting array will be newly allocated.
     mask = Masking input. Convolution will skip each element where mask is 0. Default value
     is empty slice, which tells that convolution will be performed on the whole input.
-    pool = Optional TaskPool instance used to parallelize computation.
 
 Returns:
     Resulting image after convolution, of same type as input tensor.

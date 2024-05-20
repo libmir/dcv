@@ -198,12 +198,9 @@ Show an image to screen.
 
 Params:
     image = Image that is to be shown on the screen.
-    title = Title of the window. If none given (default), window is named by "Figure id".
+    title = Title of the window. If none given $(LPAREN)default$(RPAREN), window is named by "Figure id".
 
 If figure with given title exists, than the image content is updated with the given image.
-
-Throws:
-    ContextNotInitialized
 
 Returns:
     If figure with given title exists already, that figure is returned,

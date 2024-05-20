@@ -32,6 +32,7 @@ module dcv.linalg.homography;
 import std.typecons;
 import std.math;
 import std.container.array : Array;
+import std.traits : Unqual;
 debug import std.stdio;
 
 import mir.ndslice;
@@ -49,16 +50,24 @@ import dcv.features.utils : FeatureMatch;
  * Apply a homography transformation to 2D points represented by slices.
  *
  * Params:
- *   - x: Slice of x-coordinates of input points.
- *   - y: Slice of y-coordinates of input points.
- *   - H: Homography matrix represented as a 3x3 slice.
+ *     x = Slice of x-coordinates of input points.
+ *     y = Slice of y-coordinates of input points.
+ *     H = Homography matrix represented as a 3x3 slice.
  *
  * Returns:
- *   - Tuple containing slices of transformed x and y coordinates.
+ *     Tuple containing slices of transformed x and y coordinates.
  */
 Tuple!(Slice!(RCI!double), Slice!(RCI!double))
-applyHomography(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, const ref Slice!(RCI!double, 2) H)
+applyHomography(SliceCoord1D, SliceType2D3x3)(const ref SliceCoord1D x, const ref SliceCoord1D y, const ref SliceType2D3x3 H)
+in {
+    static assert(isSlice!SliceCoord1D, "x and y must be a ndslice.");
+    alias T = Unqual!(DeepElementType!SliceType2D3x3);
+    static assert(is(T==double), "Homography computation needs double (64 bit) precision.");
+}
+do
 {
+    assert((H.shape[0] == 3 && H.shape[1] == 3), "H must be a 3x3 matrix.");
+
     auto D = H[2,0] * x[] + H[2,1] * y[] + 1.0;
     auto xs = ((H[0,0] * x[] + H[0,1] * y[] + H[0,2]) / D[]).rcslice;
     auto ys = ((H[1,0] * x[] + H[1,1] * y[] + H[1,2]) / D[]).rcslice;
@@ -70,16 +79,23 @@ applyHomography(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, 
  * Apply a homography transformation to a single 2D point.
  *
  * Params:
- *   - x: x-coordinate of the input point.
- *   - y: y-coordinate of the input point.
- *   - H: Homography matrix represented as a 3x3 slice.
+ *     x = x-coordinate of the input point.
+ *     y = y-coordinate of the input point.
+ *     H = Homography matrix represented as a 3x3 slice.
  *
  * Returns:
- *   - Tuple containing the transformed x and y coordinates.
+ *     Tuple containing the transformed x and y coordinates.
  */
 Tuple!(double, double)
-applyHomography(double x, double y, const ref Slice!(RCI!double, 2) H)
+applyHomography(SliceType2D3x3)(double x, double y, const ref SliceType2D3x3 H)
+in {
+    alias T = Unqual!(DeepElementType!SliceType2D3x3);
+    static assert(is(T==double), "Homography computation needs double (64 bit) precision.");
+}
+do
 {
+    assert((H.shape[0] == 3 && H.shape[1] == 3), "H must be a 3x3 matrix.");
+
     auto D = H[2,0] * x + H[2,1] * y + 1.0;
     double xs = (H[0,0] * x + H[0,1] * y + H[0,2]) / D;
     double ys = (H[1,0] * x + H[1,1] * y + H[1,2]) / D;
@@ -91,15 +107,25 @@ applyHomography(double x, double y, const ref Slice!(RCI!double, 2) H)
  * Calculate the Jacobian matrix of the homography transformation with respect to input points.
  *
  * Params:
- *   - x: Slice of x-coordinates of input points.
- *   - y: Slice of y-coordinates of input points.
- *   - H: Homography matrix represented as a 3x3 slice.
+ *     x = Slice of x-coordinates of input points.
+ *     y = Slice of y-coordinates of input points.
+ *     H = Homography matrix represented as a 3x3 slice.
  *
  * Returns:
- *   - Jacobian matrix of the homography transformation.
+ *     Jacobian matrix of the homography transformation.
  */
 Slice!(RCI!double, 2)
-applyHomographyJacobian(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, const ref Slice!(RCI!double, 2) H){
+applyHomographyJacobian(SliceCoord1D, SliceType2D3x3)(
+    const ref SliceCoord1D x,
+    const ref SliceCoord1D y, 
+    const ref SliceType2D3x3 H)
+in {
+    alias T = Unqual!(DeepElementType!SliceType2D3x3);
+    static assert(is(T==double), "Homography computation needs double (64 bit) precision."); 
+}
+do
+{   
+    assert(H.shape[0] == 3 && H.shape[1] == 3, "H must be a 3x3 matrix.");
 
     const N = x.shape[0];
     auto J = rcslice!double([2*N, 8], 0.0);
@@ -123,8 +149,39 @@ applyHomographyJacobian(const ref Slice!(RCI!double) x, const ref Slice!(RCI!dou
 
 }
 
+/**
+ * Computes the homography matrix from corresponding points in two images.
+ *
+ *  The homography matrix maps points from the first image to the second image.
+ *  It is computed using the Direct Linear Transform (DLT) algorithm and refined
+ *  with iterative optimization.
+ * 
+ *  Params:
+ *      x  = N-by-1 slice of x-coordinates in the first image.
+ *      y  = N-by-1 slice of y-coordinates in the first image.
+ *      xp = N-by-1 slice of x-coordinates in the second image.
+ *      yp = N-by-1 slice of y-coordinates in the second image.
+ *      iters = Number of iterations for the optimization process.
+ 
+ *  Returns:
+ *      3x3 homography matrix mapping points from the first image to the second image.
+ * 
+ *  Constraints:
+ *      The slices `x`, `y`, `xp`, and `yp` must be 1-dimensional and contain `double` values.
+ *      The number of points in `x`, `y`, `xp`, and `yp` must be the same.
+*/
 Slice!(RCI!double, 2)
-findHomography(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, const ref Slice!(RCI!double) xp, const ref Slice!(RCI!double) yp, size_t iters)
+findHomography(SliceCoord1D)(const ref SliceCoord1D x, const ref SliceCoord1D y, const ref SliceCoord1D xp, const ref SliceCoord1D yp, size_t iters)
+in 
+{
+    alias T = Unqual!(DeepElementType!SliceCoord1D);
+    static assert(isSlice!SliceCoord1D, "x and y must be a ndslice.");
+    static assert(is(T==double), 
+        "Homography computation needs double (64 bit) precision. The element type of x and y slices must be double.");
+    assert(x.length == y.length && xp.length == yp.length && x.length == yp.length, 
+        "The number of the point coordinates must match");
+}
+do
 {
     // x,y,xp&yp-> N-by-1
     import kaleidic.lubeck2 : pinv;
@@ -171,22 +228,22 @@ findHomography(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, c
  * Estimate Homography using RANSAC algorithm.
  *
  * Params:
- *   - keypoints1: Array of KeyPoint objects representing keypoints in the first image.
- *   - keypoints2: Array of KeyPoint objects representing keypoints in the second image.
- *   - matches: Array of FeatureMatch objects representing matches between keypoints.
- *   - inlier_ratio_threshold: Threshold for the ratio of inliers to total correspondences. 
- *                              Default value is 0.8.
- *   - max_iters: Maximum number of RANSAC iterations. Default value is 1000.
- *   - min_points: Minimum number of points required for homography estimation. Default is 10.
- *   - req_points: Number of required inliers to consider the homography estimation successful. Default is 20.
- *   - gn_iters: Number of iterations for the iterative optimization process within RANSAC. Default is 100.
- *   - ransac_threshold: Threshold used to determine inliers during RANSAC. Default is 3.
+ *     keypoints1 = Array of KeyPoint objects representing keypoints in the first image.
+ *     keypoints2 = Array of KeyPoint objects representing keypoints in the second image.
+ *     matches = Array of FeatureMatch objects representing matches between keypoints.
+ *     inlier_ratio_threshold = Threshold for the ratio of inliers to total correspondences. Default value is 0.8.       
+ *     max_iters = Maximum number of RANSAC iterations. Default value is 1000.
+ *     min_points = Minimum number of points required for homography estimation. Default is 10.
+ *     req_points = Number of required inliers to consider the homography estimation successful. Default is 20.
+ *     gn_iters = Number of iterations for the iterative optimization process within RANSAC. Default is 100.
+ *     ransac_threshold = Threshold used to determine inliers during RANSAC. Default is 3.
  *
  * Returns:
  *   - Tuple containing the best estimated homography matrix (H_best), 
  *     along with the corresponding inlier points and their indices.
  */
-auto estimateHomographyRANSAC(KeyPoint)(const ref Array!KeyPoint keypoints1,
+auto estimateHomographyRANSAC(KeyPoint)(
+            const ref Array!KeyPoint keypoints1,
             const ref Array!KeyPoint keypoints2,
             const ref Array!FeatureMatch matches,
             double inlier_ratio_threshold = 0.8,
@@ -363,23 +420,30 @@ auto estimateHomographyRANSAC(KeyPoint)(const ref Array!KeyPoint keypoints1,
  * Stitch two images together using the provided homography matrices.
  *
  * Params:
- *   - img1: Reference to the first input image.
- *   - img2: Reference to the second input image.
- *   - H: Array of homography matrices relating img1 and img2.
- *   - r_shift_prev: Previous row shift applied during stitching.
- *   - c_shift_prev: Previous column shift applied during stitching.
- *   - estimation_iters: Number of iterations for estimating missing pixel values (default: 1).
+ *     img1 = Reference to the first input image.
+ *     img2 = Reference to the second input image.
+ *     H = Array of homography matrices relating img1 and img2.
+ *     r_shift_prev = Previous row shift applied during stitching.
+ *     c_shift_prev = Previous column shift applied during stitching.
+ *     estimation_iters = Number of iterations for estimating missing pixel values (default: 1).
  *
  * Returns:
- *   - Stitched image combining img1 and img2.
+ *     Stitched image combining img1 and img2.
  */
-auto stitch(InputSlice1, InputSlice2)
+auto stitch(InputSlice1, InputSlice2, Homography3x3)
 (   
     const ref InputSlice1 img1,
     const ref InputSlice2 img2,
-    const ref Array!(Slice!(RCI!double, 2)) H,
+    const ref Array!(Homography3x3) H,
     int r_shift_prev, int c_shift_prev, size_t estimation_iters = 1
 )
+in {
+    alias T = Unqual!(DeepElementType!Homography3x3);
+    static assert(is(T==double), "Homography matrix must have double (64 bit) precision.");
+    static assert(InputSlice1.N == 3, "Only RGB color images are supported.");
+    static assert(InputSlice2.N == 3, "Only RGB color images are supported.");
+}
+do
 {
     auto img1_rows = img1.shape[0];
     auto img1_cols = img1.shape[1];
@@ -575,7 +639,11 @@ auto get_match_coordinates(KeyPoint)(const ref Array!KeyPoint keypoints1,
     return tuple(x,y,xp,yp);
 }
 
-auto get_random_inliers()(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, const ref Slice!(RCI!double) xp, const ref Slice!(RCI!double) yp, size_t n)
+auto get_random_inliers(SliceCoord1D)(const ref SliceCoord1D x, const ref SliceCoord1D y, const ref SliceCoord1D xp, const ref SliceCoord1D yp, size_t n)
+in {
+    static assert(isSlice!SliceCoord1D, "x, y, xp, and yp must be ndslices.");
+}
+do
 {
     import mir.random.algorithm : sample;
     import mir.appender;
@@ -620,7 +688,11 @@ auto get_random_inliers()(const ref Slice!(RCI!double) x, const ref Slice!(RCI!d
     );
 }
 
-auto get_random_inliers_with_index(const ref Slice!(RCI!double) x, const ref Slice!(RCI!double) y, const ref Slice!(RCI!double) xp, const ref Slice!(RCI!double) yp, Slice!(RCI!size_t) idx, size_t n)
+auto get_random_inliers_with_index(SliceCoord1D)(const ref SliceCoord1D x, const ref SliceCoord1D y, const ref SliceCoord1D xp, const ref SliceCoord1D yp, Slice!(RCI!size_t) idx, size_t n)
+in {
+    static assert(isSlice!SliceCoord1D, "x, y, xp, and yp must be ndslices.");
+}
+do
 {
     import mir.random.algorithm : sample;
     import std.stdio;

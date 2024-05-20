@@ -527,7 +527,6 @@ Params:
                       Default value is EdgeKernel.SIMPLE, which calls calcPartialDerivatives function
                       to calculate derivatives. Other options will perform convolution with requested
                       kernel type.
-    pool            = TaskPool instance used parallelise the algorithm.
 
 Note:
     Input slice's memory has to be contiguous. Magnitude and orientation slices' strides
@@ -615,7 +614,6 @@ Params:
     mag         = Gradient magnitude.
     orient      = Gradient orientation of the same image source as magnitude.
     prealloc    = Optional pre-allocated buffer for output slice.
-    pool        = TaskPool instance used parallelise the algorithm.
 
 Note:
     Orientation and pre-allocated structures must match. If prealloc
@@ -684,7 +682,6 @@ Params:
     upThresh        = upper threshold value after non-maxima suppression.
     edgeKernelType  = Type of edge kernel used to calculate image gradients.
     prealloc        = Optional pre-allocated buffer.
-    pool            = TaskPool instance used parallelise the algorithm.
 */
 @nogc nothrow
 Slice!(RCI!V, 2LU, Contiguous) canny(V, T, SliceKind kind)
@@ -738,7 +735,6 @@ Params:
     sigmaSpace  = Spatial sigma value.
     kernelSize  = Size of convolution kernel. Must be odd number.
     prealloc    = Optional pre-allocated result image buffer. If not of same shape as input slice, its allocated anew.
-    pool        = Optional TaskPool instance used to parallelize computation.
 
 Returns:
     Slice of filtered image.
@@ -861,7 +857,6 @@ Params:
     slice       = Input image slice.
     kernelSize  = Square size of median kernel.
     prealloc    = Optional pre-allocated return image buffer.
-    pool        = Optional TaskPool instance used to parallelize computation.
 
 Returns:
     Returns filtered image of same size as the input. If prealloc parameter is not an empty slice, and is
@@ -1122,7 +1117,6 @@ Params:
     slice       = Input image slice, to be eroded.
     kernel      = Erosion kernel. Default value is radialKernel!T(3).
     prealloc    = Optional pre-allocated buffer to hold result.
-    pool        = Optional TaskPool instance used to parallelize computation.
 
 Returns:
     Eroded image slice, of same type as input image.
@@ -1187,7 +1181,6 @@ Params:
     slice       = Input image slice, to be eroded.
     kernel      = Dilation kernel. Default value is radialKernel!T(3).
     prealloc    = Optional pre-allocated buffer to hold result.
-    pool        = Optional TaskPool instance used to parallelize computation.
     
 Returns:
     Dilated image slice, of same type as input image.
@@ -1216,7 +1209,6 @@ Params:
     slice       = Input image slice, to be eroded.
     kernel      = Erosion/Dilation kernel. Default value is radialKernel!T(3).
     prealloc    = Optional pre-allocated buffer to hold result.
-    pool        = Optional TaskPool instance used to parallelize computation.
     
 Returns:
     Opened image slice, of same type as input image.
@@ -1246,7 +1238,6 @@ Params:
     slice = Input image slice, to be eroded.
     kernel = Erosion/Dilation kernel. Default value is radialKernel!T(3).
     prealloc = Optional pre-allocated buffer to hold result.
-    pool = Optional TaskPool instance used to parallelize computation.
     
 Returns:
     Closed image slice, of same type as input image.

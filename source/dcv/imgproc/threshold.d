@@ -3,7 +3,7 @@ Image thresholding module.
 
 Copyright: Copyright Relja Ljubobratovic 2016.
 
-Authors: Relja Ljubobratovic
+Authors: Relja Ljubobratovic, Ferhat Kurtulmuş
 
 License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
 */
@@ -36,6 +36,7 @@ Params:
     input = Input slice.
     lowThresh   = Lower threshold value.
     highThresh  = Higher threshold value.
+    inverse     = A flag to set output image as a negative binary image
     prealloc    = Optional pre-allocated slice buffer for output.
 
 Note:
@@ -109,6 +110,7 @@ Calls threshold(slice, thresh, thresh, prealloc)
 Params:
     input       = Input slice.
     thresh      = Threshold value - any value lower than this will be set to 0, and higher to 1.
+    inverse     = A flag to set output image as a negative binary image
     prealloc    = Optional pre-allocated slice buffer for output.
 
 Note:

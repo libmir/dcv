@@ -15,6 +15,7 @@ import mir.rc;
 
 Params:
     binary = Input binary image of ubyte. Agnostic to SliceKind
+    whiteValue = A value to represent white pixels in the input image. Default value is 255.
 Returns a refcounted Slice representing one pixel width skeletons of the binary regions. The resulting slice is Canonical.
 */
 Slice!(RCI!ubyte, 2LU, Canonical) skeletonize2D(InputType)(auto ref InputType binary, int whiteValue = 255){
