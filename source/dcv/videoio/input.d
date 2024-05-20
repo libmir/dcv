@@ -16,6 +16,9 @@ Image frame;
 while(stream.readFrame(frame)) {
     // do something with frame...
 }
+
+readFrame allocates a new Image instance using mallocNew. It should be explicitly freed with destroyFree after use.
+Passed frame (Image instance to ) readFrame must be null.
 ----
 
 Copyright: Copyright Relja Ljubobratovic 2016.
@@ -364,8 +367,9 @@ public:
         av_dict_set(&options, "framerate", _str.ptr, 0);
     }
 
-    // a generic function to set FFMPEG parameters for input streams
-    // it does not checks if the given key or value is a valid ffmpeg input.
+    /** a generic function to set FFMPEG parameters for input streams
+        it does not checks if the given key or value is a valid ffmpeg input.
+    */
     void setAVDict(in char[] key, in char[] value){
         import dplug.core : CString;
         av_dict_set(&options, CString(key).storage, CString(value).storage, 0);

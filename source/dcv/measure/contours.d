@@ -92,6 +92,22 @@ unittest {
 
 @nogc nothrow:
 
+/**
+    Finds contours in a binary image using border following algorithms.
+
+    This function detects contours in a binary image and returns them along with the contour hierarchy.
+    It uses a modified border following algorithm to identify both outer borders and hole borders within the image.
+   
+    Params:
+        InputType binaryImage: The binary image in which contours are to be found.
+        bool fullyConnected: Optional parameter indicating whether to use 8-connected (true) or 4-connected (false) neighborhood.
+        immutable double whiteValue: Optional parameter specifying the value representing the white color in the binary image. Default is 255.
+   
+    Returns:
+        Tuple containing:
+        - RCArray!Contour: Array of detected contours.
+        - RCArray!HierNode: Hierarchical tree structure representing contour relationships.
+*/
 Tuple!(RCArray!Contour, RCArray!HierNode)
 findContours(InputType, bool fullyConnected = true)
 (InputType binaryImage, immutable double whiteValue = 255) {
@@ -225,6 +241,18 @@ findContours(InputType, bool fullyConnected = true)
     return tuple(ret0, ret1);
 }
 
+/** 
+    Extracts the indices of contours that do not have holes from the hierarchy.
+   
+    This function scans through the hierarchy and identifies contours that are outer borders (i.e., border type is 2).
+    It then returns an array of indices corresponding to these contours.
+   
+    Params:
+        H hierarchy: A reference to the hierarchy structure which contains information about the contours.
+   
+    Returns:
+        RCArray!int: An array of integers representing the indices of contours that are outer borders.
+*/
 RCArray!int indicesWithoutHoles(H)(const ref H hierarchy){
     import mir.appender;
     auto _ret = scopedBuffer!int;
@@ -237,6 +265,20 @@ RCArray!int indicesWithoutHoles(H)(const ref H hierarchy){
     return rcarray!int(_ret.data);
 }
 
+/**
+    Converts contours into a binary image representation.
+   
+    This function takes an array of contours and converts them into a binary image where the contour points are marked
+    with a value of 255 (white) and the rest of the image is 0 (black).
+   
+    Params:
+        RCArray!Contour contours: An array of contours to be converted into an image.
+        size_t rows: The number of rows in the output image.
+        size_t cols: The number of columns in the output image.
+   
+    Returns:
+        Slice!(RCI!ubyte, 2LU, Contiguous): A 2D slice representing the binary image with contours.
+*/
 auto contours2image(RCArray!Contour contours, size_t rows, size_t cols)
 {
 
@@ -252,6 +294,17 @@ auto contours2image(RCArray!Contour contours, size_t rows, size_t cols)
     return cimg.move;
 }
 
+/**
+    Computes the area of a contour using the Shoelace formula.
+
+    This function calculates the area enclosed by a contour, which is defined by a series of points, using the Shoelace formula (also known as Gauss's area formula).
+    
+    Params:
+        C contour: A contour represented by a 2D slice or array, where each row is a point and the first column contains the x-coordinates and the second column contains the y-coordinates.
+    
+    Returns:
+        double: The area of the contour.
+*/
 double contourArea(C)(auto ref C contour)
 {
     
@@ -271,6 +324,17 @@ double contourArea(C)(auto ref C contour)
     return area;
 }
 
+/**
+    Computes the arc length (perimeter) of a contour.
+
+    This function calculates the perimeter of a contour, which is defined by a series of points, by summing the Euclidean distances between consecutive points, including the distance between the last and the first point to close the contour.
+
+    Params:
+        C contour: A contour represented by a 2D slice or array, where each row is a point and the first column contains the x-coordinates and the second column contains the y-coordinates.
+
+    Returns:
+        double: The perimeter of the contour.
+*/
 double arcLength(C)(auto ref C contour)
 {
     auto xx = contour[0..$, 0];
@@ -299,6 +363,17 @@ auto colMin(S)(auto ref S x, size_t i)
     return x[x[0..$, i].minIndex[0], i];
 }
 
+/**
+    Computes the bounding box of a contour.
+
+    This function calculates the smallest axis-aligned bounding box that can completely enclose the given contour. The bounding box is represented by its top-left corner coordinates (xMin, yMin) and its width and height.
+
+    Params:
+        C contour: A contour represented by a 2D slice or array, where each row is a point and the first column contains the x-coordinates and the second column contains the y-coordinates.
+
+    Returns:
+        BoundingBox: A BoundingBox struct containing the top-left corner coordinates, width, and height of the bounding box.
+*/
 BoundingBox boundingBox(C)(C contour)
 {
     import std.math;
@@ -313,6 +388,17 @@ BoundingBox boundingBox(C)(C contour)
 
 }
 
+/**
+    Finds any point inside the given contour.
+
+    This function attempts to find a point that lies inside the given contour. It iterates over each point in the contour and checks adjacent points in all 8 directions (up, down, left, right, and the four diagonals). The first point found that is inside the contour and not part of the contour itself is returned.
+
+    Params:
+        C contour: A contour represented by a 2D slice or array, where each row is a point and the first column contains the x-coordinates and the second column contains the y-coordinates.
+
+    Returns:
+        Tuple!(size_t, size_t): A tuple containing the coordinates of an inside point. If no such point is found, it returns (0, 0).
+*/
 Tuple!(size_t, size_t) anyInsidePoint(C)(auto ref C contour){
     import dcv.morphology.geometry : isPointInPolygon;
 

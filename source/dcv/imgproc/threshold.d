@@ -3,7 +3,7 @@ Image thresholding module.
 
 Copyright: Copyright Relja Ljubobratovic 2016.
 
-Authors: Relja Ljubobratovic
+Authors: Relja Ljubobratovic, Ferhat Kurtulmuş
 
 License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
 */

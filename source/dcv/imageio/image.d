@@ -1,7 +1,7 @@
 /**
 Module for image I/O.
 Copyright: Copyright Relja Ljubobratovic 2016.
-Authors: Relja Ljubobratovic
+Authors: Relja Ljubobratovic, Ferhat Kurtulmuş
 License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
 */
 module dcv.imageio.image;
@@ -92,8 +92,6 @@ color format. To load original depth or format, set to _UNASSIGNED (ImageFormat.
 BitDepth.BD_UNASSIGNED).
 return:
 Image read from the filesystem.
-throws:
-Exception and ImageIOException from imageformats library.
 */
 Image imread(in string path, ReadParams params = ReadParams(ImageFormat.IF_UNASSIGNED, BitDepth.BD_UNASSIGNED))
 {

@@ -1,17 +1,28 @@
 /**
 Module implements Image utility class, and basic API for image manipulation.
 Image class encapsulates image properties with minimal functionality. It is primarily designed to be used as I/O unit.
-For any image processing needs, image data can be sliced to mir.ndslice.slice.Slice. 
+For any image processing needs, image data can be sliced to mir.ndslice.slice.Slice.
+If an Image instance is initialized with non-null ubyte[] data, this time, 
+the Image instance behaves like a slice shell, and it does not attempt to deallocate the borrowed data slice.
 Example:
 ----
-Image image = new Image(32, 32, ImageFormat.IF_MONO, BitDepth.BD_32);
-Slice!(float*, 3, Contiguous) slice = image.sliced!float; // slice image data, considering the data is of float type.
+Image image1 = new Image(32, 32, ImageFormat.IF_MONO, BitDepth.BD_32);
+Slice!(ubyte*, 3, Contiguous) slice = image1.sliced; // slice image data
+// Slice!(ubyte*, 2, Contiguous) slice = image1.sliced2D; // if it is known that the data represents a monochrome image
+
 assert(image.height == slice.length!0 && image.width == slice.length!1);
 assert(image.channels == 1);
-image = slice.asImage(ImageFormat.IF_MONO); // create the image back from sliced data.
+image2 = slice.asImage(ImageFormat.IF_MONO); // create the image back from sliced data.
+// asImage allocates with malloc, so it should be freed manually.
+destroyFree(image2)
+...
+
+// here image3 is does neither copy nor own the someUbyteSlice.
+Image image3 = new Image(32, 32, ImageFormat.IF_MONO, BitDepth.BD_32, someUbyteSlice); // or mallocNew!Image(...);
+destroy(image3); // or destroyFree(image3) this does not attempt to free someUbyteSlice.
 ----
 Copyright: Copyright Relja Ljubobratovic 2016.
-Authors: Relja Ljubobratovic
+Authors: Relja Ljubobratovic, Ferhat Kurtulmuş
 License: $(LINK3 http://www.boost.org/LICENSE_1_0.txt, Boost Software License - Version 1.0).
 */
 module dcv.core.image;

@@ -44,6 +44,16 @@ struct CentroidTracker {
 @nogc nothrow:
 
 public:
+
+    /**
+        Constructor to initialize the CentroidTracker.
+
+        Params:
+            int maxDisappeared: The maximum number of consecutive frames an object can be marked as "disappeared" until it is deregistered.
+            NewObjectCallback newObjectCallback: Optional callback function triggered when a new object is registered.
+            DisappearedObjectCallback disappearedObjectCallback: Optional callback function triggered when an object is deregistered.
+            ObjectCallback onObjectTrack: Optional callback function triggered when an object is being tracked.
+    */
     this(int maxDisappeared, 
             NewObjectCallback newObjectCallback = null, DisappearedObjectCallback disappearedObjectCallback = null, ObjectCallback onObjectTrack = null){
         
@@ -77,6 +87,17 @@ public:
         }
     }
 
+    /**
+        Update the tracker with new bounding boxes for the current frame.
+
+        This method updates the tracker with the provided bounding boxes for the current frame, matching them with existing tracked objects or registering new ones as needed.
+
+        Params:
+            ref Array!Box boxes: Array of bounding boxes for detected objects in the current frame.
+
+        Returns:
+            typeof(objects).Range: A range of tracked objects.
+    */
     typeof(objects).Range update(ref Array!Box boxes){
         if (boxes.empty) {
             auto ks = scopedBuffer!int;
