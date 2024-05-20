@@ -13,7 +13,10 @@ debug import dcv.core.utils : nm, nf;
 /** Apply flood fill to given binary image using BFS approach.
 
 Params:
-    image = Input binary image of ubyte. Agnostic to SliceKind
+    data = Input binary image of ubyte. Agnostic to SliceKind
+    x = row coordinate
+    y = col coordinate
+    color = fill value
 */
 void floodFill(InputImg, T = DeepElementType!InputImg)(ref InputImg data, size_t x, size_t y, T color = 255)
 {

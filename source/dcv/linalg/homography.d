@@ -50,12 +50,12 @@ import dcv.features.utils : FeatureMatch;
  * Apply a homography transformation to 2D points represented by slices.
  *
  * Params:
- *   - x: Slice of x-coordinates of input points.
- *   - y: Slice of y-coordinates of input points.
- *   - H: Homography matrix represented as a 3x3 slice.
+ *     x = Slice of x-coordinates of input points.
+ *     y = Slice of y-coordinates of input points.
+ *     H = Homography matrix represented as a 3x3 slice.
  *
  * Returns:
- *   - Tuple containing slices of transformed x and y coordinates.
+ *     Tuple containing slices of transformed x and y coordinates.
  */
 Tuple!(Slice!(RCI!double), Slice!(RCI!double))
 applyHomography(SliceCoord1D, SliceType2D3x3)(const ref SliceCoord1D x, const ref SliceCoord1D y, const ref SliceType2D3x3 H)
@@ -79,12 +79,12 @@ do
  * Apply a homography transformation to a single 2D point.
  *
  * Params:
- *   - x: x-coordinate of the input point.
- *   - y: y-coordinate of the input point.
- *   - H: Homography matrix represented as a 3x3 slice.
+ *     x = x-coordinate of the input point.
+ *     y = y-coordinate of the input point.
+ *     H = Homography matrix represented as a 3x3 slice.
  *
  * Returns:
- *   - Tuple containing the transformed x and y coordinates.
+ *     Tuple containing the transformed x and y coordinates.
  */
 Tuple!(double, double)
 applyHomography(SliceType2D3x3)(double x, double y, const ref SliceType2D3x3 H)
@@ -107,12 +107,12 @@ do
  * Calculate the Jacobian matrix of the homography transformation with respect to input points.
  *
  * Params:
- *   - x: Slice of x-coordinates of input points.
- *   - y: Slice of y-coordinates of input points.
- *   - H: Homography matrix represented as a 3x3 slice.
+ *     x = Slice of x-coordinates of input points.
+ *     y = Slice of y-coordinates of input points.
+ *     H = Homography matrix represented as a 3x3 slice.
  *
  * Returns:
- *   - Jacobian matrix of the homography transformation.
+ *     Jacobian matrix of the homography transformation.
  */
 Slice!(RCI!double, 2)
 applyHomographyJacobian(SliceCoord1D, SliceType2D3x3)(
@@ -228,22 +228,22 @@ do
  * Estimate Homography using RANSAC algorithm.
  *
  * Params:
- *   - keypoints1: Array of KeyPoint objects representing keypoints in the first image.
- *   - keypoints2: Array of KeyPoint objects representing keypoints in the second image.
- *   - matches: Array of FeatureMatch objects representing matches between keypoints.
- *   - inlier_ratio_threshold: Threshold for the ratio of inliers to total correspondences. 
- *                              Default value is 0.8.
- *   - max_iters: Maximum number of RANSAC iterations. Default value is 1000.
- *   - min_points: Minimum number of points required for homography estimation. Default is 10.
- *   - req_points: Number of required inliers to consider the homography estimation successful. Default is 20.
- *   - gn_iters: Number of iterations for the iterative optimization process within RANSAC. Default is 100.
- *   - ransac_threshold: Threshold used to determine inliers during RANSAC. Default is 3.
+ *     keypoints1 = Array of KeyPoint objects representing keypoints in the first image.
+ *     keypoints2 = Array of KeyPoint objects representing keypoints in the second image.
+ *     matches = Array of FeatureMatch objects representing matches between keypoints.
+ *     inlier_ratio_threshold = Threshold for the ratio of inliers to total correspondences. Default value is 0.8.       
+ *     max_iters = Maximum number of RANSAC iterations. Default value is 1000.
+ *     min_points = Minimum number of points required for homography estimation. Default is 10.
+ *     req_points = Number of required inliers to consider the homography estimation successful. Default is 20.
+ *     gn_iters = Number of iterations for the iterative optimization process within RANSAC. Default is 100.
+ *     ransac_threshold = Threshold used to determine inliers during RANSAC. Default is 3.
  *
  * Returns:
  *   - Tuple containing the best estimated homography matrix (H_best), 
  *     along with the corresponding inlier points and their indices.
  */
-auto estimateHomographyRANSAC(KeyPoint)(const ref Array!KeyPoint keypoints1,
+auto estimateHomographyRANSAC(KeyPoint)(
+            const ref Array!KeyPoint keypoints1,
             const ref Array!KeyPoint keypoints2,
             const ref Array!FeatureMatch matches,
             double inlier_ratio_threshold = 0.8,
@@ -420,15 +420,15 @@ auto estimateHomographyRANSAC(KeyPoint)(const ref Array!KeyPoint keypoints1,
  * Stitch two images together using the provided homography matrices.
  *
  * Params:
- *   - img1: Reference to the first input image.
- *   - img2: Reference to the second input image.
- *   - H: Array of homography matrices relating img1 and img2.
- *   - r_shift_prev: Previous row shift applied during stitching.
- *   - c_shift_prev: Previous column shift applied during stitching.
- *   - estimation_iters: Number of iterations for estimating missing pixel values (default: 1).
+ *     img1 = Reference to the first input image.
+ *     img2 = Reference to the second input image.
+ *     H = Array of homography matrices relating img1 and img2.
+ *     r_shift_prev = Previous row shift applied during stitching.
+ *     c_shift_prev = Previous column shift applied during stitching.
+ *     estimation_iters = Number of iterations for estimating missing pixel values (default: 1).
  *
  * Returns:
- *   - Stitched image combining img1 and img2.
+ *     Stitched image combining img1 and img2.
  */
 auto stitch(InputSlice1, InputSlice2, Homography3x3)
 (   

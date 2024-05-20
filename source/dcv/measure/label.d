@@ -11,15 +11,14 @@ import std.typecons: tuple, Tuple;
 import mir.ndslice;
 import mir.ndslice.allocation;
 
+@nogc nothrow:
+
 /**
 Label connected components in 2-D binary image
 
 Params:
     input = Input slice of 2-D binary image (Slice!(Iterator, 2LU, kind)) .
 */
-
-@nogc nothrow:
-
 auto bwlabel(alias Conn = 8, SliceKind kind, Iterator)(auto ref Slice!(Iterator, 2LU, kind) input)
 in
 {
@@ -31,12 +30,14 @@ do
     return lblzr.labelize!(Conn)(input);
 }
 
-/** Return an RGB image where color-coded labels are painted over the image.
+/** 
+    Return an RGB image where color-coded labels are painted over the image.
 
 Params:
     label = Label matrix.
 */
-auto label2rgb(InputType)(InputType label)
+Slice!(RCI!ubyte, 3LU, Contiguous)
+label2rgb(InputType)(InputType label)
 {
     import mir.random;
     import mir.random.variable;
@@ -71,10 +72,10 @@ auto label2rgb(InputType)(InputType label)
     return img;
 }
 
-/+ a rewrite of https://github.com/scikit-image/scikit-image/blob/main/skimage/measure/_ccomp.pyx
+// a rewrite of https://github.com/scikit-image/scikit-image/blob/main/skimage/measure/_ccomp.pyx
+//   Fiorio, C., & Gustedt, J. (1996). Two linear time union-find strategies for image processing. Theoretical Computer Science, 154(2), 165-181.
 
-   Fiorio, C., & Gustedt, J. (1996). Two linear time union-find strategies for image processing. Theoretical Computer Science, 154(2), 165-181.
-+/
+
 struct Labelizer2D{
     auto labelize(alias Conn, Iterator, SliceKind kind)(ref Slice!(Iterator, 2LU, kind) input){
         static if(Conn == 4){

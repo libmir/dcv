@@ -271,9 +271,6 @@ public:
     Get data array from this image.
     Cast data array to corresponding dynamic array type,
     and return it.
-    8-bit data is considered ubyte, 16-bit ushort, and 32-bit float.
-    Params:
-        T = (template parameter) value type (default ubyte) to which data array is casted to.
     */
     inout auto data()
     {

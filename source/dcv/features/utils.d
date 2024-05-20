@@ -38,24 +38,19 @@ struct Feature
     float score;
 }
 
+@nogc nothrow:
+
 /**
 Extract corners as array of 2D points, from response matrix.
 
 Params:
-    cornerResponse = Response matrix, collected as output from corner
-    detection algoritms such as harrisCorners, or shiTomasiCorners.
-    count = Number of corners which need to be extracted. Default is
-    -1 which indicate that all responses with value above the threshold
-    will be returned.
-    threshold = Response threshold - response values in the matrix
-    larger than this are considered as valid corners.
-
+    cornerResponse = Response matrix, collected as output from corner detection algoritms such as harrisCorners, or shiTomasiCorners.
+    count = Number of corners which need to be extracted. Default is -1 which indicate that all responses with value above the threshold will be returned.
+    threshold = Response threshold - response values in the matrix larger than this are considered as valid corners.
 Returns:
-    Lazy array of size_t[2], as in array of 2D points, of corner reponses
+    RCArray!Pair, as in array of 2D points, of corner reponses
     which fit the given criteria.
 */
-@nogc nothrow:
-
 auto extractCorners(T)
 (
     Slice!(T*, 2, Contiguous) cornerResponse,
@@ -162,9 +157,16 @@ unittest
     assert(res[0] == [1, 1]);
 }
 
-/++
-    Returns euclidean distance between feature descriptor vectors.
-+/
+/**
+    Compute the Euclidean distance between two feature descriptor vectors.
+
+    Params:
+        desc1 = The first feature descriptor vector of const DescriptorValueType[].
+        desc2 = The second feature descriptor vector of const DescriptorValueType[].
+
+    Returns:
+        double = The Euclidean distance between the two feature descriptor vectors.
+*/
 double euclideanDistBetweenDescriptors(DescriptorValueType)(const DescriptorValueType[] desc1, const DescriptorValueType[] desc2) 
 {
     double sum = 0;
@@ -176,9 +178,22 @@ double euclideanDistBetweenDescriptors(DescriptorValueType)(const DescriptorValu
 }
 
 alias FeatureMatch = Tuple!(int, "index1", int, "index2", double, "distNearestNeighbor", double, "nearestNeighborDistanceRatio");
-/++
-    Returns an Array containing matched indices of the given Keypoints with brute force approach.
-+/
+
+/**
+    Finds matching points between two sets of keypoints using the brute force approach.
+
+    This function matches keypoints from two sets by comparing each keypoint in the first set with every keypoint in the second set.
+
+    Params:
+        keypoints1 = The first set of keypoints of const ref Array!KeyPoint .
+        keypoints2 = The second set of keypoints of const ref Array!KeyPoint .
+        threshold = The distance ratio threshold for determining matches. Defaults to 0.5.
+
+    Returns:
+        Array!FeatureMatch = An array containing matched indices of keypoints. Each element in the array is a tuple
+                             containing the index of the keypoint from the first set, the index of the matching keypoint
+                             from the second set, the distance to the nearest neighbor, and the nearest neighbor distance ratio.
+*/
 Array!FeatureMatch
 find_MatchingPointsBruteForce(KeyPoint)(const ref Array!KeyPoint keypoints1,
                      const ref Array!KeyPoint keypoints2, double threshold = 0.5)

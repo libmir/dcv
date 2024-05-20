@@ -56,7 +56,7 @@ Linear interpolation.
 
 Params:
     slice = Input slice which values are interpolated.
-    pos = Position on which slice values are interpolated.
+    pos0 = Position on which slice values are interpolated.
 
 Returns:
     Interpolated resulting value.

@@ -69,7 +69,6 @@ Params:
     prealloc is not of same shape as input input, resulting array will be newly allocated.
     mask = Masking input. Convolution will skip each element where mask is 0. Default value
     is empty slice, which tells that convolution will be performed on the whole input.
-    pool = Optional TaskPool instance used to parallelize computation.
 
 Returns:
     Resulting image after convolution, of same type as input tensor.
