@@ -84,7 +84,7 @@ Array!SIFTKeypoint find_SIFTKeypointsAndDescriptors(InputSlice)(auto ref InputSl
         auto flatIter = inputSlice.flattened;
         input.each!((ref a) { a = (0.299*flatIter[3*kk] + 0.587*flatIter[3*kk+1] + 0.114*flatIter[3*kk+2])/255.0f; kk++;});*/
         
-        void worker(int _col, int threadIndex) nothrow @nogc
+        void worker(int _col, int threadIndex) nothrow @nogc @fastmath 
         {
             auto col = cast(size_t)_col;
             foreach(row; 0 .. inputSlice.shape[0])
@@ -229,7 +229,7 @@ ScaleSpacePyramid generate_dog_pyramid(const ref ScaleSpacePyramid img_pyramid)
     );
     dog_pyramid.octaves.length = img_pyramid.num_octaves;
 
-    void worker(int i, int threadIndex) nothrow @nogc
+    void worker(int i, int threadIndex) nothrow @nogc @fastmath 
     //foreach (i; 0..dog_pyramid.num_octaves) 
     {
         dog_pyramid.octaves[i].length = dog_pyramid.imgs_per_octave;
@@ -380,7 +380,7 @@ Array!SIFTKeypoint find_keypoints(const ref ScaleSpacePyramid dog_pyramid, float
         import std.range : iota;
         auto iterable = iota(1, dog_pyramid.imgs_per_octave-1);
 
-        void worker(int _j, int threadIndex) nothrow @nogc
+        void worker(int _j, int threadIndex) nothrow @nogc @fastmath
         //foreach (int j; 1..dog_pyramid.imgs_per_octave-1) 
         {
             auto j = iterable[_j];
@@ -442,7 +442,7 @@ void compute_keypoint_descriptor(ref SIFTKeypoint kp, float theta,
     
     auto iterable = iota(x_start, x_end+1);
 
-    void worker(int _m, int threadIndex) nothrow @nogc
+    void worker(int _m, int threadIndex) nothrow @nogc @fastmath 
     //for (int m = x_start; m <= x_end; m++) 
     {
         int m = iterable[_m];
@@ -622,7 +622,7 @@ ScaleSpacePyramid generate_gradient_pyramid(const ref ScaleSpacePyramid pyramid)
         const int width = cast(int)pyramid.octaves[i][0].shape[1];
         const int height = cast(int)pyramid.octaves[i][0].shape[0];
         
-        void worker(int j, int threadIndex) nothrow @nogc
+        void worker(int j, int threadIndex) nothrow @nogc @fastmath 
         //for (int j = 0; j < pyramid.imgs_per_octave; j++) 
         {   
             auto grad = uninitRCslice!float(height, width, 2);
@@ -691,7 +691,7 @@ pure @fastmath bool point_is_on_edge(SliceArray)(const ref SIFTKeypoint kp, cons
     import std.range : iota;
     auto iterableLength0 = img.shape[1] ;
 
-    void worker0(int x, int threadIndex) nothrow @nogc
+    void worker0(int x, int threadIndex) nothrow @nogc @fastmath 
     //for (int x = 0; x < img.shape[1]; x++) 
     {
         foreach_reverse (y; 0 .. img.shape[0])
@@ -708,7 +708,7 @@ pure @fastmath bool point_is_on_edge(SliceArray)(const ref SIFTKeypoint kp, cons
     pool.parallelFor(cast(int)iterableLength0, &worker0);
     // convolve horizontal
     auto iterableLength1 = img.shape[0] ;
-    void worker1(int y, int threadIndex) nothrow @nogc
+    void worker1(int y, int threadIndex) nothrow @nogc @fastmath
     //for (int y = 0; y < img.shape[0]; y++) 
     {
         foreach (x; 0 .. img.shape[1])
@@ -737,6 +737,7 @@ enum Interpolation {
 }
 
 //map coordinate from 0-current_max range to 0-new_max range
+pragma(inline, true)
 pure @fastmath float map_coordinate(float new_max, float current_max, float coord)
 {
     float a = new_max / current_max;
