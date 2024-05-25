@@ -99,16 +99,16 @@ Array!SIFTKeypoint find_SIFTKeypointsAndDescriptors(InputSlice)(auto ref InputSl
     }
 
     
-    ScaleSpacePyramid gaussian_pyramid = generate_gaussian_pyramid(input, sigma_min, num_octaves,
+    const ScaleSpacePyramid gaussian_pyramid = generate_gaussian_pyramid(input, sigma_min, num_octaves,
                                                                    scales_per_octave);
                                                                 
-    ScaleSpacePyramid dog_pyramid = generate_dog_pyramid(gaussian_pyramid);
+    const ScaleSpacePyramid dog_pyramid = generate_dog_pyramid(gaussian_pyramid);
       
-    Array!SIFTKeypoint tmp_kps = find_keypoints(dog_pyramid, contrast_thresh, edge_thresh);
+    const Array!SIFTKeypoint tmp_kps = find_keypoints(dog_pyramid, contrast_thresh, edge_thresh);
     
-    ScaleSpacePyramid grad_pyramid = generate_gradient_pyramid(gaussian_pyramid);  
+    const ScaleSpacePyramid grad_pyramid = generate_gradient_pyramid(gaussian_pyramid);  
     
-    Array!SIFTKeypoint kps; kps.reserve(tmp_kps.length);
+    Array!SIFTKeypoint kps; kps.reserve(tmp_kps.length*N_BINS/2); // tmp_kps.length*N_BINS/2 is just estimation not an exact length
 
     void worker2(int i, int threadIndex) nothrow @nogc 
     //foreach (const ref kp_tmp; tmp_kps) 
@@ -166,7 +166,7 @@ public enum LAMBDA_DESC = 6.0f;
 ScaleSpacePyramid generate_gaussian_pyramid(InputSlice)(const ref InputSlice img, float sigma_min = SIGMA_MIN,
                                             int num_octaves = N_OCT, int scales_per_octave = N_SPO)
 {
-    import dcv.imgproc: resize, nearestNeighbor, bilinear, linear;
+    import dcv.imgproc: resize, nearestNeighbor, bilinear;
 
     // assume initial sigma is 1.0 (after resizing) and smooth
     // the image with sigma_diff to reach requried base_sigma
@@ -281,36 +281,34 @@ Tuple!(float, float, float) fit_quadratic(SliceArray)(ref SIFTKeypoint kp,
     const prev = octave[scale-1];
     const next = octave[scale+1];
 
-    float g1, g2, g3;
-    float h11, h12, h13, h22, h23, h33;
-    int x = kp.i, y = kp.j;
+    const int x = kp.i;
+    const int y = kp.j;
 
     // gradient 
-    g1 = (next.getPixel(y, x) - prev.getPixel(y, x)) * 0.5f;
-    g2 = (img.getPixel(y, x+1) - img.getPixel(y, x-1)) * 0.5f;
-    g3 = (img.getPixel(y+1, x) - img.getPixel(y-1, x)) * 0.5f;
+    const g1 = (next.getPixel(y, x) - prev.getPixel(y, x)) * 0.5f;
+    const g2 = (img.getPixel(y, x+1) - img.getPixel(y, x-1)) * 0.5f;
+    const g3 = (img.getPixel(y+1, x) - img.getPixel(y-1, x)) * 0.5f;
 
     // hessian
-    h11 = next.getPixel(y, x) + prev.getPixel(y, x) - 2.0*img.getPixel(y, x);
-    h22 = img.getPixel(y, x+1) + img.getPixel(y, x-1) - 2.0*img.getPixel(y, x);
-    h33 = img.getPixel(y+1, x) + img.getPixel(y-1, x) - 2.0*img.getPixel(y, x);
-    h12 = (next.getPixel(y, x+1) - next.getPixel(y, x-1) 
+    const h11 = next.getPixel(y, x) + prev.getPixel(y, x) - 2.0*img.getPixel(y, x);
+    const h22 = img.getPixel(y, x+1) + img.getPixel(y, x-1) - 2.0*img.getPixel(y, x);
+    const h33 = img.getPixel(y+1, x) + img.getPixel(y-1, x) - 2.0*img.getPixel(y, x);
+    const h12 = (next.getPixel(y, x+1) - next.getPixel(y, x-1) 
          - prev.getPixel(y, x+1) + prev.getPixel(y, x-1)) * 0.25f;
-    h13 = (next.getPixel(y+1, x) - next.getPixel(y-1, x) 
+    const h13 = (next.getPixel(y+1, x) - next.getPixel(y-1, x) 
          - prev.getPixel(y+1, x) + prev.getPixel(y-1, x)) * 0.25f;
-    h23 = (img.getPixel(y+1, x+1) - img.getPixel(y-1, x+1) 
+    const h23 = (img.getPixel(y+1, x+1) - img.getPixel(y-1, x+1) 
          - img.getPixel(y+1, x-1) + img.getPixel(y-1, x-1)) * 0.25f;
 
     // invert hessian
-    float hinv11, hinv12, hinv13, hinv22, hinv23, hinv33;
-    float det = h11*h22*h33 - h11*h23*h23 - h12*h12*h33 + 2*h12*h13*h23 - h13*h13*h22;
+    const float det = h11*h22*h33 - h11*h23*h23 - h12*h12*h33 + 2*h12*h13*h23 - h13*h13*h22;
     
-    hinv11 = (h22*h33 - h23*h23) / det;
-    hinv12 = (h13*h23 - h12*h33) / det;
-    hinv13 = (h12*h23 - h13*h22) / det;
-    hinv22 = (h11*h33 - h13*h13) / det;
-    hinv23 = (h12*h13 - h11*h23) / det;
-    hinv33 = (h11*h22 - h12*h12) / det;
+    const float hinv11 = (h22*h33 - h23*h23) / det;
+    const float hinv12 = (h13*h23 - h12*h33) / det;
+    const float hinv13 = (h12*h23 - h13*h22) / det;
+    const float hinv22 = (h11*h33 - h13*h13) / det;
+    const float hinv23 = (h12*h13 - h11*h23) / det;
+    const float hinv33 = (h11*h22 - h12*h12) / det;
 
     // find offsets of the interpolated extremum from the discrete extremum
     float offset_s = -hinv11*g1 - hinv12*g2 - hinv13*g3;
@@ -445,12 +443,12 @@ void compute_keypoint_descriptor(ref SIFTKeypoint kp, float theta,
     // Single loop over combined range of x and y coordinates
     foreach (int i; 0..totalElements)
     {
-        int m = x_start + (i / (y_end - y_start + 1));
-        int n = y_start + (i % (y_end - y_start + 1));
+        const int m = x_start + (i / (y_end - y_start + 1));
+        const int n = y_start + (i % (y_end - y_start + 1));
 
         // Compute x and y
-        float x = ((m * pix_dist - kp.x) * cos_t + (n * pix_dist - kp.y) * sin_t) / kp.sigma;
-        float y = (-(m * pix_dist - kp.x) * sin_t + (n * pix_dist - kp.y) * cos_t) / kp.sigma;
+        const float x = ((m * pix_dist - kp.x) * cos_t + (n * pix_dist - kp.y) * sin_t) / kp.sigma;
+        const float y = (-(m * pix_dist - kp.x) * sin_t + (n * pix_dist - kp.y) * cos_t) / kp.sigma;
 
         // Verify (x, y) is inside the description patch
         if (max(abs(x), abs(y)) > lambda_desc * (N_HIST + 1.0f) / N_HIST)
@@ -470,206 +468,30 @@ void compute_keypoint_descriptor(ref SIFTKeypoint kp, float theta,
     hists_to_vec(histograms, kp.descriptor);
 }
 
-/+
-import mir.internal.ldc_simd;
-import ldc.llvmasm;
-import mir.math.sum;
-import core.simd;
+pure @fastmath
+void hists_to_vec(Slice3DHist)(ref Slice3DHist histograms, ref ubyte[128] feature_vec)
+{
+    enum size = N_HIST*N_HIST*N_ORI;
+    auto hist = histograms.flattened;
 
-version(LDC){
-    pure @fastmath void hists_to_vec(Slice3DHist)(ref Slice3DHist histograms, ref ubyte[128] feature_vec) {
-        enum size = N_HIST * N_HIST * N_ORI;
-        auto hist = histograms.flattened;
-
-        // Load values into SIMD vectors and calculate the norm
-        __vector(float[8]) v_norm = [0,0,0,0,0,0,0,0];
-        for (int i = 0; i < size; i += 8) {
-            __vector(float[8]) v_hist = *cast(__vector(float[8])*)(&hist[i]);
-            v_norm += v_hist * v_hist;
-        }
-
-        // Horizontal sum of the vector to get the final norm
-        float norm = sqrt(v_norm.array.sum);
-
-        __vector(float[8]) v_threshold;
-        v_threshold.array[] = 0.2f * norm;
-
-        __vector(float[8]) v_norm2 = [0,0,0,0,0,0,0,0];
-        for (int i = 0; i < size; i += 8) {
-            __vector(float[8]) v_hist = *cast(__vector(float[8])*)(&hist[i]);
-            v_hist = simd_min(v_hist, v_threshold);
-            v_norm2 += v_hist * v_hist;
-
-            // Store back the capped values
-            *cast(__vector(float[8])*)(&hist[i]) = v_hist;
-        }
-
-        // Horizontal sum of the vector to get the final norm2
-        float norm2 = sqrt(v_norm2.array.sum);
-
-        for (int i = 0; i < size; i += 8) {
-            __vector(float[8]) v_hist = *cast(__vector(float[8])*)(&hist[i]);
-
-            // Scale values
-            __vector(float[8]) v_scaled = __vector(float[8]).init;
-            for (int j = 0; j < 8; ++j) {
-                v_scaled[j] = floor(512 * v_hist[j] / norm2);
-            }
-
-            // Store into feature_vec with clamping
-            for (int j = 0; j < 8; ++j) {
-                feature_vec[i + j] = cast(ubyte)min(cast(int)v_scaled[j], 255);
-            }
-        }
+    float norm = 0;
+    for (int i = 0; i < size; i++) {
+        norm += hist[i] * hist[i];
     }
 
-    private template isFloatingPoint(T)
-    {
-        enum isFloatingPoint =
-            is(T == float) ||
-            is(T == double) ||
-            is(T == real);
+    norm = sqrt(norm);
+    float norm2 = 0;
+    for (int i = 0; i < size; i++) {
+        hist[i] = min(hist[i], 0.2f*norm);
+        norm2 += hist[i] * hist[i];
     }
 
-    private template isIntegral(T)
-    {
-        enum isIntegral =
-            is(T == byte) ||
-            is(T == ubyte) ||
-            is(T == short) ||
-            is(T == ushort) ||
-            is(T == int) ||
-            is(T == uint) ||
-            is(T == long) ||
-            is(T == ulong);
+    norm2 = sqrt(norm2);
+    for (int i = 0; i < size; i++) {
+        float val = floor(512*hist[i]/norm2);
+        feature_vec[i] = cast(ubyte)min(cast(ubyte)val, 255);
     }
-
-    private template isSigned(T)
-    {
-        enum isSigned =
-            is(T == byte) ||
-            is(T == short) ||
-            is(T == int) ||
-            is(T == long);
-    }
-
-    private template IntOf(T)
-    if(isIntegral!T || isFloatingPoint!T)
-    {
-        enum n = T.sizeof;
-        static if(n == 1)
-            alias byte IntOf;
-        else static if(n == 2)
-            alias short IntOf;
-        else static if(n == 4)
-            alias int IntOf;
-        else static if(n == 8)
-            alias long IntOf;
-        else
-            static assert(0, "Type not supported");
-    }
-
-    private template BaseType(V)
-    {
-        alias typeof(V.array[0]) BaseType;
-    }
-
-    private template numElements(V)
-    {
-        enum numElements = V.sizeof / BaseType!(V).sizeof;
-    }
-
-    private template llvmType(T)
-    {
-        static if(is(T == float))
-            enum llvmType = "float";
-        else static if(is(T == double))
-            enum llvmType = "double";
-        else static if(is(T == byte) || is(T == ubyte) || is(T == void))
-            enum llvmType = "i8";
-        else static if(is(T == short) || is(T == ushort))
-            enum llvmType = "i16";
-        else static if(is(T == int) || is(T == uint))
-            enum llvmType = "i32";
-        else static if(is(T == long) || is(T == ulong))
-            enum llvmType = "i64";
-        else
-            static assert(0,
-                "Can't determine llvm type for D type " ~ T.stringof);
-    }
-
-    private template llvmVecType(V)
-    {
-        static if(is(V == void16))
-            enum llvmVecType =  "<16 x i8>";
-        else static if(is(V == void32))
-            enum llvmVecType =  "<32 x i8>";
-        else
-        {
-            alias BaseType!V T;
-            enum int n = numElements!V;
-            enum llvmT = llvmType!T;
-            enum llvmVecType = "<"~n.stringof~" x "~llvmT~">";
-        }
-    }
-
-    private template select(V)
-    {
-        alias T = typeof(V.array[0]);
-        alias IntOf!T Relem;
-        enum int n = numElements!V;
-        alias __vector(Relem[n]) R;
-        enum llvmV = llvmVecType!V;
-        enum llvmR = llvmVecType!R;
-        enum ir = `
-            %mask = trunc <` ~ n.stringof ~ ` x i32> %0 to <` ~ n.stringof ~ ` x i1>
-            %r = select <` ~ n.stringof ~ ` x i1> %mask, ` ~ llvmV ~ ` %1, ` ~ llvmV ~ ` %2
-            ret ` ~ llvmV ~ ` %r`;
-        alias select = __ir_pure!(ir, V, R, V, V) ;
-    }
-
-    auto simd_min(TN)(__vector(TN) a, __vector(TN) b) pure nothrow @nogc @trusted {
-        auto mask = greaterMask!(__vector(TN))(b, a);
-        return select!(__vector(TN))(mask, a, b);
-    }
-+/
-    /+
-    // Helper function for SIMD absolute value
-    private auto absVector(Vec)(Vec vec) pure nothrow @nogc
-    {
-        static assert(isFloatingPoint!(typeof(Vec.array[0])), "absVector only supports floating-point vector types.");
-        Vec zeros;
-        zeros.array[] = 0;
-        auto mask = greaterMask!Vec(zeros, vec);
-        return select!Vec(mask, -vec, vec);
-    }
-    +/
-//}else{
-    pure @fastmath
-    void hists_to_vec(Slice3DHist)(ref Slice3DHist histograms, ref ubyte[128] feature_vec)
-    {
-        enum size = N_HIST*N_HIST*N_ORI;
-        auto hist = histograms.flattened;
-
-        float norm = 0;
-        for (int i = 0; i < size; i++) {
-            norm += hist[i] * hist[i];
-        }
-
-        norm = sqrt(norm);
-        float norm2 = 0;
-        for (int i = 0; i < size; i++) {
-            hist[i] = min(hist[i], 0.2f*norm);
-            norm2 += hist[i] * hist[i];
-        }
-
-        norm2 = sqrt(norm2);
-        for (int i = 0; i < size; i++) {
-            float val = floor(512*hist[i]/norm2);
-            feature_vec[i] = cast(ubyte)min(cast(ubyte)val, 255);
-        }
-    }
-//}
+}
 
 @fastmath
 void update_histograms(Slice3DHist)(ref Slice3DHist hist, float x, float y,
@@ -719,12 +541,12 @@ Array!float find_keypoint_orientations(const ref SIFTKeypoint kp, const ref Scal
     
     float[N_BINS] hist; hist[] = 0.0f;
     
-    float patch_sigma = lambda_ori * kp.sigma;
-    float patch_radius = 3 * patch_sigma;
-    int x_start = cast(int)round((kp.x - patch_radius)/pix_dist);
-    int x_end = cast(int)round((kp.x + patch_radius)/pix_dist);
-    int y_start = cast(int)round((kp.y - patch_radius)/pix_dist);
-    int y_end = cast(int)round((kp.y + patch_radius)/pix_dist);
+    const float patch_sigma = lambda_ori * kp.sigma;
+    const float patch_radius = 3 * patch_sigma;
+    const int x_start = cast(int)round((kp.x - patch_radius)/pix_dist);
+    const int x_end = cast(int)round((kp.x + patch_radius)/pix_dist);
+    const int y_start = cast(int)round((kp.y - patch_radius)/pix_dist);
+    const int y_end = cast(int)round((kp.y + patch_radius)/pix_dist);
 
     //import std.range: iota;
 
@@ -826,15 +648,21 @@ ScaleSpacePyramid generate_gradient_pyramid(const ref ScaleSpacePyramid pyramid)
         {   
             auto grad = uninitRCslice!float(height, width, 2);
             float gx, gy;
-            for (int x = 1; x < grad.shape[1]-1; x++) {
-                for (int y = 1; y < grad.shape[0]-1; y++) {
+
+            const int totalElements = cast(int)((grad.shape[1] - 2) * (grad.shape[0] - 2));
+            //for (int x = 1; x < grad.shape[1]-1; x++)
+            foreach (int k; 0..totalElements)
+            {
+                const int x = 1 + cast(int)(k % (grad.shape[1] - 2));
+                const int y = 1 + cast(int)(k / (grad.shape[1] - 2));
+                //for (int y = 1; y < grad.shape[0]-1; y++) {
                     gx = (pyramid.octaves[i][j].getPixel(y, x+1)
                          -pyramid.octaves[i][j].getPixel(y, x-1)) * 0.5f;
                     grad[y, x, 0] = gx;
                     gy = (pyramid.octaves[i][j].getPixel(y+1, x)
                          -pyramid.octaves[i][j].getPixel(y-1, x)) * 0.5f;
                     grad[y, x, 1] = gy;
-                }
+                //}
             }
             grad_pyramid.octaves_grad[i][j] = grad.move;
         }
@@ -846,18 +674,18 @@ ScaleSpacePyramid generate_gradient_pyramid(const ref ScaleSpacePyramid pyramid)
 pure @fastmath bool point_is_on_edge(SliceArray)(const ref SIFTKeypoint kp, const ref SliceArray octave, float edge_thresh=C_EDGE)
 {
     const img = octave[kp.scale];
-    float h11, h12, h22;
-    int x = kp.i, y = kp.j;
+    const int x = kp.i;
+    const int y = kp.j;
 
-    h11 = img.getPixel(y, x+1) + img.getPixel(y, x-1) - 2*img.getPixel(y, x);
-    h22 = img.getPixel(y+1, x) + img.getPixel(y-1, x) - 2*img.getPixel(y, x);
-    h12 = (img.getPixel(y+1, x+1) - img.getPixel(y-1, x+1) 
+    const float h11 = img.getPixel(y, x+1) + img.getPixel(y, x-1) - 2*img.getPixel(y, x);
+    const float h22 = img.getPixel(y+1, x) + img.getPixel(y-1, x) - 2*img.getPixel(y, x);
+    const float h12 = (img.getPixel(y+1, x+1) - img.getPixel(y-1, x+1) 
          - img.getPixel(y+1, x-1) + img.getPixel(y-1, x-1)) * 0.25f;
 
 
-    float det_hessian = h11*h22 - h12*h12;
-    float tr_hessian = h11 + h22;
-    float edgeness = tr_hessian*tr_hessian / det_hessian;
+    const float det_hessian = h11*h22 - h12*h12;
+    const float tr_hessian = h11 + h22;
+    const float edgeness = tr_hessian*tr_hessian / det_hessian;
 
     if (edgeness > pow(edge_thresh+1, 2)/edge_thresh)
         return true;
@@ -870,7 +698,7 @@ pure @fastmath bool point_is_on_edge(SliceArray)(const ref SIFTKeypoint kp, cons
     int size = cast(int) ceil(6 * sigma);
     if (size % 2 == 0)
         size++;
-    int center = size / 2;
+    const int center = size / 2;
     auto kernel = uninitRCslice!float(1, size);
     
     float sum = 0;
@@ -929,8 +757,9 @@ pure @fastmath bool point_is_on_edge(SliceArray)(const ref SIFTKeypoint kp, cons
 // easy and safe way for boundary conditions
 pragma(inline, true)
 float getPixel(S, I)(const ref S s, I row, I col, I ch = 0){
-    auto yy = row;
-    auto xx = col;
+    import std.traits : Unqual;
+    Unqual!I yy = row;
+    Unqual!I xx = col;
     if (xx < 0)
         xx = 0;
     if (xx >= s.shape[1])
