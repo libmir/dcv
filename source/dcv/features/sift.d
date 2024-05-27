@@ -52,8 +52,6 @@ private __gshared UncheckedMutex mutex;
     input slice's pixel value range must be 0-255 (not limited to ubyte). Agnostic to Slice kind (Contigous, Universal or whatsoever). 
     Returns a keypoints vector.
 +/
-
-@fastmath
 Array!SIFTKeypoint find_SIFTKeypointsAndDescriptors(InputSlice)(auto ref InputSlice inputSlice, 
                                                 float sigma_min=SIGMA_MIN,
                                                 int num_octaves=N_OCT, 
@@ -61,7 +59,7 @@ Array!SIFTKeypoint find_SIFTKeypointsAndDescriptors(InputSlice)(auto ref InputSl
                                                 float contrast_thresh=C_DOG,
                                                 float edge_thresh=C_EDGE,
                                                 float lambda_ori=LAMBDA_ORI,
-                                                float lambda_desc=LAMBDA_DESC)
+                                                float lambda_desc=LAMBDA_DESC) @fastmath
 {
     alias N = InputSlice.N;
     static assert(N == 2 || N == 3, 
@@ -70,16 +68,8 @@ Array!SIFTKeypoint find_SIFTKeypointsAndDescriptors(InputSlice)(auto ref InputSl
     static if(N==3){
         // convert the assumed RGB to gray and normalize it by dividing 255
 
-        /*import dcv.imgproc.color : rgb2gray;
-        auto _input = inputSlice.rgb2gray;
-        auto input = _input.as!float / 255.0f;*/
-
-        // below is faster
         import mir.algorithm.iteration: each;
         auto input = uninitRCslice!float(inputSlice.shape[0], inputSlice.shape[1]);
-        /*size_t kk;
-        auto flatIter = inputSlice.flattened;
-        input.each!((ref a) { a = (0.299*flatIter[3*kk] + 0.587*flatIter[3*kk+1] + 0.114*flatIter[3*kk+2])/255.0f; kk++;});*/
         
         void worker(int _col, int threadIndex) nothrow @nogc @fastmath 
         {
@@ -249,7 +239,7 @@ bool point_is_extremum(SliceArray)(const ref SliceArray octave, int scale, int x
     const next = octave[scale+1];
 
     bool is_min = true, is_max = true;
-    float val = img.getPixel(y,x);
+    const float val = img.getPixel(y,x);
     float neighbor;
 
     foreach (dx; [-1,0,1].staticArray) {
@@ -337,12 +327,12 @@ bool refine_or_discard_keypoint(SliceArray)(ref SIFTKeypoint kp, const ref Slice
     int k = 0;
     bool kp_is_valid = false; 
     while (k++ < MAX_REFINEMENT_ITERS) {
-        auto offset_s_offset_x_offset_y = fit_quadratic(kp, octave, kp.scale);
-        auto offset_s = offset_s_offset_x_offset_y[0];
-        auto offset_x = offset_s_offset_x_offset_y[1];
-        auto offset_y = offset_s_offset_x_offset_y[2];
+        const offset_s_offset_x_offset_y = fit_quadratic(kp, octave, kp.scale);
+        const offset_s = offset_s_offset_x_offset_y[0];
+        const offset_x = offset_s_offset_x_offset_y[1];
+        const offset_y = offset_s_offset_x_offset_y[2];
 
-        float max_offset = max(abs(offset_s),
+        const float max_offset = max(abs(offset_s),
                                abs(offset_x),
                                abs(offset_y));
         // find nearest discrete coordinates
@@ -379,13 +369,13 @@ Array!SIFTKeypoint find_keypoints(const ref ScaleSpacePyramid dog_pyramid, float
         void worker(int _j, int threadIndex) nothrow @nogc @fastmath
         //foreach (int j; 1..dog_pyramid.imgs_per_octave-1) 
         {
-            auto j = iterable[_j];
+            const j = iterable[_j];
             const img = octave[j].lightScope.dropBorders;
             
             foreach (flatIndex; 0..img.shape[0]*img.shape[1])
             {
-                auto y = cast(int)(flatIndex / img.shape[1]);
-                auto x = cast(int)(flatIndex % img.shape[1]);
+                const y = cast(int)(flatIndex / img.shape[1]);
+                const x = cast(int)(flatIndex % img.shape[1]);
                 if (abs(img.getPixel(y, x)) < 0.8f*contrast_thresh) 
                 {
                     continue;
@@ -475,19 +465,19 @@ void hists_to_vec(Slice3DHist)(ref Slice3DHist histograms, ref ubyte[128] featur
     auto hist = histograms.flattened;
 
     float norm = 0;
-    for (int i = 0; i < size; i++) {
+    foreach (int i; 0..size) {
         norm += hist[i] * hist[i];
     }
 
     norm = sqrt(norm);
     float norm2 = 0;
-    for (int i = 0; i < size; i++) {
+    foreach (int i; 0..size) {
         hist[i] = min(hist[i], 0.2f*norm);
         norm2 += hist[i] * hist[i];
     }
 
     norm2 = sqrt(norm2);
-    for (int i = 0; i < size; i++) {
+    foreach (int i; 0..size) {
         float val = floor(512*hist[i]/norm2);
         feature_vec[i] = cast(ubyte)min(cast(ubyte)val, 255);
     }
@@ -498,25 +488,25 @@ void update_histograms(Slice3DHist)(ref Slice3DHist hist, float x, float y,
                        float contrib, float theta_mn, float lambda_desc)
 {
     float x_i, y_j;
-    for (int i = 1; i <= N_HIST; i++) {
+    foreach (int i; 1..N_HIST+1) {
         x_i = (i-(1+cast(float)N_HIST)/2) * 2*lambda_desc/float(N_HIST);
         if (abs(x_i-x) > 2.0f*lambda_desc/float(N_HIST))
             continue;
         
-        for (int j = 1; j <= N_HIST; j++) {
+        foreach (int j; 1..N_HIST+1)  {
             y_j = (j-(1+cast(float)N_HIST)/2.0f) * 2.0f*lambda_desc/float(N_HIST);
             if (abs(y_j-y) > 2.0f*lambda_desc/float(N_HIST))
                 continue;
             
-            float hist_weight = (1 - N_HIST*0.5f/lambda_desc*abs(x_i-x))
+            const float hist_weight = (1 - N_HIST*0.5f/lambda_desc*abs(x_i-x))
                                *(1 - N_HIST*0.5f/lambda_desc*abs(y_j-y));
             
-            for (int k = 1; k <= N_ORI; k++) {
-                float theta_k = 2.0f*M_PI*(k-1)/N_ORI;
-                float theta_diff = fmod(theta_k-theta_mn+2*M_PI, 2.0f*M_PI);
+            foreach (int k; 1..N_ORI+1) {
+                const float theta_k = 2.0f*M_PI*(k-1)/N_ORI;
+                const float theta_diff = fmod(theta_k-theta_mn+2*M_PI, 2.0f*M_PI);
                 if (abs(theta_diff) >= 2.0f*M_PI/N_ORI)
                     continue;
-                float bin_weight = 1 - N_ORI*0.5f/M_PI*abs(theta_diff);
+                const float bin_weight = 1 - N_ORI*0.5f/M_PI*abs(theta_diff);
                 
                 hist[i-1, j-1, k-1] += hist_weight*bin_weight*contrib;
                 
@@ -548,27 +538,7 @@ Array!float find_keypoint_orientations(const ref SIFTKeypoint kp, const ref Scal
     const int y_start = cast(int)round((kp.y - patch_radius)/pix_dist);
     const int y_end = cast(int)round((kp.y + patch_radius)/pix_dist);
 
-    //import std.range: iota;
-
-    //auto iterable = iota(x_start, x_end +1);
     // accumulate gradients in orientation histogram
-
-    //void worker(int _x, int threadIndex) nothrow @nogc @fastmath 
-    
-    /*for (int x = x_start; x <= x_end; x++) 
-    {
-        //auto x = iterable[_x];
-        for (int y = y_start; y <= y_end; y++) {
-            const gx = img_grad.getPixel(y, x, 0);
-            const gy = img_grad.getPixel(y, x, 1);
-            const grad_norm = sqrt(gx*gx + gy*gy);
-            const weight = exp(-(pow(x*pix_dist-kp.x, 2)+pow(y*pix_dist-kp.y, 2))
-                              /(2*patch_sigma*patch_sigma));
-            const theta = fmod(atan2(gy, gx)+2*M_PI, 2*M_PI);
-            const bin = cast(int)round(cast(float)N_BINS/(2*M_PI)*theta) % N_BINS;
-            hist[bin] += weight * grad_norm;
-        }
-    }*/
 
     int totalElements = (x_end - x_start + 1) * (y_end - y_start + 1);
     // Single loop over combined range of x and y coordinates
@@ -586,19 +556,19 @@ Array!float find_keypoint_orientations(const ref SIFTKeypoint kp, const ref Scal
         const bin = cast(int)round(cast(float)N_BINS/(2*M_PI)*theta) % N_BINS;
         hist[bin] += weight * grad_norm;
     }
-    //pool.parallelFor(cast(int)iterable.length, &worker);
     
     smooth_histogram(hist);
 
     // extract reference orientations
-    float ori_thresh = 0.8f, ori_max = 0.0f;
+    const float ori_thresh = 0.8f;
+    float ori_max = 0.0f;
     Array!float orientations; orientations.reserve(N_BINS/2);
-    for (int j = 0; j < N_BINS; j++) {
+    foreach (int j; 0..N_BINS) {
         if (hist[j] > ori_max) {
             ori_max = hist[j];
         }
     }
-    for (int j = 0; j < N_BINS; j++) {
+    foreach (int j; 0..N_BINS) {
         if (hist[j] >= ori_thresh * ori_max) {
             const float prev = hist[(j-1+N_BINS)%N_BINS], next = hist[(j+1)%N_BINS];
             if (prev > hist[j] || next > hist[j])
@@ -615,12 +585,12 @@ pure @fastmath void smooth_histogram(ref float[N_BINS] hist)
 {
     float[N_BINS] tmp_hist; tmp_hist[] = 0.0f;
     
-    for (int i = 0; i < 6; i++) 
+    foreach (int i; 0..6) 
     {
-        for (int j = 0; j < N_BINS; j++) 
+        foreach (int j; 0..N_BINS) 
         {
-            int prev_idx = (j-1+N_BINS)%N_BINS;
-            int next_idx = (j+1)%N_BINS;
+            const int prev_idx = (j-1+N_BINS)%N_BINS;
+            const int next_idx = (j+1)%N_BINS;
             tmp_hist[j] = (hist[prev_idx] + hist[j] + hist[next_idx]) / 3.0f;
         }
         
@@ -638,7 +608,7 @@ ScaleSpacePyramid generate_gradient_pyramid(const ref ScaleSpacePyramid pyramid)
     );
     grad_pyramid.octaves_grad.length = pyramid.num_octaves;
 
-    for (int i = 0; i < pyramid.num_octaves; i++) {
+    foreach (int i; 0..pyramid.num_octaves) {
         grad_pyramid.octaves_grad[i].length = grad_pyramid.imgs_per_octave;
         const int width = cast(int)pyramid.octaves[i][0].shape[1];
         const int height = cast(int)pyramid.octaves[i][0].shape[0];
