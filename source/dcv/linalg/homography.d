@@ -215,11 +215,7 @@ do
         assert(!errResponse, msg);
         
         // Update homography matrix
-        auto newDelta = uninitRCslice!double(delta.shape[0]+1);
-        newDelta[0..delta.length] = delta[];
-        newDelta[$-1] = 0;
-        
-        H.flattened[] -= newDelta[];
+        H.flattened[0..$-1] -= delta[];
     }
     return H;
 }

@@ -24,9 +24,6 @@ import mir.math.common : fastmath;
 import dcv.core;
 import dcv.features.utils;
 
-// due to a small race issue different executions yield slightly different result. This is not a problem for now.
-// I tried mutex at several places but could not figure it out yet.
-
 struct SIFTKeypoint {
     // discrete coordinates
     int i;
@@ -55,8 +52,6 @@ private __gshared UncheckedMutex mutex;
     input slice's pixel value range must be 0-255 (not limited to ubyte). Agnostic to Slice kind (Contigous, Universal or whatsoever). 
     Returns a keypoints vector.
 +/
-
-@fastmath
 Array!SIFTKeypoint find_SIFTKeypointsAndDescriptors(InputSlice)(auto ref InputSlice inputSlice, 
                                                 float sigma_min=SIGMA_MIN,
                                                 int num_octaves=N_OCT, 
@@ -64,27 +59,19 @@ Array!SIFTKeypoint find_SIFTKeypointsAndDescriptors(InputSlice)(auto ref InputSl
                                                 float contrast_thresh=C_DOG,
                                                 float edge_thresh=C_EDGE,
                                                 float lambda_ori=LAMBDA_ORI,
-                                                float lambda_desc=LAMBDA_DESC)
+                                                float lambda_desc=LAMBDA_DESC) @fastmath
 {
-    enum N = InputSlice.N;
+    alias N = InputSlice.N;
     static assert(N == 2 || N == 3, 
         "Only 2D and 3D slices are supported. 3D slices will be implicitly converted to grayscale");
 
     static if(N==3){
         // convert the assumed RGB to gray and normalize it by dividing 255
 
-        /*import dcv.imgproc.color : rgb2gray;
-        auto _input = inputSlice.rgb2gray;
-        auto input = _input.as!float / 255.0f;*/
-
-        // below is faster
         import mir.algorithm.iteration: each;
         auto input = uninitRCslice!float(inputSlice.shape[0], inputSlice.shape[1]);
-        /*size_t kk;
-        auto flatIter = inputSlice.flattened;
-        input.each!((ref a) { a = (0.299*flatIter[3*kk] + 0.587*flatIter[3*kk+1] + 0.114*flatIter[3*kk+2])/255.0f; kk++;});*/
         
-        void worker(int _col, int threadIndex) nothrow @nogc
+        void worker(int _col, int threadIndex) nothrow @nogc @fastmath 
         {
             auto col = cast(size_t)_col;
             foreach(row; 0 .. inputSlice.shape[0])
@@ -102,27 +89,32 @@ Array!SIFTKeypoint find_SIFTKeypointsAndDescriptors(InputSlice)(auto ref InputSl
     }
 
     
-    ScaleSpacePyramid gaussian_pyramid = generate_gaussian_pyramid(input, sigma_min, num_octaves,
+    const ScaleSpacePyramid gaussian_pyramid = generate_gaussian_pyramid(input, sigma_min, num_octaves,
                                                                    scales_per_octave);
-                                                                   
-    ScaleSpacePyramid dog_pyramid = generate_dog_pyramid(gaussian_pyramid);
+                                                                
+    const ScaleSpacePyramid dog_pyramid = generate_dog_pyramid(gaussian_pyramid);
+      
+    const Array!SIFTKeypoint tmp_kps = find_keypoints(dog_pyramid, contrast_thresh, edge_thresh);
     
-    Array!SIFTKeypoint tmp_kps = find_keypoints(dog_pyramid, contrast_thresh, edge_thresh);
+    const ScaleSpacePyramid grad_pyramid = generate_gradient_pyramid(gaussian_pyramid);  
     
-    ScaleSpacePyramid grad_pyramid = generate_gradient_pyramid(gaussian_pyramid);
-    
-    Array!SIFTKeypoint kps; kps.reserve(tmp_kps.length);
-    
-    foreach (const ref kp_tmp; tmp_kps) {
-        auto orientations = find_keypoint_orientations(kp_tmp, grad_pyramid,
-                                                            lambda_ori, lambda_desc);
+    Array!SIFTKeypoint kps; kps.reserve(tmp_kps.length*N_BINS/2); // tmp_kps.length*N_BINS/2 is just estimation not an exact length
 
+    void worker2(int i, int threadIndex) nothrow @nogc 
+    //foreach (const ref kp_tmp; tmp_kps) 
+    {
+        auto kp_tmp = tmp_kps[i];
+        auto orientations = find_keypoint_orientations(kp_tmp, grad_pyramid,
+                                                            lambda_ori, lambda_desc); 
         foreach (float theta; orientations) {
             SIFTKeypoint kp = kp_tmp;
             compute_keypoint_descriptor(kp, theta, grad_pyramid, lambda_desc);
+            mutex.lockLazy;
             kps ~= kp;
+            mutex.unlock;
         }
-    }
+    } 
+    pool.parallelFor(cast(int)tmp_kps.length, &worker2);
     return kps.move;
 }
 
@@ -164,13 +156,12 @@ public enum LAMBDA_DESC = 6.0f;
 ScaleSpacePyramid generate_gaussian_pyramid(InputSlice)(const ref InputSlice img, float sigma_min = SIGMA_MIN,
                                             int num_octaves = N_OCT, int scales_per_octave = N_SPO)
 {
-    import dcv.imgproc: resize, nearestNeighbor, bilinear, linear;
+    import dcv.imgproc: resize, nearestNeighbor, bilinear;
 
     // assume initial sigma is 1.0 (after resizing) and smooth
     // the image with sigma_diff to reach requried base_sigma
     float base_sigma = sigma_min / MIN_PIX_DIST;
 
-    //auto base_img = resize2!(Interpolation.BILINEAR)(img, cast(int)img.shape[0]*2, cast(int)img.shape[1]*2); //.lightScope.scale([2.0f, 2.0f]);
     auto base_img = resize!bilinear(img, [img.shape[0]*2, img.shape[1]*2]);
     float sigma_diff = std.math.sqrt(base_sigma * base_sigma - 1.0f);
     
@@ -209,9 +200,6 @@ ScaleSpacePyramid generate_gaussian_pyramid(InputSlice)(const ref InputSlice img
         // prepare base image for next octave
         const next_base_img = pyramid.octaves[i][imgs_per_octave - 3];
         
-        //base_img = resize2!(Interpolation.NEAREST)(next_base_img, 
-        //    cast(int)next_base_img.shape[0]/2, cast(int)next_base_img.shape[1]/2);//.lightScope.scale([0.5f, 0.5f]);
-        
         base_img = resize!nearestNeighbor(next_base_img.lightScope, [next_base_img.shape[0]/2, next_base_img.shape[1]/2]);
     }
     
@@ -229,7 +217,7 @@ ScaleSpacePyramid generate_dog_pyramid(const ref ScaleSpacePyramid img_pyramid)
     );
     dog_pyramid.octaves.length = img_pyramid.num_octaves;
 
-    void worker(int i, int threadIndex) nothrow @nogc
+    void worker(int i, int threadIndex) nothrow @nogc @fastmath 
     //foreach (i; 0..dog_pyramid.num_octaves) 
     {
         dog_pyramid.octaves[i].length = dog_pyramid.imgs_per_octave;
@@ -251,7 +239,7 @@ bool point_is_extremum(SliceArray)(const ref SliceArray octave, int scale, int x
     const next = octave[scale+1];
 
     bool is_min = true, is_max = true;
-    float val = img.getPixel(y,x);
+    const float val = img.getPixel(y,x);
     float neighbor;
 
     foreach (dx; [-1,0,1].staticArray) {
@@ -283,36 +271,34 @@ Tuple!(float, float, float) fit_quadratic(SliceArray)(ref SIFTKeypoint kp,
     const prev = octave[scale-1];
     const next = octave[scale+1];
 
-    float g1, g2, g3;
-    float h11, h12, h13, h22, h23, h33;
-    int x = kp.i, y = kp.j;
+    const int x = kp.i;
+    const int y = kp.j;
 
     // gradient 
-    g1 = (next.getPixel(y, x) - prev.getPixel(y, x)) * 0.5f;
-    g2 = (img.getPixel(y, x+1) - img.getPixel(y, x-1)) * 0.5f;
-    g3 = (img.getPixel(y+1, x) - img.getPixel(y-1, x)) * 0.5f;
+    const g1 = (next.getPixel(y, x) - prev.getPixel(y, x)) * 0.5f;
+    const g2 = (img.getPixel(y, x+1) - img.getPixel(y, x-1)) * 0.5f;
+    const g3 = (img.getPixel(y+1, x) - img.getPixel(y-1, x)) * 0.5f;
 
     // hessian
-    h11 = next.getPixel(y, x) + prev.getPixel(y, x) - 2.0*img.getPixel(y, x);
-    h22 = img.getPixel(y, x+1) + img.getPixel(y, x-1) - 2.0*img.getPixel(y, x);
-    h33 = img.getPixel(y+1, x) + img.getPixel(y-1, x) - 2.0*img.getPixel(y, x);
-    h12 = (next.getPixel(y, x+1) - next.getPixel(y, x-1) 
+    const h11 = next.getPixel(y, x) + prev.getPixel(y, x) - 2.0*img.getPixel(y, x);
+    const h22 = img.getPixel(y, x+1) + img.getPixel(y, x-1) - 2.0*img.getPixel(y, x);
+    const h33 = img.getPixel(y+1, x) + img.getPixel(y-1, x) - 2.0*img.getPixel(y, x);
+    const h12 = (next.getPixel(y, x+1) - next.getPixel(y, x-1) 
          - prev.getPixel(y, x+1) + prev.getPixel(y, x-1)) * 0.25f;
-    h13 = (next.getPixel(y+1, x) - next.getPixel(y-1, x) 
+    const h13 = (next.getPixel(y+1, x) - next.getPixel(y-1, x) 
          - prev.getPixel(y+1, x) + prev.getPixel(y-1, x)) * 0.25f;
-    h23 = (img.getPixel(y+1, x+1) - img.getPixel(y-1, x+1) 
+    const h23 = (img.getPixel(y+1, x+1) - img.getPixel(y-1, x+1) 
          - img.getPixel(y+1, x-1) + img.getPixel(y-1, x-1)) * 0.25f;
 
     // invert hessian
-    float hinv11, hinv12, hinv13, hinv22, hinv23, hinv33;
-    float det = h11*h22*h33 - h11*h23*h23 - h12*h12*h33 + 2*h12*h13*h23 - h13*h13*h22;
+    const float det = h11*h22*h33 - h11*h23*h23 - h12*h12*h33 + 2*h12*h13*h23 - h13*h13*h22;
     
-    hinv11 = (h22*h33 - h23*h23) / det;
-    hinv12 = (h13*h23 - h12*h33) / det;
-    hinv13 = (h12*h23 - h13*h22) / det;
-    hinv22 = (h11*h33 - h13*h13) / det;
-    hinv23 = (h12*h13 - h11*h23) / det;
-    hinv33 = (h11*h22 - h12*h12) / det;
+    const float hinv11 = (h22*h33 - h23*h23) / det;
+    const float hinv12 = (h13*h23 - h12*h33) / det;
+    const float hinv13 = (h12*h23 - h13*h22) / det;
+    const float hinv22 = (h11*h33 - h13*h13) / det;
+    const float hinv23 = (h12*h13 - h11*h23) / det;
+    const float hinv33 = (h11*h22 - h12*h12) / det;
 
     // find offsets of the interpolated extremum from the discrete extremum
     float offset_s = -hinv11*g1 - hinv12*g2 - hinv13*g3;
@@ -341,12 +327,12 @@ bool refine_or_discard_keypoint(SliceArray)(ref SIFTKeypoint kp, const ref Slice
     int k = 0;
     bool kp_is_valid = false; 
     while (k++ < MAX_REFINEMENT_ITERS) {
-        auto offset_s_offset_x_offset_y = fit_quadratic(kp, octave, kp.scale);
-        auto offset_s = offset_s_offset_x_offset_y[0];
-        auto offset_x = offset_s_offset_x_offset_y[1];
-        auto offset_y = offset_s_offset_x_offset_y[2];
+        const offset_s_offset_x_offset_y = fit_quadratic(kp, octave, kp.scale);
+        const offset_s = offset_s_offset_x_offset_y[0];
+        const offset_x = offset_s_offset_x_offset_y[1];
+        const offset_y = offset_s_offset_x_offset_y[2];
 
-        float max_offset = max(abs(offset_s),
+        const float max_offset = max(abs(offset_s),
                                abs(offset_x),
                                abs(offset_y));
         // find nearest discrete coordinates
@@ -380,16 +366,16 @@ Array!SIFTKeypoint find_keypoints(const ref ScaleSpacePyramid dog_pyramid, float
         import std.range : iota;
         auto iterable = iota(1, dog_pyramid.imgs_per_octave-1);
 
-        void worker(int _j, int threadIndex) nothrow @nogc
+        void worker(int _j, int threadIndex) nothrow @nogc @fastmath
         //foreach (int j; 1..dog_pyramid.imgs_per_octave-1) 
         {
-            auto j = iterable[_j];
+            const j = iterable[_j];
             const img = octave[j].lightScope.dropBorders;
             
             foreach (flatIndex; 0..img.shape[0]*img.shape[1])
             {
-                auto y = cast(int)(flatIndex / img.shape[1]);
-                auto x = cast(int)(flatIndex % img.shape[1]);
+                const y = cast(int)(flatIndex / img.shape[1]);
+                const x = cast(int)(flatIndex % img.shape[1]);
                 if (abs(img.getPixel(y, x)) < 0.8f*contrast_thresh) 
                 {
                     continue;
@@ -421,104 +407,106 @@ Array!SIFTKeypoint find_keypoints(const ref ScaleSpacePyramid dog_pyramid, float
 @fastmath
 void compute_keypoint_descriptor(ref SIFTKeypoint kp, float theta,
                                  const ref ScaleSpacePyramid grad_pyramid,
-                                 float lambda_desc=LAMBDA_DESC)
+                                 float lambda_desc = LAMBDA_DESC)
 {
+    // Constants
     const float pix_dist = MIN_PIX_DIST * pow(2, kp.octave);
     const img_grad = grad_pyramid.octaves_grad[kp.octave][kp.scale];
-
-    auto histograms = rcslice!float([N_HIST, N_HIST, N_ORI], 0);
-
-    //find start and end coords for loops over image patch
-    const float half_size = 1.41421f*lambda_desc*kp.sigma*(N_HIST+1.0f)/N_HIST;
-    const x_start = cast(int)round((kp.x-half_size) / pix_dist);
-    const x_end = cast(int)round((kp.x+half_size) / pix_dist);
-    const y_start = cast(int)round((kp.y-half_size) / pix_dist);
-    const y_end = cast(int)round((kp.y+half_size) / pix_dist);
-
+    
+    // Initialize histograms
+    float[N_HIST * N_HIST * N_ORI] _histograms;
+    _histograms[] = 0.0f;
+    auto histograms = _histograms[].sliced(N_HIST, N_HIST, N_ORI);
+    
+    // Compute half_size and start/end coordinates
+    const float half_size = 1.4142135623730951f * lambda_desc * kp.sigma * (N_HIST + 1.0f) / N_HIST;
+    const x_start = cast(int)round((kp.x - half_size) / pix_dist);
+    const x_end = cast(int)round((kp.x + half_size) / pix_dist);
+    const y_start = cast(int)round((kp.y - half_size) / pix_dist);
+    const y_end = cast(int)round((kp.y + half_size) / pix_dist);
+    
+    // Precompute sine and cosine of theta
     const cos_t = cos(theta), sin_t = sin(theta);
     const patch_sigma = lambda_desc * kp.sigma;
-    //accumulate samples into histograms
-    import std.range : iota;
-    
-    auto iterable = iota(x_start, x_end+1);
 
-    void worker(int _m, int threadIndex) nothrow @nogc
-    //for (int m = x_start; m <= x_end; m++) 
+    int totalElements = (x_end - x_start + 1) * (y_end - y_start + 1);
+    // Single loop over combined range of x and y coordinates
+    foreach (int i; 0..totalElements)
     {
-        int m = iterable[_m];
-        for (int n = y_start; n <= y_end; n++) {
-            // find normalized coords w.r.t. kp position and reference orientation
-            float x = ((m*pix_dist - kp.x)*cos_t+(n*pix_dist - kp.y)*sin_t) / kp.sigma;
-            float y = (-(m*pix_dist - kp.x)*sin_t+(n*pix_dist - kp.y)*cos_t) / kp.sigma;
+        const int m = x_start + (i / (y_end - y_start + 1));
+        const int n = y_start + (i % (y_end - y_start + 1));
 
-            // verify (x, y) is inside the description patch
-            if (max(abs(x), abs(y)) > lambda_desc*(N_HIST+1.0f)/N_HIST)
-                continue;
+        // Compute x and y
+        const float x = ((m * pix_dist - kp.x) * cos_t + (n * pix_dist - kp.y) * sin_t) / kp.sigma;
+        const float y = (-(m * pix_dist - kp.x) * sin_t + (n * pix_dist - kp.y) * cos_t) / kp.sigma;
 
-            float gx = img_grad.getPixel(n, m, 0), gy = img_grad.getPixel(n, m, 1);
-            float theta_mn = fmod(atan2(gy, gx)-theta+4*M_PI, 2*M_PI);
-            float grad_norm = sqrt(gx*gx + gy*gy);
-            float weight = exp(-(pow(m*pix_dist-kp.x, 2)+pow(n*pix_dist-kp.y, 2))
-                                    /(2*patch_sigma*patch_sigma));
-            float contribution = weight * grad_norm;
-            
-            
-            update_histograms(histograms, x, y, contribution, theta_mn, lambda_desc);
-        }
+        // Verify (x, y) is inside the description patch
+        if (max(abs(x), abs(y)) > lambda_desc * (N_HIST + 1.0f) / N_HIST)
+            continue;
+
+        const gx = img_grad.getPixel(n, m, 0), gy = img_grad.getPixel(n, m, 1);
+        const theta_mn = fmod(atan2(gy, gx) - theta + 4 * M_PI, 2 * M_PI);
+        const grad_norm = sqrt(gx * gx + gy * gy);
+        const weight = exp(-(pow(m * pix_dist - kp.x, 2) + pow(n * pix_dist - kp.y, 2))
+                                / (2 * patch_sigma * patch_sigma));
+        const contribution = weight * grad_norm;
+        
+        update_histograms(histograms, x, y, contribution, theta_mn, lambda_desc);
     }
-    pool.parallelFor(cast(int)iterable.length, &worker);
 
-    // build feature vector (descriptor) from histograms
+    // Build feature vector from histograms
     hists_to_vec(histograms, kp.descriptor);
 }
 
 pure @fastmath
-void hists_to_vec(ref Slice!(RCI!float, 3) histograms, ref ubyte[128] feature_vec)
+void hists_to_vec(Slice3DHist)(ref Slice3DHist histograms, ref ubyte[128] feature_vec)
 {
-    const size = N_HIST*N_HIST*N_ORI;
+    enum size = N_HIST*N_HIST*N_ORI;
     auto hist = histograms.flattened;
 
     float norm = 0;
-    for (int i = 0; i < size; i++) {
+    foreach (int i; 0..size) {
         norm += hist[i] * hist[i];
     }
+
     norm = sqrt(norm);
     float norm2 = 0;
-    for (int i = 0; i < size; i++) {
+    foreach (int i; 0..size) {
         hist[i] = min(hist[i], 0.2f*norm);
         norm2 += hist[i] * hist[i];
     }
+
     norm2 = sqrt(norm2);
-    for (int i = 0; i < size; i++) {
+    foreach (int i; 0..size) {
         float val = floor(512*hist[i]/norm2);
         feature_vec[i] = cast(ubyte)min(cast(ubyte)val, 255);
     }
 }
 
 @fastmath
-void update_histograms(ref Slice!(RCI!float, 3) hist, float x, float y,
+void update_histograms(Slice3DHist)(ref Slice3DHist hist, float x, float y,
                        float contrib, float theta_mn, float lambda_desc)
 {
     float x_i, y_j;
-    for (int i = 1; i <= N_HIST; i++) {
-        x_i = (i-(1+cast(float)N_HIST)/2) * 2*lambda_desc/N_HIST;
-        if (abs(x_i-x) > 2*lambda_desc/N_HIST)
+    foreach (int i; 1..N_HIST+1) {
+        x_i = (i-(1+cast(float)N_HIST)/2) * 2*lambda_desc/float(N_HIST);
+        if (abs(x_i-x) > 2.0f*lambda_desc/float(N_HIST))
             continue;
         
-        for (int j = 1; j <= N_HIST; j++) {
-            y_j = (j-(1+cast(float)N_HIST)/2) * 2*lambda_desc/N_HIST;
-            if (abs(y_j-y) > 2*lambda_desc/N_HIST)
+        foreach (int j; 1..N_HIST+1)  {
+            y_j = (j-(1+cast(float)N_HIST)/2.0f) * 2.0f*lambda_desc/float(N_HIST);
+            if (abs(y_j-y) > 2.0f*lambda_desc/float(N_HIST))
                 continue;
             
-            float hist_weight = (1 - N_HIST*0.5/lambda_desc*abs(x_i-x))
-                               *(1 - N_HIST*0.5/lambda_desc*abs(y_j-y));
+            const float hist_weight = (1 - N_HIST*0.5f/lambda_desc*abs(x_i-x))
+                               *(1 - N_HIST*0.5f/lambda_desc*abs(y_j-y));
             
-            for (int k = 1; k <= N_ORI; k++) {
-                float theta_k = 2*M_PI*(k-1)/N_ORI;
-                float theta_diff = fmod(theta_k-theta_mn+2*M_PI, 2*M_PI);
-                if (abs(theta_diff) >= 2*M_PI/N_ORI)
+            foreach (int k; 1..N_ORI+1) {
+                const float theta_k = 2.0f*M_PI*(k-1)/N_ORI;
+                const float theta_diff = fmod(theta_k-theta_mn+2*M_PI, 2.0f*M_PI);
+                if (abs(theta_diff) >= 2.0f*M_PI/N_ORI)
                     continue;
-                float bin_weight = 1 - N_ORI*0.5/M_PI*abs(theta_diff);
+                const float bin_weight = 1 - N_ORI*0.5f/M_PI*abs(theta_diff);
                 
                 hist[i-1, j-1, k-1] += hist_weight*bin_weight*contrib;
                 
@@ -531,53 +519,58 @@ void update_histograms(ref Slice!(RCI!float, 3) hist, float x, float y,
 Array!float find_keypoint_orientations(const ref SIFTKeypoint kp, const ref ScaleSpacePyramid grad_pyramid,
                                         float lambda_ori=LAMBDA_ORI, float lambda_desc=LAMBDA_DESC)
 {
-    float pix_dist = MIN_PIX_DIST * pow(2, kp.octave);
+    const float pix_dist = MIN_PIX_DIST * pow(2, kp.octave);
     const img_grad = grad_pyramid.octaves_grad[kp.octave][kp.scale];
 
     // discard kp if too close to image borders 
-    float min_dist_from_border = min(kp.x, kp.y, pix_dist*img_grad.shape[1]-kp.x,
+    const float min_dist_from_border = min(kp.x, kp.y, pix_dist*img_grad.shape[1]-kp.x,
                                            pix_dist*img_grad.shape[0]-kp.y);
-    if (min_dist_from_border <= /*sqrt(2.0f)*/ 1.41421f*lambda_desc*kp.sigma) {
+    if (min_dist_from_border <= /*sqrt(2.0f)*/ 1.4142135623730951f*lambda_desc*kp.sigma) {
         return Array!float();
     }
     
     float[N_BINS] hist; hist[] = 0.0f;
-    int bin;
-    float gx, gy, grad_norm, weight, theta;
-    float patch_sigma = lambda_ori * kp.sigma;
-    float patch_radius = 3 * patch_sigma;
-    int x_start = cast(int)round((kp.x - patch_radius)/pix_dist);
-    int x_end = cast(int)round((kp.x + patch_radius)/pix_dist);
-    int y_start = cast(int)round((kp.y - patch_radius)/pix_dist);
-    int y_end = cast(int)round((kp.y + patch_radius)/pix_dist);
+    
+    const float patch_sigma = lambda_ori * kp.sigma;
+    const float patch_radius = 3 * patch_sigma;
+    const int x_start = cast(int)round((kp.x - patch_radius)/pix_dist);
+    const int x_end = cast(int)round((kp.x + patch_radius)/pix_dist);
+    const int y_start = cast(int)round((kp.y - patch_radius)/pix_dist);
+    const int y_end = cast(int)round((kp.y + patch_radius)/pix_dist);
 
     // accumulate gradients in orientation histogram
-    for (int x = x_start; x <= x_end; x++) {
-        for (int y = y_start; y <= y_end; y++) {
-            gx = img_grad.getPixel(y, x, 0);
-            gy = img_grad.getPixel(y, x, 1);
-            grad_norm = sqrt(gx*gx + gy*gy);
-            weight = exp(-(pow(x*pix_dist-kp.x, 2)+pow(y*pix_dist-kp.y, 2))
-                              /(2*patch_sigma*patch_sigma));
-            theta = fmod(atan2(gy, gx)+2*M_PI, 2*M_PI);
-            bin = cast(int)round(cast(float)N_BINS/(2*M_PI)*theta) % N_BINS;
-            hist[bin] += weight * grad_norm;
-        }
+
+    int totalElements = (x_end - x_start + 1) * (y_end - y_start + 1);
+    // Single loop over combined range of x and y coordinates
+    foreach (int i; 0..totalElements)
+    {
+        const int x = x_start + (i / (y_end - y_start + 1));
+        const int y = y_start + (i % (y_end - y_start + 1));
+
+        const gx = img_grad.getPixel(y, x, 0);
+        const gy = img_grad.getPixel(y, x, 1);
+        const grad_norm = sqrt(gx*gx + gy*gy);
+        const weight = exp(-(pow(x*pix_dist-kp.x, 2)+pow(y*pix_dist-kp.y, 2))
+                            /(2*patch_sigma*patch_sigma));
+        const theta = fmod(atan2(gy, gx)+2*M_PI, 2*M_PI);
+        const bin = cast(int)round(cast(float)N_BINS/(2*M_PI)*theta) % N_BINS;
+        hist[bin] += weight * grad_norm;
     }
     
     smooth_histogram(hist);
 
     // extract reference orientations
-    float ori_thresh = 0.8f, ori_max = 0.0f;
-    Array!float orientations;
-    for (int j = 0; j < N_BINS; j++) {
+    const float ori_thresh = 0.8f;
+    float ori_max = 0.0f;
+    Array!float orientations; orientations.reserve(N_BINS/2);
+    foreach (int j; 0..N_BINS) {
         if (hist[j] > ori_max) {
             ori_max = hist[j];
         }
     }
-    for (int j = 0; j < N_BINS; j++) {
+    foreach (int j; 0..N_BINS) {
         if (hist[j] >= ori_thresh * ori_max) {
-            float prev = hist[(j-1+N_BINS)%N_BINS], next = hist[(j+1)%N_BINS];
+            const float prev = hist[(j-1+N_BINS)%N_BINS], next = hist[(j+1)%N_BINS];
             if (prev > hist[j] || next > hist[j])
                 continue;
             float _theta = 2*M_PI*(j+1)/N_BINS + M_PI/N_BINS*(prev-next)/(prev-2*hist[j]+next);
@@ -592,18 +585,16 @@ pure @fastmath void smooth_histogram(ref float[N_BINS] hist)
 {
     float[N_BINS] tmp_hist; tmp_hist[] = 0.0f;
     
-    for (int i = 0; i < 6; i++) 
+    foreach (int i; 0..6) 
     {
-        for (int j = 0; j < N_BINS; j++) 
+        foreach (int j; 0..N_BINS) 
         {
-            int prev_idx = (j-1+N_BINS)%N_BINS;
-            int next_idx = (j+1)%N_BINS;
+            const int prev_idx = (j-1+N_BINS)%N_BINS;
+            const int next_idx = (j+1)%N_BINS;
             tmp_hist[j] = (hist[prev_idx] + hist[j] + hist[next_idx]) / 3.0f;
         }
         
-        for (int j = 0; j < N_BINS; j++) {
-            hist[j] = tmp_hist[j];
-        }
+        hist[] = tmp_hist[];
     }
 }
 
@@ -617,25 +608,31 @@ ScaleSpacePyramid generate_gradient_pyramid(const ref ScaleSpacePyramid pyramid)
     );
     grad_pyramid.octaves_grad.length = pyramid.num_octaves;
 
-    for (int i = 0; i < pyramid.num_octaves; i++) {
+    foreach (int i; 0..pyramid.num_octaves) {
         grad_pyramid.octaves_grad[i].length = grad_pyramid.imgs_per_octave;
         const int width = cast(int)pyramid.octaves[i][0].shape[1];
         const int height = cast(int)pyramid.octaves[i][0].shape[0];
         
-        void worker(int j, int threadIndex) nothrow @nogc
+        void worker(int j, int threadIndex) nothrow @nogc @fastmath 
         //for (int j = 0; j < pyramid.imgs_per_octave; j++) 
         {   
             auto grad = uninitRCslice!float(height, width, 2);
             float gx, gy;
-            for (int x = 1; x < grad.shape[1]-1; x++) {
-                for (int y = 1; y < grad.shape[0]-1; y++) {
+
+            const int totalElements = cast(int)((grad.shape[1] - 2) * (grad.shape[0] - 2));
+            //for (int x = 1; x < grad.shape[1]-1; x++)
+            foreach (int k; 0..totalElements)
+            {
+                const int x = 1 + cast(int)(k % (grad.shape[1] - 2));
+                const int y = 1 + cast(int)(k / (grad.shape[1] - 2));
+                //for (int y = 1; y < grad.shape[0]-1; y++) {
                     gx = (pyramid.octaves[i][j].getPixel(y, x+1)
                          -pyramid.octaves[i][j].getPixel(y, x-1)) * 0.5f;
                     grad[y, x, 0] = gx;
                     gy = (pyramid.octaves[i][j].getPixel(y+1, x)
                          -pyramid.octaves[i][j].getPixel(y-1, x)) * 0.5f;
                     grad[y, x, 1] = gy;
-                }
+                //}
             }
             grad_pyramid.octaves_grad[i][j] = grad.move;
         }
@@ -647,18 +644,18 @@ ScaleSpacePyramid generate_gradient_pyramid(const ref ScaleSpacePyramid pyramid)
 pure @fastmath bool point_is_on_edge(SliceArray)(const ref SIFTKeypoint kp, const ref SliceArray octave, float edge_thresh=C_EDGE)
 {
     const img = octave[kp.scale];
-    float h11, h12, h22;
-    int x = kp.i, y = kp.j;
+    const int x = kp.i;
+    const int y = kp.j;
 
-    h11 = img.getPixel(y, x+1) + img.getPixel(y, x-1) - 2*img.getPixel(y, x);
-    h22 = img.getPixel(y+1, x) + img.getPixel(y-1, x) - 2*img.getPixel(y, x);
-    h12 = (img.getPixel(y+1, x+1) - img.getPixel(y-1, x+1) 
+    const float h11 = img.getPixel(y, x+1) + img.getPixel(y, x-1) - 2*img.getPixel(y, x);
+    const float h22 = img.getPixel(y+1, x) + img.getPixel(y-1, x) - 2*img.getPixel(y, x);
+    const float h12 = (img.getPixel(y+1, x+1) - img.getPixel(y-1, x+1) 
          - img.getPixel(y+1, x-1) + img.getPixel(y-1, x-1)) * 0.25f;
 
 
-    float det_hessian = h11*h22 - h12*h12;
-    float tr_hessian = h11 + h22;
-    float edgeness = tr_hessian*tr_hessian / det_hessian;
+    const float det_hessian = h11*h22 - h12*h12;
+    const float tr_hessian = h11 + h22;
+    const float edgeness = tr_hessian*tr_hessian / det_hessian;
 
     if (edgeness > pow(edge_thresh+1, 2)/edge_thresh)
         return true;
@@ -671,7 +668,7 @@ pure @fastmath bool point_is_on_edge(SliceArray)(const ref SIFTKeypoint kp, cons
     int size = cast(int) ceil(6 * sigma);
     if (size % 2 == 0)
         size++;
-    int center = size / 2;
+    const int center = size / 2;
     auto kernel = uninitRCslice!float(1, size);
     
     float sum = 0;
@@ -691,7 +688,7 @@ pure @fastmath bool point_is_on_edge(SliceArray)(const ref SIFTKeypoint kp, cons
     import std.range : iota;
     auto iterableLength0 = img.shape[1] ;
 
-    void worker0(int x, int threadIndex) nothrow @nogc
+    void worker0(int x, int threadIndex) nothrow @nogc @fastmath 
     //for (int x = 0; x < img.shape[1]; x++) 
     {
         foreach_reverse (y; 0 .. img.shape[0])
@@ -708,7 +705,7 @@ pure @fastmath bool point_is_on_edge(SliceArray)(const ref SIFTKeypoint kp, cons
     pool.parallelFor(cast(int)iterableLength0, &worker0);
     // convolve horizontal
     auto iterableLength1 = img.shape[0] ;
-    void worker1(int y, int threadIndex) nothrow @nogc
+    void worker1(int y, int threadIndex) nothrow @nogc @fastmath
     //for (int y = 0; y < img.shape[0]; y++) 
     {
         foreach (x; 0 .. img.shape[1])
@@ -727,76 +724,12 @@ pure @fastmath bool point_is_on_edge(SliceArray)(const ref SIFTKeypoint kp, cons
     return filtered;
 }
 
-// use this particular image resizing to obtain the same exact results as the reference implementation.
-
-private:
-
-enum Interpolation {
-    BILINEAR,
-    NEAREST
-}
-
-//map coordinate from 0-current_max range to 0-new_max range
-pure @fastmath float map_coordinate(float new_max, float current_max, float coord)
-{
-    float a = new_max / current_max;
-    float b = -0.5f + a*0.5f;
-    return a*coord + b;
-}
-
-auto resize2(Interpolation method, S)(const ref S img, int new_h, int new_w)
-{
-    import std.range : iota;
-    import dplug.core.sync;
-
-    auto resized = uninitRCslice!float(new_h, new_w);
-
-    void worker(int x, int threadIndex) nothrow @nogc
-    //for (int x = 0; x < new_w; x++) 
-    {
-        for (int y = 0; y < new_h; y++) {
-            float old_x = map_coordinate(img.shape[1], new_w, x);
-            float old_y = map_coordinate(img.shape[0], new_h, y);
-
-            static if (method == Interpolation.BILINEAR)
-                float value = bilinear_interpolate(img, old_x, old_y);
-            else static if (method == Interpolation.NEAREST)
-                float value = nn_interpolate(img, old_x, old_y);
-            else
-                static assert(false, "Please provide a supported interpolation method as template argument.");
-            resized[y, x] = value;
-        }
-    }
-    pool.parallelFor(new_w, &worker);
-    return resized;
-}
-
-pure @fastmath float bilinear_interpolate(S)(const ref S img, float x, float y)
-{
-    import mir.math.common : floor;
-    float p1, p2, p3, p4, q1, q2;
-    float x_floor = floor(x), y_floor = floor(y);
-    float x_ceil = x_floor + 1, y_ceil = y_floor + 1;
-    p1 = img.getPixel(cast(int)y_floor, cast(int)x_floor);
-    p2 = img.getPixel(cast(int)y_floor, cast(int)x_ceil);
-    p3 = img.getPixel(cast(int)y_ceil, cast(int)x_floor);
-    p4 = img.getPixel(cast(int)y_ceil, cast(int)x_ceil);
-    q1 = (y_ceil-y)*p1 + (y-y_floor)*p3;
-    q2 = (y_ceil-y)*p2 + (y-y_floor)*p4;
-    return (x_ceil-x)*q1 + (x-x_floor)*q2;
-}
-
-pure @fastmath float nn_interpolate(S)(const ref S img, float x, float y)
-{
-    import mir.math.common : round;
-    return img.getPixel(cast(int)round(y), cast(int)round(x));
-}
-
 // easy and safe way for boundary conditions
 pragma(inline, true)
 float getPixel(S, I)(const ref S s, I row, I col, I ch = 0){
-    auto yy = row;
-    auto xx = col;
+    import std.traits : Unqual;
+    Unqual!I yy = row;
+    Unqual!I xx = col;
     if (xx < 0)
         xx = 0;
     if (xx >= s.shape[1])

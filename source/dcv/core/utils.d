@@ -89,8 +89,10 @@ static this() @nogc nothrow {
 }
 
 static ~this() @nogc nothrow {
-    if(pool !is null)
+    if(pool !is null){
         destroyFree(pool);
+        pool = null;
+    }
 }
 
 /**
